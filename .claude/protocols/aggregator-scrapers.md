@@ -18,6 +18,7 @@ When fixing a scraper:
 3. Prefer `data-qa` attributes over CSS classes — they are more stable
 4. When `data-qa` is not available, use the most structural selectors (IDs, ARIA roles, semantic elements) over brittle class names
 5. Test with a small `--max-results` run before declaring it fixed
+6. If you learned something generally useful, add it to [Experience: Scrapers](.claude/experience/scrapers.md)
 
 ## Universality Rule
 
@@ -34,41 +35,10 @@ Don't:
 - Skip fields just because the current user request doesn't need them
 - Add query-specific URL parameters or filters into `_build_search_url`
 
-## Practical Notes from Building Current Scrapers
+## General Practices
 
-### hh.ru
-
-- Layout changes frequently. Always try new selectors first, fall back to old ones:
-  - Title: `data-qa="serp-item__title-text"` (new), fallback `data-qa="vacancy-serp__vacancy-title"`
-  - Link: `data-qa="serp-item__title"` (new), fallback `data-qa="vacancy-serp__vacancy-title"`
-  - Company: `data-qa="vacancy-serp__vacancy-employer-text"` (new), fallback `data-qa="vacancy-serp__vacancy-employer"`
-- Experience selector uses starts-with: `data-qa^="vacancy-serp__vacancy-work-experience"` — the suffix varies, exact match fails
-- Remote flag: `data-qa="vacancy-label-work-schedule-remote"` — not text-based
-- URL cleanup: strip query params with `.split("?")[0]` — hh.ru appends tracking params
-- Anti-bot detection: page title may contain "Доступ ограничен" or "подтвердите" — log a warning if detected
-- Pagination: `data-qa="pager-next"`
-
-### Habr Career
-
-- Company selector: `.vacancy-card__company a` — the `<a>` tag is important, parent div has no text
-- Salary: `.basic-salary` — NOT `.vacancy-card__salary` (that one captures forecast text too)
-- Skills on card: `.vacancy-card__skills-chip .basic-chip__text`
-- Skills on detail: `.skill__name`
-- Remote detection: check for `text="Можно удалённо"` or `text="Можно из дома"` — both variants exist
-- Experience: `.chip-with-icon__text` — then normalize via `BaseScraper.normalize_experience()`
-- Pagination: `a[rel="next"], .with-pagination__side-button--next` — try both
-- Description on detail: `.vacancy-description__content`
-- Requirements on detail: `.vacancy-description__requirements`
-
-### Experience Log
-
-When you overcome a difficulty while building or fixing a scraper — whether independently or with human help — extract the reusable insight and add it to [Experience: Scrapers](.claude/experience/scrapers.md). This is a cumulative knowledge base that prevents repeating the same mistakes and accelerates future problem-solving.
-
-### General
-
-- Always `wait_until="domcontentloaded"` + `wait_for_timeout(2000)` after navigation — pages render dynamically
+- `wait_until="domcontentloaded"` + `wait_for_timeout(2000)` after navigation — pages render dynamically
 - Close pages in `finally` blocks to avoid browser memory leaks
 - Wrap per-card parsing in try/except and `continue` — one broken card shouldn't kill the whole page
-- Detail pages are fetched one at a time (sequential) — be mindful of rate limits
-- `rebrowser-patches` warnings like `cannot get world` are non-critical — ignore them
 - Salary strings are kept as-is (platform-native format) — don't try to parse them into numbers
+- `rebrowser-patches` warnings like `cannot get world` are non-critical — ignore them

@@ -1,39 +1,72 @@
 # Experience: Scrapers
 
-Reusable insights from building and fixing scrapers. Add entries when you solve a non-trivial problem — whether independently or with human help.
+Generalized, reusable insights from building and fixing scrapers. Each entry must describe a **principle** that applies beyond the specific site or situation where it was learned.
 
-Format: `### [date] brief description` followed by what happened, what was tried, and the takeaway.
+## Rule for adding entries
+
+When you solve a non-trivial problem, do NOT just record what happened. **Generalize it:**
+
+1. What is the underlying pattern or anti-pattern?
+2. When will this pattern appear again — on what other sites or in what other contexts?
+3. What is the universal strategy to handle it?
+
+If an entry only makes sense in the context of one specific site's current DOM, it belongs in the scraper's code comments — not here. This file is for transferable knowledge.
+
+Format:
+
+```
+### [topic]
+**Pattern:** the generalized situation
+**Strategy:** the universal approach
+**Origin:** brief note on where this was learned (optional, for context)
+```
 
 ---
 
-### 2026-05-23 hh.ru returning 0 results after layout change
+### Fallback selectors
 
-**Problem:** hh.ru updated their search results layout. Old selectors (`data-qa="vacancy-serp__vacancy-title"`) no longer matched anything, returning 0 listings.
+**Pattern:** Websites change layouts without notice. A selector that works today returns 0 elements tomorrow, and the scraper silently produces empty results.
 
-**Fix:** Discovered new selectors (`data-qa="serp-item__title-text"`) by inspecting the actual DOM. Added fallback pattern: try new selector first, fall back to old one.
+**Strategy:** Always code with fallback chains: try the current selector, fall back to the previous one. Pattern: `if el.count() == 0: el = fallback_selector`. When you discover a new layout, add it as the primary and keep the old one as fallback — don't replace.
 
-**Takeaway:** Always code scrapers with fallback selectors. Aggregator sites change layouts without notice. The pattern `if el.count() == 0: el = fallback_selector` is standard practice now.
+**Origin:** hh.ru changed vacancy card selectors twice.
 
-### 2026-05-23 hh.ru experience attribute has dynamic suffix
+### Dynamic attribute suffixes
 
-**Problem:** `data-qa="vacancy-serp__vacancy-work-experience"` exact match failed because hh.ru appends a dynamic suffix to the attribute.
+**Pattern:** Platforms append dynamic identifiers to otherwise stable `data-qa` or `data-*` attributes. Exact attribute matches fail even though the element exists.
 
-**Fix:** Use CSS starts-with selector: `data-qa^="vacancy-serp__vacancy-work-experience"`.
+**Strategy:** When you know an attribute should exist but exact match fails, try CSS starts-with (`[data-qa^="prefix"]`) or contains (`[data-qa*="substring"]`). This is especially common on platforms that use component-based frameworks where attributes are generated dynamically.
 
-**Takeaway:** When a `data-qa` selector fails on an attribute you know should exist, try starts-with (`^=`) — the platform may append dynamic identifiers.
+**Origin:** hh.ru appends dynamic suffixes to work-experience data-qa attributes.
 
-### 2026-05-23 Habr Career salary capturing extra text
+### Over-broad selectors
 
-**Problem:** `.vacancy-card__salary` selector captured salary forecast text in addition to the actual salary.
+**Pattern:** A class name that sounds specific (e.g., `.card__salary`) actually matches multiple elements or captures adjacent content, producing dirty data.
 
-**Fix:** Switched to `.basic-salary` which contains only the salary value.
+**Strategy:** When a field returns garbage or mixed content, look for a more specific structural element within the same subtree — one that isolates exactly the data you need. The element closest to the actual text content is usually the right one.
 
-**Takeaway:** Generic class names (`.vacancy-card__salary`) may match more elements than intended. When a field captures garbage, look for a more specific structural element that isolates just the data you need.
+**Origin:** Habr Career `.vacancy-card__salary` captured forecast text alongside salary.
 
-### 2026-05-23 Remote detection via text content is fragile
+### Text-based detection fragility
 
-**Problem:** Checking for exact Russian text like "Удаленка" or "Можно из дома" missed the actual variants used on the page.
+**Pattern:** Detecting boolean features (remote, type, etc.) by matching exact text strings is fragile. Text labels change, get localized, use synonyms, or vary across pages.
 
-**Fix:** For hh.ru, use `data-qa="vacancy-label-work-schedule-remote"`. For Habr, check both known variants: `text="Можно удалённо"` and `text="Можно из дома"`.
+**Strategy:** Prefer structural selectors (`data-qa`, ARIA roles, dedicated CSS classes) over text content. When no structural selector exists, enumerate all known text variants rather than matching one. Accept that text-based detection will always be incomplete and plan for it.
 
-**Takeaway:** Prefer `data-qa` attributes or structural selectors over text content matching. Text labels change, get localized, or use synonyms. When text matching is unavoidable, check all known variants.
+**Origin:** Remote detection on Habr Career uses multiple Russian phrases; hh.ru has a dedicated data-qa attribute for this.
+
+### URL tracking params
+
+**Pattern:** Job platforms append tracking/analytics query parameters to vacancy URLs. These bloat the URL and may break deduplication.
+
+**Strategy:** Always strip query params from vacancy URLs during parsing (`.split("?")[0]`). Keep URLs clean — tracking params add no value for downstream use.
+
+**Origin:** hh.ru appends tracking params to every vacancy link.
+
+### Anti-bot detection signals
+
+**Pattern:** Some platforms detect automation and serve CAPTCHAs or block pages instead of results. The scraper doesn't crash — it just gets empty or wrong content.
+
+**Strategy:** Check page title or key elements for known block signals (e.g., "Доступ ограничен", "verify you are human"). Log a warning when detected. Do not silently treat blocked pages as "no results."
+
+**Origin:** hh.ru occasionally serves CAPTCHAs to automated browsers.
