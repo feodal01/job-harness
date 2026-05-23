@@ -4,7 +4,7 @@ Every new session starts with filling out the search brief. Do not skip question
 
 ## Brief Template
 
-Present these questions to the user. They can answer all at once or one by one — adapt to their style. Once complete, save the filled brief to `searches/<folder>/brief.md` (see Folder Structure below).
+Present these questions to the user. They can answer all at once or one by one — adapt to their style.
 
 ```
 ## Job Search Brief
@@ -40,20 +40,18 @@ Present these questions to the user. They can answer all at once or one by one �
 - [anything else the user mentions — schedule, visa needs, industry preferences, etc.]
 ```
 
-## Folder Structure
+## Confirmation
 
-Each search gets its own folder:
+After filling the brief, **show it to the user and ask for confirmation before proceeding**. Do not start searching until the user approves. If they want changes, update the brief and confirm again.
 
-```
-searches/
-  2026-05-23_qa-engineer/
-    brief.md              # filled brief
-    results.md            # markdown report
-    results.json          # structured output
-    ...                   # any other artifacts
-```
+## Saving the Brief
 
-Naming: `YYYY-MM-DD_<job-title-slug>`. Use English, kebab-case, no spaces.
+Once confirmed, create the search folder and save the brief:
+
+- Folder: `searches/YYYY-MM-DD_<job-title-slug>/` (English, kebab-case, no spaces)
+- File: `searches/YYYY-MM-DD_<job-title-slug>/brief.md`
+
+The brief is the source of truth. If the search needs to be repeated or adjusted later, the brief has all the parameters.
 
 ## Rules
 
@@ -61,5 +59,5 @@ Naming: `YYYY-MM-DD_<job-title-slug>`. Use English, kebab-case, no spaces.
 2. **Ask don't assume** — if the user didn't mention something, ask. Don't fill in defaults on your own.
 3. **Confirm relocation scope** — if the user is searching outside their country of residence, explicitly ask: "Do you need vacancies that explicitly mention relocation support, or should I include all vacancies in target countries regardless?"
 4. **Salary without listed salary** — always ask whether to include vacancies where salary is not specified. Many good vacancies don't list salary.
-5. **Save the brief before searching** — the brief is the source of truth. If the search needs to be repeated or adjusted later, the brief has all the parameters.
-6. **Reports go into the search folder** — use `--output searches/<folder>/results.md` (or .json/.csv). Not into `reports/`.
+5. **Confirm before proceeding** — show the filled brief to the user and get explicit approval before moving to search
+6. **Save after confirmation** — write `brief.md` only after the user approves the brief
