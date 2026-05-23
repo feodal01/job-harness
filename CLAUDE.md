@@ -30,6 +30,7 @@ src/job_harness/
 
 Specific protocols and operational instructions live in `.claude/protocols/`:
 
+- [User Briefing](.claude/protocols/user-briefing.md) — how to collect search parameters from the user at session start
 - [Aggregator Scrapers](.claude/protocols/aggregator-scrapers.md) — using and maintaining hh.ru, Habr Career, and future aggregator scrapers
 
 ## Experience
@@ -42,10 +43,10 @@ Reusable insights from solving real problems. When you overcome a non-trivial di
 
 When a user asks to find jobs:
 
-1. **Parse intent** — extract query, experience level, remote preference, location, keywords to exclude
+1. **Fill the brief** — follow [User Briefing](.claude/protocols/user-briefing.md), save to `searches/<folder>/brief.md`
 2. **Choose sources** — start with `--sources all`, or specific ones if user mentioned a platform
 3. **Run search** — always use `--detail` to get full descriptions for filtering
 4. **Apply filters** — use `--exclude-keywords` and `--exclude-keywords-context` for smart filtering
-5. **Output as JSON** — use `--format json` so you can programmatically analyze results
+5. **Output as JSON** — use `--format json` so you can programmatically analyze results, save to search folder
 6. **Analyze & present** — read the JSON output, filter further if needed, present top matches with reasoning
 7. **Iterate** — if results are insufficient, adjust query/filters and run again

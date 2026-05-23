@@ -5,3 +5,4 @@ __pycache__/
 dist/
 debug_*.png
 .DS_Store
+searches/
