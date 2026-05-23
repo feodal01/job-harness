@@ -1,0 +1,8 @@
+query: "ручной тестировщик"
+remote_only: true
+experience: middle
+max_results: 20
+sources: all
+has_salary: false
+exclude_keywords: "python,java,автотест,автотесты,selenium,playwright,cypress,pytest"
+exclude_keywords_context: "плюсом,желательн,будет плюсом,будет преимуществом"
