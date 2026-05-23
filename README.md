@@ -1,25 +1,25 @@
 # job-harness
 
-Job Search OS — агентский подход к поиску работы в 2026 году.
+Job Search OS — an agent-first approach to job hunting in 2026.
 
-Скальпель, а не дробовик. Точечный поиск вакансий под ваш запрос, а не массовый автоотклик на всё подряд.
+A scalpel, not a shotgun. Precision vacancy search tailored to your request, not mass auto-apply spam.
 
-## Для кого
+## Who is this for
 
-Этот репозиторий не предназначен для ручного использования. Это ОС, в которой работает агент — AI, который ищет работу по вашему запросу. Вы описываете что ищете, агент делает остальное.
+This repo is not designed for manual use. It's an OS where an AI agent works — searching for jobs on your behalf. You describe what you're looking for, the agent does the rest.
 
-Лучше всего использовать с **Claude Code**.
+Works best with **Claude Code**.
 
-## Что умеет
+## Features
 
-- Поиск вакансий на hh.ru и Habr Career
-- Детальный парсинг описаний и навыков
-- Фильтрация по опыту, удалёнке, ключевым словам (с учётом контекста «будет плюсом»)
-- Вывод в Markdown / JSON / CSV
-- Пресеты конфигурации в YAML
-- Stealth-браузер через rebrowser-playwright
+- Job search on hh.ru and Habr Career
+- Detailed parsing of descriptions and skills
+- Filtering by experience, remote, keywords (context-aware — "nice to have" is not a requirement)
+- Output in Markdown / JSON / CSV
+- YAML preset configurations
+- Stealth browser via rebrowser-playwright
 
-## Быстрый старт
+## Quick Start
 
 ```bash
 uv sync
@@ -27,7 +27,7 @@ uv run python -m rebrowser_playwright install chromium
 uv run job-harness search --query "product manager" --remote-only --format json
 ```
 
-## Пресет
+## Presets
 
 ```bash
 uv run job-harness search --preset configs/qa_manual_remote.yaml
@@ -35,7 +35,7 @@ uv run job-harness search --preset configs/qa_manual_remote.yaml
 
 ## Roadmap
 
-- Скрапперы сайтов работодателей (Тинькофф, Сбер, Яндекс, VK)
-- Новые платформы (SuperJob, Rabota.ru, Telegram-каналы)
-- Отслеживание воронки откликов
-- Глубокий анализ вакансий агентом
+- Employer career page scrapers (Tinkoff, Sber, Yandex, VK)
+- New platforms (SuperJob, Rabota.ru, Telegram channels)
+- Application funnel tracking
+- Deeper vacancy analysis by the agent
