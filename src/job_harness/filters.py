@@ -73,3 +73,11 @@ def location_in(*locations: str) -> Callable[[JobListing], bool]:
             return True
         return any(loc.lower() in listing.location.lower() for loc in locations)
     return predicate
+
+
+def _exclude_companies(names: list[str]) -> Callable[[JobListing], bool]:
+    """Factory: exclude listings from specific companies (case-insensitive)."""
+    lowered = [n.strip().lower() for n in names]
+    def predicate(listing: JobListing) -> bool:
+        return listing.company.lower() not in lowered
+    return predicate

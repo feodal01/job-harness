@@ -5,8 +5,6 @@ from __future__ import annotations
 import argparse
 import sys
 
-import yaml
-
 from job_harness.browser import create_browser
 from job_harness.filters import apply_filters, has_salary, location_in, min_experience, no_keywords, remote_only
 from job_harness.formatters import get_formatter
@@ -18,56 +16,43 @@ import job_harness.scrapers  # noqa: F401
 
 
 def cmd_search(args: argparse.Namespace) -> None:
-    # Load preset if specified
-    preset = {}
-    if args.preset:
-        with open(args.preset) as f:
-            preset = yaml.safe_load(f) or {}
-
-    query = preset.get("query", args.query)
-    if not query:
-        print("Error: --query is required (or use --preset with a query field)", file=sys.stderr)
+    if not args.query:
+        print("Error: --query is required", file=sys.stderr)
         sys.exit(1)
 
     params = SearchParams(
-        query=query,
-        remote_only=preset.get("remote_only", args.remote_only),
-        experience=preset.get("experience", args.experience),
-        location=preset.get("location", args.location),
-        max_results=preset.get("max_results", args.max_results),
-        extra=preset.get("extra", {}),
+        query=args.query,
+        remote_only=args.remote_only,
+        experience=args.experience,
+        location=args.location,
+        max_results=args.max_results,
     )
 
     # Determine sources
-    sources_arg = preset.get("sources", args.sources)
-    if sources_arg == "all" or sources_arg is None:
+    if args.sources == "all" or args.sources is None:
         sources = list_scrapers()
     else:
-        sources = [s.strip() for s in sources_arg.split(",")]
+        sources = [s.strip() for s in args.sources.split(",")]
 
     # Build filters
     filters = []
     if params.remote_only:
         filters.append(remote_only)
-    if preset.get("has_salary") or args.has_salary:
+    if args.has_salary:
         filters.append(has_salary)
+    if args.exclude_companies:
+        from job_harness.filters import _exclude_companies
+        filters.append(_exclude_companies(args.exclude_companies.split(",")))
     if params.experience:
         filters.append(min_experience(params.experience))
 
-    exclude_kw = preset.get("exclude_keywords", None)
     if args.exclude_keywords:
-        exclude_kw = args.exclude_keywords
-    if exclude_kw:
-        keywords = [k.strip() for k in exclude_kw.split(",")]
-        ignore_ctx = preset.get("exclude_keywords_context", None)
-        if args.exclude_keywords_context:
-            ignore_ctx = args.exclude_keywords_context
-        ignore_words = [w.strip() for w in ignore_ctx.split(",")] if ignore_ctx else None
+        keywords = [k.strip() for k in args.exclude_keywords.split(",")]
+        ignore_words = [w.strip() for w in args.exclude_keywords_context.split(",")] if args.exclude_keywords_context else None
         filters.append(no_keywords(*keywords, ignore_context=ignore_words))
 
-    loc_filter = preset.get("location_filter", None)
-    if loc_filter:
-        filters.append(location_in(*loc_filter if isinstance(loc_filter, list) else [loc_filter]))
+    if args.location:
+        filters.append(location_in(args.location))
 
     from rebrowser_playwright.sync_api import sync_playwright
 
@@ -154,13 +139,13 @@ def main() -> None:
     search_parser.add_argument("--detail", action="store_true", help="Fetch full details for each listing")
     search_parser.add_argument("--exclude-keywords", help="Comma-separated keywords to exclude")
     search_parser.add_argument("--exclude-keywords-context", help="Comma-separated context words that allow excluded keywords")
+    search_parser.add_argument("--exclude-companies", help="Comma-separated company names to exclude")
     search_parser.add_argument("--has-salary", action="store_true", help="Only listings with salary info")
     search_parser.add_argument("--format", choices=["markdown", "json", "csv"], default="markdown", help="Output format")
     search_parser.add_argument("--output", "-o", help="Output file path")
     search_parser.add_argument("--headless", action="store_true", default=True, help="Run browser headless (default)")
     search_parser.add_argument("--no-headless", dest="headless", action="store_false", help="Show browser window")
     search_parser.add_argument("--debug", action="store_true", help="Save debug screenshots")
-    search_parser.add_argument("--preset", help="Path to YAML preset config")
 
     # --- list-sources ---
     subparsers.add_parser("list-sources", help="List available scrapers")
