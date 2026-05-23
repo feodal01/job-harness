@@ -60,6 +60,10 @@ Don't:
 - Description on detail: `.vacancy-description__content`
 - Requirements on detail: `.vacancy-description__requirements`
 
+### Experience Log
+
+When you overcome a difficulty while building or fixing a scraper — whether independently or with human help — extract the reusable insight and add it to [Experience: Scrapers](.claude/experience/scrapers.md). This is a cumulative knowledge base that prevents repeating the same mistakes and accelerates future problem-solving.
+
 ### General
 
 - Always `wait_until="domcontentloaded"` + `wait_for_timeout(2000)` after navigation — pages render dynamically

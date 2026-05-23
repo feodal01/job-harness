@@ -32,6 +32,12 @@ Specific protocols and operational instructions live in `.claude/protocols/`:
 
 - [Aggregator Scrapers](.claude/protocols/aggregator-scrapers.md) — using and maintaining hh.ru, Habr Career, and future aggregator scrapers
 
+## Experience
+
+Reusable insights from solving real problems. When you overcome a non-trivial difficulty, extract the takeaway and add it to the relevant experience file.
+
+- [Scrapers](.claude/experience/scrapers.md) — practical lessons from building and fixing scrapers
+
 ## Agent Workflow
 
 When a user asks to find jobs:
