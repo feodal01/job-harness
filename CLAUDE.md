@@ -67,9 +67,13 @@ When a user asks to find jobs:
 - The `raw` dict on JobListing holds platform-specific data that doesn't map to universal fields.
 - Experience normalization: raw text → "junior" | "middle" | "senior". See `BaseScraper.normalize_experience()`.
 
+## Philosophy
+
+Job aggregators are middlemen that create a search bubble. Many companies post vacancies only on their own career pages — never on aggregators. Finding a vacancy directly on a company's site and applying there is a strong signal of genuine interest. The agent should break out of the aggregator bubble whenever possible.
+
 ## Current Limitations
 
-- Only Russian job platforms (hh.ru, Habr Career)
+- Only aggregator platforms (hh.ru, Habr Career) — no direct company career page discovery yet
 - No application tracking yet
 - Detail fetching is sequential (one page at a time)
 - No deduplication across sources

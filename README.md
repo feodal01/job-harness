@@ -4,6 +4,10 @@ Job Search OS — an agent-first approach to job hunting in 2026.
 
 A scalpel, not a shotgun. Precision vacancy search tailored to your request, not mass auto-apply spam.
 
+## Why
+
+Job aggregators are middlemen. They trap you in a bubble — you only see what companies paid to post there. But many companies maintain their own career pages with vacancies that never make it to aggregators. Finding and applying through a company's own site is a signal: you're genuinely interested, not just shotgun-blasting resumes. Job-harness is built to break out of that bubble.
+
 ## Who is this for
 
 This repo is not designed for manual use. It's an OS where an AI agent works — searching for jobs on your behalf. You describe what you're looking for, the agent does the rest.
@@ -35,7 +39,7 @@ uv run job-harness search --preset configs/qa_manual_remote.yaml
 
 ## Roadmap
 
-- Employer career page scrapers (Tinkoff, Sber, Yandex, VK)
+- Agent skill: discover company career pages from web search and scrape them directly
 - New platforms (SuperJob, Rabota.ru, Telegram channels)
 - Application funnel tracking
 - Deeper vacancy analysis by the agent
