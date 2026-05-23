@@ -6,6 +6,10 @@ job-harness is a Job Search OS. It is NOT a tool for humans to use directly — 
 
 The agent receives a natural-language job search request, translates it into CLI commands, runs them, analyzes results, and presents findings.
 
+## Philosophy
+
+Job aggregators are middlemen that create a search bubble. Many companies post vacancies only on their own career pages — never on aggregators. Finding a vacancy directly on a company's site and applying there is a strong signal of genuine interest. The agent should break out of the aggregator bubble whenever possible.
+
 ## Architecture
 
 ```
@@ -22,30 +26,11 @@ src/job_harness/
     └── habr_career.py  # Habr Career scraper
 ```
 
-## How to Add a New Scraper
+## Protocols & Detailed Instructions
 
-1. Create `src/job_harness/scrapers/<platform>.py`
-2. Subclass `BaseScraper`, implement `search()` and `fetch_detail()`
-3. Decorate with `@register_scraper("platform_name")`
-4. Import in `src/job_harness/scrapers/__init__.py`
+Specific protocols and operational instructions live in `.claude/protocols/`:
 
-That's it. The registry auto-discovers it. No changes to CLI or any other file needed.
-
-## CLI Reference
-
-```bash
-# Search
-uv run job-harness search --query "..." --sources hh_ru,habr_career --remote-only --experience middle --max-results 20 --detail --format json --output results.json
-
-# Exclude keywords (with context-aware exceptions)
-uv run job-harness search --query "..." --exclude-keywords "python,java" --exclude-keywords-context "плюсом,желательн"
-
-# From preset
-uv run job-harness search --preset configs/qa_manual_remote.yaml
-
-# List available scrapers
-uv run job-harness list-sources
-```
+- [Aggregator Scrapers](.claude/protocols/aggregator-scrapers.md) — using and maintaining hh.ru, Habr Career, and future aggregator scrapers
 
 ## Agent Workflow
 
@@ -58,22 +43,3 @@ When a user asks to find jobs:
 5. **Output as JSON** — use `--format json` so you can programmatically analyze results
 6. **Analyze & present** — read the JSON output, filter further if needed, present top matches with reasoning
 7. **Iterate** — if results are insufficient, adjust query/filters and run again
-
-## Key Conventions
-
-- Filters check `description` and `requirements` fields, NOT `skills`. This is intentional — skills listed don't mean they're required.
-- `--exclude-keywords-context` is crucial for Russian job market where "будет плюсом" (nice to have) is common.
-- Always use `--headless` (default). Use `--no-headless` only for debugging selectors.
-- The `raw` dict on JobListing holds platform-specific data that doesn't map to universal fields.
-- Experience normalization: raw text → "junior" | "middle" | "senior". See `BaseScraper.normalize_experience()`.
-
-## Philosophy
-
-Job aggregators are middlemen that create a search bubble. Many companies post vacancies only on their own career pages — never on aggregators. Finding a vacancy directly on a company's site and applying there is a strong signal of genuine interest. The agent should break out of the aggregator bubble whenever possible.
-
-## Current Limitations
-
-- Only aggregator platforms (hh.ru, Habr Career) — no direct company career page discovery yet
-- No application tracking yet
-- Detail fetching is sequential (one page at a time)
-- No deduplication across sources
