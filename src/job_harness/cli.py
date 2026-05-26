@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from job_harness.browser import create_browser
+from job_harness.employer_cache import EmployerCache
 from job_harness.filters import apply_filters, has_salary, location_in, min_experience, no_keywords, remote_only
 from job_harness.formatters import get_formatter
 from job_harness.models import SearchParams
@@ -13,6 +15,7 @@ from job_harness.registry import create_scraper, get_scraper_info, list_scrapers
 
 # Ensure scrapers are imported so @register_scraper decorators fire
 import job_harness.scrapers  # noqa: F401
+import job_harness.scrapers.career  # noqa: F401
 
 
 def cmd_search(args: argparse.Namespace) -> None:
@@ -84,16 +87,41 @@ def cmd_search(args: argparse.Namespace) -> None:
                 except Exception as e:
                     errors.append(f"{source_name}: {e}")
                     print(f"  Error: {e}", file=sys.stderr)
+
+            # Apply filters
+            if filters:
+                before = len(all_listings)
+                all_listings = apply_filters(all_listings, filters)
+                print(f"Filters removed {before - len(all_listings)} listings, {len(all_listings)} remaining", file=sys.stderr)
+
+            all_listings = all_listings[:params.max_results]
+
+            # Resolve employer career pages if requested
+            if args.resolve and all_listings:
+                from job_harness.employer_resolver import resolve_listings
+                cache = EmployerCache() if args.cache else None
+                if cache:
+                    print(f"Using employer cache ({len(cache.all_entries())} entries)", file=sys.stderr)
+                print("Resolving employer career pages...", file=sys.stderr)
+                enriched = resolve_listings(
+                    [l.to_dict() for l in all_listings],
+                    context,
+                    query=params.query,
+                    cache=cache,
+                )
+                for listing, enrich in zip(all_listings, enriched):
+                    if enrich.careers_page:
+                        cp = enrich.careers_page
+                        listing.raw["careers_url"] = cp.careers_url
+                        listing.raw["careers_type"] = cp.page_type
+                        listing.raw["direct_vacancy_url"] = cp.direct_vacancy_url
+                        if cp.direct_vacancy_url:
+                            listing.url = cp.direct_vacancy_url
+                            listing.source = f"{listing.source}+direct"
+                        elif cp.careers_url:
+                            listing.raw["employer_careers"] = cp.careers_url
         finally:
             browser.close()
-
-    # Apply filters
-    if filters:
-        before = len(all_listings)
-        all_listings = apply_filters(all_listings, filters)
-        print(f"Filters removed {before - len(all_listings)} listings, {len(all_listings)} remaining", file=sys.stderr)
-
-    all_listings = all_listings[:params.max_results]
 
     from job_harness.models import SearchResults
 
@@ -121,6 +149,62 @@ def cmd_list_sources(args: argparse.Namespace) -> None:
         print(f"  {name:20s} {display}")
 
 
+def cmd_resolve(args: argparse.Namespace) -> None:
+    """Resolve aggregator listings to direct employer career pages."""
+    listings = []
+    if args.input_file:
+        with open(args.input_file, encoding="utf-8") as f:
+            data = json.load(f)
+        listings = data.get("listings", data) if isinstance(data, dict) else data
+    elif args.urls:
+        for url in args.urls:
+            listings.append({"url": url, "company": "", "title": "", "source": ""})
+    else:
+        print("Error: provide --input-file or URLs", file=sys.stderr)
+        sys.exit(1)
+
+    query = args.query or ""
+
+    from rebrowser_playwright.sync_api import sync_playwright
+    from job_harness.employer_resolver import resolve_listings
+
+    cache = EmployerCache() if args.cache else None
+
+    with sync_playwright() as pw:
+        browser, context = create_browser(pw, headless=args.headless)
+        try:
+            enriched = resolve_listings(listings, context, query=query, cache=cache)
+        finally:
+            browser.close()
+
+    # Output results
+    results = []
+    for e in enriched:
+        entry = {
+            "company": e.company,
+            "title": e.title,
+            "aggregator_url": e.original_url,
+            "source": e.source,
+            "best_url": e.best_url,
+        }
+        if e.careers_page:
+            cp = e.careers_page
+            entry["careers_url"] = cp.careers_url
+            entry["careers_type"] = cp.page_type
+            entry["direct_vacancy_url"] = cp.direct_vacancy_url
+            if cp.error:
+                entry["error"] = cp.error
+        results.append(entry)
+
+    output = json.dumps(results, ensure_ascii=False, indent=2)
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(output)
+        print(f"Output written to {args.output}", file=sys.stderr)
+    else:
+        print(output)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="job-harness",
@@ -146,15 +230,29 @@ def main() -> None:
     search_parser.add_argument("--headless", action="store_true", default=True, help="Run browser headless (default)")
     search_parser.add_argument("--no-headless", dest="headless", action="store_false", help="Show browser window")
     search_parser.add_argument("--debug", action="store_true", help="Save debug screenshots")
+    search_parser.add_argument("--resolve", action="store_true", help="Resolve listings to direct employer career pages")
+    search_parser.add_argument("--cache", action="store_true", help="Cache employer career page results for future searches")
 
     # --- list-sources ---
     subparsers.add_parser("list-sources", help="List available scrapers")
+
+    # --- resolve ---
+    resolve_parser = subparsers.add_parser("resolve", help="Resolve aggregator listings to employer career pages")
+    resolve_parser.add_argument("--input-file", "-i", help="JSON file with search results")
+    resolve_parser.add_argument("--query", "-q", help="Original search query (improves vacancy matching)")
+    resolve_parser.add_argument("--output", "-o", help="Output file path")
+    resolve_parser.add_argument("--headless", action="store_true", default=True, help="Run browser headless (default)")
+    resolve_parser.add_argument("--no-headless", dest="headless", action="store_false", help="Show browser window")
+    resolve_parser.add_argument("--cache", action="store_true", help="Cache employer career page results for future searches")
+    resolve_parser.add_argument("urls", nargs="*", help="Aggregator URLs to resolve")
 
     args = parser.parse_args()
     if args.command == "search":
         cmd_search(args)
     elif args.command == "list-sources":
         cmd_list_sources(args)
+    elif args.command == "resolve":
+        cmd_resolve(args)
     else:
         parser.print_help()
 

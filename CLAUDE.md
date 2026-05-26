@@ -14,16 +14,22 @@ Job aggregators are middlemen that create a search bubble. Many companies post v
 
 ```
 src/job_harness/
-├── models.py        # SearchParams, JobListing, SearchResults
-├── base.py          # BaseScraper ABC (search + fetch_detail)
-├── registry.py      # @register_scraper decorator, scraper discovery
-├── browser.py       # Stealth browser factory (rebrowser-playwright)
-├── filters.py       # Callable-based filter system
-├── formatters.py    # Markdown, JSON, CSV output
-├── cli.py           # CLI entry point (search, list-sources)
+├── models.py            # SearchParams, JobListing, SearchResults
+├── base.py              # BaseScraper ABC (search + fetch_detail)
+├── registry.py          # @register_scraper decorator, scraper discovery
+├── browser.py           # Stealth browser factory (rebrowser-playwright)
+├── filters.py           # Callable-based filter system
+├── formatters.py        # Markdown, JSON, CSV output
+├── employer_resolver.py # Resolve aggregator listings to direct employer pages
+├── employer_cache.py    # JSON cache of company → career page mappings
+├── cli.py               # CLI entry point (search, resolve, list-sources)
 └── scrapers/
-    ├── hh_ru.py     # hh.ru scraper
-    └── habr_career.py  # Habr Career scraper
+    ├── hh_ru.py         # hh.ru scraper
+    ├── habr_career.py   # Habr Career scraper
+    └── career/          # Per-company career site scrapers
+        ├── base.py      # BaseCareerScraper ABC + registry
+        ├── vk.py        # ВКонтакте (team.vk.company)
+        └── ibs.py       # IBS (ibs.ru/career)
 ```
 
 ## Protocols & Detailed Instructions
@@ -32,6 +38,7 @@ Specific protocols and operational instructions live in `.claude/protocols/`:
 
 - [User Briefing](.claude/protocols/user-briefing.md) — how to collect search parameters from the user at session start
 - [Aggregator Scrapers](.claude/protocols/aggregator-scrapers.md) — using and maintaining hh.ru, Habr Career, and future aggregator scrapers
+- [Employer Resolution](.claude/protocols/employer-resolution.md) — resolving aggregator listings to direct employer career pages
 
 ## Experience
 
@@ -48,5 +55,6 @@ When a user asks to find jobs:
 3. **Run search** — always use `--detail` to get full descriptions for filtering
 4. **Apply filters** — use `--exclude-keywords` and `--exclude-keywords-context` for smart filtering
 5. **Output as JSON** — use `--format json` so you can programmatically analyze results, save to search folder
-6. **Analyze & present** — read the JSON output, filter further if needed, present top matches with reasoning
-7. **Iterate** — if results are insufficient, adjust query/filters and run again
+6. **Resolve employers** — run `job-harness resolve --input-file <results.json> --query <query> --cache` or use `--resolve --cache` flag during search to find direct employer career pages and cache results
+7. **Analyze & present** — read the JSON output, filter further if needed, present top matches with reasoning; prefer direct employer URLs when available
+8. **Iterate** — if results are insufficient, adjust query/filters and run again
