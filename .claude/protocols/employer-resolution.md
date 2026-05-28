@@ -69,7 +69,21 @@ Search results JSON → `resolve_listings()` → enriched results with:
 
 ## Caching
 
-Company career page URLs rarely change. The `EmployerCache` stores resolved data in `data/company-careers.json`.
+Company career page URLs rarely change. The `EmployerCache` uses a two-tier system:
+
+### Local cache (`data/company-careers.json`)
+
+All entries, including companies with no career page. Not committed to git — avoids
+noise in the repo and keeps user-specific search history local.
+
+### Public cache (`data/company-careers-public.json`)
+
+Only entries with a `careers_url` (companies where a career page was found). Committed
+to git — serves as a crowdsourced knowledge base that other users can reuse and extend.
+
+On load, the public cache is merged first as a baseline, then the local cache on top
+(newer entries win). This means pulling from git gives you known career pages for free,
+while your local runs add to and refine that knowledge.
 
 Cache entries include:
 - `careers_url`
