@@ -49,14 +49,15 @@ class CompanyEntry:
 
 
 class EmployerCache:
-    def __init__(self, path: Path | str | None = None):
+    def __init__(self, path: Path | str | None = None, public_path: Path | str | None = None):
         self.path = Path(path) if path else LOCAL_CACHE_PATH
+        self.public_path = Path(public_path) if public_path else PUBLIC_CACHE_PATH
         self._data: dict[str, CompanyEntry] = {}
         self._load()
 
     def _load(self) -> None:
         # Load public cache first (as baseline), then local cache on top
-        self._merge_from(PUBLIC_CACHE_PATH)
+        self._merge_from(self.public_path)
         self._merge_from(self.path)
 
     def _merge_from(self, path: Path) -> None:
@@ -87,7 +88,7 @@ class EmployerCache:
         self._write(self.path, self._data)
         # Write public cache with only useful entries
         public = {k: v for k, v in self._data.items() if v.is_useful()}
-        self._write(PUBLIC_CACHE_PATH, public)
+        self._write(self.public_path, public)
 
     @staticmethod
     def _write(path: Path, data: dict[str, CompanyEntry]) -> None:

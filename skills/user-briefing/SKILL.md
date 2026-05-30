@@ -1,4 +1,10 @@
-# Protocol: User Briefing
+---
+name: user-briefing
+description: Activate when starting a job search session to collect user preferences and requirements
+version: 1.0.0
+---
+
+# User Briefing
 
 Every new session starts with filling out the search brief. Do not skip questions. Do not assume answers. Ask the user directly.
 
@@ -48,8 +54,8 @@ After filling the brief, **show it to the user and ask for confirmation before p
 
 Once confirmed, create the search folder and save the brief:
 
-- Folder: `searches/YYYY-MM-DD_<job-title-slug>/` (English, kebab-case, no spaces)
-- File: `searches/YYYY-MM-DD_<job-title-slug>/brief.md`
+- Folder: `.job-harness/searches/YYYY-MM-DD_<job-title-slug>/` (English, kebab-case, no spaces)
+- File: `.job-harness/searches/YYYY-MM-DD_<job-title-slug>/brief.md`
 
 The brief is the source of truth. If the search needs to be repeated or adjusted later, the brief has all the parameters.
 

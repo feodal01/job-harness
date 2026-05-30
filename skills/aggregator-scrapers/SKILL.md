@@ -1,4 +1,10 @@
-# Protocol: Aggregator Scrapers
+---
+name: aggregator-scrapers
+description: Activate when maintaining, fixing, or adding job aggregator scrapers
+version: 1.0.0
+---
+
+# Aggregator Scrapers
 
 ## Location & Registry
 
@@ -18,7 +24,7 @@ When fixing a scraper:
 3. Prefer `data-qa` attributes over CSS classes — they are more stable
 4. When `data-qa` is not available, use the most structural selectors (IDs, ARIA roles, semantic elements) over brittle class names
 5. Test with a small `--max-results` run before declaring it fixed
-6. If you learned something generally useful, add it to [Experience: Scrapers](.claude/experience/scrapers.md)
+6. If you learned something generally useful, add it to the `scraper-insights` skill
 
 ## Universality Rule
 
@@ -42,3 +48,13 @@ Don't:
 - Wrap per-card parsing in try/except and `continue` — one broken card shouldn't kill the whole page
 - Salary strings are kept as-is (platform-native format) — don't try to parse them into numbers
 - `rebrowser-patches` warnings like `cannot get world` are non-critical — ignore them
+
+## Adding a new aggregator scraper
+
+1. Create `src/job_harness/scrapers/<platform>.py`
+2. Subclass `BaseScraper`, implement `search(params)` and `fetch_detail(listing)`
+3. Decorate with `@register_scraper("<name>")`
+4. Import in `scrapers/__init__.py`
+5. The `list_sources` MCP tool will auto-discover it
+
+Use the `scraper-insights` skill for practical lessons learned from building and fixing scrapers.

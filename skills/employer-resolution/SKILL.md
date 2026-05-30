@@ -1,4 +1,10 @@
-# Protocol: Employer Resolution
+---
+name: employer-resolution
+description: Activate when resolving aggregator listings to direct employer career pages
+version: 1.0.0
+---
+
+# Employer Resolution
 
 ## What
 
@@ -17,19 +23,13 @@ Run resolution **after** search, on the filtered set of listings you plan to pre
 
 ## How
 
-### Option A: CLI resolve command
+### Using MCP tools
 
-```bash
-# Resolve from a saved search results JSON file
-job-harness resolve --input-file searches/2026-05-24_qa/results.json --query "ручной тестировщик" --output searches/2026-05-24_qa/resolved.json
+- `resolve` tool — batch resolve listings from search results
+- `resolve_company` tool — resolve a single company
+- `cache_get` / `cache_upsert` — read/write cache entries
 
-# Or inline during search
-job-harness search --query "ручной тестировщик" --detail --resolve --format json --output results.json
-```
-
-### Option B: Agent-driven resolution
-
-The agent can resolve manually using this workflow:
+### Manual agent-driven resolution
 
 1. **Extract company names** from search results
 2. **Deduplicate** — resolve each company only once
@@ -61,7 +61,7 @@ This means the resolver will have varying success rates by company size. Don't p
 
 ## Data flow
 
-Search results JSON → `resolve_listings()` → enriched results with:
+Search results JSON → `resolve` MCP tool → enriched results with:
 - `raw.careers_url` — employer career page URL
 - `raw.careers_type` — ATS classification (direct, greenhouse, lever, workday, huntflow)
 - `raw.direct_vacancy_url` — direct link to the same vacancy on employer site
@@ -73,17 +73,13 @@ Company career page URLs rarely change. The `EmployerCache` uses a two-tier syst
 
 ### Local cache (`data/company-careers.json`)
 
-All entries, including companies with no career page. Not committed to git — avoids
-noise in the repo and keeps user-specific search history local.
+All entries, including companies with no career page. Not committed to git — avoids noise in the repo and keeps user-specific search history local.
 
 ### Public cache (`data/company-careers-public.json`)
 
-Only entries with a `careers_url` (companies where a career page was found). Committed
-to git — serves as a crowdsourced knowledge base that other users can reuse and extend.
+Only entries with a `careers_url` (companies where a career page was found). Committed to git — serves as a crowdsourced knowledge base that other users can reuse and extend.
 
-On load, the public cache is merged first as a baseline, then the local cache on top
-(newer entries win). This means pulling from git gives you known career pages for free,
-while your local runs add to and refine that knowledge.
+On load, the public cache is merged first as a baseline, then the local cache on top (newer entries win). This means pulling from git gives you known career pages for free, while your local runs add to and refine that knowledge.
 
 Cache entries include:
 - `careers_url`
@@ -95,11 +91,7 @@ Cache entries include:
 
 Cache is fresh for 7 days. After that, re-verify. If a company has `ignored: true`, skip it entirely.
 
-Enable with `--cache` flag:
-```bash
-job-harness search --query "QA engineer" --detail --resolve --cache --format json
-job-harness resolve --input-file results.json --query "QA engineer" --cache
-```
+Use `cache=true` when calling `search` or `resolve` MCP tools.
 
 ## Per-company career scrapers
 

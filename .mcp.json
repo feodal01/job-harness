@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "job-harness": {
+      "command": "uv",
+      "args": [
+        "--directory", "${CLAUDE_PLUGIN_ROOT}",
+        "run", "python", "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-server.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "JOB_HARNESS_ROOT": "${CLAUDE_PLUGIN_ROOT}"
+      }
+    }
+  }
+}

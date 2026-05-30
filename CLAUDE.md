@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-job-harness is a Job Search OS. It is NOT a tool for humans to use directly — it is the runtime environment in which an AI agent searches for jobs on behalf of a human.
+job-harness is a Job Search OS and Claude Code plugin. It is NOT a tool for humans to use directly — it is the runtime environment in which an AI agent searches for jobs on behalf of a human.
 
-The agent receives a natural-language job search request, translates it into CLI commands, runs them, analyzes results, and presents findings.
+The agent receives a natural-language job search request, translates it into MCP tool calls, runs them, analyzes results, and presents findings.
 
 ## Philosophy
 
@@ -32,29 +32,13 @@ src/job_harness/
         └── ibs.py       # IBS (ibs.ru/career)
 ```
 
-## Protocols & Detailed Instructions
+## Plugin Components
 
-Specific protocols and operational instructions live in `.claude/protocols/`:
+This repo is a Claude Code plugin with:
 
-- [User Briefing](.claude/protocols/user-briefing.md) — how to collect search parameters from the user at session start
-- [Aggregator Scrapers](.claude/protocols/aggregator-scrapers.md) — using and maintaining hh.ru, Habr Career, and future aggregator scrapers
-- [Employer Resolution](.claude/protocols/employer-resolution.md) — resolving aggregator listings to direct employer career pages
+- **Commands**: `/job-search`, `/job-resolve`, `/job-contribute`
+- **Skills**: `user-briefing`, `employer-resolution`, `aggregator-scrapers`, `scraper-insights`
+- **Agent**: `job-searcher` — full automated workflow
+- **MCP tools**: `search`, `resolve`, `resolve_company`, `list_sources`, `cache_get`, `cache_upsert`, `cache_diff`, `cache_stats`
 
-## Experience
-
-Reusable insights from solving real problems. When you overcome a non-trivial difficulty, extract the takeaway and add it to the relevant experience file.
-
-- [Scrapers](.claude/experience/scrapers.md) — practical lessons from building and fixing scrapers
-
-## Agent Workflow
-
-When a user asks to find jobs:
-
-1. **Fill the brief** — follow [User Briefing](.claude/protocols/user-briefing.md), save to `searches/<folder>/brief.md`
-2. **Choose sources** — start with `--sources all`, or specific ones if user mentioned a platform
-3. **Run search** — always use `--detail` to get full descriptions for filtering
-4. **Apply filters** — use `--exclude-keywords` and `--exclude-keywords-context` for smart filtering
-5. **Output as JSON** — use `--format json` so you can programmatically analyze results, save to search folder
-6. **Resolve employers** — run `job-harness resolve --input-file <results.json> --query <query> --cache` or use `--resolve --cache` flag during search to find direct employer career pages and cache results
-7. **Analyze & present** — read the JSON output, filter further if needed, present top matches with reasoning; prefer direct employer URLs when available
-8. **Iterate** — if results are insufficient, adjust query/filters and run again
+The Python CLI still works standalone: `uv run job-harness search --query "QA" --resolve --cache`
