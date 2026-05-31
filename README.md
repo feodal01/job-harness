@@ -12,7 +12,7 @@ Job aggregators are middlemen. They trap you in a bubble — you only see what c
 
 This repo is not designed for manual use. It's an OS where an AI agent works — searching for jobs on your behalf. You describe what you're looking for, the agent does the rest.
 
-Works best with **Claude Code** (as a plugin).
+Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
 
 ## Features
 
@@ -22,7 +22,7 @@ Works best with **Claude Code** (as a plugin).
 - Employer resolution: aggregator listings → direct employer career pages
 - Per-company career scrapers (VK, IBS)
 - Crowdsourced employer career page cache
-- MCP server with 8 tools for Claude Code integration
+- MCP server with 8 tools for Claude Code and Codex integration
 - Slash commands: `/job-search`, `/job-resolve`, `/job-contribute`
 - Output in Markdown / JSON / CSV
 - Stealth browser via rebrowser-playwright
@@ -43,12 +43,37 @@ Works best with **Claude Code** (as a plugin).
    uv run python -m rebrowser_playwright install chromium
    ```
 
-3. Run Claude Code with the plugin:
+3. Run Claude Code with the plugin directly:
    ```bash
    claude --plugin-dir /path/to/job-harness
    ```
 
 The plugin provides MCP tools (`search`, `resolve`, `resolve_company`, `list_sources`, `cache_get`, `cache_upsert`, `cache_diff`, `cache_stats`), slash commands (`/job-search`, `/job-resolve`, `/job-contribute`), and skills (`user-briefing`, `employer-resolution`, `aggregator-scrapers`, `scraper-insights`).
+
+To install from the repository marketplace instead:
+
+```bash
+claude plugin marketplace add /path/to/job-harness
+claude plugin install job-harness@job-harness
+```
+
+### As a Codex plugin
+
+1. Clone the repo and install runtime dependencies:
+   ```bash
+   git clone https://github.com/feodal01/job-harness.git
+   cd job-harness
+   uv sync
+   uv run python -m rebrowser_playwright install chromium
+   ```
+
+2. Add the local marketplace and install the plugin:
+   ```bash
+   codex plugin marketplace add /path/to/job-harness
+   codex plugin add job-harness@job-harness
+   ```
+
+Codex uses the same MCP tools and skills. Claude-only slash commands and agents remain available through Claude Code.
 
 ### As a standalone CLI
 

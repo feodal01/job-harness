@@ -1,0 +1,20 @@
+{
+  "name": "job-harness",
+  "interface": {
+    "displayName": "Job Harness"
+  },
+  "plugins": [
+    {
+      "name": "job-harness",
+      "source": {
+        "source": "local",
+        "path": "./plugins/job-harness"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

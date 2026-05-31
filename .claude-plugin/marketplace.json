@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "job-harness",
+  "description": "Job Search OS plugins for agent-first job hunting.",
+  "owner": {
+    "name": "job-harness"
+  },
+  "plugins": [
+    {
+      "name": "job-harness",
+      "source": "./",
+      "description": "AI agent runtime for job search, employer career page resolution, and crowdsourced career-page cache management.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Local developer"
+      },
+      "homepage": "https://github.com/feodal01/job-harness",
+      "repository": "https://github.com/feodal01/job-harness",
+      "license": "MIT",
+      "keywords": [
+        "jobs",
+        "search",
+        "career",
+        "employer-resolution"
+      ],
+      "category": "productivity"
+    }
+  ]
+}

@@ -2,6 +2,9 @@
   "name": "job-harness",
   "version": "0.2.0",
   "description": "Job search OS — AI agent finds jobs, resolves to employer career pages, crowdsourced cache",
+  "author": {
+    "name": "Local developer"
+  },
   "repository": "https://github.com/feodal01/job-harness",
   "license": "MIT",
   "keywords": ["jobs", "search", "career", "employer-resolution"],

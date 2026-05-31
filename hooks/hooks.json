@@ -1,10 +1,16 @@
 {
-  "SessionStart": [{
-    "matcher": "",
-    "hooks": [{
-      "type": "command",
-      "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/init-folders.sh",
-      "timeout": 5
-    }]
-  }]
+  "description": "Create job-harness artifact directories when a Claude Code session starts.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/init-folders.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
 }
