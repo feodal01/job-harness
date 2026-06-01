@@ -12,7 +12,7 @@ Resolve job listings from aggregators to the employer's direct career page.
 **Workflow**:
 
 1. If the user provides a file path, read it and extract listings.
-2. Use the `resolve` MCP tool to resolve each listing. Use `cache=true` to leverage the crowdsourced cache.
+2. Use the `resolve` MCP tool to resolve each listing. Use `cache=true` to leverage the bundled registry and local cache.
 3. Present results as a table: Company | Aggregator URL | Career Page | Direct Vacancy | ATS Type
 4. Save resolved results alongside the original search results.
 

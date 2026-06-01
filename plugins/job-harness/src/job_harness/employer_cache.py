@@ -3,13 +3,13 @@
 Two-tier cache:
 - Local cache (data/company-careers.json): all entries, including null results.
   Not committed to git — used by the resolver to avoid re-checking companies.
-- Public cache (data/company-careers-public.json): only entries with a
-  careers_url. Committed to git — shared across users as a crowdsourced
-  knowledge base.
+- Bundled registry (data/company-careers-public.json): only entries with a
+  careers_url. Updated through plugin releases and used as a verified baseline.
 
-On load, entries from the public cache are merged into the local cache
-(if the public entry is newer or the local one doesn't exist). On save,
-both files are written.
+On load, entries from the bundled registry are merged into the local cache
+(if the bundled entry is newer or the local one doesn't exist). On save,
+only the local cache is written; the bundled registry is updated through
+plugin releases.
 """
 
 from __future__ import annotations
@@ -43,11 +43,6 @@ class CompanyEntry:
             return False
         return datetime.now() - checked < timedelta(days=days)
 
-    def is_useful(self) -> bool:
-        """Whether this entry has a careers_url — worth sharing publicly."""
-        return self.careers_url is not None
-
-
 class EmployerCache:
     def __init__(self, path: Path | str | None = None, public_path: Path | str | None = None):
         self.path = Path(path) if path else LOCAL_CACHE_PATH
@@ -56,7 +51,7 @@ class EmployerCache:
         self._load()
 
     def _load(self) -> None:
-        # Load public cache first (as baseline), then local cache on top
+        # Load bundled registry first (as baseline), then local cache on top
         self._merge_from(self.public_path)
         self._merge_from(self.path)
 
@@ -84,11 +79,7 @@ class EmployerCache:
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        # Always write local cache with all entries
         self._write(self.path, self._data)
-        # Write public cache with only useful entries
-        public = {k: v for k, v in self._data.items() if v.is_useful()}
-        self._write(self.public_path, public)
 
     @staticmethod
     def _write(path: Path, data: dict[str, CompanyEntry]) -> None:
