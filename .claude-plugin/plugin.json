@@ -1,7 +1,7 @@
 {
   "name": "job-harness",
   "version": "0.2.0",
-  "description": "Job search OS — AI agent finds jobs, resolves to employer career pages, crowdsourced cache",
+  "description": "Job search OS — AI agent finds jobs and resolves them to employer career pages",
   "author": {
     "name": "Local developer"
   },

@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import json
 import os
-import subprocess
-import sys
 from dataclasses import asdict
 from pathlib import Path
 
@@ -85,7 +82,7 @@ def cache_upsert(
     last_found_roles: bool = False,
     ignored: bool = False,
 ) -> dict:
-    """Insert or update a cache entry and save both cache files.
+    """Insert or update a local cache entry.
 
     Args:
         company: Company name
@@ -109,38 +106,6 @@ def cache_upsert(
     cache.upsert(entry)
     cache.save()
     return asdict(entry)
-
-
-@mcp.tool
-def cache_diff() -> dict:
-    """Compare the current public cache vs the last committed version.
-
-    Returns new and updated entries that could be contributed back.
-    """
-    current_raw = {}
-    if _PUBLIC_CACHE.exists():
-        current_raw = json.loads(_PUBLIC_CACHE.read_text(encoding="utf-8"))
-
-    committed_raw = {}
-    result = subprocess.run(
-        ["git", "show", "HEAD:data/company-careers-public.json"],
-        capture_output=True,
-        text=True,
-        cwd=_PLUGIN_ROOT,
-    )
-    if result.returncode == 0:
-        try:
-            committed_raw = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            pass
-
-    new = {k: v for k, v in current_raw.items() if k not in committed_raw}
-    updated = {
-        k: v
-        for k, v in current_raw.items()
-        if k in committed_raw and current_raw[k] != committed_raw[k]
-    }
-    return {"new": new, "updated": updated, "total_new": len(new), "total_updated": len(updated)}
 
 
 @mcp.tool

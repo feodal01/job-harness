@@ -14,7 +14,7 @@ After finding vacancies through aggregators (hh.ru, Habr Career), **resolve** ea
 
 - 70% of vacancies never appear on aggregators — but the ones that do often also exist on the employer's site
 - Applying directly through a company's career page signals genuine interest
-- Direct applications bypass aggregator middlemen
+- Direct applications add another recruiting channel and may avoid aggregator-side auto-rejections
 - Some employers post more detail on their own site
 
 ## When
@@ -75,11 +75,11 @@ Company career page URLs rarely change. The `EmployerCache` uses a two-tier syst
 
 All entries, including companies with no career page. Not committed to git — avoids noise in the repo and keeps user-specific search history local.
 
-### Public cache (`data/company-careers-public.json`)
+### Bundled registry (`data/company-careers-public.json`)
 
-Only entries with a `careers_url` (companies where a career page was found). Committed to git — serves as a crowdsourced knowledge base that other users can reuse and extend.
+Only entries with a `careers_url` (companies where a career page was found). Bundled with plugin releases — serves as a verified baseline that users can reuse immediately after installing or updating the plugin.
 
-On load, the public cache is merged first as a baseline, then the local cache on top (newer entries win). This means pulling from git gives you known career pages for free, while your local runs add to and refine that knowledge.
+On load, the bundled registry is merged first as a baseline, then the local cache on top (newer entries win). This means installing or updating the plugin gives you known career pages, while local runs add to and refine only this user's cache.
 
 Cache entries include:
 - `careers_url`

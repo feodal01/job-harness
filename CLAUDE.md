@@ -8,7 +8,7 @@ The agent receives a natural-language job search request, translates it into MCP
 
 ## Philosophy
 
-Job aggregators are middlemen that create a search bubble. Many companies post vacancies only on their own career pages — never on aggregators. Finding a vacancy directly on a company's site and applying there is a strong signal of genuine interest. The agent should break out of the aggregator bubble whenever possible.
+Search broadly across all available sources: job aggregators, employer career pages, and company-specific career scrapers. Aggregators are useful, but they create a search bubble: some companies and vacancies appear only on employer sites, and aggregator applications may be filtered or auto-rejected before a recruiter sees them. Direct career-site applications often enter a smaller, more manually reviewed recruiting flow, especially when the company does not use a heavy automated ATS. The agent should break out of the aggregator bubble by finding direct employer pages and, when appropriate, presenting both the aggregator link and the employer link so the user can apply through both channels.
 
 ## Architecture
 
@@ -36,9 +36,9 @@ src/job_harness/
 
 This repo is a Claude Code plugin with:
 
-- **Commands**: `/job-search`, `/job-resolve`, `/job-contribute`
+- **Commands**: `/job-search`, `/job-resolve`
 - **Skills**: `user-briefing`, `employer-resolution`, `aggregator-scrapers`, `scraper-insights`
 - **Agent**: `job-searcher` — full automated workflow
-- **MCP tools**: `search`, `resolve`, `resolve_company`, `list_sources`, `cache_get`, `cache_upsert`, `cache_diff`, `cache_stats`
+- **MCP tools**: `search`, `resolve`, `resolve_company`, `list_sources`, `cache_get`, `cache_upsert`, `cache_stats`
 
 The Python CLI still works standalone: `uv run job-harness search --query "QA" --resolve --cache`
