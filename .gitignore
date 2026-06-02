@@ -7,3 +7,4 @@ debug_*.png
 .DS_Store
 searches/
 data/company-careers.json
+plugins/job-harness/data/company-careers.json

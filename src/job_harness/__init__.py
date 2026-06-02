@@ -1,1 +1,0 @@
-"""Universal job search harness."""

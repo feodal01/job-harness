@@ -29,6 +29,8 @@ Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
 
 ## Installation
 
+The repository has one installable plugin root: `plugins/job-harness`. Codex and Claude Code marketplace files both point to that directory, so commands, skills, MCP tools, scripts, and Python code are not duplicated at the repository root.
+
 ### As a Claude Code plugin from GitHub
 
 Install the marketplace from GitHub, then install the plugin:
@@ -51,6 +53,10 @@ codex plugin add job-harness@job-harness
 
 Codex uses the MCP tools and skills. Claude Code slash commands and agents remain available through Claude Code.
 
+### Cursor
+
+Cursor does not install this plugin runtime directly. For repository maintenance, Cursor can use the shared `AGENTS.md` instructions at the repository root.
+
 ### Local development install
 
 1. Clone the repo:
@@ -61,8 +67,8 @@ Codex uses the MCP tools and skills. Claude Code slash commands and agents remai
 
 2. Install dependencies and Playwright browser:
    ```bash
-   uv sync
-   uv run python -m rebrowser_playwright install chromium
+   uv --directory plugins/job-harness sync
+   uv --directory plugins/job-harness run python -m rebrowser_playwright install chromium
    ```
 
 3. Use the local marketplace while developing:
@@ -80,9 +86,9 @@ Codex uses the MCP tools and skills. Claude Code slash commands and agents remai
 ### As a standalone CLI
 
 ```bash
-uv sync
-uv run python -m rebrowser_playwright install chromium
-uv run job-harness search --query "product manager" --remote-only --format json
+uv --directory plugins/job-harness sync
+uv --directory plugins/job-harness run python -m rebrowser_playwright install chromium
+uv --directory plugins/job-harness run job-harness search --query "product manager" --remote-only --format json
 ```
 
 ## Usage
@@ -96,13 +102,13 @@ uv run job-harness search --query "product manager" --remote-only --format json
 
 ```bash
 # Search with employer resolution
-uv run job-harness search --query "QA engineer" --detail --resolve --cache --format json -o results.json
+uv --directory plugins/job-harness run job-harness search --query "QA engineer" --detail --resolve --cache --format json -o results.json
 
 # Resolve from saved results
-uv run job-harness resolve --input-file results.json --query "QA engineer" --cache
+uv --directory plugins/job-harness run job-harness resolve --input-file results.json --query "QA engineer" --cache
 
 # List available scrapers
-uv run job-harness list-sources
+uv --directory plugins/job-harness run job-harness list-sources
 ```
 
 ## Employer Resolution
