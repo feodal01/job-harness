@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-job-harness is a Job Search OS and Codex plugin. It is NOT a tool for humans to use directly — it is the runtime environment in which an AI agent searches for jobs on behalf of a human.
+job-harness is a Job Search OS packaged as a Codex and Claude Code plugin. Cursor can use this repository-level `AGENTS.md` for maintenance work, but the installable runtime is the plugin under `plugins/job-harness`.
+
+It is NOT a tool for humans to use directly — it is the runtime environment in which an AI agent searches for jobs on behalf of a human.
 
 The agent receives a natural-language job search request, translates it into MCP tool calls, runs them, analyzes results, and presents findings.
 
@@ -13,7 +15,17 @@ Search broadly across all available sources: job aggregators, employer career pa
 ## Architecture
 
 ```
-src/job_harness/
+plugins/job-harness/
+├── .codex-plugin/plugin.json   # Codex plugin manifest
+├── .claude-plugin/plugin.json  # Claude Code plugin manifest
+├── .mcp.json                   # MCP server config
+├── commands/                   # Claude Code slash commands
+├── agents/                     # Claude Code agent definitions
+├── skills/                     # Shared agent skills
+├── scripts/                    # MCP server and artifact initialization helper
+├── data/
+│   └── company-careers-public.json # bundled registry shipped with releases
+└── src/job_harness/
 ├── models.py            # SearchParams, JobListing, SearchResults
 ├── base.py              # BaseScraper ABC (search + fetch_detail)
 ├── registry.py          # @register_scraper decorator, scraper discovery
@@ -34,11 +46,13 @@ src/job_harness/
 
 ## Plugin Components
 
-This repo is a Codex plugin with:
+This repo has one real plugin root: `plugins/job-harness`. Do not duplicate plugin runtime files at the repository root.
+
+The plugin includes:
 
 - **Commands**: `/job-search`, `/job-resolve`
 - **Skills**: `user-briefing`, `employer-resolution`, `aggregator-scrapers`, `scraper-insights`
 - **Agent**: `job-searcher` — full automated workflow
 - **MCP tools**: `search`, `resolve`, `resolve_company`, `list_sources`, `cache_get`, `cache_upsert`, `cache_stats`
 
-The Python CLI still works standalone: `uv run job-harness search --query "QA" --resolve --cache`
+The Python CLI still works standalone from the plugin root: `uv --directory plugins/job-harness run job-harness search --query "QA" --resolve --cache`
