@@ -14,6 +14,8 @@ _EXP_ORDER = {"junior": 0, "middle": 1, "senior": 2}
 class BaseScraper(ABC):
     name: str = ""
     display_name: str = ""
+    requires_browser: bool = True
+    detail_requires_browser: bool = True
 
     def __init__(self, context, max_results: int = 20, debug: bool = False):
         self.context = context

@@ -2,7 +2,25 @@
 
 from __future__ import annotations
 
-from rebrowser_playwright.sync_api import Browser, BrowserContext, sync_playwright
+import os
+from pathlib import Path
+
+from rebrowser_playwright.sync_api import Browser, BrowserContext
+
+
+def configure_playwright_tmpdir(path: Path | None = None) -> Path:
+    """Point Playwright artifact temp files at a user-writable directory."""
+    tmpdir = Path(
+        os.environ.get("JOB_HARNESS_TMPDIR")
+        or path
+        or Path.home() / ".cache" / "job-harness" / "tmp"
+    )
+    tmpdir.mkdir(parents=True, exist_ok=True)
+    tmpdir = tmpdir.resolve()
+    os.environ["TMPDIR"] = str(tmpdir)
+    os.environ["TEMP"] = str(tmpdir)
+    os.environ["TMP"] = str(tmpdir)
+    return tmpdir
 
 
 def create_browser(

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
+from functools import partial
 from pathlib import Path
+from typing import Callable, TypeVar
 
 from fastmcp import FastMCP
 
@@ -23,13 +27,24 @@ _PUBLIC_CACHE = _PLUGIN_ROOT / "data" / "company-careers-public.json"
 # ---------------------------------------------------------------------------
 
 _browser_state: dict = {}
+_browser_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="job-harness-browser")
+_T = TypeVar("_T")
+
+
+async def _run_in_browser_thread(func: Callable[..., _T], *args, **kwargs) -> _T:
+    """Run sync Playwright code away from FastMCP's asyncio event loop."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_browser_executor, partial(func, *args, **kwargs))
 
 
 def _ensure_browser():
     """Return a Playwright BrowserContext, starting the browser if needed."""
     if _browser_state.get("context") is None:
+        from job_harness.browser import configure_playwright_tmpdir, create_browser
+
+        configure_playwright_tmpdir(_PLUGIN_ROOT / "data" / ".tmp")
+
         from rebrowser_playwright.sync_api import sync_playwright
-        from job_harness.browser import create_browser
 
         pw = sync_playwright().start()
         browser, context = create_browser(pw, headless=True)
@@ -127,7 +142,7 @@ def cache_stats() -> dict:
 
 
 @mcp.tool
-def search(
+async def search(
     query: str,
     sources: str = "all",
     remote_only: bool = False,
@@ -162,10 +177,41 @@ def search(
         exclude_companies: Comma-separated company names to exclude
         has_salary: Only listings with salary info
     """
+    return await _run_in_browser_thread(
+        _search_impl,
+        query=query,
+        sources=sources,
+        remote_only=remote_only,
+        experience=experience,
+        location=location,
+        max_results=max_results,
+        detail=detail,
+        resolve=resolve,
+        cache=cache,
+        exclude_keywords=exclude_keywords,
+        exclude_keywords_context=exclude_keywords_context,
+        exclude_companies=exclude_companies,
+        has_salary=has_salary,
+    )
+
+
+def _search_impl(
+    query: str,
+    sources: str = "all",
+    remote_only: bool = False,
+    experience: str | None = None,
+    location: str | None = None,
+    max_results: int = 20,
+    detail: bool = False,
+    resolve: bool = False,
+    cache: bool = True,
+    exclude_keywords: str | None = None,
+    exclude_keywords_context: str | None = None,
+    exclude_companies: str | None = None,
+    has_salary: bool = False,
+) -> dict:
     import job_harness.scrapers  # noqa: F401
     import job_harness.scrapers.career  # noqa: F401
-    from job_harness.browser import create_browser
-    from job_harness.employer_cache import EmployerCache
     from job_harness.employer_resolver import resolve_listings
     from job_harness.filters import (
         _exclude_companies,
@@ -177,7 +223,7 @@ def search(
         remote_only as remote_only_filter,
     )
     from job_harness.models import SearchParams, SearchResults
-    from job_harness.registry import create_scraper, list_scrapers
+    from job_harness.registry import create_scraper, get_scraper_class, list_scrapers
 
     params = SearchParams(
         query=query,
@@ -214,13 +260,20 @@ def search(
     if location:
         filters.append(location_in(location))
 
-    context = _ensure_browser()
+    context = None
     all_listings = []
     errors = []
 
     for source_name in source_names:
         try:
-            scraper = create_scraper(source_name, context, max_results=params.max_results)
+            scraper_class = get_scraper_class(source_name)
+            needs_browser = scraper_class.requires_browser or (
+                detail and scraper_class.detail_requires_browser
+            )
+            scraper_context = _ensure_browser() if needs_browser else None
+            if scraper_context is not None:
+                context = scraper_context
+            scraper = create_scraper(source_name, scraper_context, max_results=params.max_results)
             listings = scraper.search(params)
 
             if detail and listings:
@@ -246,6 +299,7 @@ def search(
 
     # Resolve employer career pages
     if resolve and all_listings:
+        context = context or _ensure_browser()
         employer_cache = _get_cache() if cache else None
         enriched = resolve_listings(
             [l.to_dict() for l in all_listings],
@@ -270,7 +324,7 @@ def search(
 
 
 @mcp.tool
-def resolve(
+async def resolve(
     listings: list[dict],
     query: str | None = None,
     cache: bool = True,
@@ -284,6 +338,14 @@ def resolve(
         query: Original search query (improves vacancy matching)
         cache: Use employer cache for resolution
     """
+    return await _run_in_browser_thread(_resolve_impl, listings=listings, query=query, cache=cache)
+
+
+def _resolve_impl(
+    listings: list[dict],
+    query: str | None = None,
+    cache: bool = True,
+) -> list[dict]:
     from job_harness.employer_resolver import resolve_listings
 
     context = _ensure_browser()
@@ -311,7 +373,7 @@ def resolve(
 
 
 @mcp.tool
-def resolve_company(
+async def resolve_company(
     company: str,
     query: str | None = None,
     cache: bool = True,
@@ -323,6 +385,19 @@ def resolve_company(
         query: Search query for vacancy matching (e.g. "QA engineer")
         cache: Use employer cache
     """
+    return await _run_in_browser_thread(
+        _resolve_company_impl,
+        company=company,
+        query=query,
+        cache=cache,
+    )
+
+
+def _resolve_company_impl(
+    company: str,
+    query: str | None = None,
+    cache: bool = True,
+) -> dict:
     from job_harness.employer_resolver import resolve_company_careers
 
     context = _ensure_browser()

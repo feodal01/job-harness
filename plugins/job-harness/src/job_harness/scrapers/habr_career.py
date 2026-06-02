@@ -3,76 +3,181 @@
 from __future__ import annotations
 
 import sys
+from html.parser import HTMLParser
+from urllib.error import URLError
+from urllib.parse import urlencode, urljoin
+from urllib.request import Request, urlopen
 
 from job_harness.base import BaseScraper
 from job_harness.models import JobListing, SearchParams
 from job_harness.registry import register_scraper
+
+_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/136.0.0.0 Safari/537.36"
+)
+_VOID_TAGS = {
+    "area", "base", "br", "col", "embed", "hr", "img", "input",
+    "link", "meta", "param", "source", "track", "wbr",
+}
+_FETCH_ATTEMPTS = 3
+_FETCH_TIMEOUT_SECONDS = 10
+
+
+class _HabrVacancyParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.cards: list[dict] = []
+        self.next_href: str | None = None
+        self._card: dict | None = None
+        self._card_depth = 0
+        self._company_depth: int | None = None
+        self._skills_depth: int | None = None
+        self._capture: tuple[str, int] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr = dict(attrs)
+        classes = set((attr.get("class") or "").split())
+
+        if tag == "a" and self.next_href is None:
+            rel = set((attr.get("rel") or "").split())
+            if "next" in rel or "with-pagination__side-button--next" in classes:
+                self.next_href = attr.get("href")
+
+        if self._card is None:
+            if tag == "div" and "vacancy-card" in classes:
+                self._card = {"skills": [], "chips": [], "text": []}
+                self._card_depth = 1
+            return
+
+        if tag not in _VOID_TAGS:
+            self._card_depth += 1
+
+        if tag == "div" and "vacancy-card__company" in classes:
+            self._company_depth = self._card_depth
+        elif tag == "a" and "vacancy-card__title-link" in classes:
+            self._card["href"] = attr.get("href") or ""
+            self._capture = ("title", self._card_depth)
+        elif tag == "a" and self._company_depth is not None and not self._card.get("company"):
+            self._capture = ("company", self._card_depth)
+        elif "basic-salary" in classes:
+            self._capture = ("salary", self._card_depth)
+        elif "vacancy-card__skills-chip" in classes:
+            self._skills_depth = self._card_depth
+        elif "basic-chip__text" in classes and self._skills_depth is not None:
+            self._capture = ("skill", self._card_depth)
+        elif "chip-with-icon__text" in classes:
+            self._capture = ("chip", self._card_depth)
+
+    def handle_data(self, data: str) -> None:
+        if self._card is None:
+            return
+
+        text = data.strip()
+        if not text:
+            return
+
+        self._card["text"].append(text)
+        if self._capture is None:
+            return
+
+        target, _ = self._capture
+        if target == "skill":
+            self._card["skills"].append(text)
+        elif target == "chip":
+            self._card["chips"].append(text)
+        else:
+            current = self._card.get(target, "")
+            self._card[target] = f"{current} {text}".strip() if current else text
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._card is None:
+            return
+
+        if self._capture and self._capture[1] == self._card_depth:
+            self._capture = None
+        if self._company_depth == self._card_depth:
+            self._company_depth = None
+        if self._skills_depth == self._card_depth:
+            self._skills_depth = None
+
+        if tag not in _VOID_TAGS:
+            self._card_depth -= 1
+
+        if self._card_depth == 0:
+            self.cards.append(self._card)
+            self._card = None
+
+
+class _HabrDetailParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.description_parts: list[str] = []
+        self._description_depth: int | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        classes = set((dict(attrs).get("class") or "").split())
+        if self._description_depth is None:
+            if tag == "div" and "vacancy-description__text" in classes:
+                self._description_depth = 1
+            return
+        if tag not in _VOID_TAGS:
+            self._description_depth += 1
+
+    def handle_data(self, data: str) -> None:
+        if self._description_depth is None:
+            return
+        text = data.strip()
+        if text:
+            self.description_parts.append(text)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._description_depth is None:
+            return
+        if tag not in _VOID_TAGS:
+            self._description_depth -= 1
+        if self._description_depth == 0:
+            self._description_depth = None
+
+    @property
+    def description(self) -> str | None:
+        if not self.description_parts:
+            return None
+        return "\n".join(self.description_parts)[:3000]
 
 
 @register_scraper("habr_career")
 class HabrCareerScraper(BaseScraper):
     display_name = "Habr Career"
     BASE_URL = "https://career.habr.com/vacancies"
+    requires_browser = False
+    detail_requires_browser = False
 
     def search(self, params: SearchParams) -> list[JobListing]:
-        page = self.context.new_page()
         listings: list[JobListing] = []
+        url: str | None = self._build_search_url(params)
+
         try:
-            url = self._build_search_url(params)
-            page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            page.wait_for_timeout(2000)
-            self._debug_screenshot(page, "search")
-
-            listings = self._parse_search_results(page)
-
-            # Pagination
-            while len(listings) < self.max_results:
-                next_btn = page.locator('a[rel="next"], .with-pagination__side-button--next')
-                if not next_btn.is_visible():
+            while url and len(listings) < self.max_results:
+                html = self._fetch_html(url)
+                page_listings, next_url = self._parse_search_results(html, url)
+                if not page_listings:
                     break
-                next_btn.click()
-                page.wait_for_timeout(2000)
-                more = self._parse_search_results(page)
-                if not more:
-                    break
-                listings.extend(more)
+                listings.extend(page_listings)
+                url = next_url
 
         except Exception as e:
             print(f"HabrCareerScraper error: {e}", file=sys.stderr)
-            self._debug_screenshot(page, "error")
-        finally:
-            page.close()
+            raise
 
         return listings[:self.max_results]
 
     def fetch_detail(self, listing: JobListing) -> JobListing:
-        page = self.context.new_page()
         try:
-            page.goto(listing.url, wait_until="domcontentloaded", timeout=30000)
-            page.wait_for_timeout(2000)
-            self._debug_screenshot(page, listing.url.split("/")[-1])
-
-            description = None
-            desc_el = page.locator('.vacancy-description__content')
-            if desc_el.is_visible():
-                description = desc_el.inner_text()[:3000]
-
-            requirements = None
-            req_el = page.locator('.vacancy-description__requirements')
-            if req_el.is_visible():
-                requirements = req_el.inner_text()[:1500]
-
-            # Enrich skills from detail page
-            skills = list(listing.skills)
-            skill_els = page.locator('.skill__name')
-            for i in range(skill_els.count()):
-                try:
-                    s = skill_els.nth(i).inner_text().strip()
-                    if s not in skills:
-                        skills.append(s)
-                except Exception:
-                    continue
-
+            html = self._fetch_html(listing.url)
+            parser = _HabrDetailParser()
+            parser.feed(html)
             return JobListing(
                 title=listing.title,
                 url=listing.url,
@@ -81,9 +186,9 @@ class HabrCareerScraper(BaseScraper):
                 experience=listing.experience,
                 remote=listing.remote,
                 location=listing.location,
-                description=description,
-                requirements=requirements,
-                skills=skills,
+                description=parser.description,
+                requirements=listing.requirements,
+                skills=listing.skills,
                 posted_date=listing.posted_date,
                 source=listing.source,
                 raw=listing.raw,
@@ -91,75 +196,58 @@ class HabrCareerScraper(BaseScraper):
         except Exception as e:
             print(f"Error fetching detail for {listing.url}: {e}", file=sys.stderr)
             return listing
-        finally:
-            page.close()
 
     def _build_search_url(self, params: SearchParams) -> str:
-        query_params = {"q": params.query}
+        query_params = {"q": params.query, "type": "all"}
         if params.remote_only:
             query_params["remote"] = "true"
         if params.experience:
             query_params["qualification"] = params.experience
         query_params.update(params.extra)
-        return self.BASE_URL + "?" + "&".join(f"{k}={v}" for k, v in query_params.items())
+        return self.BASE_URL + "?" + urlencode(query_params)
 
-    def _parse_search_results(self, page) -> list[JobListing]:
-        listings = []
-        cards = page.locator('.vacancy-card')
-        for i in range(cards.count()):
+    def _fetch_html(self, url: str) -> str:
+        last_error: Exception | None = None
+        for _ in range(_FETCH_ATTEMPTS):
             try:
-                card = cards.nth(i)
+                request = Request(url, headers={"User-Agent": _USER_AGENT})
+                with urlopen(request, timeout=_FETCH_TIMEOUT_SECONDS) as response:
+                    return response.read().decode("utf-8", errors="replace")
+            except (OSError, TimeoutError, URLError) as e:
+                last_error = e
+        if last_error:
+            raise last_error
+        raise RuntimeError(f"Failed to fetch {url}")
 
-                title_el = card.locator('.vacancy-card__title-link')
-                if not title_el.is_visible():
-                    continue
-                title = title_el.inner_text()
-                href = title_el.get_attribute("href") or ""
-                url = "https://career.habr.com" + href
+    def _parse_search_results(self, html: str, page_url: str) -> tuple[list[JobListing], str | None]:
+        parser = _HabrVacancyParser()
+        parser.feed(html)
+        listings = []
 
-                company_el = card.locator('.vacancy-card__company a')
-                company = company_el.inner_text() if company_el.is_visible() else ""
-
-                salary_el = card.locator('.basic-salary')
-                salary = salary_el.inner_text() if salary_el.is_visible() else None
-
-                # Skills from card
-                skills = []
-                skill_els = card.locator('.vacancy-card__skills-chip .basic-chip__text')
-                for j in range(skill_els.count()):
-                    try:
-                        skills.append(skill_els.nth(j).inner_text().strip())
-                    except Exception:
-                        continue
-
-                # Remote
-                is_remote = bool(
-                    card.locator('text="Можно удалённо"').count()
-                    or card.locator('text="Можно из дома"').count()
-                )
-
-                # Experience from chips
-                experience = None
-                chip_texts = card.locator('.chip-with-icon__text')
-                for j in range(chip_texts.count()):
-                    try:
-                        chip_text = chip_texts.nth(j).inner_text().strip()
-                        experience = self.normalize_experience(chip_text)
-                        if experience:
-                            break
-                    except Exception:
-                        continue
-
-                listings.append(JobListing(
-                    title=title.strip(),
-                    url=url,
-                    company=company.strip(),
-                    salary=salary.strip() if salary else None,
-                    experience=experience,
-                    remote=is_remote,
-                    source=self.name,
-                    skills=skills,
-                ))
-            except Exception:
+        for card in parser.cards:
+            title = card.get("title", "").strip()
+            href = card.get("href", "")
+            if not title or not href:
                 continue
-        return listings
+            url = "https://career.habr.com" + href if href.startswith("/") else href
+            experience = None
+            for chip_text in card.get("chips", []):
+                experience = self.normalize_experience(chip_text)
+                if experience:
+                    break
+
+            salary = card.get("salary", "").strip()
+            card_text = " ".join(card.get("text", []))
+            listings.append(JobListing(
+                title=title,
+                url=url,
+                company=card.get("company", "").strip(),
+                salary=salary or None,
+                experience=experience,
+                remote="Можно удалённо" in card_text or "Можно из дома" in card_text,
+                source=self.name,
+                skills=card.get("skills", []),
+            ))
+
+        next_url = urljoin(page_url, parser.next_href) if parser.next_href else None
+        return listings, next_url

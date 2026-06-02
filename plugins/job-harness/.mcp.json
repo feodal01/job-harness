@@ -4,7 +4,7 @@
       "command": "sh",
       "args": [
         "-c",
-        "ROOT=\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-$PWD}}\"; export PYTHONUNBUFFERED=1 JOB_HARNESS_ROOT=\"$ROOT\"; exec uv --directory \"$ROOT\" run python \"$ROOT/scripts/mcp-server.py\""
+        "ROOT=\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-$PWD}}\"; JOB_HARNESS_TMP=\"$ROOT/data/.tmp\"; mkdir -p \"$JOB_HARNESS_TMP\"; export PYTHONUNBUFFERED=1 JOB_HARNESS_ROOT=\"$ROOT\" JOB_HARNESS_TMPDIR=\"$JOB_HARNESS_TMP\" TMPDIR=\"$JOB_HARNESS_TMP\" TEMP=\"$JOB_HARNESS_TMP\" TMP=\"$JOB_HARNESS_TMP\"; exec uv --directory \"$ROOT\" run python \"$ROOT/scripts/mcp-server.py\""
       ]
     }
   }
