@@ -25,12 +25,24 @@ def get_scraper_class(name: str) -> type[BaseScraper]:
     return _SCRAPERS[name]
 
 
-def list_scrapers() -> list[str]:
-    return list(_SCRAPERS.keys())
+def list_scrapers(country: str | None = None) -> list[str]:
+    return [name for name, cls in _SCRAPERS.items() if cls.supports_country(country)]
 
 
 def get_scraper_info() -> dict[str, str]:
     return {name: cls.display_name for name, cls in _SCRAPERS.items()}
+
+
+def get_scraper_metadata() -> dict[str, dict]:
+    return {
+        name: {
+            "display_name": cls.display_name,
+            "countries": list(cls.countries),
+            "requires_browser": cls.requires_browser,
+            "detail_requires_browser": cls.detail_requires_browser,
+        }
+        for name, cls in _SCRAPERS.items()
+    }
 
 
 def create_scraper(name: str, context, **kwargs) -> BaseScraper:

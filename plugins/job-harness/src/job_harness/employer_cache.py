@@ -15,9 +15,9 @@ plugin releases.
 from __future__ import annotations
 
 import json
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from dataclasses import dataclass, asdict
 
 LOCAL_CACHE_PATH = Path("data/company-careers.json")
 PUBLIC_CACHE_PATH = Path("data/company-careers-public.json")

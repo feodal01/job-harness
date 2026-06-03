@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import socket
 import unittest
 from unittest.mock import patch
 
 from job_harness.models import JobListing, SearchParams
 from job_harness.scrapers.habr_career import HabrCareerScraper
-
 
 LIST_PAGE_1 = """
 <html><body>
@@ -121,8 +119,8 @@ class HabrCareerScraperTest(unittest.TestCase):
     def test_fetch_html_retries_transient_timeouts(self) -> None:
         scraper = HabrCareerScraper(context=_ForbiddenBrowserContext(), max_results=1)
         responses = [
-            socket.timeout("first timeout"),
-            socket.timeout("second timeout"),
+            TimeoutError("first timeout"),
+            TimeoutError("second timeout"),
             _FakeResponse(LIST_PAGE_1),
         ]
 

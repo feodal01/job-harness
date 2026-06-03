@@ -4,14 +4,15 @@ import csv
 import io
 import json
 import unittest
+from typing import Any
 
 from job_harness.filters import apply_filters, has_salary, min_experience, no_keywords, remote_only
 from job_harness.formatters import CsvFormatter, JsonFormatter, MarkdownFormatter
 from job_harness.models import JobListing, SearchParams, SearchResults
 
 
-def _listing(**overrides) -> JobListing:
-    data = {
+def _listing(**overrides: Any) -> JobListing:
+    data: dict[str, Any] = {
         "title": "QA Engineer",
         "url": "https://example.test/jobs/1",
         "company": "Example",
@@ -65,30 +66,68 @@ class FiltersAndFormattersTest(unittest.TestCase):
             params=SearchParams(query="QA", max_results=1),
             listings=[_listing()],
             timestamp="2026-06-02 13:00",
+            summary={
+                "source_statuses": [
+                    {
+                        "source": "habr_career",
+                        "status": "ok",
+                        "raw_count": 1,
+                        "after_filter_count": 1,
+                        "after_dedupe_count": 1,
+                        "duration_ms": 12,
+                    }
+                ]
+            },
         )
 
         rows = list(csv.reader(io.StringIO(CsvFormatter().format(results))))
 
         self.assertEqual(
-            ["title", "url", "company", "salary", "experience", "remote", "location", "skills", "source", "posted_date"],
+            [
+                "title",
+                "url",
+                "company",
+                "country",
+                "salary",
+                "experience",
+                "remote",
+                "location",
+                "skills",
+                "source",
+                "posted_date",
+            ],
             rows[0],
         )
-        self.assertEqual("Python; SQL", rows[1][7])
-        self.assertEqual("habr_career", rows[1][8])
+        self.assertEqual("Python; SQL", rows[1][8])
+        self.assertEqual("habr_career", rows[1][9])
 
     def test_markdown_formatter_includes_summary_and_listing(self) -> None:
         results = SearchResults(
             params=SearchParams(query="QA", max_results=1),
             listings=[_listing()],
             timestamp="2026-06-02 13:00",
+            summary={
+                "source_statuses": [
+                    {
+                        "source": "habr_career",
+                        "status": "ok",
+                        "raw_count": 1,
+                        "after_filter_count": 1,
+                        "after_dedupe_count": 1,
+                        "duration_ms": 12,
+                    }
+                ]
+            },
         )
 
         markdown = MarkdownFormatter().format(results)
 
         self.assertIn("# Job Search: QA", markdown)
         self.assertIn("### 1. QA Engineer", markdown)
+        self.assertIn("## Source Status", markdown)
+        self.assertIn("| habr_career | ok | 1 | 1 | 1 | 12 ms |", markdown)
         self.assertIn("## Summary", markdown)
-        self.assertIn("| 1 | Example | 200 000 ₽ | remote | senior |", markdown)
+        self.assertIn("| 1 | Example | not specified | 200 000 ₽ | remote | senior |", markdown)
 
 
 if __name__ == "__main__":

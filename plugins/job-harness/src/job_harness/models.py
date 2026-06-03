@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Callable
 
 
 @dataclass
 class SearchParams:
     query: str
+    country: str | None = None
     remote_only: bool = False
     experience: str | None = None  # "junior" | "middle" | "senior"
     location: str | None = None
@@ -22,6 +23,7 @@ class JobListing:
     title: str
     url: str
     company: str
+    country: str | None = None
     salary: str | None = None
     experience: str | None = None
     remote: bool = False
@@ -38,6 +40,7 @@ class JobListing:
             "title": self.title,
             "url": self.url,
             "company": self.company,
+            "country": self.country,
             "salary": self.salary,
             "experience": self.experience,
             "remote": self.remote,
@@ -60,11 +63,13 @@ class SearchResults:
     listings: list[JobListing]
     timestamp: str = field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M"))
     errors: list[str] = field(default_factory=list)
+    summary: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
             "params": {
                 "query": self.params.query,
+                "country": self.params.country,
                 "remote_only": self.params.remote_only,
                 "experience": self.params.experience,
                 "location": self.params.location,
@@ -72,6 +77,7 @@ class SearchResults:
             },
             "timestamp": self.timestamp,
             "total": len(self.listings),
-            "listings": [l.to_dict() for l in self.listings],
+            "listings": [listing.to_dict() for listing in self.listings],
             "errors": self.errors,
+            "summary": self.summary,
         }

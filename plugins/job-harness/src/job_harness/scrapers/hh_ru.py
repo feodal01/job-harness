@@ -13,13 +13,16 @@ from job_harness.registry import register_scraper
 class HHRuScraper(BaseScraper):
     display_name = "hh.ru"
     BASE_URL = "https://hh.ru/search/vacancy"
+    countries = ("RU",)
 
     def search(self, params: SearchParams) -> list[JobListing]:
         page = self.context.new_page()
         listings: list[JobListing] = []
         try:
+            self._configure_page_timeout(page)
             url = self._build_search_url(params)
-            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            self.enforce_deadline()
+            page.goto(url, wait_until="domcontentloaded", timeout=self.remaining_timeout_ms())
             page.wait_for_timeout(2000)
             self._debug_screenshot(page, "search")
 
@@ -30,6 +33,7 @@ class HHRuScraper(BaseScraper):
 
             # Pagination
             while len(listings) < self.max_results:
+                self.enforce_deadline()
                 next_btn = page.locator('[data-qa="pager-next"]')
                 if not next_btn.is_visible():
                     break
@@ -41,6 +45,9 @@ class HHRuScraper(BaseScraper):
                 listings.extend(more)
 
         except Exception as e:
+            self.runtime_error = e
+            if _is_timeout_error(e):
+                self.mark_timed_out()
             print(f"HHRuScraper error: {e}", file=sys.stderr)
             self._debug_screenshot(page, "error")
         finally:
@@ -51,7 +58,9 @@ class HHRuScraper(BaseScraper):
     def fetch_detail(self, listing: JobListing) -> JobListing:
         page = self.context.new_page()
         try:
-            page.goto(listing.url, wait_until="domcontentloaded", timeout=30000)
+            self._configure_page_timeout(page)
+            self.enforce_deadline()
+            page.goto(listing.url, wait_until="domcontentloaded", timeout=self.remaining_timeout_ms())
             page.wait_for_timeout(2000)
             self._debug_screenshot(page, listing.url.split("/")[-1])
 
@@ -72,6 +81,7 @@ class HHRuScraper(BaseScraper):
                 title=listing.title,
                 url=listing.url,
                 company=listing.company,
+                country=listing.country,
                 salary=listing.salary,
                 experience=listing.experience,
                 remote=listing.remote,
@@ -83,10 +93,19 @@ class HHRuScraper(BaseScraper):
                 raw=listing.raw,
             )
         except Exception as e:
+            self.runtime_error = e
+            if _is_timeout_error(e):
+                self.mark_timed_out()
             print(f"Error fetching detail for {listing.url}: {e}", file=sys.stderr)
             return listing
         finally:
             page.close()
+
+    def _configure_page_timeout(self, page) -> None:
+        if self.timeout_ms is None:
+            return
+        page.set_default_timeout(self.timeout_ms)
+        page.set_default_navigation_timeout(self.timeout_ms)
 
     def _build_search_url(self, params: SearchParams) -> str:
         query_params = {
@@ -151,6 +170,7 @@ class HHRuScraper(BaseScraper):
                     title=title.strip(),
                     url=url,
                     company=company.strip(),
+                    country=self.countries[0] if self.countries else None,
                     salary=salary.strip() if salary else None,
                     experience=experience,
                     remote=is_remote,
@@ -160,3 +180,35 @@ class HHRuScraper(BaseScraper):
             except Exception:
                 continue
         return listings
+
+
+def _is_timeout_error(error: Exception) -> bool:
+    return isinstance(error, TimeoutError) or "timeout" in type(error).__name__.casefold() or "timeout" in str(error).casefold()
+
+
+@register_scraper("hh_kz")
+class HHKzScraper(HHRuScraper):
+    display_name = "hh.kz"
+    BASE_URL = "https://hh.kz/search/vacancy"
+    countries = ("KZ",)
+
+
+@register_scraper("hh_uz")
+class HHUzScraper(HHRuScraper):
+    display_name = "hh.uz"
+    BASE_URL = "https://hh.uz/search/vacancy"
+    countries = ("UZ",)
+
+
+@register_scraper("rabota_by")
+class RabotaByScraper(HHRuScraper):
+    display_name = "rabota.by"
+    BASE_URL = "https://rabota.by/search/vacancy"
+    countries = ("BY",)
+
+
+@register_scraper("headhunter_kg")
+class HeadHunterKgScraper(HHRuScraper):
+    display_name = "headhunter.kg"
+    BASE_URL = "https://headhunter.kg/search/vacancy"
+    countries = ("KG",)

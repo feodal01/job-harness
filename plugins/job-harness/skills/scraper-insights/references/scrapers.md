@@ -121,3 +121,27 @@ Format:
 **Strategy:** Before filling a search input, check `is_visible()`. If the input isn't visible, skip the search and fall back to scanning all links on the page for matching vacancies.
 
 **Origin:** employer_resolver.py tried to fill LinkedIn and Монетка search inputs that existed in DOM but were hidden.
+
+### Country-aware source metadata
+
+**Pattern:** Regional job search works poorly when every scraper is treated as globally relevant. The agent wastes calls on country-mismatched sources and may present irrelevant remote/global listings as local results.
+
+**Strategy:** Give every scraper an explicit `countries` tuple with normalized country codes. Filter `sources=all` by country before instantiating scrapers. For sources that cover many countries but cannot server-filter by country, expose the countries as source metadata but keep listing-level `country` empty unless the platform provides a concrete location.
+
+**Origin:** CIS expansion added RU-only sources, Armenia/Uzbekistan-specific sources, regional HH hosts, and multi-country remote aggregators.
+
+### Public API before browser scraping
+
+**Pattern:** Modern job boards often render with Next/Nuxt/Vue, but the page exposes a public JSON endpoint or SSR payload. Browser scraping those pages is slower and more fragile than using the underlying data contract.
+
+**Strategy:** Probe for JSON in this order: `__NEXT_DATA__`, Nuxt config API base, JSON-LD `ItemList`, and public `/api/...` endpoints visible in chunks or network-like URL patterns. Add a scraper only after a stable endpoint or structured payload is confirmed. Leave auth-only or timeout-heavy sources in backlog instead of shipping a fake scraper.
+
+**Origin:** Hirify (`api.hirify.me/api/vacancies`), Finder.work (`api.finder.work/api/v1/vacancies`), IT-Jobs.uz (`/api/jobs`), Staff.am (`__NEXT_DATA__`), JobTurbo (JSON-LD `ItemList`), and Getmatch (`/api/offers` found through browser network capture).
+
+### Specialization APIs beat keyword guessing
+
+**Pattern:** Some job boards ignore free-text query parameters on vacancy APIs but expose separate taxonomy endpoints for roles, specializations, or categories. Guessing `q=...`/`search=...` silently returns a generic feed.
+
+**Strategy:** If a keyword parameter is ignored, inspect browser network traffic for taxonomy endpoints. Match the user's query against specialization/category names and slugs, then pass the platform's native category parameter. Add tests for multiple IT roles, not only the role used in smoke testing.
+
+**Origin:** Getmatch ignores `q/search/query` on `/api/offers`; the working route is `/api/specializations` plus `/api/offers?sp=<specialization_slug>`.

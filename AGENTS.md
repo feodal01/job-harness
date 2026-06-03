@@ -56,3 +56,11 @@ The plugin includes:
 - **MCP tools**: `search`, `resolve`, `resolve_company`, `list_sources`, `cache_get`, `cache_upsert`, `cache_stats`
 
 The Python CLI still works standalone from the plugin root: `uv --directory plugins/job-harness run job-harness search --query "QA" --resolve --cache`
+
+## Verification
+
+Run the canonical repository gate from the repo root before handing off code changes:
+
+`python scripts/verify_repo.py full`
+
+The full profile runs Ruff linting, mypy type checking, detect-secrets baseline scanning, and the plugin unit test suite.
