@@ -57,7 +57,7 @@ Present these questions to the user. They can answer all at once or one by one â
 
 ### Location & Relocation
 - Country of residence: [where you live now]
-- Target countries/cities: [where you want to work]
+- Target countries/cities: [where you want to work; use CIS country names or codes when possible so search can pass `country`]
 - Relocation: [willing to relocate? if yes, to which countries?]
 - Relocation requirement: [must have explicit relocation support in the vacancy, or any vacancy in target countries is fine?]
 

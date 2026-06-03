@@ -70,11 +70,23 @@ class FiltersAndFormattersTest(unittest.TestCase):
         rows = list(csv.reader(io.StringIO(CsvFormatter().format(results))))
 
         self.assertEqual(
-            ["title", "url", "company", "salary", "experience", "remote", "location", "skills", "source", "posted_date"],
+            [
+                "title",
+                "url",
+                "company",
+                "country",
+                "salary",
+                "experience",
+                "remote",
+                "location",
+                "skills",
+                "source",
+                "posted_date",
+            ],
             rows[0],
         )
-        self.assertEqual("Python; SQL", rows[1][7])
-        self.assertEqual("habr_career", rows[1][8])
+        self.assertEqual("Python; SQL", rows[1][8])
+        self.assertEqual("habr_career", rows[1][9])
 
     def test_markdown_formatter_includes_summary_and_listing(self) -> None:
         results = SearchResults(
@@ -88,7 +100,7 @@ class FiltersAndFormattersTest(unittest.TestCase):
         self.assertIn("# Job Search: QA", markdown)
         self.assertIn("### 1. QA Engineer", markdown)
         self.assertIn("## Summary", markdown)
-        self.assertIn("| 1 | Example | 200 000 ₽ | remote | senior |", markdown)
+        self.assertIn("| 1 | Example | not specified | 200 000 ₽ | remote | senior |", markdown)
 
 
 if __name__ == "__main__":

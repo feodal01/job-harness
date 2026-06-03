@@ -14,6 +14,7 @@ _EXP_ORDER = {"junior": 0, "middle": 1, "senior": 2}
 class BaseScraper(ABC):
     name: str = ""
     display_name: str = ""
+    countries: tuple[str, ...] = ()
     requires_browser: bool = True
     detail_requires_browser: bool = True
 
@@ -46,6 +47,10 @@ class BaseScraper(ABC):
         if "нет" in lower or "no " in lower or "без" in lower:
             return "junior"
         return None
+
+    @classmethod
+    def supports_country(cls, country: str | None) -> bool:
+        return country is None or not cls.countries or country in cls.countries
 
     def _debug_screenshot(self, page, name: str) -> None:
         if self.debug:

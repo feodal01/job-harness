@@ -13,6 +13,7 @@ from job_harness.registry import register_scraper
 class HHRuScraper(BaseScraper):
     display_name = "hh.ru"
     BASE_URL = "https://hh.ru/search/vacancy"
+    countries = ("RU",)
 
     def search(self, params: SearchParams) -> list[JobListing]:
         page = self.context.new_page()
@@ -72,6 +73,7 @@ class HHRuScraper(BaseScraper):
                 title=listing.title,
                 url=listing.url,
                 company=listing.company,
+                country=listing.country,
                 salary=listing.salary,
                 experience=listing.experience,
                 remote=listing.remote,
@@ -151,6 +153,7 @@ class HHRuScraper(BaseScraper):
                     title=title.strip(),
                     url=url,
                     company=company.strip(),
+                    country=self.countries[0] if self.countries else None,
                     salary=salary.strip() if salary else None,
                     experience=experience,
                     remote=is_remote,
@@ -160,3 +163,31 @@ class HHRuScraper(BaseScraper):
             except Exception:
                 continue
         return listings
+
+
+@register_scraper("hh_kz")
+class HHKzScraper(HHRuScraper):
+    display_name = "hh.kz"
+    BASE_URL = "https://hh.kz/search/vacancy"
+    countries = ("KZ",)
+
+
+@register_scraper("hh_uz")
+class HHUzScraper(HHRuScraper):
+    display_name = "hh.uz"
+    BASE_URL = "https://hh.uz/search/vacancy"
+    countries = ("UZ",)
+
+
+@register_scraper("rabota_by")
+class RabotaByScraper(HHRuScraper):
+    display_name = "rabota.by"
+    BASE_URL = "https://rabota.by/search/vacancy"
+    countries = ("BY",)
+
+
+@register_scraper("headhunter_kg")
+class HeadHunterKgScraper(HHRuScraper):
+    display_name = "headhunter.kg"
+    BASE_URL = "https://headhunter.kg/search/vacancy"
+    countries = ("KG",)

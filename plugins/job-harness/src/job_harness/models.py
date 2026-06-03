@@ -10,6 +10,7 @@ from typing import Callable
 @dataclass
 class SearchParams:
     query: str
+    country: str | None = None
     remote_only: bool = False
     experience: str | None = None  # "junior" | "middle" | "senior"
     location: str | None = None
@@ -22,6 +23,7 @@ class JobListing:
     title: str
     url: str
     company: str
+    country: str | None = None
     salary: str | None = None
     experience: str | None = None
     remote: bool = False
@@ -38,6 +40,7 @@ class JobListing:
             "title": self.title,
             "url": self.url,
             "company": self.company,
+            "country": self.country,
             "salary": self.salary,
             "experience": self.experience,
             "remote": self.remote,
@@ -65,6 +68,7 @@ class SearchResults:
         return {
             "params": {
                 "query": self.params.query,
+                "country": self.params.country,
                 "remote_only": self.params.remote_only,
                 "experience": self.params.experience,
                 "location": self.params.location,

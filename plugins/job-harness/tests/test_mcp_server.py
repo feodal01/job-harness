@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import json
+import tempfile
 import threading
 import unittest
 from pathlib import Path
@@ -20,13 +22,23 @@ def _load_mcp_server():
 
 
 class _NoBrowserScraperClass:
+    countries = ()
     requires_browser = False
     detail_requires_browser = False
 
+    @classmethod
+    def supports_country(cls, country):
+        return True
+
 
 class _BrowserScraperClass:
+    countries = ()
     requires_browser = True
     detail_requires_browser = True
+
+    @classmethod
+    def supports_country(cls, country):
+        return True
 
 
 class _FakeScraper:
@@ -102,6 +114,77 @@ class McpServerTest(unittest.TestCase):
         self.assertEqual(1, ensure_browser.call_count)
         self.assertEqual(["browser-context"], contexts)
         self.assertEqual(1, data["total"])
+
+    def test_search_company_jobs_uses_bundled_directory_without_browser(self) -> None:
+        server = _load_mcp_server()
+
+        with patch.object(server, "_ensure_browser", side_effect=AssertionError("browser not expected")):
+            data = server.search_company_jobs(query="QA", country="Armenia", max_results=10)
+
+        self.assertGreater(data["total"], 0)
+        self.assertIn("Miro", [company["name"] for company in data["companies"]])
+        self.assertTrue(all("Armenia" in company["countries"] for company in data["companies"]))
+
+    def test_search_company_careers_impl_uses_browser_context(self) -> None:
+        server = _load_mcp_server()
+
+        class Link:
+            def get_attribute(self, name):
+                return "/jobs/qa-engineer" if name == "href" else None
+
+            def inner_text(self):
+                return "QA Engineer"
+
+        class Locator:
+            def count(self):
+                return 1
+
+            def nth(self, index):
+                return Link()
+
+        class Page:
+            url = ""
+
+            def goto(self, url, **kwargs):
+                self.url = url
+
+            def wait_for_timeout(self, timeout):
+                pass
+
+            def locator(self, selector):
+                return Locator()
+
+            def close(self):
+                pass
+
+        class Context:
+            def new_page(self):
+                return Page()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            directory_path = Path(tmpdir) / "companies.json"
+            directory_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "name": "QA Co",
+                            "careers_url": "https://qa.test/careers",
+                            "sources": ["test"],
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            with (
+                patch.object(server, "_COMPANY_DIRECTORY", directory_path),
+                patch.object(server, "_ensure_browser", return_value=Context()) as ensure_browser,
+            ):
+                data = server._search_company_careers_impl(query="QA", max_results=5)
+
+        self.assertEqual(1, ensure_browser.call_count)
+        self.assertEqual(1, data["companies_checked"])
+        self.assertEqual(1, data["total"])
+        self.assertEqual("QA Co", data["hits"][0]["company"])
 
 
 if __name__ == "__main__":

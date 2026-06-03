@@ -151,6 +151,7 @@ class _HabrDetailParser(HTMLParser):
 class HabrCareerScraper(BaseScraper):
     display_name = "Habr Career"
     BASE_URL = "https://career.habr.com/vacancies"
+    countries = ("RU",)
     requires_browser = False
     detail_requires_browser = False
 
@@ -182,6 +183,7 @@ class HabrCareerScraper(BaseScraper):
                 title=listing.title,
                 url=listing.url,
                 company=listing.company,
+                country=listing.country,
                 salary=listing.salary,
                 experience=listing.experience,
                 remote=listing.remote,
@@ -242,6 +244,7 @@ class HabrCareerScraper(BaseScraper):
                 title=title,
                 url=url,
                 company=card.get("company", "").strip(),
+                country="RU",
                 salary=salary or None,
                 experience=experience,
                 remote="Можно удалённо" in card_text or "Можно из дома" in card_text,
