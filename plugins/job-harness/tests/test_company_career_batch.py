@@ -5,8 +5,10 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from job_harness.company_career_batch import _build_summary, _check_company, _read_completed_companies, _write_summary
+from job_harness.company_career_search import CompanyVacancyHit
 from job_harness.company_directory import CompanyProfile
 
 
@@ -29,6 +31,11 @@ class _SlowEvaluatePage:
         self.closed = True
 
 
+class _SlowEvaluatePageWithContent(_SlowEvaluatePage):
+    async def content(self) -> str:
+        return '<a href="/jobs/qa">QA Engineer</a>'
+
+
 class _AsyncContext:
     def __init__(self, page):
         self.page = page
@@ -42,11 +49,87 @@ class CompanyCareerBatchTest(unittest.TestCase):
         page = _SlowEvaluatePage()
         company = CompanyProfile(name="Alpha", careers_url="https://alpha.test/careers")
 
-        record = asyncio.run(_check_company(_AsyncContext(page), company, ["qa"], timeout_ms=10))
+        with patch("job_harness.company_career_batch._find_matching_links_http", side_effect=RuntimeError("http failed")):
+            record = asyncio.run(_check_company(_AsyncContext(page), company, ["qa"], timeout_ms=10))
 
         self.assertEqual("error", record["status"])
-        self.assertIn("link extraction timeout", record["error"])
+        self.assertEqual("http failed", record["error"])
+        self.assertIn("link extraction timeout", record["attempt_errors"][0]["error"])
         self.assertTrue(page.closed)
+
+    def test_check_company_uses_http_fallback_after_browser_timeout(self) -> None:
+        page = _SlowEvaluatePage()
+        company = CompanyProfile(name="Alpha", careers_url="https://alpha.test/careers")
+        hit = CompanyVacancyHit(
+            company="Alpha",
+            title="QA Engineer",
+            vacancy_url="https://alpha.test/jobs/qa",
+            careers_url="https://alpha.test/careers",
+            matched_text="QA Engineer",
+            score=3,
+            countries=[],
+            stack=[],
+            job_types=[],
+        )
+
+        with patch("job_harness.company_career_batch._find_matching_links_http", return_value=[hit]):
+            record = asyncio.run(_check_company(_AsyncContext(page), company, ["qa"], timeout_ms=10))
+
+        self.assertEqual("ok", record["status"])
+        self.assertEqual("http", record["method"])
+        self.assertEqual(1, record["hit_count"])
+        self.assertIn("link extraction timeout", record["attempt_errors"][0]["error"])
+
+    def test_check_company_uses_browser_html_after_evaluate_timeout(self) -> None:
+        page = _SlowEvaluatePageWithContent()
+        company = CompanyProfile(name="Alpha", careers_url="https://alpha.test/careers")
+
+        record = asyncio.run(_check_company(_AsyncContext(page), company, ["qa"], timeout_ms=10))
+
+        self.assertEqual("ok", record["status"])
+        self.assertEqual("browser_html", record["method"])
+        self.assertEqual(1, record["hit_count"])
+        self.assertEqual("https://alpha.test/jobs/qa", record["hits"][0]["vacancy_url"])
+
+    def test_check_company_uses_alternate_jobs_url_when_careers_url_missing(self) -> None:
+        company = CompanyProfile(
+            name="Alpha",
+            careers_url=None,
+            linkedin_jobs_url="https://linkedin.test/company/alpha/jobs/",
+        )
+        hit = CompanyVacancyHit(
+            company="Alpha",
+            title="QA Engineer",
+            vacancy_url="https://linkedin.test/jobs/view/1",
+            careers_url="https://linkedin.test/company/alpha/jobs/",
+            matched_text="QA Engineer",
+            score=3,
+            countries=[],
+            stack=[],
+            job_types=[],
+        )
+
+        with patch("job_harness.company_career_batch._find_matching_links_http", return_value=[hit]) as fallback:
+            record = asyncio.run(_check_company(_AsyncContext(_SlowEvaluatePage()), company, ["qa"], timeout_ms=10))
+
+        self.assertEqual("ok", record["status"])
+        self.assertEqual("alternate_jobs_http", record["method"])
+        self.assertEqual("https://linkedin.test/company/alpha/jobs/", record["alternate_url"])
+        fallback.assert_called_once()
+
+    def test_check_company_marks_known_no_open_positions_without_network(self) -> None:
+        company = CompanyProfile(
+            name="Alpha",
+            careers_url="https://alpha.test/careers",
+            job_types=("There are no open positions at the moment",),
+        )
+
+        record = asyncio.run(_check_company(_AsyncContext(_SlowEvaluatePage()), company, ["qa"], timeout_ms=10))
+
+        self.assertEqual("ok", record["status"])
+        self.assertEqual("known_no_open_positions", record["method"])
+        self.assertEqual(0, record["hit_count"])
+        self.assertEqual([], record["hits"])
 
     def test_completed_companies_are_read_from_jsonl_checkpoint(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

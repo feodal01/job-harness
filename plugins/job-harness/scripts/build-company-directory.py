@@ -7,6 +7,7 @@ import argparse
 import csv
 import json
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,7 +19,6 @@ from job_harness.employer_resolver import classify_careers_url  # noqa: E402
 
 SOURCE_HELLONEWJOB = "hellonewjob"
 SOURCE_PUBLIC_CACHE = "company-careers-public"
-IMPORT_DATE = "2026-06-02"
 
 
 def main() -> None:
@@ -35,15 +35,21 @@ def main() -> None:
         help="Bundled employer cache JSON to read and update",
     )
     parser.add_argument("--merged-csv", help="Optional CSV export of the merged company directory")
+    parser.add_argument(
+        "--import-date",
+        default=date.today().isoformat(),
+        type=_iso_date,
+        help="ISO date recorded for imported HelloNewJob rows (default: today)",
+    )
     args = parser.parse_args()
 
     public_cache_path = Path(args.public_cache_json)
     companies = _load_public_cache(public_cache_path)
-    _merge_hellonewjob(companies, Path(args.hellonewjob_csv))
+    _merge_hellonewjob(companies, Path(args.hellonewjob_csv), import_date=args.import_date)
 
     directory = sorted(companies.values(), key=lambda item: item["name"].casefold())
     _write_json(Path(args.directory_json), directory)
-    _write_public_cache(public_cache_path, directory)
+    _write_public_cache(public_cache_path, directory, import_date=args.import_date)
     if args.merged_csv:
         _write_csv(Path(args.merged_csv), directory)
 
@@ -80,7 +86,7 @@ def _load_public_cache(path: Path) -> dict[str, dict]:
     return companies
 
 
-def _merge_hellonewjob(companies: dict[str, dict], path: Path) -> None:
+def _merge_hellonewjob(companies: dict[str, dict], path: Path, *, import_date: str) -> None:
     with path.open(encoding="utf-8-sig", newline="") as file:
         reader = csv.DictReader(file)
         for row in reader:
@@ -100,7 +106,7 @@ def _merge_hellonewjob(companies: dict[str, dict], path: Path) -> None:
                     "job_types": _split_multiline(row.get("Types of jobs for hire")),
                     "stack": _split_multiline(row.get("Stack")),
                     "countries": _split_multiline(row.get("Country")),
-                    "last_checked": IMPORT_DATE,
+                    "last_checked": import_date,
                 }
             )
             if careers_url:
@@ -138,7 +144,7 @@ def _write_json(path: Path, data: list[dict]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _write_public_cache(path: Path, directory: list[dict]) -> None:
+def _write_public_cache(path: Path, directory: list[dict], *, import_date: str) -> None:
     cache = {}
     for company in directory:
         careers_url = company["careers_url"]
@@ -149,7 +155,7 @@ def _write_public_cache(path: Path, directory: list[dict]) -> None:
             "careers_url": careers_url,
             "ats_type": company["ats_type"],
             "scraper_name": company["scraper_name"],
-            "last_checked": company["last_checked"] or IMPORT_DATE,
+            "last_checked": company["last_checked"] or import_date,
             "last_found_roles": company["last_found_roles"],
             "ignored": False,
         }
@@ -214,6 +220,11 @@ def _parse_remote(value: object) -> bool:
     if text is None:
         return False
     return text.casefold() in {"1", "true", "yes", "remote", "да"}
+
+
+def _iso_date(value: str) -> str:
+    date.fromisoformat(value)
+    return value
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
     "careers_url": "https://bonddaria.notion.site/110-Industries-is-hiring-03eca12a1d1a47988bb13c3d5afc53fc",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -13,7 +13,7 @@
     "careers_url": "https://1ex.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -22,16 +22,16 @@
     "careers_url": "https://cryptocurrencyjobs.co/startups/1inch-network/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
   "3commas": {
     "company": "3Commas",
-    "careers_url": "https://careers.3commas.io/",
-    "ats_type": "direct",
+    "careers_url": "https://jobs.ashbyhq.com/3commas",
+    "ats_type": "ashby",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -40,7 +40,7 @@
     "careers_url": "https://www.abbyy.com/company/careers/open-positions/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -49,16 +49,16 @@
     "careers_url": "https://abe-health.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
   "abelohost b.v.": {
     "company": "AbeloHost B.V.",
-    "careers_url": "https://ph.indeed.com/q-abelohost-b-v-,-anywhere-jobs.html",
+    "careers_url": "https://www.abelohost.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-05-27",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -67,7 +67,7 @@
     "careers_url": "https://accelclub.notion.site/Accel-Club-Job-Board",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -76,7 +76,7 @@
     "careers_url": "https://www.acronis.com/en-us/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -85,7 +85,7 @@
     "careers_url": "https://activeloop.notion.site/Careers-Activeloop-9dad048520b6452e8954830d61250c5a",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -94,7 +94,7 @@
     "careers_url": "https://adapty.io/jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -103,7 +103,7 @@
     "careers_url": "https://adtechholding.com/#careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -112,7 +112,7 @@
     "careers_url": "https://www.affirm.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -121,7 +121,7 @@
     "careers_url": "https://ahrefs.com/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -130,7 +130,7 @@
     "careers_url": "https://jobs.lever.co/airslate",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -139,7 +139,7 @@
     "careers_url": "https://altenar.com/career/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -148,7 +148,7 @@
     "careers_url": "https://careers.altium.com/ru/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -157,7 +157,7 @@
     "careers_url": "https://www.altoroslabs.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -166,7 +166,7 @@
     "careers_url": "https://www.amegacorp.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -175,7 +175,7 @@
     "careers_url": "https://amma.family/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -193,7 +193,7 @@
     "careers_url": "https://anna.money/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -202,7 +202,7 @@
     "careers_url": "https://mixed-porter-ecb.notion.site/Jobs-at-Anymaster-05c778cd95fa4132bbdc617d1c7802fe",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -211,7 +211,7 @@
     "careers_url": "https://jobs.lever.co/appfollow",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -220,7 +220,7 @@
     "careers_url": "https://appmagic.rocks/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -229,7 +229,7 @@
     "careers_url": "https://apply.workable.com/apron/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -238,7 +238,7 @@
     "careers_url": "https://arival.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -247,7 +247,7 @@
     "careers_url": "https://www.armis.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -256,7 +256,7 @@
     "careers_url": "https://careers.artec3d.com/#positions",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -265,7 +265,7 @@
     "careers_url": "https://ru.asodesk.com/careers#rec548392573",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -274,7 +274,7 @@
     "careers_url": "https://aspect-health.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -283,7 +283,7 @@
     "careers_url": "https://www.at-bay.com/about/careers/#jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -292,7 +292,7 @@
     "careers_url": "https://aura-devices.breezy.hr/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -301,7 +301,7 @@
     "careers_url": "https://bnine.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -310,7 +310,7 @@
     "careers_url": "https://wellfound.com/company/manan-ai/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -319,7 +319,7 @@
     "careers_url": "https://balancy.co/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -328,7 +328,7 @@
     "careers_url": "https://www.beacon.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -337,7 +337,7 @@
     "careers_url": "https://careers.beamery.com/jobs/?department=&location=#results",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -346,7 +346,7 @@
     "careers_url": "https://www.behavox.com/about/jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -355,7 +355,7 @@
     "careers_url": "https://bigid.com/company/careers/#job_board",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -364,7 +364,7 @@
     "careers_url": "https://boards.greenhouse.io/bitfury",
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -373,7 +373,7 @@
     "careers_url": "https://www.bonrepublic.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -382,7 +382,7 @@
     "careers_url": "https://borzodelivery.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -391,7 +391,7 @@
     "careers_url": "https://www.brainrocket.com/careers#all",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -400,7 +400,7 @@
     "careers_url": "https://brask.notion.site/Join-Brask-ai-e1f9dd23043741c2922a6546c5369602#7f527c979ed74c02b03baa4553526b38",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -409,7 +409,7 @@
     "careers_url": "https://brickit.app/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -418,7 +418,7 @@
     "careers_url": "https://buddy.ai/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -427,7 +427,7 @@
     "careers_url": "https://bumble.wd3.myworkdayjobs.com/Bumble_Careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -436,7 +436,7 @@
     "careers_url": "https://www.careerist.com/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -445,7 +445,7 @@
     "careers_url": "https://trycartwheel.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -454,7 +454,7 @@
     "careers_url": "https://www.cattle-care.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -463,7 +463,7 @@
     "careers_url": "https://www.centro.team/cyprus-office",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -472,7 +472,7 @@
     "careers_url": "https://chainstack.bamboohr.com/jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -481,7 +481,7 @@
     "careers_url": "https://careers.chatfuel.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -490,7 +490,7 @@
     "careers_url": "https://boards.greenhouse.io/chattermill/",
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -499,7 +499,7 @@
     "careers_url": "https://wellfound.com/company/choise-dot-com",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -508,7 +508,7 @@
     "careers_url": "https://chrono.tech/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -517,7 +517,7 @@
     "careers_url": "https://www.notion.so/Jobs-at-Cindicator-37ea0aed8b7b4a7799999c94ea00f3a2",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -526,7 +526,7 @@
     "careers_url": "https://www.click-ins.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -535,7 +535,7 @@
     "careers_url": "https://clickhouse.com/company/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -544,7 +544,7 @@
     "careers_url": "https://www.cloudlinux.com/about-us-company-jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -553,7 +553,7 @@
     "careers_url": "https://cm.games/people#vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -562,7 +562,7 @@
     "careers_url": "https://codedunes.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -571,7 +571,7 @@
     "careers_url": "https://boards.greenhouse.io/codesignal",
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -580,7 +580,7 @@
     "careers_url": "https://codinginvaders.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -589,7 +589,7 @@
     "careers_url": "https://wellfound.com/company/coinrule/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -598,7 +598,7 @@
     "careers_url": "https://jobs.eu.lever.co/coinspaid/",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -607,7 +607,7 @@
     "careers_url": "https://colife.ae/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -616,7 +616,7 @@
     "careers_url": "https://jobs.lever.co/CollectlyInc.",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -625,7 +625,7 @@
     "careers_url": "https://compasspathways.com/join-us/#careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -634,7 +634,7 @@
     "careers_url": "https://postoplan.contenive.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -643,7 +643,7 @@
     "careers_url": "https://cooperpetcare.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -652,7 +652,7 @@
     "careers_url": "https://www.core42.ai/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -661,7 +661,7 @@
     "careers_url": "https://crypton.studio/en/career",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -670,7 +670,7 @@
     "careers_url": "https://crystalblockchain.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -679,7 +679,7 @@
     "careers_url": "https://cube.dev/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -688,7 +688,7 @@
     "careers_url": "https://www.cyber-net.ai/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -697,7 +697,7 @@
     "careers_url": "https://www.dashly.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -706,7 +706,7 @@
     "careers_url": "https://www.dataart.team/vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -715,7 +715,7 @@
     "careers_url": "https://www.datafold.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -724,7 +724,7 @@
     "careers_url": "https://datagrid.solutions/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -733,7 +733,7 @@
     "careers_url": "https://boards.greenhouse.io/datamilkwebsite",
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -742,7 +742,7 @@
     "careers_url": "https://destinus.ch/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -751,7 +751,7 @@
     "careers_url": "https://destinyx.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -760,7 +760,7 @@
     "careers_url": "https://careers.devexperts.com/vacancies/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -769,7 +769,7 @@
     "careers_url": "https://digifabster.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -778,7 +778,7 @@
     "careers_url": "https://www.docet.ai/#rec526532260",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -787,7 +787,7 @@
     "careers_url": "https://easybrain.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -796,7 +796,7 @@
     "careers_url": "https://ebac.gupy.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -805,7 +805,7 @@
     "careers_url": "https://ecarstrade.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -814,7 +814,7 @@
     "careers_url": "https://www.edgedb.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -823,7 +823,7 @@
     "careers_url": "https://career.educate-online.org/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -832,7 +832,7 @@
     "careers_url": "https://about.eesee.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -841,7 +841,7 @@
     "careers_url": "https://eightify.app/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -850,7 +850,7 @@
     "careers_url": "https://elatra.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -859,7 +859,7 @@
     "careers_url": "https://electroneek.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -868,7 +868,7 @@
     "careers_url": "https://elephant-games.com/career/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -877,7 +877,7 @@
     "careers_url": "https://www.emergingtravel.com/career/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -886,7 +886,7 @@
     "careers_url": "https://endel.io/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -895,7 +895,7 @@
     "careers_url": "https://angel.co/company/enki/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -904,7 +904,7 @@
     "careers_url": "https://www.enpal.de/jobs?#jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -913,7 +913,7 @@
     "careers_url": "https://www.eqvilent.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -922,7 +922,7 @@
     "careers_url": "https://eschatology-entertainment.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -931,7 +931,7 @@
     "careers_url": "https://evilmartians.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -940,7 +940,7 @@
     "careers_url": "https://evolwe.ai/join-the-team/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -949,7 +949,7 @@
     "careers_url": "https://appewa.bamboohr.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -958,7 +958,7 @@
     "careers_url": "https://exh.ai/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -967,7 +967,7 @@
     "careers_url": "https://wellfound.com/company/durer-ai/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -976,7 +976,7 @@
     "careers_url": "https://careers.exactpro.com/careers?location=Array",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -985,7 +985,7 @@
     "careers_url": "https://group.exinity.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -994,7 +994,7 @@
     "careers_url": "https://exness-careers.com/jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1003,7 +1003,7 @@
     "careers_url": "https://ffive.wd5.myworkdayjobs.com/NGINX",
     "ats_type": "workday",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1012,7 +1012,7 @@
     "careers_url": "https://www.faceapp.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1021,7 +1021,7 @@
     "careers_url": "https://www.ycombinator.com/companies/farel",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1030,7 +1030,7 @@
     "careers_url": "https://fibery.io/blog/we-are-hiring/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1039,7 +1039,7 @@
     "careers_url": "https://findmykids.org/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1048,7 +1048,7 @@
     "careers_url": "https://findev.team/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1057,7 +1057,7 @@
     "careers_url": "https://finerymarkets.com/careers.html",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1066,7 +1066,7 @@
     "careers_url": "https://finom.jobs.personio.de/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1075,7 +1075,7 @@
     "careers_url": "https://fintuity.com/hiring/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1084,7 +1084,7 @@
     "careers_url": "https://finverity.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1093,7 +1093,7 @@
     "careers_url": "https://fireart.studio/careers/#vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1102,7 +1102,7 @@
     "careers_url": "https://careers.firstlinesoftware.com/career/vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1111,7 +1111,7 @@
     "careers_url": "https://www.fjor.health/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1120,7 +1120,7 @@
     "careers_url": "https://flipperdevices.com/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1129,7 +1129,7 @@
     "careers_url": "https://flo.health/careers-listing",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1138,7 +1138,7 @@
     "careers_url": "https://fluence.one/join.html",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1147,7 +1147,7 @@
     "careers_url": "https://getfluently.app/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1156,7 +1156,7 @@
     "careers_url": "https://formelskin.jobs.personio.de/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1165,7 +1165,7 @@
     "careers_url": "https://careers.formlabs.com/all-open-roles/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1174,7 +1174,7 @@
     "careers_url": "https://www.frame.so/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1183,7 +1183,7 @@
     "careers_url": "https://funcorp.dev/?unit=ifunny#vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1192,7 +1192,7 @@
     "careers_url": "https://careers.g42.ai/careers-home/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1201,7 +1201,7 @@
     "careers_url": "https://jobs.g5.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1210,7 +1210,7 @@
     "careers_url": "https://gaijinent.com/job",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1219,7 +1219,7 @@
     "careers_url": "https://gameram.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1228,7 +1228,7 @@
     "careers_url": "https://tbilisi.headhunter.ge/employer/9235034",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1237,7 +1237,7 @@
     "careers_url": "https://gaviti.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1246,7 +1246,7 @@
     "careers_url": "https://geexarts.notion.site/Careers-9f236198489c4bee9291875b7116c383",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1255,7 +1255,7 @@
     "careers_url": "https://gero.ai/about#careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1264,7 +1264,7 @@
     "careers_url": "https://glera-games.com/jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1273,7 +1273,7 @@
     "careers_url": "https://www.gopuff.com/go/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1282,7 +1282,7 @@
     "careers_url": "https://www.paycomonline.net/v4/ats/web.php/jobs?clientkey=AA674B442E9B6A1284BD7F78CB0C3E73&session_nonce=5d2681a6163cf70e72b0c3e10128d82c",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1291,7 +1291,7 @@
     "careers_url": "https://www.gpu.audio/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1300,7 +1300,7 @@
     "careers_url": "https://www.gracia.ai/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1309,7 +1309,7 @@
     "careers_url": "https://www.grammarly.com/jobs/openings",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1318,7 +1318,7 @@
     "careers_url": "https://greengrowth.tech/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1327,7 +1327,7 @@
     "careers_url": "https://greeno.ag/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1336,7 +1336,7 @@
     "careers_url": "https://careers.griddynamics.com/discover-openings",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1345,7 +1345,7 @@
     "careers_url": "https://gurtam.com/en/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1354,7 +1354,7 @@
     "careers_url": "https://www.handl.ai/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1363,7 +1363,7 @@
     "careers_url": "https://hapic.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1372,7 +1372,7 @@
     "careers_url": "https://haut.ai/#wearehiring",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1381,7 +1381,7 @@
     "careers_url": "https://headframe.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1390,7 +1390,7 @@
     "careers_url": "https://join.team/headroom",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1399,7 +1399,7 @@
     "careers_url": "https://heliogames.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1408,7 +1408,7 @@
     "careers_url": "https://hexens.io/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1417,7 +1417,7 @@
     "careers_url": "https://hinocode.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1426,7 +1426,7 @@
     "careers_url": "https://career.hire5.co/2/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1435,7 +1435,7 @@
     "careers_url": "https://www.homebuddy.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1444,7 +1444,7 @@
     "careers_url": "https://houseofpitch.app/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1453,7 +1453,7 @@
     "careers_url": "https://hqsoftwarelab.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1462,7 +1462,7 @@
     "careers_url": "https://joinhuman.notion.site/Jobs-at-Human-ec4552bee5f64b4cb12491b0d84ac1c8",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1471,7 +1471,7 @@
     "careers_url": "https://x.humans.work/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1480,7 +1480,7 @@
     "careers_url": "https://heartex.com/careers#openings",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1489,7 +1489,7 @@
     "careers_url": "https://hypeauditor.com/about/company/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1498,7 +1498,7 @@
     "careers_url": "https://apply.workable.com/hypemasters/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1507,7 +1507,7 @@
     "careers_url": "https://hi.hyperskill.org/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1516,7 +1516,7 @@
     "careers_url": "https://www.i-brain.tech/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1525,7 +1525,7 @@
     "careers_url": "https://www.idwell.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1534,7 +1534,7 @@
     "careers_url": "https://www.ifarm.fi/careers#open_vacancy",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1543,7 +1543,7 @@
     "careers_url": "https://immigram.io/careers#positions",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1552,7 +1552,7 @@
     "careers_url": "https://jobs.smile2impress.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1561,7 +1561,7 @@
     "careers_url": "https://jobs.lever.co/improvadoio",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1570,7 +1570,7 @@
     "careers_url": "https://inca.digital/careers/#roles",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1579,7 +1579,7 @@
     "careers_url": "https://indrive.com/en/career/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1588,7 +1588,7 @@
     "careers_url": "https://instories.app/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1597,7 +1597,7 @@
     "careers_url": "https://career.intellectokids.com/roles",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1606,7 +1606,7 @@
     "careers_url": "https://intent.ai/careers.html",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1615,7 +1615,7 @@
     "careers_url": "https://jobs.lever.co/intently-ai",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1624,7 +1624,7 @@
     "careers_url": "https://intento.recruitee.com/#section-187103",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1633,7 +1633,7 @@
     "careers_url": "https://intone.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1642,7 +1642,7 @@
     "careers_url": "https://www.inworld.ai/careers#job-openings",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1651,7 +1651,7 @@
     "careers_url": "https://www.ivmmarkets.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1660,7 +1660,7 @@
     "careers_url": "https://izdat.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1669,7 +1669,7 @@
     "careers_url": "https://www.jetadmin.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1678,7 +1678,7 @@
     "careers_url": "https://www.jetbrains.com/careers/jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1687,7 +1687,7 @@
     "careers_url": "https://jetdocs.io/contact-us/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1696,7 +1696,7 @@
     "careers_url": "https://www.jettycloud.com/vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1705,7 +1705,7 @@
     "careers_url": "https://www.joom-group.com/en/vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1714,7 +1714,7 @@
     "careers_url": "https://www.kadmos.io/career/job-list",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1723,7 +1723,7 @@
     "careers_url": "https://careers.kaspersky.com/vacancy",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1732,7 +1732,7 @@
     "careers_url": "https://www.kewazo.com/career-at-kewazo",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1741,7 +1741,7 @@
     "careers_url": "https://kodlandcareer.notion.site/kodlandcareer/Jobs-at-Kodland-32dbf4cd9577449bab2a6945f89c47ba",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1750,7 +1750,7 @@
     "careers_url": "https://kolesa.group/career/job",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1759,7 +1759,7 @@
     "careers_url": "https://krisp.ai/careers/#job_listings\n\nhttps://staff.am/en/company/krisp",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1768,7 +1768,7 @@
     "careers_url": "https://laoshi.io/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1777,7 +1777,7 @@
     "careers_url": "https://jobs.lever.co/legion-farm",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1786,7 +1786,7 @@
     "careers_url": "https://www.levelupbasket.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1795,7 +1795,7 @@
     "careers_url": "https://most-team.notion.site/LIFEMOST-HIRES-33da8841c5de4fab922ec9a3b7343789",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1804,7 +1804,7 @@
     "careers_url": "https://boards.greenhouse.io/lightspeedhq",
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1813,7 +1813,7 @@
     "careers_url": "https://linguix.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1822,7 +1822,7 @@
     "careers_url": "https://locals.crew.work/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1831,7 +1831,7 @@
     "careers_url": "https://lokalise.com/job",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1840,7 +1840,7 @@
     "careers_url": "https://loonaapp.notion.site/Work-at-Lo-na-fa2a632a634b4bf5967843897e3d09ec",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1849,7 +1849,7 @@
     "careers_url": "https://www.luminai.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1858,7 +1858,7 @@
     "careers_url": "https://jobs.lever.co/lunchclub",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1867,7 +1867,7 @@
     "careers_url": "https://career.luxoft.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1876,7 +1876,7 @@
     "careers_url": "https://lyka.com.au/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1885,7 +1885,7 @@
     "careers_url": "https://www.machinet.net/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1894,7 +1894,7 @@
     "careers_url": "https://madcurve.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1903,7 +1903,7 @@
     "careers_url": "https://madeonearthgames.notion.site/MEG-Job-Board-2c89130953004b8cafbc50195dd8e87b",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1912,7 +1912,7 @@
     "careers_url": "https://career.magicsquare.io/#jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1921,7 +1921,7 @@
     "careers_url": "https://manychat.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1930,7 +1930,7 @@
     "careers_url": "https://www.mapbox.com/careers#jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1939,7 +1939,7 @@
     "careers_url": "https://marine-digital.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1948,7 +1948,7 @@
     "careers_url": "https://www.ycombinator.com/companies/maroo/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1957,7 +1957,7 @@
     "careers_url": "https://www.mbanq.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1966,7 +1966,7 @@
     "careers_url": "https://meander-hq.notion.site/Meander-Careers-549753aef2dd44d3911e9c6be2911106",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1975,7 +1975,7 @@
     "careers_url": "https://mediacube.io/en-AR/vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1984,7 +1984,7 @@
     "careers_url": "https://melscience.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -1993,7 +1993,7 @@
     "careers_url": "https://mercaux.com/careers.html",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2002,7 +2002,7 @@
     "careers_url": "https://metapax.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2011,7 +2011,7 @@
     "careers_url": "https://www.mightybuildings.com/careers#joblist",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2020,7 +2020,7 @@
     "careers_url": "https://www.migrun.tech/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2029,7 +2029,7 @@
     "careers_url": "https://miro.com/careers/open-positions/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2038,7 +2038,7 @@
     "careers_url": "https://mirrorxyz.notion.site/Work-at-Mirror-cdcfea2fd38540688ec73d5df8e0f826",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2047,7 +2047,7 @@
     "careers_url": "https://mixbytes.io/career",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2056,7 +2056,7 @@
     "careers_url": "https://www.moeco.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2065,7 +2065,7 @@
     "careers_url": "https://www.monetha.io/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2074,7 +2074,7 @@
     "careers_url": "https://monite.notion.site/Careers-Monite-9ad0d34fcd0e4ec5ba1017aab6df686f",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2083,7 +2083,7 @@
     "careers_url": "https://www.getmonolith.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2092,7 +2092,7 @@
     "careers_url": "https://job.movavi.ru/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2101,7 +2101,7 @@
     "careers_url": "https://my.games/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2110,7 +2110,7 @@
     "careers_url": "https://mysky.com/about",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2119,7 +2119,7 @@
     "careers_url": "https://mytona.com/career",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2128,7 +2128,7 @@
     "careers_url": "https://munzen.io/career",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2137,7 +2137,7 @@
     "careers_url": "https://narrativebi.notion.site/Work-at-Narrative-BI-2724d8946b7c4835916446cb57263117",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2146,7 +2146,7 @@
     "careers_url": "https://neatsy.notion.site/neatsy/Careers-at-Neatsy-d100c73967b44a7292da17b2daf6b27d",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2155,7 +2155,7 @@
     "careers_url": "https://nebius.breezy.hr/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2164,7 +2164,7 @@
     "careers_url": "https://neon.tech/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2173,7 +2173,7 @@
     "careers_url": "https://nexters.com/en/about/alljobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2182,7 +2182,7 @@
     "careers_url": "https://www.ngrow.ai/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2191,7 +2191,7 @@
     "careers_url": "https://nil.foundation/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2200,7 +2200,7 @@
     "careers_url": "https://noom.eightfold.ai/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2209,7 +2209,7 @@
     "careers_url": "https://www.not8.co/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2218,7 +2218,7 @@
     "careers_url": "https://jobs.lever.co/neednova",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2227,7 +2227,7 @@
     "careers_url": "https://hr.novakidschool.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2236,7 +2236,7 @@
     "careers_url": "https://ats.comparably.com/api/v1/gh/nylas",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2245,7 +2245,7 @@
     "careers_url": "https://odysseusinc.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2254,7 +2254,7 @@
     "careers_url": "https://ohmysynt.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2263,7 +2263,7 @@
     "careers_url": "https://www.oneday.co.uk/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2272,7 +2272,7 @@
     "careers_url": "https://www.onetick.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2281,7 +2281,7 @@
     "careers_url": "https://onesoil.ai/en/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2290,7 +2290,7 @@
     "careers_url": "https://www.optic.xyz/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2299,7 +2299,7 @@
     "careers_url": "https://www.orderofmeta.com/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2308,7 +2308,7 @@
     "careers_url": "https://originalgames.io/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2317,7 +2317,7 @@
     "careers_url": "https://careers.osome.com/#jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2326,7 +2326,7 @@
     "careers_url": "https://boards.greenhouse.io/outschool",
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2335,7 +2335,7 @@
     "careers_url": "https://outside.digital/career",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2344,7 +2344,7 @@
     "careers_url": "https://oxorioteam.notion.site/Careers-da7d5b13b81b495b9a8b3eaacdd424ab",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2353,7 +2353,7 @@
     "careers_url": "https://oxygen.us/company/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2362,7 +2362,7 @@
     "careers_url": "https://p2porg.global.huntflow.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2371,7 +2371,7 @@
     "careers_url": "https://www.pagoda.co/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2380,7 +2380,7 @@
     "careers_url": "https://boards.greenhouse.io/paltaltd",
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2389,7 +2389,7 @@
     "careers_url": "https://www.pandadoc.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2398,16 +2398,16 @@
     "careers_url": "https://para.co/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
   "penenza": {
     "company": "Penenza",
-    "careers_url": "https://penenza.com/",
+    "careers_url": "http://penenza.ru/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2416,7 +2416,7 @@
     "careers_url": "https://people.ai/about-us/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2425,7 +2425,7 @@
     "careers_url": "https://www.personio.com/about-personio/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2434,7 +2434,7 @@
     "careers_url": "https://picsart.com/jobs/vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2443,7 +2443,7 @@
     "careers_url": "https://pitchme.co/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2452,7 +2452,7 @@
     "careers_url": "https://careers.pixellu.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2461,7 +2461,7 @@
     "careers_url": "https://planner5d.multiscreensite.com/?_gl=1*n1n8wf*_ga*MTI3MTkzNjg5Ny4xNzA1NDYzMDQ4*_ga_61SD1N9JH1*MTcwNTQ2MzA0Ny4xLjEuMTcwNTQ2MzA4Ny4yMC4wLjA.#Jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2470,7 +2470,7 @@
     "careers_url": "https://platacard.mx/en/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2479,7 +2479,7 @@
     "careers_url": "https://playkot.com/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2488,7 +2488,7 @@
     "careers_url": "https://playrix.com/job/open/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2497,7 +2497,7 @@
     "careers_url": "https://www.plesk.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2506,7 +2506,7 @@
     "careers_url": "https://podcastle.ai/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2515,7 +2515,7 @@
     "careers_url": "https://polyn.ai/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2524,7 +2524,7 @@
     "careers_url": "https://www.ycombinator.com/companies/prequel/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2533,7 +2533,7 @@
     "careers_url": "https://www.pria.care/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2542,7 +2542,7 @@
     "careers_url": "https://prismalabs.notion.site/Careers-at-Prisma-Labs-eb709e36aba8405c8c189fad1c226389",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2551,7 +2551,7 @@
     "careers_url": "https://boards.greenhouse.io/prodlyjobs",
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2560,7 +2560,7 @@
     "careers_url": "https://apply.workable.com/profi/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2569,7 +2569,7 @@
     "careers_url": "https://protofire.io/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2578,7 +2578,7 @@
     "careers_url": "https://pvg.co.id/job",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2587,7 +2587,7 @@
     "careers_url": "https://angel.co/company/qonversion/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2596,7 +2596,7 @@
     "careers_url": "https://jobs.quadcode.com/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2605,7 +2605,7 @@
     "careers_url": "https://career.quantori.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2614,7 +2614,7 @@
     "careers_url": "https://www.quantumsoft.pro/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2623,7 +2623,7 @@
     "careers_url": "https://boards.greenhouse.io/quiknodeinc",
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2632,7 +2632,7 @@
     "careers_url": "https://www.rapyd.net/company/careers-search/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2641,7 +2641,7 @@
     "careers_url": "https://jobs.lever.co/Rarible",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2650,7 +2650,7 @@
     "careers_url": "https://readymag.com/readymag/we-are-hiring/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2659,7 +2659,7 @@
     "careers_url": "https://realiste.ai/eng/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2668,7 +2668,7 @@
     "careers_url": "https://rebels.ai/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2677,7 +2677,7 @@
     "careers_url": "https://www.renderforest.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2686,7 +2686,7 @@
     "careers_url": "https://renova.world/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2695,7 +2695,7 @@
     "careers_url": "https://www.ycombinator.com/companies/replika/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2704,7 +2704,7 @@
     "careers_url": "https://retailrocket.pt/career/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2713,16 +2713,16 @@
     "careers_url": "https://revealbot.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
   "revolut": {
     "company": "Revolut",
-    "careers_url": "https://www.revolut.com/careers/",
+    "careers_url": "https://www.revolut.com/en-US/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2731,7 +2731,7 @@
     "careers_url": "https://rightbalance.io/join",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2740,7 +2740,7 @@
     "careers_url": "https://roasup.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2749,7 +2749,7 @@
     "careers_url": "https://salmon.ph/job-board",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2758,7 +2758,7 @@
     "careers_url": "https://www.sanas.ai/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2767,7 +2767,7 @@
     "careers_url": "https://joinsaola.notion.site/joinsaola/Head-of-Development-for-ChrisAI-Integration-4df041fc4a984bbc8faed92f8e0d5a0a",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2776,7 +2776,7 @@
     "careers_url": "https://scentbird.breezy.hr/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2785,7 +2785,7 @@
     "careers_url": "https://segmentstream.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2794,7 +2794,7 @@
     "careers_url": "https://careers.semrush.com/en/jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2803,7 +2803,7 @@
     "careers_url": "https://www.seneka.life/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2812,7 +2812,7 @@
     "careers_url": "https://sensoriumxr.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2821,7 +2821,7 @@
     "careers_url": "https://www.shapesxr.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2830,7 +2830,7 @@
     "careers_url": "https://join.com/companies/sidestream",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2839,7 +2839,7 @@
     "careers_url": "https://www.silanano.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2848,7 +2848,7 @@
     "careers_url": "https://skich.notion.site/Careers-0957d6a578324c0fb17f72afd08b10f5",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2857,7 +2857,7 @@
     "careers_url": "https://www.skipp.dev/talent",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2866,7 +2866,7 @@
     "careers_url": "https://discoteam.notion.site/Slash-com-is-looking-for-talent-2f01d6fc05394fe68e15cbea00e5b902",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2875,7 +2875,7 @@
     "careers_url": "https://sleepdoctor.fr/en/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2884,7 +2884,7 @@
     "careers_url": "https://www.smartcat.com/career/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2893,7 +2893,7 @@
     "careers_url": "https://soax.com/career",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2902,7 +2902,7 @@
     "careers_url": "https://socialdiscoverygroup.com/vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2911,7 +2911,7 @@
     "careers_url": "https://www.soft2bet.com/career",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2920,7 +2920,7 @@
     "careers_url": "https://www.softgamings.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2929,7 +2929,7 @@
     "careers_url": "https://www.softr.io/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2938,7 +2938,7 @@
     "careers_url": "https://soula.care/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2947,7 +2947,7 @@
     "careers_url": "https://space307.team/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2956,7 +2956,7 @@
     "careers_url": "https://www.sparklo.com/company#Vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2965,7 +2965,7 @@
     "careers_url": "https://www.spatial.chat/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2974,7 +2974,7 @@
     "careers_url": "https://spiritme.tech/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -2983,16 +2983,16 @@
     "careers_url": "https://sprintty.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
   "spryker": {
     "company": "Spryker",
-    "careers_url": "https://spryker.com/jobs-postings/",
+    "careers_url": "https://spryker.com/career/open-positions",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3001,7 +3001,7 @@
     "careers_url": "https://wellfound.com/company/stakewise/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3010,7 +3010,7 @@
     "careers_url": "https://sumsub.com/careers/all/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3019,7 +3019,7 @@
     "careers_url": "https://www.superannotate.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3028,7 +3028,7 @@
     "careers_url": "https://jobs.superdao.co/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3037,7 +3037,7 @@
     "careers_url": "https://svmd.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3046,7 +3046,7 @@
     "careers_url": "https://symfa.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3055,7 +3055,7 @@
     "careers_url": "https://synder.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3064,7 +3064,7 @@
     "careers_url": "https://www.synthesized.io/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3073,7 +3073,7 @@
     "careers_url": "https://tabby.ai/en-AE/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3082,7 +3082,7 @@
     "careers_url": "https://talentway.io/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3091,7 +3091,7 @@
     "careers_url": "https://telegram.org/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3100,7 +3100,7 @@
     "careers_url": "https://goteleport.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3109,7 +3109,7 @@
     "careers_url": "https://jobs.lever.co/temporal/",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3118,7 +3118,7 @@
     "careers_url": "https://tenyks.notion.site/The-Tenyks-Challenge-Awaits-you-a19a2bbc169a453c840500b748ae91b8",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3127,7 +3127,7 @@
     "careers_url": "https://jobs.lever.co/Termius/",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3136,7 +3136,7 @@
     "careers_url": "https://www.jointhesoul.com/jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3145,7 +3145,7 @@
     "careers_url": "https://www.tinybuild.com/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3154,7 +3154,7 @@
     "careers_url": "https://www.toldy.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3163,7 +3163,7 @@
     "careers_url": "https://toloka.ai/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3172,7 +3172,7 @@
     "careers_url": "https://tomi.ai/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3181,7 +3181,7 @@
     "careers_url": "https://tonikbank.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3190,7 +3190,7 @@
     "careers_url": "https://www.toughbyte.com/clients/toughbyte-1",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3199,7 +3199,7 @@
     "careers_url": "https://www.tradingview.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3208,7 +3208,7 @@
     "careers_url": "https://www.comeet.com/jobs/practicum/98.008",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3217,7 +3217,7 @@
     "careers_url": "https://ytme.atlassian.net/wiki/spaces/TM/overview",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3226,7 +3226,7 @@
     "careers_url": "https://jobs.lever.co/truv",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3235,7 +3235,7 @@
     "careers_url": "https://uitrial.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3244,7 +3244,7 @@
     "careers_url": "https://ultima.school/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3253,7 +3253,7 @@
     "careers_url": "https://mu.se/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3262,7 +3262,7 @@
     "careers_url": "https://hydrogen.aero/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3271,7 +3271,7 @@
     "careers_url": "https://www.unlimint.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3280,7 +3280,7 @@
     "careers_url": "https://www.velvetech.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3289,7 +3289,7 @@
     "careers_url": "https://www.ycombinator.com/companies/veryfi-inc/jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3298,7 +3298,7 @@
     "careers_url": "https://apply.workable.com/virtuozzo/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3307,7 +3307,7 @@
     "careers_url": "https://careers.vivid.money/#vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3316,7 +3316,7 @@
     "careers_url": "https://jobs.lever.co/volka",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3325,7 +3325,7 @@
     "careers_url": "https://www.voximplant.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3334,7 +3334,7 @@
     "careers_url": "https://wallarm.recruitee.com/our-open-positions",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3343,7 +3343,7 @@
     "careers_url": "https://wargaming.com/en/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3352,7 +3352,7 @@
     "careers_url": "https://wayray.com/culture/#jobs",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3361,7 +3361,7 @@
     "careers_url": "https://webflow.com/careers/roles",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3370,7 +3370,7 @@
     "careers_url": "https://welltory.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3379,7 +3379,7 @@
     "careers_url": "https://welovenocode.notion.site/Open-Positions-in-Welovenocode-public-4aaf2271b6404be39a92893ccdc58b0d",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3388,7 +3388,7 @@
     "careers_url": "https://wheely.com/en/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3397,7 +3397,7 @@
     "careers_url": "https://getwhizz.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3406,7 +3406,7 @@
     "careers_url": "https://windy.app/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3415,7 +3415,7 @@
     "careers_url": "https://jobs.lever.co/wintermute-trading",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3424,7 +3424,7 @@
     "careers_url": "https://wizart.ai/careers#positions",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3433,7 +3433,7 @@
     "careers_url": "https://workclass.co/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3442,7 +3442,7 @@
     "careers_url": "https://www.wrike.com/jobs/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3451,7 +3451,7 @@
     "careers_url": "https://www.xpanceo.com/t",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3460,7 +3460,7 @@
     "careers_url": "https://xsolla.com/careers/vacancies",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3469,7 +3469,7 @@
     "careers_url": "https://www.xtxmarkets.com/#careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3478,7 +3478,7 @@
     "careers_url": "https://yallahub.ae/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3487,7 +3487,7 @@
     "careers_url": "https://yoffix.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3496,7 +3496,7 @@
     "careers_url": "https://yukongroup.eu/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3505,7 +3505,7 @@
     "careers_url": "https://zededa.com/company/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3514,7 +3514,7 @@
     "careers_url": "https://zenpulsar.com/#Careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3523,7 +3523,7 @@
     "careers_url": "https://careers.zeptolab.com/join-us/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3532,7 +3532,7 @@
     "careers_url": "https://jobs.lever.co/zerion",
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3541,7 +3541,7 @@
     "careers_url": "https://zerosystems.com/about/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3550,7 +3550,7 @@
     "careers_url": "https://zero10.notion.site/ZERO10-JOBS-01b95b15ea114748a4e40fe87b767cb2",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3559,7 +3559,7 @@
     "careers_url": "https://apply.workable.com/zeroavia/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3568,7 +3568,7 @@
     "careers_url": "https://zesty.co/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3577,7 +3577,7 @@
     "careers_url": "https://zimad.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3586,7 +3586,7 @@
     "careers_url": "https://devzion.com/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3595,7 +3595,7 @@
     "careers_url": "https://alberblanc.com/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
@@ -3658,7 +3658,7 @@
     "careers_url": "https://conundrum.ai/careers",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },

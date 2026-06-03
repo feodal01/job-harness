@@ -4,8 +4,20 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from job_harness.company_career_search import _extract_page_links, _query_terms, _score_text, search_company_careers
+from job_harness.company_career_search import (
+    CompanyVacancyHit,
+    _dedupe_hits,
+    _extract_page_links,
+    _find_matching_ats_jobs,
+    _find_matching_links_from_html,
+    _is_non_vacancy_link,
+    _query_terms,
+    _score_text,
+    search_company_careers,
+)
+from job_harness.company_directory import CompanyProfile
 
 
 class _FakeLink:
@@ -100,6 +112,125 @@ class CompanyCareerSearchTest(unittest.TestCase):
         self.assertEqual(0, _score_text("penetration tester", terms))
         self.assertEqual(0, _score_text("vip quality assurance manager french speaking", terms))
 
+    def test_known_training_pages_are_not_vacancy_links(self) -> None:
+        self.assertTrue(_is_non_vacancy_link("https://www.careerist.com/qa", "QA Engineering"))
+        self.assertTrue(_is_non_vacancy_link("https://www.careerist.com/automation", "QA Automation"))
+
+    def test_dedupe_hits_normalizes_trailing_slashes_and_keeps_best_score(self) -> None:
+        low_score = CompanyVacancyHit(
+            company="Alpha",
+            title="https://alpha.test/jobs/qa",
+            vacancy_url="https://alpha.test/jobs/qa/",
+            careers_url="https://alpha.test/careers",
+            matched_text="",
+            score=3,
+            countries=[],
+            stack=[],
+            job_types=[],
+        )
+        high_score = CompanyVacancyHit(
+            company="Alpha",
+            title="QA Engineer",
+            vacancy_url="https://alpha.test/jobs/qa",
+            careers_url="https://alpha.test/careers",
+            matched_text="QA Engineer",
+            score=6,
+            countries=[],
+            stack=[],
+            job_types=[],
+        )
+
+        hits = _dedupe_hits([low_score, high_score])
+
+        self.assertEqual([high_score], hits)
+
+    def test_html_snapshot_dedupes_duplicate_links_and_keeps_descriptive_title(self) -> None:
+        company = CompanyProfile(name="Alpha", careers_url="https://alpha.test/careers")
+
+        hits = _find_matching_links_from_html(
+            html="""
+                <a href="/careers/qa-engineer">https://alpha.test/careers/qa-engineer</a>
+                <a href="/careers/qa-engineer">QA Engineer</a>
+            """,
+            base_url="https://alpha.test/careers",
+            careers_url="https://alpha.test/careers",
+            company=company,
+            query_terms=_query_terms("QA"),
+        )
+
+        self.assertEqual(1, len(hits))
+        self.assertEqual("QA Engineer", hits[0].title)
+        self.assertEqual("https://alpha.test/careers/qa-engineer", hits[0].vacancy_url)
+
+    def test_lever_ats_api_returns_matching_postings_without_browser(self) -> None:
+        company = CompanyProfile(name="Alpha", careers_url="https://jobs.lever.co/alpha")
+        postings = [
+            {
+                "text": "QA Automation Engineer",
+                "hostedUrl": "https://jobs.lever.co/alpha/123",
+                "categories": {"location": "Remote"},
+                "descriptionPlain": "Test automation for backend services",
+            },
+            {
+                "text": "Product Manager",
+                "hostedUrl": "https://jobs.lever.co/alpha/456",
+                "categories": {"location": "Remote"},
+            },
+        ]
+
+        with patch("job_harness.company_career_search.fetch_json", return_value=postings):
+            hits = _find_matching_ats_jobs(company, _query_terms("QA"))
+
+        self.assertIsNotNone(hits)
+        self.assertEqual(1, len(hits or []))
+        self.assertEqual("QA Automation Engineer Remote", hits[0].title)
+        self.assertEqual("https://jobs.lever.co/alpha/123", hits[0].vacancy_url)
+
+    def test_ashby_ats_api_returns_matching_postings_without_browser(self) -> None:
+        company = CompanyProfile(name="Alpha", careers_url="https://jobs.ashbyhq.com/alpha")
+        payload = {
+            "jobs": [
+                {
+                    "title": "Senior QA Engineer",
+                    "jobUrl": "https://jobs.ashbyhq.com/alpha/123",
+                    "location": "Cyprus",
+                    "team": "Engineering",
+                    "descriptionHtml": "<p>Own test automation.</p>",
+                },
+                {
+                    "title": "Product Manager",
+                    "jobUrl": "https://jobs.ashbyhq.com/alpha/456",
+                    "location": "Remote",
+                },
+            ]
+        }
+
+        with patch("job_harness.company_career_search.fetch_json", return_value=payload):
+            hits = _find_matching_ats_jobs(company, _query_terms("QA"))
+
+        self.assertIsNotNone(hits)
+        self.assertEqual(1, len(hits or []))
+        self.assertEqual("Senior QA Engineer Cyprus", hits[0].title)
+        self.assertEqual("https://jobs.ashbyhq.com/alpha/123", hits[0].vacancy_url)
+
+    def test_ats_api_does_not_match_qa_only_in_description_body(self) -> None:
+        company = CompanyProfile(name="Alpha", careers_url="https://jobs.ashbyhq.com/alpha")
+        payload = {
+            "jobs": [
+                {
+                    "title": "Senior Product Designer",
+                    "jobUrl": "https://jobs.ashbyhq.com/alpha/123",
+                    "location": "Remote",
+                    "descriptionHtml": "<p>Work with quality assurance and engineering teams.</p>",
+                }
+            ]
+        }
+
+        with patch("job_harness.company_career_search.fetch_json", return_value=payload):
+            hits = _find_matching_ats_jobs(company, _query_terms("QA"))
+
+        self.assertEqual([], hits)
+
     def test_search_company_careers_checks_pages_and_returns_matching_links(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             directory_path = Path(tmpdir) / "companies.json"
@@ -178,13 +309,43 @@ class CompanyCareerSearchTest(unittest.TestCase):
             )
             context = _FakeContext([_FakePage([], fail=True)])
 
-            result = search_company_careers("QA", context, directory_path=directory_path)
+            with patch("job_harness.company_career_search._find_matching_links_http", side_effect=RuntimeError("http failed")):
+                result = search_company_careers("QA", context, directory_path=directory_path)
 
         data = result.to_dict()
         self.assertEqual(1, data["companies_checked"])
         self.assertEqual("error", data["checked_companies"][0]["status"])
         self.assertEqual(1, len(data["errors"]))
         self.assertEqual("Broken", data["errors"][0]["company"])
+        self.assertEqual("http failed", data["errors"][0]["error"])
+        self.assertEqual(0, data["total"])
+
+    def test_search_company_careers_marks_known_no_open_positions_as_checked_ok(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            directory_path = Path(tmpdir) / "companies.json"
+            directory_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "name": "Closed Roles",
+                            "careers_url": "https://closed.test/careers",
+                            "job_types": ["There are no open positions at the moment"],
+                            "sources": ["test"],
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            context = _FakeContext([])
+
+            result = search_company_careers("QA", context, directory_path=directory_path)
+
+        data = result.to_dict()
+        self.assertEqual(1, data["companies_checked"])
+        self.assertEqual(0, data["companies_skipped"])
+        self.assertEqual([], data["errors"])
+        self.assertEqual("ok", data["checked_companies"][0]["status"])
+        self.assertEqual("known_no_open_positions", data["checked_companies"][0]["method"])
         self.assertEqual(0, data["total"])
 
 

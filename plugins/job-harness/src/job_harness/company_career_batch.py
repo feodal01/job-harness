@@ -16,6 +16,10 @@ from job_harness.company_career_search import (
     LINK_EXTRACTION_SCRIPT,
     _clean_text,
     _dedupe_hits,
+    _find_matching_ats_jobs,
+    _find_matching_links_from_html,
+    _find_matching_links_http,
+    _has_known_no_open_positions,
     _is_navigation_or_social,
     _is_non_vacancy_link,
     _is_vacancy_like_link,
@@ -143,7 +147,43 @@ async def _worker(
 
 
 async def _check_company(context, company: CompanyProfile, query_terms: list[str], timeout_ms: int) -> dict:
+    if _has_known_no_open_positions(company):
+        return {
+            "company": company.name,
+            "status": "ok",
+            "method": "known_no_open_positions",
+            "careers_url": company.careers_url,
+            "hit_count": 0,
+            "hits": [],
+        }
+
     if not company.careers_url:
+        if company.linkedin_jobs_url:
+            try:
+                hits = await asyncio.to_thread(
+                    _find_matching_links_http,
+                    company,
+                    query_terms,
+                    url=company.linkedin_jobs_url,
+                )
+                return {
+                    "company": company.name,
+                    "status": "ok",
+                    "method": "alternate_jobs_http",
+                    "careers_url": None,
+                    "alternate_url": company.linkedin_jobs_url,
+                    "hit_count": len(hits),
+                    "hits": [asdict(hit) for hit in hits],
+                }
+            except Exception as exc:
+                return {
+                    "company": company.name,
+                    "status": "error",
+                    "careers_url": None,
+                    "alternate_url": company.linkedin_jobs_url,
+                    "error": str(exc),
+                    "hits": [],
+                }
         return {
             "company": company.name,
             "status": "skipped",
@@ -153,6 +193,21 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
             "hits": [],
         }
 
+    attempt_errors = []
+    try:
+        ats_hits = await asyncio.to_thread(_find_matching_ats_jobs, company, query_terms)
+        if ats_hits is not None:
+            return {
+                "company": company.name,
+                "status": "ok",
+                "method": "ats_api",
+                "careers_url": company.careers_url,
+                "hit_count": len(ats_hits),
+                "hits": [asdict(hit) for hit in ats_hits],
+            }
+    except Exception as exc:
+        attempt_errors.append({"method": "ats_api", "error": str(exc)})
+
     page = await context.new_page()
     try:
         await page.goto(company.careers_url, wait_until="domcontentloaded", timeout=timeout_ms)
@@ -161,23 +216,92 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
         return {
             "company": company.name,
             "status": "ok",
+            "method": "browser",
             "careers_url": company.careers_url,
             "hit_count": len(hits),
             "hits": [asdict(hit) for hit in hits],
         }
     except Exception as exc:
-        return {
-            "company": company.name,
-            "status": "error",
-            "careers_url": company.careers_url,
-            "error": str(exc),
-            "hits": [],
-        }
+        attempt_errors.append({"method": "browser", "error": str(exc)})
+        try:
+            hits = await _find_matching_browser_html_with_timeout(page, company, query_terms, timeout_ms)
+            return {
+                "company": company.name,
+                "status": "ok",
+                "method": "browser_html",
+                "careers_url": company.careers_url,
+                "hit_count": len(hits),
+                "hits": [asdict(hit) for hit in hits],
+                "attempt_errors": attempt_errors,
+            }
+        except Exception as html_exc:
+            attempt_errors.append({"method": "browser_html", "error": str(html_exc)})
+        try:
+            hits = await asyncio.to_thread(_find_matching_links_http, company, query_terms)
+            return {
+                "company": company.name,
+                "status": "ok",
+                "method": "http",
+                "careers_url": company.careers_url,
+                "hit_count": len(hits),
+                "hits": [asdict(hit) for hit in hits],
+                "attempt_errors": attempt_errors,
+            }
+        except Exception as http_exc:
+            attempt_errors.append({"method": "http", "error": str(http_exc)})
+            if company.linkedin_jobs_url:
+                try:
+                    hits = await asyncio.to_thread(
+                        _find_matching_links_http,
+                        company,
+                        query_terms,
+                        url=company.linkedin_jobs_url,
+                    )
+                    return {
+                        "company": company.name,
+                        "status": "ok",
+                        "method": "alternate_jobs_http",
+                        "careers_url": company.careers_url,
+                        "alternate_url": company.linkedin_jobs_url,
+                        "hit_count": len(hits),
+                        "hits": [asdict(hit) for hit in hits],
+                        "attempt_errors": attempt_errors,
+                    }
+                except Exception as alternate_exc:
+                    attempt_errors.append({"method": "alternate_jobs_http", "error": str(alternate_exc)})
+            return {
+                "company": company.name,
+                "status": "error",
+                "careers_url": company.careers_url,
+                "error": attempt_errors[-1]["error"],
+                "attempt_errors": attempt_errors,
+                "hits": [],
+            }
     finally:
         try:
             await asyncio.wait_for(page.close(), timeout=2)
         except Exception:
             pass
+
+
+async def _find_matching_browser_html_with_timeout(
+    page,
+    company: CompanyProfile,
+    query_terms: list[str],
+    timeout_ms: int,
+) -> list[CompanyVacancyHit]:
+    task = asyncio.create_task(page.content())
+    done, _ = await asyncio.wait({task}, timeout=timeout_ms / 1000)
+    if task not in done:
+        task.add_done_callback(_consume_task_exception)
+        raise TimeoutError(f"browser HTML snapshot timeout after {timeout_ms}ms")
+    return _find_matching_links_from_html(
+        html=task.result(),
+        base_url=page.url,
+        careers_url=company.careers_url or page.url,
+        company=company,
+        query_terms=query_terms,
+    )
 
 
 async def _find_matching_links_with_timeout(

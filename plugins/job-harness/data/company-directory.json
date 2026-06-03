@@ -17,7 +17,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -44,7 +44,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -68,7 +68,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -76,7 +76,7 @@
   },
   {
     "name": "3Commas",
-    "careers_url": "https://careers.3commas.io/",
+    "careers_url": "https://jobs.ashbyhq.com/3commas",
     "linkedin_url": "https://www.linkedin.com/company/3commas-io/",
     "linkedin_jobs_url": "https://www.linkedin.com/company/3commas-io/jobs/",
     "description": "3Commas – система автоматизации крипто-трейдинга.",
@@ -95,9 +95,9 @@
     "countries": [
       "Estonia"
     ],
-    "ats_type": "direct",
+    "ats_type": "ashby",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -136,7 +136,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -160,7 +160,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -168,7 +168,7 @@
   },
   {
     "name": "AbeloHost B.V.",
-    "careers_url": "https://ph.indeed.com/q-abelohost-b-v-,-anywhere-jobs.html",
+    "careers_url": "https://www.abelohost.com/",
     "linkedin_url": null,
     "linkedin_jobs_url": null,
     "description": null,
@@ -180,7 +180,7 @@
     "countries": [],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-05-27",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "company-careers-public"
@@ -212,7 +212,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -270,7 +270,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -302,7 +302,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -332,7 +332,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -361,7 +361,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -398,7 +398,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -431,7 +431,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -470,7 +470,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -502,7 +502,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -541,7 +541,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -578,7 +578,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -602,7 +602,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -634,7 +634,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -681,7 +681,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -707,7 +707,7 @@
     "countries": [],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -733,7 +733,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -759,7 +759,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -785,7 +785,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -817,7 +817,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -857,7 +857,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -890,7 +890,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -916,7 +916,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -943,7 +943,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -973,7 +973,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -997,7 +997,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1032,7 +1032,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1060,7 +1060,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1087,7 +1087,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1113,7 +1113,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1142,7 +1142,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1169,7 +1169,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1208,7 +1208,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1240,7 +1240,7 @@
     ],
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1265,7 +1265,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1290,7 +1290,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1328,7 +1328,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1364,7 +1364,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1388,7 +1388,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1412,7 +1412,7 @@
     "countries": [],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1447,7 +1447,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1475,7 +1475,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1499,7 +1499,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1523,7 +1523,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1551,7 +1551,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1580,7 +1580,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1608,7 +1608,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1638,7 +1638,7 @@
     ],
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1664,7 +1664,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1688,7 +1688,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1714,7 +1714,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1740,7 +1740,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1780,7 +1780,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1813,7 +1813,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1840,7 +1840,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1866,7 +1866,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1896,7 +1896,7 @@
     ],
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1920,7 +1920,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1948,7 +1948,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -1985,7 +1985,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2009,7 +2009,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2039,7 +2039,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2065,7 +2065,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2089,7 +2089,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2114,7 +2114,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2142,7 +2142,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2166,7 +2166,7 @@
     "countries": [],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2200,7 +2200,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2228,7 +2228,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2252,7 +2252,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2278,7 +2278,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2333,7 +2333,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2364,7 +2364,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2390,7 +2390,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2421,7 +2421,7 @@
     ],
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2453,7 +2453,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2483,7 +2483,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2520,7 +2520,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2548,7 +2548,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2572,7 +2572,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2607,7 +2607,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2631,7 +2631,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2659,7 +2659,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2688,7 +2688,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2714,7 +2714,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2738,7 +2738,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2764,7 +2764,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2789,7 +2789,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2814,7 +2814,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2840,7 +2840,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2898,7 +2898,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2922,7 +2922,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2949,7 +2949,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -2987,7 +2987,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3092,7 +3092,7 @@
     ],
     "ats_type": "unknown",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3120,7 +3120,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3144,7 +3144,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3172,7 +3172,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3198,7 +3198,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3224,7 +3224,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3248,7 +3248,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3275,7 +3275,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3302,7 +3302,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3333,7 +3333,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3367,7 +3367,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3397,7 +3397,7 @@
     ],
     "ats_type": "workday",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3426,7 +3426,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3452,7 +3452,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3476,7 +3476,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3506,7 +3506,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3534,7 +3534,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3561,7 +3561,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3594,7 +3594,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3618,7 +3618,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3642,7 +3642,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3676,7 +3676,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3710,7 +3710,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3734,7 +3734,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3761,7 +3761,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3798,7 +3798,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3828,7 +3828,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3854,7 +3854,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3879,7 +3879,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3914,7 +3914,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3939,7 +3939,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -3970,7 +3970,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4003,7 +4003,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4041,7 +4041,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4076,7 +4076,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4102,7 +4102,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4128,7 +4128,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4158,7 +4158,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4188,7 +4188,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4214,7 +4214,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4247,7 +4247,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4281,7 +4281,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4311,7 +4311,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4339,7 +4339,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4363,7 +4363,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4403,7 +4403,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4427,7 +4427,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4453,7 +4453,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4508,7 +4508,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4539,7 +4539,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4563,7 +4563,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4590,7 +4590,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4621,7 +4621,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4645,7 +4645,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4675,7 +4675,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4702,7 +4702,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4729,7 +4729,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4753,7 +4753,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4779,7 +4779,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4811,7 +4811,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4835,7 +4835,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4866,7 +4866,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4895,7 +4895,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4919,7 +4919,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4948,7 +4948,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -4974,7 +4974,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5002,7 +5002,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5026,7 +5026,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5056,7 +5056,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5081,7 +5081,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5105,7 +5105,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5134,7 +5134,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5164,7 +5164,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5200,7 +5200,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5229,7 +5229,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5284,7 +5284,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5311,7 +5311,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5336,7 +5336,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5363,7 +5363,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5387,7 +5387,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5416,7 +5416,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5442,7 +5442,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5476,7 +5476,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5504,7 +5504,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5528,7 +5528,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5552,7 +5552,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5595,7 +5595,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5619,7 +5619,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5653,7 +5653,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5683,7 +5683,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5708,7 +5708,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5746,7 +5746,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5772,7 +5772,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5798,7 +5798,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5833,7 +5833,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5863,7 +5863,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5893,7 +5893,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5917,7 +5917,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5941,7 +5941,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -5965,7 +5965,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6014,7 +6014,7 @@
     ],
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6038,7 +6038,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6063,7 +6063,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6096,7 +6096,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6123,7 +6123,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6151,7 +6151,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6175,7 +6175,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6260,7 +6260,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6290,7 +6290,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6316,7 +6316,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6340,7 +6340,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6366,7 +6366,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6392,7 +6392,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6425,7 +6425,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6459,7 +6459,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6483,7 +6483,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6509,7 +6509,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6542,7 +6542,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6570,7 +6570,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6597,7 +6597,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6621,7 +6621,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6648,7 +6648,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6675,7 +6675,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6699,7 +6699,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6724,7 +6724,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6769,7 +6769,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6793,7 +6793,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6817,7 +6817,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6842,7 +6842,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6871,7 +6871,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6901,7 +6901,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6926,7 +6926,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6965,7 +6965,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -6999,7 +6999,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7026,7 +7026,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7053,7 +7053,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7079,7 +7079,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7103,7 +7103,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7130,7 +7130,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7165,7 +7165,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7196,7 +7196,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7231,7 +7231,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7259,7 +7259,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7285,7 +7285,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7317,7 +7317,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7341,7 +7341,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7372,7 +7372,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7399,7 +7399,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7427,7 +7427,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7453,7 +7453,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7477,7 +7477,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7504,7 +7504,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7533,7 +7533,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7560,7 +7560,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7586,7 +7586,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7614,7 +7614,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7643,7 +7643,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7672,7 +7672,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7702,7 +7702,7 @@
     ],
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7731,7 +7731,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7757,7 +7757,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7787,7 +7787,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7817,7 +7817,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7849,7 +7849,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7893,7 +7893,7 @@
     ],
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7926,7 +7926,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7952,7 +7952,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -7960,7 +7960,7 @@
   },
   {
     "name": "Penenza",
-    "careers_url": "https://penenza.com/",
+    "careers_url": "http://penenza.ru/",
     "linkedin_url": "https://www.linkedin.com/company/penenza/",
     "linkedin_jobs_url": "https://www.linkedin.com/company/penenza/jobs/",
     "description": "Penenza - b2b bnpl - финтех платформа рассрочки для бизнеса.",
@@ -7979,7 +7979,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8008,7 +8008,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8048,7 +8048,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8085,7 +8085,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8111,7 +8111,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8139,7 +8139,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8176,7 +8176,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8206,7 +8206,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8239,7 +8239,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8283,7 +8283,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8308,7 +8308,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8338,7 +8338,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8364,7 +8364,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8391,7 +8391,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8415,7 +8415,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8442,7 +8442,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8481,7 +8481,7 @@
     ],
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8505,7 +8505,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8529,7 +8529,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8560,7 +8560,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8589,7 +8589,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8624,7 +8624,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8663,7 +8663,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8696,7 +8696,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8725,7 +8725,7 @@
     ],
     "ats_type": "greenhouse",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8766,7 +8766,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8797,7 +8797,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8824,7 +8824,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8848,7 +8848,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8873,7 +8873,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8903,7 +8903,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8927,7 +8927,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8953,7 +8953,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -8982,7 +8982,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9009,7 +9009,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9017,7 +9017,7 @@
   },
   {
     "name": "Revolut",
-    "careers_url": "https://www.revolut.com/careers/",
+    "careers_url": "https://www.revolut.com/en-US/careers",
     "linkedin_url": "https://www.linkedin.com/company/revolut/",
     "linkedin_jobs_url": "https://www.linkedin.com/company/revolut/jobs/",
     "description": "Revolut – финтех компания, специализирующаяся на мобильном банкинге и международных переводах. Один из самых дорогих стартапов в Великобритании.",
@@ -9077,7 +9077,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9112,7 +9112,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9136,7 +9136,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9169,7 +9169,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9202,7 +9202,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9226,7 +9226,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9253,7 +9253,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9288,7 +9288,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9335,7 +9335,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9361,7 +9361,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9389,7 +9389,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9413,7 +9413,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9442,7 +9442,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9471,7 +9471,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9496,7 +9496,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9525,7 +9525,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9553,7 +9553,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9581,7 +9581,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9613,7 +9613,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9639,7 +9639,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9688,7 +9688,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9715,7 +9715,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9746,7 +9746,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9776,7 +9776,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9800,7 +9800,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9830,7 +9830,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9854,7 +9854,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9878,7 +9878,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9905,7 +9905,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9929,7 +9929,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9937,7 +9937,7 @@
   },
   {
     "name": "Spryker",
-    "careers_url": "https://spryker.com/jobs-postings/",
+    "careers_url": "https://spryker.com/career/open-positions",
     "linkedin_url": "https://www.linkedin.com/company/spryker/",
     "linkedin_jobs_url": "https://www.linkedin.com/company/spryker/jobs/",
     "description": "Spryker - это технологическая платформа для коммерции, которая позволяет глобальным предприятиям строить транзакционные бизнес-модели.",
@@ -9957,7 +9957,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -9981,7 +9981,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10024,7 +10024,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10054,7 +10054,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10080,7 +10080,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10106,7 +10106,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10134,7 +10134,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10164,7 +10164,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10193,7 +10193,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10233,7 +10233,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10257,7 +10257,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10286,7 +10286,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10319,7 +10319,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10353,7 +10353,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10380,7 +10380,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10411,7 +10411,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10446,7 +10446,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10480,7 +10480,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10504,7 +10504,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10532,7 +10532,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10560,7 +10560,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10588,7 +10588,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10615,7 +10615,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10648,7 +10648,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10686,7 +10686,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10716,7 +10716,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10746,7 +10746,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10775,7 +10775,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10799,7 +10799,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10826,7 +10826,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10855,7 +10855,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10904,7 +10904,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10944,7 +10944,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -10978,7 +10978,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11008,7 +11008,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11046,7 +11046,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11075,7 +11075,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11103,7 +11103,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11133,7 +11133,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11179,7 +11179,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11206,7 +11206,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11237,7 +11237,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11263,7 +11263,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11290,7 +11290,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11327,7 +11327,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11354,7 +11354,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11381,7 +11381,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11410,7 +11410,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11438,7 +11438,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11465,7 +11465,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11503,7 +11503,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11527,7 +11527,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11566,7 +11566,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11595,7 +11595,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11619,7 +11619,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11643,7 +11643,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11672,7 +11672,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11705,7 +11705,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11732,7 +11732,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11761,7 +11761,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11790,7 +11790,7 @@
     ],
     "ats_type": "lever",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11821,7 +11821,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11853,7 +11853,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11881,7 +11881,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11918,7 +11918,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11949,7 +11949,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -11983,7 +11983,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -12014,7 +12014,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
@@ -12167,7 +12167,7 @@
     ],
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-06-02",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "sources": [
       "hellonewjob"
