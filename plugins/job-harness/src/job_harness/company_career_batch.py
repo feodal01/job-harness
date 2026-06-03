@@ -13,8 +13,8 @@ from urllib.parse import urljoin
 
 from job_harness.browser import configure_playwright_tmpdir, create_browser_async
 from job_harness.company_career_search import (
-    CompanyVacancyHit,
     LINK_EXTRACTION_SCRIPT,
+    CompanyVacancyHit,
     _clean_text,
     _dedupe_hits,
     _find_matching_ats_jobs,

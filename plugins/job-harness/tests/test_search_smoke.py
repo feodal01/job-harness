@@ -9,6 +9,7 @@ from unittest.mock import patch
 def _load_mcp_server():
     path = Path(__file__).resolve().parents[1] / "scripts" / "mcp-server.py"
     spec = importlib.util.spec_from_file_location("job_harness_smoke_mcp_server", path)
+    assert spec is not None
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -169,7 +170,7 @@ def fake_fetch_text(url: str, *, verify_ssl: bool = True) -> str:
     raise AssertionError(f"Unexpected text fetch: {url}")
 
 
-def fake_fetch_json(url: str) -> dict:
+def fake_fetch_json(url: str) -> object:
     if "api.hirify.me" in url:
         return HIRIFY_BACKEND_JSON
     if "api.finder.work" in url:

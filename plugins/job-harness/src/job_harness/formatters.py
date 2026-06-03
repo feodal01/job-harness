@@ -30,7 +30,7 @@ class MarkdownFormatter(BaseFormatter):
             meta_parts.append(f"Experience: {p.experience}")
         if p.location:
             meta_parts.append(f"Location: {p.location}")
-        meta_parts.append(f"Sources: all")
+        meta_parts.append("Sources: all")
         lines.append(" | ".join(meta_parts))
         lines.append(f"Date: {results.timestamp}")
         lines.append(f"Results: {len(results.listings)}")
@@ -38,24 +38,24 @@ class MarkdownFormatter(BaseFormatter):
         lines.append("---")
         lines.append("")
 
-        for i, l in enumerate(results.listings, 1):
-            lines.append(f"### {i}. {l.title}")
+        for i, listing in enumerate(results.listings, 1):
+            lines.append(f"### {i}. {listing.title}")
             lines.append("")
-            lines.append(f"- **URL:** {l.url}")
-            lines.append(f"- **Company:** {l.company}")
-            if l.country:
-                lines.append(f"- **Country:** {l.country}")
-            if l.salary:
-                lines.append(f"- **Salary:** {l.salary}")
-            lines.append(f"- **Experience:** {l.experience or 'not specified'}")
-            fmt = "remote" if l.remote else "not specified"
+            lines.append(f"- **URL:** {listing.url}")
+            lines.append(f"- **Company:** {listing.company}")
+            if listing.country:
+                lines.append(f"- **Country:** {listing.country}")
+            if listing.salary:
+                lines.append(f"- **Salary:** {listing.salary}")
+            lines.append(f"- **Experience:** {listing.experience or 'not specified'}")
+            fmt = "remote" if listing.remote else "not specified"
             lines.append(f"- **Format:** {fmt}")
-            if l.location:
-                lines.append(f"- **Location:** {l.location}")
-            if l.skills:
-                lines.append(f"- **Skills:** {', '.join(l.skills[:10])}")
-            if l.posted_date:
-                lines.append(f"- **Posted:** {l.posted_date}")
+            if listing.location:
+                lines.append(f"- **Location:** {listing.location}")
+            if listing.skills:
+                lines.append(f"- **Skills:** {', '.join(listing.skills[:10])}")
+            if listing.posted_date:
+                lines.append(f"- **Posted:** {listing.posted_date}")
             lines.append("")
 
         # Summary table
@@ -65,11 +65,11 @@ class MarkdownFormatter(BaseFormatter):
         lines.append("")
         lines.append("| # | Company | Country | Salary | Format | Experience |")
         lines.append("|---|---------|---------|--------|--------|------------|")
-        for i, l in enumerate(results.listings, 1):
-            fmt = "remote" if l.remote else "not specified"
+        for i, listing in enumerate(results.listings, 1):
+            fmt = "remote" if listing.remote else "not specified"
             lines.append(
-                f"| {i} | {l.company} | {l.country or 'not specified'} | "
-                f"{l.salary or 'not specified'} | {fmt} | {l.experience or 'not specified'} |"
+                f"| {i} | {listing.company} | {listing.country or 'not specified'} | "
+                f"{listing.salary or 'not specified'} | {fmt} | {listing.experience or 'not specified'} |"
             )
 
         lines.append("")
@@ -87,19 +87,19 @@ class CsvFormatter(BaseFormatter):
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(["title", "url", "company", "country", "salary", "experience", "remote", "location", "skills", "source", "posted_date"])
-        for l in results.listings:
+        for listing in results.listings:
             writer.writerow([
-                l.title,
-                l.url,
-                l.company,
-                l.country or "",
-                l.salary or "",
-                l.experience or "",
-                l.remote,
-                l.location or "",
-                "; ".join(l.skills),
-                l.source,
-                l.posted_date or "",
+                listing.title,
+                listing.url,
+                listing.company,
+                listing.country or "",
+                listing.salary or "",
+                listing.experience or "",
+                listing.remote,
+                listing.location or "",
+                "; ".join(listing.skills),
+                listing.source,
+                listing.posted_date or "",
             ])
         return output.getvalue()
 

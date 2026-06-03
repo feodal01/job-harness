@@ -52,7 +52,7 @@ class BuildCompanyDirectoryTest(unittest.TestCase):
                     }
                 )
 
-            companies = {}
+            companies: dict[str, dict] = {}
             builder._merge_hellonewjob(companies, csv_path, import_date="2026-06-03")
             public_cache_path = Path(tmpdir) / "cache.json"
             builder._write_public_cache(public_cache_path, list(companies.values()), import_date="2026-06-03")

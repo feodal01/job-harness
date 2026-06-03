@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from functools import partial
 from pathlib import Path
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from fastmcp import FastMCP
 
@@ -336,6 +337,7 @@ def _search_impl(
 ) -> dict:
     import job_harness.scrapers  # noqa: F401
     import job_harness.scrapers.career  # noqa: F401
+    from job_harness.countries import format_country_codes, normalize_country_code
     from job_harness.employer_resolver import resolve_listings
     from job_harness.filters import (
         _exclude_companies,
@@ -346,8 +348,7 @@ def _search_impl(
         no_keywords,
         remote_only as remote_only_filter,
     )
-    from job_harness.countries import format_country_codes, normalize_country_code
-    from job_harness.models import SearchParams, SearchResults
+    from job_harness.models import JobListing, SearchParams, SearchResults
     from job_harness.registry import create_scraper, get_scraper_class, list_scrapers
 
     country_code = normalize_country_code(country)
@@ -374,7 +375,7 @@ def _search_impl(
                 )
 
     # Build filters
-    filters = []
+    filters: list[Callable[[JobListing], bool]] = []
     if remote_only:
         filters.append(remote_only_filter)
     if has_salary:
@@ -426,7 +427,6 @@ def _search_impl(
 
     # Apply filters
     if filters:
-        before = len(all_listings)
         all_listings = apply_filters(all_listings, filters)
 
     all_listings = all_listings[: params.max_results]
@@ -436,12 +436,12 @@ def _search_impl(
         context = context or _ensure_browser()
         employer_cache = _get_cache() if cache else None
         enriched = resolve_listings(
-            [l.to_dict() for l in all_listings],
+            [listing.to_dict() for listing in all_listings],
             context,
             query=params.query,
             cache=employer_cache,
         )
-        for listing, enrich in zip(all_listings, enriched):
+        for listing, enrich in zip(all_listings, enriched, strict=False):
             if enrich.careers_page:
                 cp = enrich.careers_page
                 listing.raw["careers_url"] = cp.careers_url
@@ -488,7 +488,7 @@ def _resolve_impl(
 
     results = []
     for e in enriched:
-        entry = {
+        entry: dict[str, str | None] = {
             "company": e.company,
             "title": e.title,
             "aggregator_url": e.original_url,

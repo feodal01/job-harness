@@ -15,6 +15,7 @@ from job_harness.models import JobListing
 def _load_mcp_server():
     path = Path(__file__).resolve().parents[1] / "scripts" / "mcp-server.py"
     spec = importlib.util.spec_from_file_location("job_harness_test_mcp_server", path)
+    assert spec is not None
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)

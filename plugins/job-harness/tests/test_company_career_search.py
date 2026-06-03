@@ -182,6 +182,7 @@ class CompanyCareerSearchTest(unittest.TestCase):
             hits = _find_matching_ats_jobs(company, _query_terms("QA"))
 
         self.assertIsNotNone(hits)
+        assert hits is not None
         self.assertEqual(1, len(hits or []))
         self.assertEqual("QA Automation Engineer Remote", hits[0].title)
         self.assertEqual("https://jobs.lever.co/alpha/123", hits[0].vacancy_url)
@@ -209,6 +210,7 @@ class CompanyCareerSearchTest(unittest.TestCase):
             hits = _find_matching_ats_jobs(company, _query_terms("QA"))
 
         self.assertIsNotNone(hits)
+        assert hits is not None
         self.assertEqual(1, len(hits or []))
         self.assertEqual("Senior QA Engineer Cyprus", hits[0].title)
         self.assertEqual("https://jobs.ashbyhq.com/alpha/123", hits[0].vacancy_url)
