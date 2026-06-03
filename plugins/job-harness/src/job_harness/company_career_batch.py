@@ -28,6 +28,8 @@ from job_harness.company_career_search import (
 )
 from job_harness.company_directory import COMPANY_DIRECTORY_PATH, CompanyProfile, filter_company_directory
 
+DEFAULT_COMPANY_LIVE_WORKERS = 12
+
 
 async def run_company_career_batch(
     query: str,
@@ -40,7 +42,7 @@ async def run_company_career_batch(
     industry: str | None = None,
     remote_only: bool = False,
     max_companies: int | None = None,
-    workers: int = 8,
+    workers: int = DEFAULT_COMPANY_LIVE_WORKERS,
     timeout_ms: int = 8000,
     directory_path: Path | str = COMPANY_DIRECTORY_PATH,
     headless: bool = True,

@@ -410,6 +410,8 @@ def cmd_resolve(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    from job_harness.company_career_batch import DEFAULT_COMPANY_LIVE_WORKERS
+
     parser = argparse.ArgumentParser(
         prog="job-harness",
         description="Universal job search harness",
@@ -481,7 +483,15 @@ def main() -> None:
     batch_parser.add_argument("--industry", help="Industry filter")
     batch_parser.add_argument("--remote-only", action="store_true", help="Only remote-friendly companies")
     batch_parser.add_argument("--max-companies", type=int, help="Maximum companies to check; default checks all matching companies")
-    batch_parser.add_argument("--workers", type=int, default=8, help="Concurrent browser pages (default: 8)")
+    batch_parser.add_argument(
+        "--workers",
+        type=int,
+        default=DEFAULT_COMPANY_LIVE_WORKERS,
+        help=(
+            "Advanced override for concurrent company checks "
+            f"(default: {DEFAULT_COMPANY_LIVE_WORKERS}; omit for normal full-scale runs)"
+        ),
+    )
     batch_parser.add_argument("--timeout-ms", type=int, default=8000, help="Per-company page timeout in ms (default: 8000)")
     batch_parser.add_argument("--progress", action="store_true", help="Print per-company progress to stderr")
     batch_parser.add_argument("--headless", action="store_true", default=True, help="Run browser headless (default)")

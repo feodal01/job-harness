@@ -201,7 +201,10 @@ async def search_company_careers(
     """Search live career pages from the bundled company directory.
 
     This performs a browser-based pass over company career URLs and returns
-    vacancy links whose text or URL matches the role query.
+    vacancy links whose text or URL matches the role query. Use this MCP tool
+    for targeted checks. For a full bundled-company pass, run the CLI
+    `job-harness company-live-batch` command so results are concurrent,
+    resumable, and written incrementally.
 
     Args:
         query: Role query to match on career pages, e.g. "Python developer"

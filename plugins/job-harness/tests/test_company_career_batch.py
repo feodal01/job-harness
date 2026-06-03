@@ -1,13 +1,21 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from job_harness.company_career_batch import _build_summary, _check_company, _read_completed_companies, _write_summary
+from job_harness.company_career_batch import (
+    DEFAULT_COMPANY_LIVE_WORKERS,
+    _build_summary,
+    _check_company,
+    _read_completed_companies,
+    _write_summary,
+    run_company_career_batch,
+)
 from job_harness.company_career_search import CompanyVacancyHit
 from job_harness.company_directory import CompanyProfile
 
@@ -45,6 +53,12 @@ class _AsyncContext:
 
 
 class CompanyCareerBatchTest(unittest.TestCase):
+    def test_default_worker_count_is_full_scale_concurrency(self) -> None:
+        default = inspect.signature(run_company_career_batch).parameters["workers"].default
+
+        self.assertEqual(12, DEFAULT_COMPANY_LIVE_WORKERS)
+        self.assertEqual(DEFAULT_COMPANY_LIVE_WORKERS, default)
+
     def test_check_company_times_out_hanging_link_extraction(self) -> None:
         page = _SlowEvaluatePage()
         company = CompanyProfile(name="Alpha", careers_url="https://alpha.test/careers")
