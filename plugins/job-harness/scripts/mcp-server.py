@@ -266,6 +266,7 @@ def _search_company_careers_impl(
 async def search(
     query: str,
     sources: str = "all",
+    profile: str | None = None,
     country: str | None = None,
     remote_only: bool = False,
     experience: str | None = None,
@@ -278,6 +279,9 @@ async def search(
     exclude_keywords_context: str | None = None,
     exclude_companies: str | None = None,
     has_salary: bool = False,
+    skip_slow: bool = False,
+    source_timeout_ms: int = 30_000,
+    dedupe: bool = True,
 ) -> dict:
     """Search job aggregators for listings matching the query.
 
@@ -287,6 +291,7 @@ async def search(
     Args:
         query: Search query (e.g. "QA engineer", "Python backend")
         sources: Comma-separated scraper names, or "all"
+        profile: Optional source profile: fast or full
         country: CIS country code or name, e.g. RU, KZ, Armenia
         remote_only: Only remote listings
         experience: Minimum experience level (junior/middle/senior)
@@ -299,11 +304,15 @@ async def search(
         exclude_keywords_context: Context words allowing excluded keywords
         exclude_companies: Comma-separated company names to exclude
         has_salary: Only listings with salary info
+        skip_slow: Skip browser-backed slow sources
+        source_timeout_ms: Per-source timeout in milliseconds
+        dedupe: Deduplicate normalized results before returning
     """
     return await _run_in_browser_thread(
         _search_impl,
         query=query,
         sources=sources,
+        profile=profile,
         country=country,
         remote_only=remote_only,
         experience=experience,
@@ -316,12 +325,16 @@ async def search(
         exclude_keywords_context=exclude_keywords_context,
         exclude_companies=exclude_companies,
         has_salary=has_salary,
+        skip_slow=skip_slow,
+        source_timeout_ms=source_timeout_ms,
+        dedupe=dedupe,
     )
 
 
 def _search_impl(
     query: str,
     sources: str = "all",
+    profile: str | None = None,
     country: str | None = None,
     remote_only: bool = False,
     experience: str | None = None,
@@ -334,127 +347,35 @@ def _search_impl(
     exclude_keywords_context: str | None = None,
     exclude_companies: str | None = None,
     has_salary: bool = False,
+    skip_slow: bool = False,
+    source_timeout_ms: int = 30_000,
+    dedupe: bool = True,
 ) -> dict:
-    import job_harness.scrapers  # noqa: F401
-    import job_harness.scrapers.career  # noqa: F401
-    from job_harness.countries import format_country_codes, normalize_country_code
-    from job_harness.employer_resolver import resolve_listings
-    from job_harness.filters import (
-        _exclude_companies,
-        apply_filters,
-        has_salary as has_salary_filter,
-        location_in,
-        min_experience,
-        no_keywords,
-        remote_only as remote_only_filter,
-    )
-    from job_harness.models import JobListing, SearchParams, SearchResults
-    from job_harness.registry import create_scraper, get_scraper_class, list_scrapers
+    from job_harness.search_runner import execute_search
 
-    country_code = normalize_country_code(country)
-    params = SearchParams(
+    results = execute_search(
         query=query,
-        country=country_code,
+        ensure_context=_ensure_browser,
+        cache_factory=_get_cache,
+        sources=sources,
+        profile=profile,
+        country=country,
         remote_only=remote_only,
         experience=experience,
         location=location,
         max_results=max_results,
+        detail=detail,
+        resolve=resolve,
+        cache=cache,
+        exclude_keywords=exclude_keywords,
+        exclude_keywords_context=exclude_keywords_context,
+        exclude_companies=exclude_companies,
+        has_salary=has_salary,
+        skip_slow=skip_slow,
+        source_timeout_ms=source_timeout_ms,
+        dedupe=dedupe,
     )
-
-    # Determine sources
-    if sources == "all" or not sources:
-        source_names = list_scrapers(country=country_code)
-    else:
-        source_names = [s.strip() for s in sources.split(",")]
-        for source_name in source_names:
-            scraper_class = get_scraper_class(source_name)
-            if not scraper_class.supports_country(country_code):
-                raise ValueError(
-                    f"{source_name} does not support country {country_code}. "
-                    f"Supported countries: {format_country_codes(scraper_class.countries)}"
-                )
-
-    # Build filters
-    filters: list[Callable[[JobListing], bool]] = []
-    if remote_only:
-        filters.append(remote_only_filter)
-    if has_salary:
-        filters.append(has_salary_filter)
-    if exclude_companies:
-        filters.append(_exclude_companies([c.strip() for c in exclude_companies.split(",")]))
-    if experience:
-        filters.append(min_experience(experience))
-    if exclude_keywords:
-        keywords = [k.strip() for k in exclude_keywords.split(",")]
-        ignore_words = (
-            [w.strip() for w in exclude_keywords_context.split(",")]
-            if exclude_keywords_context
-            else None
-        )
-        filters.append(no_keywords(*keywords, ignore_context=ignore_words))
-    if location:
-        filters.append(location_in(location))
-
-    context = None
-    all_listings = []
-    errors = []
-
-    for source_name in source_names:
-        try:
-            scraper_class = get_scraper_class(source_name)
-            needs_browser = scraper_class.requires_browser or (
-                detail and scraper_class.detail_requires_browser
-            )
-            scraper_context = _ensure_browser() if needs_browser else None
-            if scraper_context is not None:
-                context = scraper_context
-            scraper = create_scraper(source_name, scraper_context, max_results=params.max_results)
-            listings = scraper.search(params)
-
-            if detail and listings:
-                detailed = []
-                for listing in listings:
-                    try:
-                        detailed.append(scraper.fetch_detail(listing))
-                    except Exception as e:
-                        errors.append(f"{source_name}: detail error for {listing.url}: {e}")
-                        detailed.append(listing)
-                listings = detailed
-
-            all_listings.extend(listings)
-        except Exception as e:
-            errors.append(f"{source_name}: {e}")
-
-    # Apply filters
-    if filters:
-        all_listings = apply_filters(all_listings, filters)
-
-    all_listings = all_listings[: params.max_results]
-
-    # Resolve employer career pages
-    if resolve and all_listings:
-        context = context or _ensure_browser()
-        employer_cache = _get_cache() if cache else None
-        enriched = resolve_listings(
-            [listing.to_dict() for listing in all_listings],
-            context,
-            query=params.query,
-            cache=employer_cache,
-        )
-        for listing, enrich in zip(all_listings, enriched, strict=False):
-            if enrich.careers_page:
-                cp = enrich.careers_page
-                listing.raw["careers_url"] = cp.careers_url
-                listing.raw["careers_type"] = cp.page_type
-                listing.raw["direct_vacancy_url"] = cp.direct_vacancy_url
-                if cp.direct_vacancy_url:
-                    listing.url = cp.direct_vacancy_url
-                    listing.source = f"{listing.source}+direct"
-
-    results = SearchResults(params=params, listings=all_listings, errors=errors)
-    data = results.to_dict()
-    data["total"] = len(all_listings)
-    return data
+    return results.to_dict()
 
 
 @mcp.tool

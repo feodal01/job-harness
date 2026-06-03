@@ -25,6 +25,7 @@ from job_harness.company_career_search import (
     _is_non_vacancy_link,
     _is_vacancy_like_link,
     _query_terms,
+    _remote_match,
     _score_text,
 )
 from job_harness.company_directory import (
@@ -110,6 +111,7 @@ async def run_company_career_batch(
                         timeout_ms=timeout_ms,
                         query=query,
                         companies_considered=len(companies),
+                        remote_only=remote_only,
                         progress=progress,
                     )
                 )
@@ -241,6 +243,7 @@ async def _worker(
     timeout_ms: int,
     query: str,
     companies_considered: int,
+    remote_only: bool,
     progress: bool,
 ) -> None:
     while True:
@@ -252,6 +255,8 @@ async def _worker(
         if progress:
             print(f"[worker {worker_id}] [{index}/{total}] {company.name}", file=sys.stderr)
         record = await _check_company(context, company, query_terms, timeout_ms)
+        if remote_only:
+            _filter_remote_record(record)
         async with write_lock:
             with output_path.open("a", encoding="utf-8") as file:
                 file.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -263,6 +268,13 @@ async def _worker(
                 summary_path=summary_path,
             )
         queue.task_done()
+
+
+def _filter_remote_record(record: dict) -> None:
+    hits = [hit for hit in record.get("hits", []) if hit.get("remote_match") is not False]
+    record["hits"] = hits
+    if "hit_count" in record:
+        record["hit_count"] = len(hits)
 
 
 async def _check_company(context, company: CompanyProfile, query_terms: list[str], timeout_ms: int) -> dict:
@@ -478,6 +490,7 @@ async def _find_matching_links_async(page, company: CompanyProfile, query_terms:
                 countries=list(company.countries),
                 stack=list(company.stack),
                 job_types=list(company.job_types),
+                remote_match=_remote_match(searchable),
             )
         )
     return _dedupe_hits(hits)
@@ -511,6 +524,7 @@ def _build_summary(*, query: str, companies_considered: int, output_path: Path) 
         "hits": sorted(hits, key=lambda hit: (-hit["score"], hit["company"].casefold(), hit["title"].casefold())),
         "errors": [record for record in records if record["status"] == "error"],
         "skipped": [record for record in records if record["status"] == "skipped"],
+        "warnings": _summary_warnings(companies_considered),
     }
 
 
@@ -520,6 +534,12 @@ def _write_summary(*, query: str, companies_considered: int, output_path: Path, 
     tmp_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     tmp_path.replace(summary_path)
     return summary
+
+
+def _summary_warnings(companies_considered: int) -> list[str]:
+    if companies_considered == 0:
+        return ["No companies matched the structured filters; check country, stack, industry, and job-type aliases."]
+    return []
 
 
 def _iter_jsonl_records(path: Path):

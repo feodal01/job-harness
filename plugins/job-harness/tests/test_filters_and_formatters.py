@@ -66,6 +66,18 @@ class FiltersAndFormattersTest(unittest.TestCase):
             params=SearchParams(query="QA", max_results=1),
             listings=[_listing()],
             timestamp="2026-06-02 13:00",
+            summary={
+                "source_statuses": [
+                    {
+                        "source": "habr_career",
+                        "status": "ok",
+                        "raw_count": 1,
+                        "after_filter_count": 1,
+                        "after_dedupe_count": 1,
+                        "duration_ms": 12,
+                    }
+                ]
+            },
         )
 
         rows = list(csv.reader(io.StringIO(CsvFormatter().format(results))))
@@ -94,12 +106,26 @@ class FiltersAndFormattersTest(unittest.TestCase):
             params=SearchParams(query="QA", max_results=1),
             listings=[_listing()],
             timestamp="2026-06-02 13:00",
+            summary={
+                "source_statuses": [
+                    {
+                        "source": "habr_career",
+                        "status": "ok",
+                        "raw_count": 1,
+                        "after_filter_count": 1,
+                        "after_dedupe_count": 1,
+                        "duration_ms": 12,
+                    }
+                ]
+            },
         )
 
         markdown = MarkdownFormatter().format(results)
 
         self.assertIn("# Job Search: QA", markdown)
         self.assertIn("### 1. QA Engineer", markdown)
+        self.assertIn("## Source Status", markdown)
+        self.assertIn("| habr_career | ok | 1 | 1 | 1 | 12 ms |", markdown)
         self.assertIn("## Summary", markdown)
         self.assertIn("| 1 | Example | not specified | 200 000 ₽ | remote | senior |", markdown)
 

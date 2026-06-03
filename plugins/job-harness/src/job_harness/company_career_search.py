@@ -80,6 +80,40 @@ ROLE_TEXT_PATTERNS = (
     "specialist",
     "tester",
 )
+NON_ENGINEERING_ROLE_PATTERNS = (
+    "customer success lead",
+    "product manager",
+    "product lead",
+    "risk manager",
+    "risk lead",
+    "operations manager",
+    "operations lead",
+    "employer brand manager",
+    "employer brand lead",
+    "marketing manager",
+    "marketing lead",
+    "customer success manager",
+)
+ENGINEERING_POSITIVE_PATTERNS = (
+    "automation",
+    "backend",
+    "developer",
+    "devops",
+    "engineer",
+    "engineering",
+    "frontend",
+    "fullstack",
+    "infrastructure",
+    "machine learning",
+    "ml engineer",
+    "qa",
+    "quality assurance engineer",
+    "sdet",
+    "software",
+    "tester",
+)
+REMOTE_POSITIVE_PATTERNS = ("remote", "удал", "hybrid", "гибрид")
+REMOTE_NEGATIVE_PATTERNS = ("office only", "on-site", "onsite", "только офис")
 
 NO_OPEN_POSITIONS_PATTERNS = (
     "no open positions",
@@ -106,6 +140,7 @@ class CompanyVacancyHit:
     countries: list[str]
     stack: list[str]
     job_types: list[str]
+    remote_match: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -346,6 +381,7 @@ def search_company_careers(
         finally:
             page.close()
 
+    hits = _filter_remote_hits(hits) if remote_only else hits
     hits = _dedupe_hits(hits)
     hits.sort(key=lambda hit: (-hit.score, hit.company.casefold(), hit.title.casefold()))
     return CompanyCareerSearchResult(
@@ -449,6 +485,7 @@ def _find_matching_link_snapshot(
                 countries=list(company.countries),
                 stack=list(company.stack),
                 job_types=list(company.job_types),
+                remote_match=_remote_match(searchable),
             )
         )
     return _dedupe_hits(hits)
@@ -497,17 +534,19 @@ def _find_matching_lever_jobs(
             continue
         location = _clean_text(str(categories.get("location") or posting.get("country") or ""))
         display_title = f"{title} {location}".strip()
+        matched_text = f"{title} {category_text}".strip()
         hits.append(
             CompanyVacancyHit(
                 company=company.name,
                 title=display_title[:200],
                 vacancy_url=hosted_url,
                 careers_url=careers_url,
-                matched_text=f"{title} {category_text}".strip()[:500],
+                matched_text=matched_text[:500],
                 score=score,
                 countries=list(company.countries),
                 stack=list(company.stack),
                 job_types=list(company.job_types),
+                remote_match=_remote_match(f"{matched_text} {hosted_url}"),
             )
         )
     return _dedupe_hits(hits)
@@ -545,17 +584,19 @@ def _find_matching_ashby_jobs(
         if score == 0:
             continue
         display_title = f"{title} {location}".strip()
+        matched_text = f"{title} {location} {metadata}".strip()
         hits.append(
             CompanyVacancyHit(
                 company=company.name,
                 title=display_title[:200],
                 vacancy_url=hosted_url,
                 careers_url=careers_url,
-                matched_text=f"{title} {location} {metadata}".strip()[:500],
+                matched_text=matched_text[:500],
                 score=score,
                 countries=list(company.countries),
                 stack=list(company.stack),
                 job_types=list(company.job_types),
+                remote_match=_remote_match(f"{matched_text} {hosted_url}"),
             )
         )
     return _dedupe_hits(hits)
@@ -607,6 +648,10 @@ def _dedupe_hits(hits: list[CompanyVacancyHit]) -> list[CompanyVacancyHit]:
     return list(unique.values())
 
 
+def _filter_remote_hits(hits: list[CompanyVacancyHit]) -> list[CompanyVacancyHit]:
+    return [hit for hit in hits if hit.remote_match is not False]
+
+
 def _canonical_hit_url(url: str) -> str:
     return url.rstrip("/")
 
@@ -646,7 +691,29 @@ def _query_terms(query: str) -> list[str]:
 
 
 def _score_text(text: str, query_terms: list[str]) -> int:
-    return sum(3 if _term_matches(text, term) else 0 for term in query_terms)
+    normalized_text = text.casefold()
+    if _is_non_engineering_role(normalized_text, query_terms):
+        return 0
+    return sum(3 if _term_matches(normalized_text, term) else 0 for term in query_terms)
+
+
+def _is_non_engineering_role(text: str, query_terms: list[str]) -> bool:
+    lowered = text.casefold()
+    if not any(pattern in lowered for pattern in NON_ENGINEERING_ROLE_PATTERNS):
+        return False
+    if any(pattern in lowered for pattern in ENGINEERING_POSITIVE_PATTERNS):
+        return False
+    query_text = " ".join(query_terms).casefold()
+    return not any(pattern.split()[0] in query_text for pattern in NON_ENGINEERING_ROLE_PATTERNS)
+
+
+def _remote_match(text: str) -> bool | None:
+    lowered = text.casefold()
+    if any(pattern in lowered for pattern in REMOTE_POSITIVE_PATTERNS):
+        return True
+    if any(pattern in lowered for pattern in REMOTE_NEGATIVE_PATTERNS):
+        return False
+    return None
 
 
 def _clean_text(text: str) -> str:

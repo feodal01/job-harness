@@ -40,6 +40,18 @@ class CompanyDirectoryTest(unittest.TestCase):
         self.assertGreater(len(results), 0)
         self.assertTrue(all("Python" in profile.stack for profile in results))
 
+    def test_remote_only_treats_false_directory_flag_as_unknown(self) -> None:
+        results = search_company_directory("QA", country="Armenia", remote_only=True, max_results=10)
+
+        self.assertGreater(len(results), 0)
+        self.assertIn("Miro", [profile.name for profile in results])
+
+    def test_job_type_aliases_match_developer_roles(self) -> None:
+        results = search_company_directory("backend", job_type="Software Engineering", max_results=10)
+
+        self.assertGreater(len(results), 0)
+        self.assertTrue(all("Developers" in profile.job_types for profile in results))
+
     def test_loader_rejects_invalid_directory_shape(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "bad.json"
