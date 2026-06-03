@@ -11,8 +11,13 @@ version: 1.0.0
 Scrapers live in `src/job_harness/scrapers/`. Each is a subclass of `BaseScraper` decorated with `@register_scraper("name")`. The registry in `src/job_harness/registry.py` auto-discovers them — no other file needs changes when adding a new scraper.
 
 Current scrapers:
+- `company_directory.py` — bundled employer directory (`company_directory`), returns career entrypoints rather than confirmed live vacancies
 - `hh_ru.py` — hh.ru (`hh_ru`)
 - `habr_career.py` — Habr Career (`habr_career`)
+- `cis_sources.py` — additional CIS/RU-speaking sources (`hirehi`, `hirify`, `staff_am`, `geekjob`, `talento`, `finder_work`, `it_jobs_uz`, `jobturbo`, `getmatch`)
+- `hh_ru.py` subclasses — regional HH-compatible sources (`hh_kz`, `hh_uz`, `rabota_by`, `headhunter_kg`)
+
+Each job-board scraper must declare `countries`, using CIS country codes from `countries.py`. This powers country-aware source selection in CLI and MCP search. The bundled `company_directory` source is global and uses free-text country/location matching through `location` or the dedicated `search_company_jobs` tool.
 
 ## Maintenance Rule
 
@@ -54,7 +59,9 @@ Don't:
 1. Create `src/job_harness/scrapers/<platform>.py`
 2. Subclass `BaseScraper`, implement `search(params)` and `fetch_detail(listing)`
 3. Decorate with `@register_scraper("<name>")`
-4. Import in `scrapers/__init__.py`
-5. The `list_sources` MCP tool will auto-discover it
+4. Set `countries = (...)` with the CIS country codes the source can search
+5. Import in `scrapers/__init__.py`
+6. Add unit tests for URL construction/parsing and country metadata
+7. The `list_sources` MCP tool will auto-discover it
 
 Use the `scraper-insights` skill for practical lessons learned from building and fixing scrapers.

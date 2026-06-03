@@ -21,6 +21,7 @@ mcp = FastMCP("job-harness")
 _PLUGIN_ROOT = Path(os.environ.get("JOB_HARNESS_ROOT", Path(__file__).resolve().parent.parent))
 _LOCAL_CACHE = _PLUGIN_ROOT / "data" / "company-careers.json"
 _PUBLIC_CACHE = _PLUGIN_ROOT / "data" / "company-careers-public.json"
+_COMPANY_DIRECTORY = _PLUGIN_ROOT / "data" / "company-directory.json"
 
 # ---------------------------------------------------------------------------
 # Browser state (lazy-initialised, lives for the session)
@@ -67,13 +68,13 @@ def _get_cache():
 
 
 @mcp.tool
-def list_sources() -> dict[str, str]:
+def list_sources() -> dict[str, dict]:
     """List available job board scrapers and their display names."""
     import job_harness.scrapers  # noqa: F401
     import job_harness.scrapers.career  # noqa: F401
-    from job_harness.registry import get_scraper_info
+    from job_harness.registry import get_scraper_metadata
 
-    return get_scraper_info()
+    return get_scraper_metadata()
 
 
 @mcp.tool
@@ -136,15 +137,135 @@ def cache_stats() -> dict:
     }
 
 
+@mcp.tool
+def search_company_jobs(
+    query: str,
+    country: str | None = None,
+    stack: str | None = None,
+    job_type: str | None = None,
+    industry: str | None = None,
+    remote_only: bool = False,
+    max_results: int = 20,
+) -> dict:
+    """Search the bundled company directory for employer career entrypoints.
+
+    This tool returns companies whose known hiring profile matches the query,
+    plus their career page and LinkedIn jobs links when available. It does not
+    claim that a specific vacancy is currently open.
+
+    Args:
+        query: Role, skill, company, or hiring profile query, e.g. "QA", "Python backend"
+        country: Optional country/city text from the company hiring locations
+        stack: Optional technology stack filter
+        job_type: Optional hiring function filter, e.g. "QA", "Developers", "Sales"
+        industry: Optional industry filter
+        remote_only: Only companies marked as remote-friendly in the directory
+        max_results: Maximum number of companies to return
+    """
+    from job_harness.company_directory import search_company_directory
+
+    companies = search_company_directory(
+        query=query,
+        country=country,
+        stack=stack,
+        job_type=job_type,
+        industry=industry,
+        remote_only=remote_only,
+        max_results=max_results,
+        path=_COMPANY_DIRECTORY,
+    )
+    return {
+        "query": query,
+        "total": len(companies),
+        "companies": [company.to_dict() for company in companies],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Tools — browser required
 # ---------------------------------------------------------------------------
 
 
 @mcp.tool
+async def search_company_careers(
+    query: str,
+    country: str | None = None,
+    stack: str | None = None,
+    job_type: str | None = None,
+    industry: str | None = None,
+    remote_only: bool = False,
+    max_companies: int | None = None,
+    max_results: int = 20,
+    timeout_ms: int = 8000,
+) -> dict:
+    """Search live career pages from the bundled company directory.
+
+    This performs a browser-based pass over company career URLs and returns
+    vacancy links whose text or URL matches the role query. Use this MCP tool
+    for targeted checks. For a full bundled/cache-backed company pass, run
+    the CLI `job-harness company-live-batch` command so results are
+    concurrent, resumable, and written incrementally.
+
+    Args:
+        query: Role query to match on career pages, e.g. "Python developer"
+        country: Optional company hiring-location filter
+        stack: Optional known company stack filter
+        job_type: Optional known hiring function filter
+        industry: Optional industry filter
+        remote_only: Only companies marked as remote-friendly in the directory
+        max_companies: Maximum companies to check; null means all matching companies
+        max_results: Maximum vacancy links to return
+        timeout_ms: Per-company page navigation timeout in milliseconds
+    """
+    return await _run_in_browser_thread(
+        _search_company_careers_impl,
+        query=query,
+        country=country,
+        stack=stack,
+        job_type=job_type,
+        industry=industry,
+        remote_only=remote_only,
+        max_companies=max_companies,
+        max_results=max_results,
+        timeout_ms=timeout_ms,
+    )
+
+
+def _search_company_careers_impl(
+    query: str,
+    country: str | None = None,
+    stack: str | None = None,
+    job_type: str | None = None,
+    industry: str | None = None,
+    remote_only: bool = False,
+    max_companies: int | None = None,
+    max_results: int = 20,
+    timeout_ms: int = 8000,
+) -> dict:
+    from job_harness.company_career_search import search_company_careers
+
+    context = _ensure_browser()
+    result = search_company_careers(
+        query=query,
+        context=context,
+        country=country,
+        stack=stack,
+        job_type=job_type,
+        industry=industry,
+        remote_only=remote_only,
+        max_companies=max_companies,
+        max_results=max_results,
+        timeout_ms=timeout_ms,
+        directory_path=_COMPANY_DIRECTORY,
+    )
+    return result.to_dict()
+
+
+@mcp.tool
 async def search(
     query: str,
     sources: str = "all",
+    country: str | None = None,
     remote_only: bool = False,
     experience: str | None = None,
     location: str | None = None,
@@ -165,6 +286,7 @@ async def search(
     Args:
         query: Search query (e.g. "QA engineer", "Python backend")
         sources: Comma-separated scraper names, or "all"
+        country: CIS country code or name, e.g. RU, KZ, Armenia
         remote_only: Only remote listings
         experience: Minimum experience level (junior/middle/senior)
         location: Location filter string
@@ -181,6 +303,7 @@ async def search(
         _search_impl,
         query=query,
         sources=sources,
+        country=country,
         remote_only=remote_only,
         experience=experience,
         location=location,
@@ -198,6 +321,7 @@ async def search(
 def _search_impl(
     query: str,
     sources: str = "all",
+    country: str | None = None,
     remote_only: bool = False,
     experience: str | None = None,
     location: str | None = None,
@@ -222,11 +346,14 @@ def _search_impl(
         no_keywords,
         remote_only as remote_only_filter,
     )
+    from job_harness.countries import format_country_codes, normalize_country_code
     from job_harness.models import SearchParams, SearchResults
     from job_harness.registry import create_scraper, get_scraper_class, list_scrapers
 
+    country_code = normalize_country_code(country)
     params = SearchParams(
         query=query,
+        country=country_code,
         remote_only=remote_only,
         experience=experience,
         location=location,
@@ -235,9 +362,16 @@ def _search_impl(
 
     # Determine sources
     if sources == "all" or not sources:
-        source_names = list_scrapers()
+        source_names = list_scrapers(country=country_code)
     else:
         source_names = [s.strip() for s in sources.split(",")]
+        for source_name in source_names:
+            scraper_class = get_scraper_class(source_name)
+            if not scraper_class.supports_country(country_code):
+                raise ValueError(
+                    f"{source_name} does not support country {country_code}. "
+                    f"Supported countries: {format_country_codes(scraper_class.countries)}"
+                )
 
     # Build filters
     filters = []

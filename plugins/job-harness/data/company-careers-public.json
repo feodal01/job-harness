@@ -1,65 +1,182 @@
 {
-  "ооо бридж тревел": {
-    "company": "ООО Бридж Тревел",
-    "careers_url": "https://www.jobcareer.ru/companies/bridz-trevel/",
+  "110 industries": {
+    "company": "110 Industries",
+    "careers_url": "https://bonddaria.notion.site/110-Industries-is-hiring-03eca12a1d1a47988bb13c3d5afc53fc",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-05-27",
-    "last_found_roles": true,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
     "ignored": false
   },
-  "смс – информационные технологии": {
-    "company": "СМС – информационные технологии",
-    "careers_url": "https://sms-it.ru/career/internship/",
+  "1ex trading board": {
+    "company": "1ex Trading Board",
+    "careers_url": "https://1ex.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-05-27",
-    "last_found_roles": true,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
     "ignored": false
   },
-  "ретннет": {
-    "company": "РетнНет",
-    "careers_url": "https://dreamjob.ru/employers/43931",
+  "1inch network": {
+    "company": "1inch Network",
+    "careers_url": "https://cryptocurrencyjobs.co/startups/1inch-network/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-05-27",
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "3commas": {
+    "company": "3Commas",
+    "careers_url": "https://jobs.ashbyhq.com/3commas",
+    "ats_type": "ashby",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "abbyy": {
+    "company": "ABBYY",
+    "careers_url": "https://www.abbyy.com/company/careers/open-positions/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "abe health": {
+    "company": "Abe Health",
+    "careers_url": "https://abe-health.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
   "abelohost b.v.": {
     "company": "AbeloHost B.V.",
-    "careers_url": "https://ph.indeed.com/q-abelohost-b-v-,-anywhere-jobs.html",
+    "careers_url": "https://www.abelohost.com/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-05-27",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
-  "ооо софтмолл": {
-    "company": "ООО СофтМолл",
-    "careers_url": "https://dreamjob.ru/employers/133227",
+  "accel club": {
+    "company": "Accel Club",
+    "careers_url": "https://accelclub.notion.site/Accel-Club-Job-Board",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-05-27",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
-  "ооо сбк парус": {
-    "company": "ООО СБК Парус",
-    "careers_url": "https://dreamjob.ru/employers/6225686/vakansii",
+  "acronis": {
+    "company": "Acronis",
+    "careers_url": "https://www.acronis.com/en-us/careers/",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-05-27",
+    "last_checked": "2026-06-03",
     "last_found_roles": false,
     "ignored": false
   },
-  "ооо партдизайн": {
-    "company": "ООО ПартДизайн",
-    "careers_url": "https://spb.it-vacancies.ru/companies/345976/",
+  "activeloop": {
+    "company": "Activeloop",
+    "careers_url": "https://activeloop.notion.site/Careers-Activeloop-9dad048520b6452e8954830d61250c5a",
     "ats_type": "direct",
     "scraper_name": null,
-    "last_checked": "2026-05-27",
-    "last_found_roles": true,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "adapty": {
+    "company": "Adapty",
+    "careers_url": "https://adapty.io/jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "adtech holding": {
+    "company": "AdTech Holding",
+    "careers_url": "https://adtechholding.com/#careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "affirm": {
+    "company": "Affirm",
+    "careers_url": "https://www.affirm.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ahrefs": {
+    "company": "Ahrefs",
+    "careers_url": "https://ahrefs.com/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "airslate": {
+    "company": "airSlate",
+    "careers_url": "https://jobs.lever.co/airslate",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "altenar": {
+    "company": "Altenar",
+    "careers_url": "https://altenar.com/career/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "altium": {
+    "company": "Altium",
+    "careers_url": "https://careers.altium.com/ru/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "altoros": {
+    "company": "Altoros",
+    "careers_url": "https://www.altoroslabs.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "amega group": {
+    "company": "AMEGA Group",
+    "careers_url": "https://www.amegacorp.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "amma": {
+    "company": "AMMA",
+    "careers_url": "https://amma.family/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
     "ignored": false
   },
   "amocrm": {
@@ -71,9 +188,3456 @@
     "last_found_roles": true,
     "ignored": false
   },
-  "фгану нии спецвузавтоматика": {
-    "company": "ФГАНУ НИИ Спецвузавтоматика",
-    "careers_url": "https://dreamjob.ru/employers/121279/vakansii",
+  "anna money": {
+    "company": "ANNA Money",
+    "careers_url": "https://anna.money/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "anymaster": {
+    "company": "Anymaster",
+    "careers_url": "https://mixed-porter-ecb.notion.site/Jobs-at-Anymaster-05c778cd95fa4132bbdc617d1c7802fe",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "appfollow": {
+    "company": "AppFollow",
+    "careers_url": "https://jobs.lever.co/appfollow",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "appmagic": {
+    "company": "AppMagic",
+    "careers_url": "https://appmagic.rocks/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "apron": {
+    "company": "Apron",
+    "careers_url": "https://apply.workable.com/apron/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "arival bank": {
+    "company": "Arival Bank",
+    "careers_url": "https://arival.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "armis security": {
+    "company": "Armis Security",
+    "careers_url": "https://www.armis.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "artec 3d": {
+    "company": "Artec 3D",
+    "careers_url": "https://careers.artec3d.com/#positions",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "asodesk": {
+    "company": "Asodesk",
+    "careers_url": "https://ru.asodesk.com/careers#rec548392573",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "aspect app": {
+    "company": "Aspect App",
+    "careers_url": "https://aspect-health.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "at-bay": {
+    "company": "At-Bay",
+    "careers_url": "https://www.at-bay.com/about/careers/#jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "aura devices": {
+    "company": "AURA Devices",
+    "careers_url": "https://aura-devices.breezy.hr/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "b9": {
+    "company": "B9",
+    "careers_url": "https://bnine.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "babylon voice": {
+    "company": "Babylon Voice",
+    "careers_url": "https://wellfound.com/company/manan-ai/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "balancy": {
+    "company": "Balancy",
+    "careers_url": "https://balancy.co/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "beacon": {
+    "company": "Beacon",
+    "careers_url": "https://www.beacon.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "beamery": {
+    "company": "Beamery",
+    "careers_url": "https://careers.beamery.com/jobs/?department=&location=#results",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "behavox": {
+    "company": "Behavox",
+    "careers_url": "https://www.behavox.com/about/jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "bigid": {
+    "company": "BigID",
+    "careers_url": "https://bigid.com/company/careers/#job_board",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "bitfury": {
+    "company": "BitFury",
+    "careers_url": "https://boards.greenhouse.io/bitfury",
+    "ats_type": "greenhouse",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "bonrepublic": {
+    "company": "Bonrepublic",
+    "careers_url": "https://www.bonrepublic.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "borzo": {
+    "company": "Borzo",
+    "careers_url": "https://borzodelivery.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "brainrocket": {
+    "company": "BrainRocket",
+    "careers_url": "https://www.brainrocket.com/careers#all",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "brask": {
+    "company": "Brask",
+    "careers_url": "https://brask.notion.site/Join-Brask-ai-e1f9dd23043741c2922a6546c5369602#7f527c979ed74c02b03baa4553526b38",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "brickit": {
+    "company": "Brickit",
+    "careers_url": "https://brickit.app/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "buddy.ai": {
+    "company": "Buddy.ai",
+    "careers_url": "https://buddy.ai/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "bumble": {
+    "company": "Bumble",
+    "careers_url": "https://bumble.wd3.myworkdayjobs.com/Bumble_Careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "careerist": {
+    "company": "Careerist",
+    "careers_url": "https://www.careerist.com/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "cartwheel": {
+    "company": "Cartwheel",
+    "careers_url": "https://trycartwheel.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "cattle care": {
+    "company": "Cattle Care",
+    "careers_url": "https://www.cattle-care.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "centro (ortnec)": {
+    "company": "Centro (Ortnec)",
+    "careers_url": "https://www.centro.team/cyprus-office",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "chainstack": {
+    "company": "Chainstack",
+    "careers_url": "https://chainstack.bamboohr.com/jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "chatfuel": {
+    "company": "Chatfuel",
+    "careers_url": "https://careers.chatfuel.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "chattermill": {
+    "company": "Chattermill",
+    "careers_url": "https://boards.greenhouse.io/chattermill/",
+    "ats_type": "greenhouse",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "choise.com": {
+    "company": "Choise.com",
+    "careers_url": "https://wellfound.com/company/choise-dot-com",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "chrono.tech": {
+    "company": "Chrono.tech",
+    "careers_url": "https://chrono.tech/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "cindicator": {
+    "company": "Cindicator",
+    "careers_url": "https://www.notion.so/Jobs-at-Cindicator-37ea0aed8b7b4a7799999c94ea00f3a2",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "click-ins": {
+    "company": "Click-Ins",
+    "careers_url": "https://www.click-ins.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "clickhouse": {
+    "company": "ClickHouse",
+    "careers_url": "https://clickhouse.com/company/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "cloudlinux": {
+    "company": "CloudLinux",
+    "careers_url": "https://www.cloudlinux.com/about-us-company-jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "cm games": {
+    "company": "CM Games",
+    "careers_url": "https://cm.games/people#vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "codedunes solutions": {
+    "company": "CodeDunes Solutions",
+    "careers_url": "https://codedunes.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "codesignal": {
+    "company": "CodeSignal",
+    "careers_url": "https://boards.greenhouse.io/codesignal",
+    "ats_type": "greenhouse",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "coding invaders": {
+    "company": "Coding Invaders",
+    "careers_url": "https://codinginvaders.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "coinrule": {
+    "company": "Coinrule",
+    "careers_url": "https://wellfound.com/company/coinrule/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "coinspaid": {
+    "company": "CoinsPaid",
+    "careers_url": "https://jobs.eu.lever.co/coinspaid/",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "colife": {
+    "company": "Colife",
+    "careers_url": "https://colife.ae/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "collectly": {
+    "company": "Collectly",
+    "careers_url": "https://jobs.lever.co/CollectlyInc.",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "compass pathways": {
+    "company": "Compass Pathways",
+    "careers_url": "https://compasspathways.com/join-us/#careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "conte.ai&postoplan": {
+    "company": "Conte.ai&Postoplan",
+    "careers_url": "https://postoplan.contenive.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "cooper pet care": {
+    "company": "Cooper Pet Care",
+    "careers_url": "https://cooperpetcare.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "core42": {
+    "company": "Core42",
+    "careers_url": "https://www.core42.ai/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "crypton studio": {
+    "company": "Crypton Studio",
+    "careers_url": "https://crypton.studio/en/career",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "crystal blockchain": {
+    "company": "Crystal Blockchain",
+    "careers_url": "https://crystalblockchain.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "cube dev": {
+    "company": "Cube Dev",
+    "careers_url": "https://cube.dev/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "cybernet ai": {
+    "company": "CyberNet AI",
+    "careers_url": "https://www.cyber-net.ai/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "dashly": {
+    "company": "Dashly",
+    "careers_url": "https://www.dashly.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "dataart": {
+    "company": "DataArt",
+    "careers_url": "https://www.dataart.team/vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "datafold": {
+    "company": "Datafold",
+    "careers_url": "https://www.datafold.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "datagrid solutions": {
+    "company": "DataGrid Solutions",
+    "careers_url": "https://datagrid.solutions/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "datamilk": {
+    "company": "DataMilk",
+    "careers_url": "https://boards.greenhouse.io/datamilkwebsite",
+    "ats_type": "greenhouse",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "destinus": {
+    "company": "Destinus",
+    "careers_url": "https://destinus.ch/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "destinyx": {
+    "company": "DestinyX",
+    "careers_url": "https://destinyx.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "devexperts": {
+    "company": "Devexperts",
+    "careers_url": "https://careers.devexperts.com/vacancies/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "digifabster": {
+    "company": "DigiFabster",
+    "careers_url": "https://digifabster.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "docet ti": {
+    "company": "Docet TI",
+    "careers_url": "https://www.docet.ai/#rec526532260",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "easybrain": {
+    "company": "Easybrain",
+    "careers_url": "https://easybrain.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ebac": {
+    "company": "EBAC",
+    "careers_url": "https://ebac.gupy.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ecarstrade": {
+    "company": "eCarsTrade",
+    "careers_url": "https://ecarstrade.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "edgedb": {
+    "company": "EdgeDB",
+    "careers_url": "https://www.edgedb.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "educate online": {
+    "company": "Educate Online",
+    "careers_url": "https://career.educate-online.org/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "eesee": {
+    "company": "eesee",
+    "careers_url": "https://about.eesee.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "eightify": {
+    "company": "Eightify",
+    "careers_url": "https://eightify.app/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "elatra": {
+    "company": "Elatra",
+    "careers_url": "https://elatra.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "electroneek": {
+    "company": "ElectroNeek",
+    "careers_url": "https://electroneek.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "elephant games": {
+    "company": "Elephant Games",
+    "careers_url": "https://elephant-games.com/career/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "emerging travel group": {
+    "company": "Emerging Travel Group",
+    "careers_url": "https://www.emergingtravel.com/career/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "endel": {
+    "company": "Endel",
+    "careers_url": "https://endel.io/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "enki": {
+    "company": "Enki",
+    "careers_url": "https://angel.co/company/enki/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "enpal": {
+    "company": "Enpal",
+    "careers_url": "https://www.enpal.de/jobs?#jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "eqvilent": {
+    "company": "Eqvilent",
+    "careers_url": "https://www.eqvilent.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "eschatology entertainment": {
+    "company": "Eschatology Entertainment",
+    "careers_url": "https://eschatology-entertainment.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "evil martians": {
+    "company": "Evil Martians",
+    "careers_url": "https://evilmartians.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "evolwe ai": {
+    "company": "Evolwe AI",
+    "careers_url": "https://evolwe.ai/join-the-team/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ewa learn languages": {
+    "company": "EWA Learn Languages",
+    "careers_url": "https://appewa.bamboohr.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ex-human": {
+    "company": "Ex-human",
+    "careers_url": "https://exh.ai/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "exactly.ai (durer ai)": {
+    "company": "Exactly.ai (Durer Ai)",
+    "careers_url": "https://wellfound.com/company/durer-ai/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "exactpro": {
+    "company": "Exactpro",
+    "careers_url": "https://careers.exactpro.com/careers?location=Array",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "exinity": {
+    "company": "Exinity",
+    "careers_url": "https://group.exinity.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "exness": {
+    "company": "Exness",
+    "careers_url": "https://exness-careers.com/jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "f5 nginx": {
+    "company": "F5 NGINX",
+    "careers_url": "https://ffive.wd5.myworkdayjobs.com/NGINX",
+    "ats_type": "workday",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "faceapp": {
+    "company": "FaceApp",
+    "careers_url": "https://www.faceapp.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "farel": {
+    "company": "Farel",
+    "careers_url": "https://www.ycombinator.com/companies/farel",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "fibery": {
+    "company": "Fibery",
+    "careers_url": "https://fibery.io/blog/we-are-hiring/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "find my kids": {
+    "company": "Find My Kids",
+    "careers_url": "https://findmykids.org/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "findev": {
+    "company": "FinDev",
+    "careers_url": "https://findev.team/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "finery markets": {
+    "company": "Finery Markets",
+    "careers_url": "https://finerymarkets.com/careers.html",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "finom": {
+    "company": "Finom",
+    "careers_url": "https://finom.jobs.personio.de/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "fintuity": {
+    "company": "Fintuity",
+    "careers_url": "https://fintuity.com/hiring/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "finverity": {
+    "company": "Finverity",
+    "careers_url": "https://finverity.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "fireart studio": {
+    "company": "Fireart Studio",
+    "careers_url": "https://fireart.studio/careers/#vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "first line software": {
+    "company": "First Line Software",
+    "careers_url": "https://careers.firstlinesoftware.com/career/vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "fjor": {
+    "company": "FJOR",
+    "careers_url": "https://www.fjor.health/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "flipper devices": {
+    "company": "Flipper Devices",
+    "careers_url": "https://flipperdevices.com/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "flo health": {
+    "company": "Flo Health",
+    "careers_url": "https://flo.health/careers-listing",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "fluence labs": {
+    "company": "Fluence Labs",
+    "careers_url": "https://fluence.one/join.html",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "fluently": {
+    "company": "Fluently",
+    "careers_url": "https://getfluently.app/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "formel skin": {
+    "company": "FORMEL Skin",
+    "careers_url": "https://formelskin.jobs.personio.de/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "formlabs": {
+    "company": "Formlabs",
+    "careers_url": "https://careers.formlabs.com/all-open-roles/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "frame": {
+    "company": "Frame",
+    "careers_url": "https://www.frame.so/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "funcorp": {
+    "company": "FunCorp",
+    "careers_url": "https://funcorp.dev/?unit=ifunny#vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "g42": {
+    "company": "G42",
+    "careers_url": "https://careers.g42.ai/careers-home/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "g5 entertainment ab": {
+    "company": "G5 Entertainment AB",
+    "careers_url": "https://jobs.g5.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gaijin entertainment": {
+    "company": "Gaijin Entertainment",
+    "careers_url": "https://gaijinent.com/job",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gameram": {
+    "company": "Gameram",
+    "careers_url": "https://gameram.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gameteq": {
+    "company": "GAMETEQ",
+    "careers_url": "https://tbilisi.headhunter.ge/employer/9235034",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gavity": {
+    "company": "Gavity",
+    "careers_url": "https://gaviti.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "geex arts": {
+    "company": "Geex Arts",
+    "careers_url": "https://geexarts.notion.site/Careers-9f236198489c4bee9291875b7116c383",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gero": {
+    "company": "Gero",
+    "careers_url": "https://gero.ai/about#careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "glera games": {
+    "company": "Glera Games",
+    "careers_url": "https://glera-games.com/jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gopuff": {
+    "company": "GoPuff",
+    "careers_url": "https://www.gopuff.com/go/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gotrg": {
+    "company": "goTRG",
+    "careers_url": "https://www.paycomonline.net/v4/ats/web.php/jobs?clientkey=AA674B442E9B6A1284BD7F78CB0C3E73&session_nonce=5d2681a6163cf70e72b0c3e10128d82c",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gpu audio": {
+    "company": "GPU AUDIO",
+    "careers_url": "https://www.gpu.audio/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gracia ai": {
+    "company": "Gracia AI",
+    "careers_url": "https://www.gracia.ai/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "grammarly": {
+    "company": "Grammarly",
+    "careers_url": "https://www.grammarly.com/jobs/openings",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "green growth": {
+    "company": "Green Growth",
+    "careers_url": "https://greengrowth.tech/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "greeno": {
+    "company": "GreenO",
+    "careers_url": "https://greeno.ag/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "grid dynamics": {
+    "company": "Grid Dynamics",
+    "careers_url": "https://careers.griddynamics.com/discover-openings",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "gurtam": {
+    "company": "Gurtam",
+    "careers_url": "https://gurtam.com/en/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "handl.ai": {
+    "company": "Handl.ai",
+    "careers_url": "https://www.handl.ai/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "hapic": {
+    "company": "HAPIC",
+    "careers_url": "https://hapic.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "haut.ai": {
+    "company": "Haut.AI",
+    "careers_url": "https://haut.ai/#wearehiring",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "headframe": {
+    "company": "Headframe",
+    "careers_url": "https://headframe.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "headroom inc.": {
+    "company": "Headroom Inc.",
+    "careers_url": "https://join.team/headroom",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "helio games": {
+    "company": "Helio Games",
+    "careers_url": "https://heliogames.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "hexens": {
+    "company": "Hexens",
+    "careers_url": "https://hexens.io/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "hi no code": {
+    "company": "Hi no code",
+    "careers_url": "https://hinocode.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "hire5.co": {
+    "company": "Hire5.co",
+    "careers_url": "https://career.hire5.co/2/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "homebuddy": {
+    "company": "HomeBuddy",
+    "careers_url": "https://www.homebuddy.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "house of pitch": {
+    "company": "House of Pitch",
+    "careers_url": "https://houseofpitch.app/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "hqsoftware": {
+    "company": "HQSoftware",
+    "careers_url": "https://hqsoftwarelab.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "human": {
+    "company": "Human",
+    "careers_url": "https://joinhuman.notion.site/Jobs-at-Human-ec4552bee5f64b4cb12491b0d84ac1c8",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "humans": {
+    "company": "HUMANS",
+    "careers_url": "https://x.humans.work/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "humansignal (ex heartex)": {
+    "company": "HumanSignal (ex Heartex)",
+    "careers_url": "https://heartex.com/careers#openings",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "hypeauditor": {
+    "company": "HypeAuditor",
+    "careers_url": "https://hypeauditor.com/about/company/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "hypemasters": {
+    "company": "Hypemasters",
+    "careers_url": "https://apply.workable.com/hypemasters/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "hyperskill": {
+    "company": "Hyperskill",
+    "careers_url": "https://hi.hyperskill.org/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "i-braintech": {
+    "company": "i-BrainTech",
+    "careers_url": "https://www.i-brain.tech/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "idwell": {
+    "company": "iDWELL",
+    "careers_url": "https://www.idwell.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ifarm": {
+    "company": "iFarm",
+    "careers_url": "https://www.ifarm.fi/careers#open_vacancy",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "immigram": {
+    "company": "Immigram",
+    "careers_url": "https://immigram.io/careers#positions",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "impress": {
+    "company": "Impress",
+    "careers_url": "https://jobs.smile2impress.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "improvado": {
+    "company": "Improvado",
+    "careers_url": "https://jobs.lever.co/improvadoio",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "inca digital": {
+    "company": "Inca Digital",
+    "careers_url": "https://inca.digital/careers/#roles",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "indrive": {
+    "company": "inDrive",
+    "careers_url": "https://indrive.com/en/career/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "instories": {
+    "company": "Instories",
+    "careers_url": "https://instories.app/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "intellectokids": {
+    "company": "IntellectoKids",
+    "careers_url": "https://career.intellectokids.com/roles",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "intent.ai": {
+    "company": "Intent.ai",
+    "careers_url": "https://intent.ai/careers.html",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "intently": {
+    "company": "Intently",
+    "careers_url": "https://jobs.lever.co/intently-ai",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "intento": {
+    "company": "Intento",
+    "careers_url": "https://intento.recruitee.com/#section-187103",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "intone": {
+    "company": "InTone",
+    "careers_url": "https://intone.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "inworld ai": {
+    "company": "Inworld AI",
+    "careers_url": "https://www.inworld.ai/careers#job-openings",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ivm markets": {
+    "company": "IVM Markets",
+    "careers_url": "https://www.ivmmarkets.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "izdat venture studio": {
+    "company": "IZDAT Venture Studio",
+    "careers_url": "https://izdat.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "jet admin": {
+    "company": "Jet Admin",
+    "careers_url": "https://www.jetadmin.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "jetbrains": {
+    "company": "Jetbrains",
+    "careers_url": "https://www.jetbrains.com/careers/jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "jetdocs": {
+    "company": "Jetdocs",
+    "careers_url": "https://jetdocs.io/contact-us/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "jettycloud": {
+    "company": "JettyCloud",
+    "careers_url": "https://www.jettycloud.com/vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "joom": {
+    "company": "Joom",
+    "careers_url": "https://www.joom-group.com/en/vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "kadmos": {
+    "company": "Kadmos",
+    "careers_url": "https://www.kadmos.io/career/job-list",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "kaspersky": {
+    "company": "Kaspersky",
+    "careers_url": "https://careers.kaspersky.com/vacancy",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "kewazo": {
+    "company": "Kewazo",
+    "careers_url": "https://www.kewazo.com/career-at-kewazo",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "kodland": {
+    "company": "Kodland",
+    "careers_url": "https://kodlandcareer.notion.site/kodlandcareer/Jobs-at-Kodland-32dbf4cd9577449bab2a6945f89c47ba",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "kolesa group": {
+    "company": "Kolesa Group",
+    "careers_url": "https://kolesa.group/career/job",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "krisp": {
+    "company": "Krisp",
+    "careers_url": "https://krisp.ai/careers/#job_listings\n\nhttps://staff.am/en/company/krisp",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "laoshi": {
+    "company": "Laoshi",
+    "careers_url": "https://laoshi.io/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "legionfarm": {
+    "company": "Legionfarm",
+    "careers_url": "https://jobs.lever.co/legion-farm",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "level up basketball": {
+    "company": "Level Up Basketball",
+    "careers_url": "https://www.levelupbasket.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "lifemost": {
+    "company": "LIFEMOST",
+    "careers_url": "https://most-team.notion.site/LIFEMOST-HIRES-33da8841c5de4fab922ec9a3b7343789",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "lightspeed ecom (ex-ecwid)": {
+    "company": "Lightspeed eCom (ex-Ecwid)",
+    "careers_url": "https://boards.greenhouse.io/lightspeedhq",
+    "ats_type": "greenhouse",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "linguix.com": {
+    "company": "Linguix.com",
+    "careers_url": "https://linguix.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "locals.org": {
+    "company": "Locals.org",
+    "careers_url": "https://locals.crew.work/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "lokalise": {
+    "company": "Lokalise",
+    "careers_url": "https://lokalise.com/job",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "loóna": {
+    "company": "Loóna",
+    "careers_url": "https://loonaapp.notion.site/Work-at-Lo-na-fa2a632a634b4bf5967843897e3d09ec",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "luminai": {
+    "company": "Luminai",
+    "careers_url": "https://www.luminai.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "lunchclub": {
+    "company": "Lunchclub",
+    "careers_url": "https://jobs.lever.co/lunchclub",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "luxoft": {
+    "company": "Luxoft",
+    "careers_url": "https://career.luxoft.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "lyka": {
+    "company": "Lyka",
+    "careers_url": "https://lyka.com.au/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "machinet.net": {
+    "company": "Machinet.net",
+    "careers_url": "https://www.machinet.net/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mad curve": {
+    "company": "Mad Curve",
+    "careers_url": "https://madcurve.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "made on earth games": {
+    "company": "Made on Earth Games",
+    "careers_url": "https://madeonearthgames.notion.site/MEG-Job-Board-2c89130953004b8cafbc50195dd8e87b",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "magic square": {
+    "company": "Magic Square",
+    "careers_url": "https://career.magicsquare.io/#jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "manychat": {
+    "company": "ManyChat",
+    "careers_url": "https://manychat.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mapbox": {
+    "company": "Mapbox",
+    "careers_url": "https://www.mapbox.com/careers#jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "marine digital": {
+    "company": "Marine Digital",
+    "careers_url": "https://marine-digital.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "maroo": {
+    "company": "Maroo",
+    "careers_url": "https://www.ycombinator.com/companies/maroo/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mbanq": {
+    "company": "Mbanq",
+    "careers_url": "https://www.mbanq.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "meander (ex vektor ai)": {
+    "company": "Meander (ex Vektor AI)",
+    "careers_url": "https://meander-hq.notion.site/Meander-Careers-549753aef2dd44d3911e9c6be2911106",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mediacube": {
+    "company": "Mediacube",
+    "careers_url": "https://mediacube.io/en-AR/vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mel science": {
+    "company": "MEL Science",
+    "careers_url": "https://melscience.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "meracux": {
+    "company": "Meracux",
+    "careers_url": "https://mercaux.com/careers.html",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "metapax": {
+    "company": "MetaPax",
+    "careers_url": "https://metapax.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mighty buildings": {
+    "company": "Mighty Buildings",
+    "careers_url": "https://www.mightybuildings.com/careers#joblist",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "migrun": {
+    "company": "MigRun",
+    "careers_url": "https://www.migrun.tech/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "miro": {
+    "company": "Miro",
+    "careers_url": "https://miro.com/careers/open-positions/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mirror": {
+    "company": "Mirror",
+    "careers_url": "https://mirrorxyz.notion.site/Work-at-Mirror-cdcfea2fd38540688ec73d5df8e0f826",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mixbytes": {
+    "company": "MixBytes",
+    "careers_url": "https://mixbytes.io/career",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "moeco": {
+    "company": "Moeco",
+    "careers_url": "https://www.moeco.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "monetha": {
+    "company": "Monetha",
+    "careers_url": "https://www.monetha.io/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "monite": {
+    "company": "Monite",
+    "careers_url": "https://monite.notion.site/Careers-Monite-9ad0d34fcd0e4ec5ba1017aab6df686f",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "monolith": {
+    "company": "Monolith",
+    "careers_url": "https://www.getmonolith.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "movavi": {
+    "company": "Movavi",
+    "careers_url": "https://job.movavi.ru/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "my.games": {
+    "company": "MY.GAMES",
+    "careers_url": "https://my.games/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mysky": {
+    "company": "MySky",
+    "careers_url": "https://mysky.com/about",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "mytona": {
+    "company": "MYTONA",
+    "careers_url": "https://mytona.com/career",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "münzen": {
+    "company": "Münzen",
+    "careers_url": "https://munzen.io/career",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "narrative bi": {
+    "company": "Narrative BI",
+    "careers_url": "https://narrativebi.notion.site/Work-at-Narrative-BI-2724d8946b7c4835916446cb57263117",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "neatsy": {
+    "company": "Neatsy",
+    "careers_url": "https://neatsy.notion.site/neatsy/Careers-at-Neatsy-d100c73967b44a7292da17b2daf6b27d",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "nebius": {
+    "company": "Nebius",
+    "careers_url": "https://nebius.breezy.hr/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "neon": {
+    "company": "Neon",
+    "careers_url": "https://neon.tech/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "nexters": {
+    "company": "Nexters",
+    "careers_url": "https://nexters.com/en/about/alljobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ngrow": {
+    "company": "nGrow",
+    "careers_url": "https://www.ngrow.ai/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "nil foundation": {
+    "company": "Nil Foundation",
+    "careers_url": "https://nil.foundation/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "noom": {
+    "company": "Noom",
+    "careers_url": "https://noom.eightfold.ai/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "not8": {
+    "company": "not8",
+    "careers_url": "https://www.not8.co/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "nova credit": {
+    "company": "Nova Credit",
+    "careers_url": "https://jobs.lever.co/neednova",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "novakid": {
+    "company": "Novakid",
+    "careers_url": "https://hr.novakidschool.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "nylas": {
+    "company": "Nylas",
+    "careers_url": "https://ats.comparably.com/api/v1/gh/nylas",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "odysseus data services": {
+    "company": "Odysseus Data Services",
+    "careers_url": "https://odysseusinc.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ohmysynt": {
+    "company": "OHMYSYNT",
+    "careers_url": "https://ohmysynt.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "oneday": {
+    "company": "Oneday",
+    "careers_url": "https://www.oneday.co.uk/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "onemarketdata": {
+    "company": "OneMarketData",
+    "careers_url": "https://www.onetick.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "onesoil": {
+    "company": "OneSoil",
+    "careers_url": "https://onesoil.ai/en/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "optic": {
+    "company": "Optic",
+    "careers_url": "https://www.optic.xyz/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "order of meta": {
+    "company": "Order of Meta",
+    "careers_url": "https://www.orderofmeta.com/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "original games": {
+    "company": "Original Games",
+    "careers_url": "https://originalgames.io/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "osome": {
+    "company": "Osome",
+    "careers_url": "https://careers.osome.com/#jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "outschool": {
+    "company": "Outschool",
+    "careers_url": "https://boards.greenhouse.io/outschool",
+    "ats_type": "greenhouse",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "outside digital (ex kodix)": {
+    "company": "OUTSIDE DIGITAL (ex Kodix)",
+    "careers_url": "https://outside.digital/career",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "oxorio": {
+    "company": "OXORIO",
+    "careers_url": "https://oxorioteam.notion.site/Careers-da7d5b13b81b495b9a8b3eaacdd424ab",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "oxygen": {
+    "company": "Oxygen",
+    "careers_url": "https://oxygen.us/company/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "p2p validator": {
+    "company": "P2P Validator",
+    "careers_url": "https://p2porg.global.huntflow.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "pagoda (ex near protocol)": {
+    "company": "Pagoda (ex NEAR Protocol)",
+    "careers_url": "https://www.pagoda.co/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "palta": {
+    "company": "Palta",
+    "careers_url": "https://boards.greenhouse.io/paltaltd",
+    "ats_type": "greenhouse",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "pandadoc": {
+    "company": "PandaDoc",
+    "careers_url": "https://www.pandadoc.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "para (ex tingz)": {
+    "company": "Para (ex tingz)",
+    "careers_url": "https://para.co/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "penenza": {
+    "company": "Penenza",
+    "careers_url": "http://penenza.ru/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "people ai": {
+    "company": "People AI",
+    "careers_url": "https://people.ai/about-us/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "personio": {
+    "company": "Personio",
+    "careers_url": "https://www.personio.com/about-personio/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "picsart": {
+    "company": "Picsart",
+    "careers_url": "https://picsart.com/jobs/vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "pitchme.co": {
+    "company": "PitchMe.co",
+    "careers_url": "https://pitchme.co/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "pixellu": {
+    "company": "Pixellu",
+    "careers_url": "https://careers.pixellu.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "planner 5d": {
+    "company": "Planner 5D",
+    "careers_url": "https://planner5d.multiscreensite.com/?_gl=1*n1n8wf*_ga*MTI3MTkzNjg5Ny4xNzA1NDYzMDQ4*_ga_61SD1N9JH1*MTcwNTQ2MzA0Ny4xLjEuMTcwNTQ2MzA4Ny4yMC4wLjA.#Jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "plata card (ex different technologies)": {
+    "company": "Plata Card (ex Different Technologies)",
+    "careers_url": "https://platacard.mx/en/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "playkot": {
+    "company": "Playkot",
+    "careers_url": "https://playkot.com/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "playrix": {
+    "company": "Playrix",
+    "careers_url": "https://playrix.com/job/open/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "plesk": {
+    "company": "Plesk",
+    "careers_url": "https://www.plesk.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "podcastle": {
+    "company": "Podcastle",
+    "careers_url": "https://podcastle.ai/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "polyn technology": {
+    "company": "Polyn Technology",
+    "careers_url": "https://polyn.ai/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "prequel": {
+    "company": "Prequel",
+    "careers_url": "https://www.ycombinator.com/companies/prequel/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "pria (longevica)": {
+    "company": "Pria (Longevica)",
+    "careers_url": "https://www.pria.care/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "prisma labs": {
+    "company": "Prisma Labs",
+    "careers_url": "https://prismalabs.notion.site/Careers-at-Prisma-Labs-eb709e36aba8405c8c189fad1c226389",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "prodly": {
+    "company": "Prodly",
+    "careers_url": "https://boards.greenhouse.io/prodlyjobs",
+    "ats_type": "greenhouse",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "profi": {
+    "company": "Profi",
+    "careers_url": "https://apply.workable.com/profi/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "protofire": {
+    "company": "Protofire",
+    "careers_url": "https://protofire.io/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "pvg indonesia": {
+    "company": "PVG Indonesia",
+    "careers_url": "https://pvg.co.id/job",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "qonversion": {
+    "company": "Qonversion",
+    "careers_url": "https://angel.co/company/qonversion/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "quadcode": {
+    "company": "Quadcode",
+    "careers_url": "https://jobs.quadcode.com/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "quantori": {
+    "company": "Quantori",
+    "careers_url": "https://career.quantori.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "quantumsoft": {
+    "company": "QuantumSoft",
+    "careers_url": "https://www.quantumsoft.pro/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "quicknode": {
+    "company": "QuickNode",
+    "careers_url": "https://boards.greenhouse.io/quiknodeinc",
+    "ats_type": "greenhouse",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "rapyd": {
+    "company": "Rapyd",
+    "careers_url": "https://www.rapyd.net/company/careers-search/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "rarible": {
+    "company": "Rarible",
+    "careers_url": "https://jobs.lever.co/Rarible",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "readymag": {
+    "company": "Readymag",
+    "careers_url": "https://readymag.com/readymag/we-are-hiring/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "realiste": {
+    "company": "Realiste",
+    "careers_url": "https://realiste.ai/eng/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "rebels.ai": {
+    "company": "Rebels.ai",
+    "careers_url": "https://rebels.ai/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "renderforest": {
+    "company": "Renderforest",
+    "careers_url": "https://www.renderforest.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "renova": {
+    "company": "Renova",
+    "careers_url": "https://renova.world/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "replika": {
+    "company": "Replika",
+    "careers_url": "https://www.ycombinator.com/companies/replika/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "retail rocket": {
+    "company": "Retail Rocket",
+    "careers_url": "https://retailrocket.pt/career/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "revealbot": {
+    "company": "Revealbot",
+    "careers_url": "https://revealbot.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "revolut": {
+    "company": "Revolut",
+    "careers_url": "https://www.revolut.com/en-US/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "right balance": {
+    "company": "Right Balance",
+    "careers_url": "https://rightbalance.io/join",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "roasup": {
+    "company": "RoasUp",
+    "careers_url": "https://roasup.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "salmon": {
+    "company": "Salmon",
+    "careers_url": "https://salmon.ph/job-board",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "sanas": {
+    "company": "Sanas",
+    "careers_url": "https://www.sanas.ai/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "saola": {
+    "company": "Saola",
+    "careers_url": "https://joinsaola.notion.site/joinsaola/Head-of-Development-for-ChrisAI-Integration-4df041fc4a984bbc8faed92f8e0d5a0a",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "scentbird": {
+    "company": "Scentbird",
+    "careers_url": "https://scentbird.breezy.hr/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "segmentstream": {
+    "company": "SegmentStream",
+    "careers_url": "https://segmentstream.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "semrush": {
+    "company": "Semrush",
+    "careers_url": "https://careers.semrush.com/en/jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "seneka": {
+    "company": "Seneka",
+    "careers_url": "https://www.seneka.life/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "sensorium": {
+    "company": "Sensorium",
+    "careers_url": "https://sensoriumxr.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "shapesxr": {
+    "company": "ShapesXR",
+    "careers_url": "https://www.shapesxr.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "sidestream": {
+    "company": "SIDESTREAM",
+    "careers_url": "https://join.com/companies/sidestream",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "sila nanotechnologies": {
+    "company": "Sila Nanotechnologies",
+    "careers_url": "https://www.silanano.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "skich": {
+    "company": "Skich",
+    "careers_url": "https://skich.notion.site/Careers-0957d6a578324c0fb17f72afd08b10f5",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "skipp": {
+    "company": "Skipp",
+    "careers_url": "https://www.skipp.dev/talent",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "slash": {
+    "company": "Slash",
+    "careers_url": "https://discoteam.notion.site/Slash-com-is-looking-for-talent-2f01d6fc05394fe68e15cbea00e5b902",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "sleepdoctor": {
+    "company": "SleepDoctor",
+    "careers_url": "https://sleepdoctor.fr/en/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "smartcat": {
+    "company": "Smartcat",
+    "careers_url": "https://www.smartcat.com/career/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "soax": {
+    "company": "SOAX",
+    "careers_url": "https://soax.com/career",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "social discovery group": {
+    "company": "Social Discovery Group",
+    "careers_url": "https://socialdiscoverygroup.com/vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "soft2bet": {
+    "company": "Soft2Bet",
+    "careers_url": "https://www.soft2bet.com/career",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "softgamings": {
+    "company": "SoftGamings",
+    "careers_url": "https://www.softgamings.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "softr": {
+    "company": "Softr",
+    "careers_url": "https://www.softr.io/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "soula": {
+    "company": "Soula",
+    "careers_url": "https://soula.care/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "space307": {
+    "company": "Space307",
+    "careers_url": "https://space307.team/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "sparklo": {
+    "company": "SPARKLO",
+    "careers_url": "https://www.sparklo.com/company#Vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "spatialchat": {
+    "company": "SpatialChat",
+    "careers_url": "https://www.spatial.chat/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "spiritme": {
+    "company": "SpiritMe",
+    "careers_url": "https://spiritme.tech/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "sprintty": {
+    "company": "Sprintty",
+    "careers_url": "https://sprintty.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "spryker": {
+    "company": "Spryker",
+    "careers_url": "https://spryker.com/career/open-positions",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "stakewise": {
+    "company": "StakeWise",
+    "careers_url": "https://wellfound.com/company/stakewise/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "sumsub": {
+    "company": "Sumsub",
+    "careers_url": "https://sumsub.com/careers/all/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "superannotate": {
+    "company": "SuperAnnotate",
+    "careers_url": "https://www.superannotate.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "superdao": {
+    "company": "Superdao",
+    "careers_url": "https://jobs.superdao.co/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "svmd": {
+    "company": "SVMD",
+    "careers_url": "https://svmd.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "symfa": {
+    "company": "Symfa",
+    "careers_url": "https://symfa.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "synder": {
+    "company": "Synder",
+    "careers_url": "https://synder.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "synthesized": {
+    "company": "Synthesized",
+    "careers_url": "https://www.synthesized.io/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "tabby": {
+    "company": "Tabby",
+    "careers_url": "https://tabby.ai/en-AE/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "talentway": {
+    "company": "TalentWay",
+    "careers_url": "https://talentway.io/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "telegram": {
+    "company": "Telegram",
+    "careers_url": "https://telegram.org/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "teleport": {
+    "company": "Teleport",
+    "careers_url": "https://goteleport.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "temporal": {
+    "company": "Temporal",
+    "careers_url": "https://jobs.lever.co/temporal/",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "tenyks": {
+    "company": "Tenyks",
+    "careers_url": "https://tenyks.notion.site/The-Tenyks-Challenge-Awaits-you-a19a2bbc169a453c840500b748ae91b8",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "termius": {
+    "company": "Termius",
+    "careers_url": "https://jobs.lever.co/Termius/",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "thesoul publishing": {
+    "company": "TheSoul Publishing",
+    "careers_url": "https://www.jointhesoul.com/jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "tinybuild games": {
+    "company": "tinyBuild GAMES",
+    "careers_url": "https://www.tinybuild.com/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "toldy": {
+    "company": "Toldy",
+    "careers_url": "https://www.toldy.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "toloka": {
+    "company": "Toloka",
+    "careers_url": "https://toloka.ai/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "tomi.ai": {
+    "company": "Tomi.ai",
+    "careers_url": "https://tomi.ai/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "tonik": {
+    "company": "Tonik",
+    "careers_url": "https://tonikbank.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "toughbyte": {
+    "company": "Toughbyte",
+    "careers_url": "https://www.toughbyte.com/clients/toughbyte-1",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "tradingview": {
+    "company": "TradingView",
+    "careers_url": "https://www.tradingview.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "tripleten (ex practicum)": {
+    "company": "TripleTen (ex Practicum)",
+    "careers_url": "https://www.comeet.com/jobs/practicum/98.008",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "tripsider (youtravel.me)": {
+    "company": "Tripsider (YouTravel.me)",
+    "careers_url": "https://ytme.atlassian.net/wiki/spaces/TM/overview",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "truv": {
+    "company": "Truv",
+    "careers_url": "https://jobs.lever.co/truv",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "uitrial": {
+    "company": "Uitrial",
+    "careers_url": "https://uitrial.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ultima.school": {
+    "company": "Ultima.School",
+    "careers_url": "https://ultima.school/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ultimate guitar (muse group)": {
+    "company": "Ultimate Guitar (Muse Group)",
+    "careers_url": "https://mu.se/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "universal hydrogen": {
+    "company": "Universal Hydrogen",
+    "careers_url": "https://hydrogen.aero/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "unlimint": {
+    "company": "Unlimint",
+    "careers_url": "https://www.unlimint.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "velvetech": {
+    "company": "Velvetech",
+    "careers_url": "https://www.velvetech.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "veryfi": {
+    "company": "Veryfi",
+    "careers_url": "https://www.ycombinator.com/companies/veryfi-inc/jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "virtuozzo": {
+    "company": "Virtuozzo",
+    "careers_url": "https://apply.workable.com/virtuozzo/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "vivid money": {
+    "company": "Vivid Money",
+    "careers_url": "https://careers.vivid.money/#vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "volka games": {
+    "company": "VOLKA GAMES",
+    "careers_url": "https://jobs.lever.co/volka",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "voximplant": {
+    "company": "Voximplant",
+    "careers_url": "https://www.voximplant.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "wallarm": {
+    "company": "Wallarm",
+    "careers_url": "https://wallarm.recruitee.com/our-open-positions",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "wargaming": {
+    "company": "Wargaming",
+    "careers_url": "https://wargaming.com/en/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "wayray": {
+    "company": "WayRay",
+    "careers_url": "https://wayray.com/culture/#jobs",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "webflow": {
+    "company": "Webflow",
+    "careers_url": "https://webflow.com/careers/roles",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "welltory": {
+    "company": "Welltory",
+    "careers_url": "https://welltory.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "welovenocode": {
+    "company": "WeLoveNoCode",
+    "careers_url": "https://welovenocode.notion.site/Open-Positions-in-Welovenocode-public-4aaf2271b6404be39a92893ccdc58b0d",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "wheely": {
+    "company": "Wheely",
+    "careers_url": "https://wheely.com/en/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "whizz": {
+    "company": "Whizz",
+    "careers_url": "https://getwhizz.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "windy app": {
+    "company": "WINDY APP",
+    "careers_url": "https://windy.app/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "wintermute": {
+    "company": "Wintermute",
+    "careers_url": "https://jobs.lever.co/wintermute-trading",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "wizart": {
+    "company": "Wizart",
+    "careers_url": "https://wizart.ai/careers#positions",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "workclass": {
+    "company": "Workclass",
+    "careers_url": "https://workclass.co/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "wrike": {
+    "company": "Wrike",
+    "careers_url": "https://www.wrike.com/jobs/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "xpanceo": {
+    "company": "XPANCEO",
+    "careers_url": "https://www.xpanceo.com/t",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "xsolla": {
+    "company": "Xsolla",
+    "careers_url": "https://xsolla.com/careers/vacancies",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "xtx markets": {
+    "company": "XTX Markets",
+    "careers_url": "https://www.xtxmarkets.com/#careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "yallahub": {
+    "company": "YallaHub",
+    "careers_url": "https://yallahub.ae/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "yoffix": {
+    "company": "Yoffix",
+    "careers_url": "https://yoffix.com/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "yukon group": {
+    "company": "Yukon Group",
+    "careers_url": "https://yukongroup.eu/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zededa": {
+    "company": "Zededa",
+    "careers_url": "https://zededa.com/company/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zenpulsar": {
+    "company": "ZenPulsar",
+    "careers_url": "https://zenpulsar.com/#Careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zeptolab": {
+    "company": "ZeptoLab",
+    "careers_url": "https://careers.zeptolab.com/join-us/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zerion": {
+    "company": "Zerion",
+    "careers_url": "https://jobs.lever.co/zerion",
+    "ats_type": "lever",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zero": {
+    "company": "Zero",
+    "careers_url": "https://zerosystems.com/about/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zero10": {
+    "company": "ZERO10",
+    "careers_url": "https://zero10.notion.site/ZERO10-JOBS-01b95b15ea114748a4e40fe87b767cb2",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zeroavia": {
+    "company": "ZeroAvia",
+    "careers_url": "https://apply.workable.com/zeroavia/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zesty": {
+    "company": "Zesty",
+    "careers_url": "https://zesty.co/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zimad": {
+    "company": "ZiMAD",
+    "careers_url": "https://zimad.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "zion development": {
+    "company": "ZION Development",
+    "careers_url": "https://devzion.com/careers/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "àlber blanc capital": {
+    "company": "Àlber Blanc CAPITAL",
+    "careers_url": "https://alberblanc.com/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ооо бридж тревел": {
+    "company": "ООО Бридж Тревел",
+    "careers_url": "https://www.jobcareer.ru/companies/bridz-trevel/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-05-27",
+    "last_found_roles": true,
+    "ignored": false
+  },
+  "ооо партдизайн": {
+    "company": "ООО ПартДизайн",
+    "careers_url": "https://spb.it-vacancies.ru/companies/345976/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-05-27",
+    "last_found_roles": true,
+    "ignored": false
+  },
+  "ооо сбк парус": {
+    "company": "ООО СБК Парус",
+    "careers_url": "https://dreamjob.ru/employers/6225686/vakansii",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-05-27",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ооо софтмолл": {
+    "company": "ООО СофтМолл",
+    "careers_url": "https://dreamjob.ru/employers/133227",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-05-27",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "ретннет": {
+    "company": "РетнНет",
+    "careers_url": "https://dreamjob.ru/employers/43931",
     "ats_type": "direct",
     "scraper_name": null,
     "last_checked": "2026-05-27",
@@ -83,6 +3647,33 @@
   "российское общество знание": {
     "company": "Российское общество Знание",
     "careers_url": "https://dreamjob.ru/employers/198144",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-05-27",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "сonundrum": {
+    "company": "Сonundrum",
+    "careers_url": "https://conundrum.ai/careers",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-06-03",
+    "last_found_roles": false,
+    "ignored": false
+  },
+  "смс – информационные технологии": {
+    "company": "СМС – информационные технологии",
+    "careers_url": "https://sms-it.ru/career/internship/",
+    "ats_type": "direct",
+    "scraper_name": null,
+    "last_checked": "2026-05-27",
+    "last_found_roles": true,
+    "ignored": false
+  },
+  "фгану нии спецвузавтоматика": {
+    "company": "ФГАНУ НИИ Спецвузавтоматика",
+    "careers_url": "https://dreamjob.ru/employers/121279/vakansii",
     "ats_type": "direct",
     "scraper_name": null,
     "last_checked": "2026-05-27",

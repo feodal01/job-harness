@@ -11,6 +11,9 @@ from job_harness.browser import configure_playwright_tmpdir
 
 
 class BrowserConfigTest(unittest.TestCase):
+    def test_rebrowser_runtime_fix_mode_disables_noisy_runtime_patch_by_default(self) -> None:
+        self.assertEqual("0", os.environ["REBROWSER_PATCHES_RUNTIME_FIX_MODE"])
+
     def test_configure_playwright_tmpdir_sets_all_temp_environment_names(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "job-harness" / "tmp"

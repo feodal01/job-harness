@@ -6,5 +6,6 @@ dist/
 debug_*.png
 .DS_Store
 searches/
+.job-harness/
 data/company-careers.json
 plugins/job-harness/data/company-careers.json
