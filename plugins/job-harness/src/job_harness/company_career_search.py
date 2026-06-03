@@ -473,6 +473,10 @@ def _find_matching_lever_jobs(
     query_terms: list[str],
     lever_account: str,
 ) -> list[CompanyVacancyHit]:
+    careers_url = company.careers_url
+    if careers_url is None:
+        raise ValueError("Lever company careers_url is required")
+
     postings = fetch_json(f"https://api.lever.co/v0/postings/{lever_account}?mode=json")
     if not isinstance(postings, list):
         raise ValueError("Lever postings API returned non-list payload")
@@ -498,7 +502,7 @@ def _find_matching_lever_jobs(
                 company=company.name,
                 title=display_title[:200],
                 vacancy_url=hosted_url,
-                careers_url=company.careers_url,
+                careers_url=careers_url,
                 matched_text=f"{title} {category_text}".strip()[:500],
                 score=score,
                 countries=list(company.countries),
@@ -514,6 +518,10 @@ def _find_matching_ashby_jobs(
     query_terms: list[str],
     ashby_board: str,
 ) -> list[CompanyVacancyHit]:
+    careers_url = company.careers_url
+    if careers_url is None:
+        raise ValueError("Ashby company careers_url is required")
+
     payload = fetch_json(f"https://api.ashbyhq.com/posting-api/job-board/{ashby_board}")
     postings = payload.get("jobs") if isinstance(payload, dict) else None
     if not isinstance(postings, list):
@@ -542,7 +550,7 @@ def _find_matching_ashby_jobs(
                 company=company.name,
                 title=display_title[:200],
                 vacancy_url=hosted_url,
-                careers_url=company.careers_url,
+                careers_url=careers_url,
                 matched_text=f"{title} {location} {metadata}".strip()[:500],
                 score=score,
                 countries=list(company.countries),

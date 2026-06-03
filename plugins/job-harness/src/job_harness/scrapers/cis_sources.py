@@ -271,7 +271,6 @@ class StaffAmScraper(BaseScraper):
             listing = self._listing_from_job(job)
             if listing:
                 listings.append(listing)
-        query = params.query.casefold()
         filtered = [
             listing for listing in listings
             if _listing_matches_query(listing, params.query)
@@ -519,7 +518,6 @@ class ItJobsUzScraper(BaseScraper):
             listing for listing in (self._listing_from_item(item) for item in data.get("data", []))
             if listing is not None
         ]
-        query = params.query.casefold()
         filtered = [listing for listing in listings if _listing_matches_query(listing, params.query)]
         return filtered[: self.max_results]
 
@@ -636,7 +634,7 @@ class JobTurboScraper(BaseScraper):
             html,
             re.S,
         )
-        item_lists = []
+        item_lists: list[dict] = []
         for payload in payloads:
             data = json.loads(payload)
             entries = data if isinstance(data, list) else [data]
@@ -670,7 +668,7 @@ class GetmatchScraper(BaseScraper):
     detail_requires_browser = False
 
     def search(self, params: SearchParams) -> list[JobListing]:
-        slugs = self._matching_specialization_slugs(params.query)
+        slugs: list[str | None] = list(self._matching_specialization_slugs(params.query))
         if not slugs:
             slugs = [None]
 

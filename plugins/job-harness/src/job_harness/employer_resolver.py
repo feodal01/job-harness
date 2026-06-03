@@ -177,8 +177,8 @@ def find_matching_vacancy_on_page(page, query: str, company: str) -> str | None:
 def _try_career_scraper(scraper_name: str, context, query: str) -> list[dict] | None:
     """Try to use a registered career scraper. Returns list of vacancy dicts or None."""
     try:
-        from job_harness.scrapers.career.base import get_career_scraper
         from job_harness.models import SearchParams
+        from job_harness.scrapers.career.base import get_career_scraper
     except ImportError:
         return None
 
@@ -189,7 +189,7 @@ def _try_career_scraper(scraper_name: str, context, query: str) -> list[dict] | 
     try:
         params = SearchParams(query=query, max_results=10)
         listings = scraper.search(params)
-        return [l.to_dict() for l in listings]
+        return [listing.to_dict() for listing in listings]
     except Exception:
         return None
 

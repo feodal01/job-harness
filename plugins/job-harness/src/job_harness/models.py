@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Callable
 
 
 @dataclass
@@ -76,6 +76,6 @@ class SearchResults:
             },
             "timestamp": self.timestamp,
             "total": len(self.listings),
-            "listings": [l.to_dict() for l in self.listings],
+            "listings": [listing.to_dict() for listing in self.listings],
             "errors": self.errors,
         }

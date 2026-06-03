@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable, Sequence
 
 from job_harness.models import JobListing
 
 
 def apply_filters(
     listings: list[JobListing],
-    filters: list[Callable[[JobListing], bool]],
+    filters: Sequence[Callable[[JobListing], bool]],
 ) -> list[JobListing]:
     """Apply a chain of predicate filters. All must pass."""
-    return [l for l in listings if all(f(l) for f in filters)]
+    return [listing for listing in listings if all(filter_func(listing) for filter_func in filters)]
 
 
 # --- Pre-built filter factories ---

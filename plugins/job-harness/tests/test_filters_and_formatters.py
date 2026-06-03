@@ -4,14 +4,15 @@ import csv
 import io
 import json
 import unittest
+from typing import Any
 
 from job_harness.filters import apply_filters, has_salary, min_experience, no_keywords, remote_only
 from job_harness.formatters import CsvFormatter, JsonFormatter, MarkdownFormatter
 from job_harness.models import JobListing, SearchParams, SearchResults
 
 
-def _listing(**overrides) -> JobListing:
-    data = {
+def _listing(**overrides: Any) -> JobListing:
+    data: dict[str, Any] = {
         "title": "QA Engineer",
         "url": "https://example.test/jobs/1",
         "company": "Example",

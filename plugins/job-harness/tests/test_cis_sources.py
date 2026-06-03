@@ -16,7 +16,6 @@ from job_harness.scrapers.cis_sources import (
     TalentoScraper,
 )
 
-
 HIREHI_HTML = """
 <html><body>
   <a href="/qa/automation-qa-48400">

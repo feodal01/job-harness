@@ -5,19 +5,19 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 
+# Ensure scrapers are imported so @register_scraper decorators fire
+import job_harness.scrapers  # noqa: F401
+import job_harness.scrapers.career  # noqa: F401
 from job_harness.browser import configure_playwright_tmpdir, create_browser
 from job_harness.company_directory import search_company_directory
 from job_harness.countries import format_country_codes, normalize_country_code
 from job_harness.employer_cache import EmployerCache
 from job_harness.filters import apply_filters, has_salary, location_in, min_experience, no_keywords, remote_only
 from job_harness.formatters import get_formatter
-from job_harness.models import SearchParams
+from job_harness.models import JobListing, SearchParams
 from job_harness.registry import create_scraper, get_scraper_class, get_scraper_metadata, list_scrapers
-
-# Ensure scrapers are imported so @register_scraper decorators fire
-import job_harness.scrapers  # noqa: F401
-import job_harness.scrapers.career  # noqa: F401
 
 
 def cmd_search(args: argparse.Namespace) -> None:
@@ -56,7 +56,7 @@ def cmd_search(args: argparse.Namespace) -> None:
                 sys.exit(1)
 
     # Build filters
-    filters = []
+    filters: list[Callable[[JobListing], bool]] = []
     if params.remote_only:
         filters.append(remote_only)
     if args.has_salary:
@@ -136,12 +136,12 @@ def cmd_search(args: argparse.Namespace) -> None:
                 print(f"Using employer cache ({len(cache.all_entries())} entries)", file=sys.stderr)
             print("Resolving employer career pages...", file=sys.stderr)
             enriched = resolve_listings(
-                [l.to_dict() for l in all_listings],
+                [listing.to_dict() for listing in all_listings],
                 ensure_context(),
                 query=params.query,
                 cache=cache,
             )
-            for listing, enrich in zip(all_listings, enriched):
+            for listing, enrich in zip(all_listings, enriched, strict=False):
                 if enrich.careers_page:
                     cp = enrich.careers_page
                     listing.raw["careers_url"] = cp.careers_url
@@ -384,7 +384,7 @@ def cmd_resolve(args: argparse.Namespace) -> None:
     # Output results
     results = []
     for e in enriched:
-        entry = {
+        entry: dict[str, str | None] = {
             "company": e.company,
             "title": e.title,
             "aggregator_url": e.original_url,
