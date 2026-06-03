@@ -8,6 +8,19 @@ from dataclasses import dataclass
 from pathlib import Path
 
 COMPANY_DIRECTORY_PATH = Path("data/company-directory.json")
+JOB_TYPE_ALIASES = {
+    "backend": {"developers", "backend", "software engineering"},
+    "developer": {"developers", "developer", "software engineering"},
+    "developers": {"developers", "developer", "software engineering"},
+    "software engineering": {"developers", "developer", "software engineering"},
+    "frontend": {"developers", "frontend", "software engineering"},
+    "fullstack": {"developers", "fullstack", "software engineering"},
+    "mobile": {"developers", "mobile", "software engineering"},
+    "machine learning engineer": {"developers", "data scientists", "machine learning engineer"},
+    "ml engineer": {"developers", "data scientists", "machine learning engineer"},
+    "data scientist": {"data scientists", "data scientist"},
+    "data scientists": {"data scientists", "data scientist"},
+}
 
 
 @dataclass(frozen=True)
@@ -113,13 +126,13 @@ def filter_company_directory(
     """Return directory companies matching structured filters only."""
     profiles = []
     for profile in load_company_directory(path):
-        if remote_only and not profile.remote:
+        if remote_only and profile.remote is False and _has_explicit_office_only_signal(profile):
             continue
         if country and not _contains(profile.countries, country):
             continue
         if stack and not _contains(profile.stack, stack):
             continue
-        if job_type and not _contains(profile.job_types, job_type):
+        if job_type and not _matches_job_type(profile.job_types, job_type):
             continue
         if industry and not _text_contains(profile.industry, industry):
             continue
@@ -186,6 +199,17 @@ def _terms(text: str) -> list[str]:
 def _contains(values: tuple[str, ...], needle: str) -> bool:
     normalized = needle.casefold().strip()
     return any(normalized in value.casefold() for value in values)
+
+
+def _matches_job_type(values: tuple[str, ...], needle: str) -> bool:
+    normalized = needle.casefold().strip()
+    aliases = JOB_TYPE_ALIASES.get(normalized, {normalized})
+    return any(alias in value.casefold() for alias in aliases for value in values)
+
+
+def _has_explicit_office_only_signal(profile: CompanyProfile) -> bool:
+    text = " ".join([profile.description or "", *profile.job_types, *profile.countries]).casefold()
+    return "office only" in text or "только офис" in text
 
 
 def _text_contains(value: str | None, needle: str) -> bool:

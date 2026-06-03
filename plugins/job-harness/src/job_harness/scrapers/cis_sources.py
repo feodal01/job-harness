@@ -119,7 +119,11 @@ class _HtmlAnchorScraper(BaseScraper):
     verify_ssl = True
 
     def search(self, params: SearchParams) -> list[JobListing]:
-        html = fetch_text(self._build_search_url(params), verify_ssl=self.verify_ssl)
+        html = fetch_text(
+            self._build_search_url(params),
+            verify_ssl=self.verify_ssl,
+            timeout_seconds=self.fetch_timeout_seconds,
+        )
         listings = self._parse_search_results(html, params)
         return [listing for listing in listings if _listing_matches_query(listing, params.query)][: self.max_results]
 
@@ -203,7 +207,7 @@ class HirifyScraper(BaseScraper):
     detail_requires_browser = False
 
     def search(self, params: SearchParams) -> list[JobListing]:
-        data = fetch_json(self._build_search_url(params))
+        data = fetch_json(self._build_search_url(params), timeout_seconds=self.fetch_timeout_seconds)
         listings = [self._listing_from_item(item, params) for item in data.get("data", [])]
         return [listing for listing in listings if listing is not None][: self.max_results]
 
@@ -220,12 +224,13 @@ class HirifyScraper(BaseScraper):
             return None
 
         salary = self._format_salary(item)
-        company = str(item.get("company_title") or "").strip()
-        if company == "%hirify_global%":
-            company = ""
+        company = self._company_from_item(item)
 
         country = _country_from_text(str(item.get("country") or item.get("location") or ""))
         work_format = " ".join(item.get("work_format") or [])
+        raw = {"id": item.get("id")}
+        if not company:
+            raw["company_missing"] = True
 
         return JobListing(
             title=title,
@@ -238,8 +243,31 @@ class HirifyScraper(BaseScraper):
             location=item.get("location"),
             posted_date=item.get("published_at") or item.get("updated_at"),
             source=self.name,
-            raw={"id": item.get("id")},
+            raw=raw,
         )
+
+    def _company_from_item(self, item: dict) -> str:
+        candidates: list[object] = [
+            item.get("company_title"),
+            item.get("companyName"),
+            item.get("company_name"),
+            item.get("employer_title"),
+            item.get("employer_name"),
+        ]
+        for key in ("company", "employer", "organization", "recruiter"):
+            nested = item.get(key)
+            if isinstance(nested, dict):
+                candidates.extend([
+                    nested.get("title"),
+                    nested.get("name"),
+                    nested.get("company_title"),
+                    nested.get("display_name"),
+                ])
+        for candidate in candidates:
+            company = normalize_text(str(candidate or ""))
+            if company and company != "%hirify_global%":
+                return company
+        return ""
 
     def _format_salary(self, item: dict) -> str | None:
         salary_from = item.get("salary_from")
@@ -263,7 +291,7 @@ class StaffAmScraper(BaseScraper):
     detail_requires_browser = False
 
     def search(self, params: SearchParams) -> list[JobListing]:
-        html = fetch_text(self._build_search_url(params))
+        html = fetch_text(self._build_search_url(params), timeout_seconds=self.fetch_timeout_seconds)
         data = extract_next_data(html)
         jobs = data["props"]["pageProps"].get("jobs", [])
         listings = []
@@ -345,7 +373,11 @@ class GeekJobScraper(_HtmlAnchorScraper):
     verify_ssl = False
 
     def search(self, params: SearchParams) -> list[JobListing]:
-        html = fetch_text(f"{self.base_url}{self.search_path}", verify_ssl=self.verify_ssl)
+        html = fetch_text(
+            f"{self.base_url}{self.search_path}",
+            verify_ssl=self.verify_ssl,
+            timeout_seconds=self.fetch_timeout_seconds,
+        )
         listings = self._parse_search_results(html, params)
         filtered = [listing for listing in listings if _listing_matches_query(listing, params.query)]
         return filtered[: self.max_results]
@@ -443,7 +475,10 @@ class FinderWorkScraper(BaseScraper):
     detail_requires_browser = False
 
     def search(self, params: SearchParams) -> list[JobListing]:
-        data = fetch_json(f"{self.API_URL}?{urlencode({'search': params.query})}")
+        data = fetch_json(
+            f"{self.API_URL}?{urlencode({'search': params.query})}",
+            timeout_seconds=self.fetch_timeout_seconds,
+        )
         listings = [self._listing_from_item(item) for item in data.get("items", [])]
         return [listing for listing in listings if listing is not None][: self.max_results]
 
@@ -513,7 +548,7 @@ class ItJobsUzScraper(BaseScraper):
     detail_requires_browser = False
 
     def search(self, params: SearchParams) -> list[JobListing]:
-        data = fetch_json(self._build_search_url(params))
+        data = fetch_json(self._build_search_url(params), timeout_seconds=self.fetch_timeout_seconds)
         listings = [
             listing for listing in (self._listing_from_item(item) for item in data.get("data", []))
             if listing is not None
@@ -611,7 +646,7 @@ class JobTurboScraper(BaseScraper):
     detail_requires_browser = False
 
     def search(self, params: SearchParams) -> list[JobListing]:
-        html = fetch_text(self.SEARCH_URL)
+        html = fetch_text(self.SEARCH_URL, timeout_seconds=self.fetch_timeout_seconds)
         listings = self._parse_search_results(html, params)
         filtered = [listing for listing in listings if _listing_matches_query(listing, params.query)]
         return filtered[: self.max_results]
@@ -675,7 +710,7 @@ class GetmatchScraper(BaseScraper):
         listings = []
         seen: set[str] = set()
         for slug in slugs:
-            data = fetch_json(self._build_offers_url(params, slug))
+            data = fetch_json(self._build_offers_url(params, slug), timeout_seconds=self.fetch_timeout_seconds)
             for item in data.get("offers", []):
                 listing = self._listing_from_offer(item)
                 if listing and listing.url not in seen:
@@ -693,7 +728,7 @@ class GetmatchScraper(BaseScraper):
         if not query_tokens:
             return []
 
-        data = fetch_json(self.SPECIALIZATIONS_URL)
+        data = fetch_json(self.SPECIALIZATIONS_URL, timeout_seconds=self.fetch_timeout_seconds)
         slugs = []
         for item in data:
             category = item.get("category") or {}

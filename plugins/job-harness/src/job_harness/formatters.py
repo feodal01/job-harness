@@ -38,6 +38,22 @@ class MarkdownFormatter(BaseFormatter):
         lines.append("---")
         lines.append("")
 
+        source_statuses = results.summary.get("source_statuses", []) if results.summary else []
+        if source_statuses:
+            lines.append("## Source Status")
+            lines.append("")
+            lines.append("| Source | Status | Raw | After filters | After dedupe | Duration |")
+            lines.append("|---|---|---:|---:|---:|---:|")
+            for status in source_statuses:
+                lines.append(
+                    f"| {status['source']} | {status['status']} | {status['raw_count']} | "
+                    f"{status['after_filter_count']} | {status['after_dedupe_count']} | "
+                    f"{status['duration_ms']} ms |"
+                )
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+
         for i, listing in enumerate(results.listings, 1):
             lines.append(f"### {i}. {listing.title}")
             lines.append("")

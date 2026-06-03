@@ -156,7 +156,7 @@ GETMATCH_BACKEND_OFFERS = {
 }
 
 
-def fake_fetch_text(url: str, *, verify_ssl: bool = True) -> str:
+def fake_fetch_text(url: str, *, verify_ssl: bool = True, timeout_seconds=None) -> str:
     if "hirehi.ru" in url:
         return HIREHI_BACKEND_HTML
     if "staff.am" in url:
@@ -170,7 +170,7 @@ def fake_fetch_text(url: str, *, verify_ssl: bool = True) -> str:
     raise AssertionError(f"Unexpected text fetch: {url}")
 
 
-def fake_fetch_json(url: str) -> object:
+def fake_fetch_json(url: str, *, timeout_seconds=None) -> object:
     if "api.hirify.me" in url:
         return HIRIFY_BACKEND_JSON
     if "api.finder.work" in url:

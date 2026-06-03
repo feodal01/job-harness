@@ -63,6 +63,7 @@ class SearchResults:
     listings: list[JobListing]
     timestamp: str = field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M"))
     errors: list[str] = field(default_factory=list)
+    summary: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -78,4 +79,5 @@ class SearchResults:
             "total": len(self.listings),
             "listings": [listing.to_dict() for listing in self.listings],
             "errors": self.errors,
+            "summary": self.summary,
         }

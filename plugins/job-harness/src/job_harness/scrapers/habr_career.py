@@ -213,7 +213,8 @@ class HabrCareerScraper(BaseScraper):
         for _ in range(_FETCH_ATTEMPTS):
             try:
                 request = Request(url, headers={"User-Agent": _USER_AGENT})
-                with urlopen(request, timeout=_FETCH_TIMEOUT_SECONDS) as response:
+                timeout_seconds = self.fetch_timeout_seconds or _FETCH_TIMEOUT_SECONDS
+                with urlopen(request, timeout=timeout_seconds) as response:
                     return response.read().decode("utf-8", errors="replace")
             except (OSError, TimeoutError, URLError) as e:
                 last_error = e

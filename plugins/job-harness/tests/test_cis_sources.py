@@ -223,6 +223,34 @@ class CisSourcesTest(unittest.TestCase):
         self.assertTrue(listings[0].remote)
         self.assertEqual("senior", listings[0].experience)
 
+    def test_hirify_reads_nested_company_and_marks_missing_company(self) -> None:
+        scraper = HirifyScraper(context=None, max_results=5)
+        payload = {
+            "data": [
+                {
+                    "id": 1,
+                    "slug": "qa-nested-company",
+                    "title": "QA Engineer",
+                    "company_title": "%hirify_global%",
+                    "company": {"name": "Nested Co"},
+                },
+                {
+                    "id": 2,
+                    "slug": "qa-missing-company",
+                    "title": "QA Lead",
+                    "company_title": "%hirify_global%",
+                },
+            ]
+        }
+
+        with patch("job_harness.scrapers.cis_sources.fetch_json", return_value=payload):
+            listings = scraper.search(SearchParams(query="QA", country="AM"))
+
+        self.assertEqual("Nested Co", listings[0].company)
+        self.assertFalse(listings[0].raw.get("company_missing", False))
+        self.assertEqual("", listings[1].company)
+        self.assertTrue(listings[1].raw["company_missing"])
+
     def test_staff_am_extracts_next_data_jobs_and_filters_by_query(self) -> None:
         scraper = StaffAmScraper(context=None, max_results=5)
 
@@ -319,7 +347,7 @@ class CisSourcesTest(unittest.TestCase):
     def test_getmatch_uses_matching_specialization_and_maps_offer(self) -> None:
         scraper = GetmatchScraper(context=None, max_results=5)
 
-        def fake_fetch_json(url: str):
+        def fake_fetch_json(url: str, *, timeout_seconds=None):
             if url == scraper.SPECIALIZATIONS_URL:
                 return GETMATCH_SPECIALIZATIONS
             self.assertIn("sp=qa_auto", url)

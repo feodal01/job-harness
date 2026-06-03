@@ -5,19 +5,18 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections.abc import Callable
+from pathlib import Path
 
 # Ensure scrapers are imported so @register_scraper decorators fire
 import job_harness.scrapers  # noqa: F401
 import job_harness.scrapers.career  # noqa: F401
 from job_harness.browser import configure_playwright_tmpdir, create_browser
 from job_harness.company_directory import search_company_directory
-from job_harness.countries import format_country_codes, normalize_country_code
+from job_harness.countries import format_country_codes
 from job_harness.employer_cache import EmployerCache
-from job_harness.filters import apply_filters, has_salary, location_in, min_experience, no_keywords, remote_only
 from job_harness.formatters import get_formatter
-from job_harness.models import JobListing, SearchParams
-from job_harness.registry import create_scraper, get_scraper_class, get_scraper_metadata, list_scrapers
+from job_harness.registry import get_scraper_metadata
+from job_harness.search_runner import DEFAULT_SOURCE_TIMEOUT_MS, execute_search
 
 
 def cmd_search(args: argparse.Namespace) -> None:
@@ -25,58 +24,6 @@ def cmd_search(args: argparse.Namespace) -> None:
         print("Error: --query is required", file=sys.stderr)
         sys.exit(1)
 
-    try:
-        country = normalize_country_code(args.country)
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-
-    params = SearchParams(
-        query=args.query,
-        country=country,
-        remote_only=args.remote_only,
-        experience=args.experience,
-        location=args.location,
-        max_results=args.max_results,
-    )
-
-    # Determine sources
-    if args.sources == "all" or args.sources is None:
-        sources = list_scrapers(country=country)
-    else:
-        sources = [s.strip() for s in args.sources.split(",")]
-        for source_name in sources:
-            scraper_class = get_scraper_class(source_name)
-            if not scraper_class.supports_country(country):
-                print(
-                    f"Error: {source_name} does not support country {country}. "
-                    f"Supported countries: {format_country_codes(scraper_class.countries)}",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-
-    # Build filters
-    filters: list[Callable[[JobListing], bool]] = []
-    if params.remote_only:
-        filters.append(remote_only)
-    if args.has_salary:
-        filters.append(has_salary)
-    if args.exclude_companies:
-        from job_harness.filters import _exclude_companies
-        filters.append(_exclude_companies(args.exclude_companies.split(",")))
-    if params.experience:
-        filters.append(min_experience(params.experience))
-
-    if args.exclude_keywords:
-        keywords = [k.strip() for k in args.exclude_keywords.split(",")]
-        ignore_words = [w.strip() for w in args.exclude_keywords_context.split(",")] if args.exclude_keywords_context else None
-        filters.append(no_keywords(*keywords, ignore_context=ignore_words))
-
-    if args.location:
-        filters.append(location_in(args.location))
-
-    all_listings = []
-    errors = []
     pw = None
     browser = None
     context = None
@@ -92,75 +39,39 @@ def cmd_search(args: argparse.Namespace) -> None:
         return context
 
     try:
-        for source_name in sources:
-            try:
-                scraper_class = get_scraper_class(source_name)
-                needs_browser = scraper_class.requires_browser or (
-                    args.detail and scraper_class.detail_requires_browser
-                )
-                scraper_context = ensure_context() if needs_browser else None
-                scraper = create_scraper(source_name, scraper_context, max_results=params.max_results, debug=args.debug)
-                print(f"Searching {scraper.display_name}...", file=sys.stderr)
-                listings = scraper.search(params)
-                print(f"  Found {len(listings)} listings", file=sys.stderr)
-
-                if args.detail and listings:
-                    print(f"  Fetching details for {len(listings)} listings...", file=sys.stderr)
-                    detailed = []
-                    for listing in listings:
-                        try:
-                            detailed.append(scraper.fetch_detail(listing))
-                        except Exception as e:
-                            errors.append(f"{source_name}: detail error for {listing.url}: {e}")
-                            detailed.append(listing)
-                    listings = detailed
-
-                all_listings.extend(listings)
-            except Exception as e:
-                errors.append(f"{source_name}: {e}")
-                print(f"  Error: {e}", file=sys.stderr)
-
-        # Apply filters
-        if filters:
-            before = len(all_listings)
-            all_listings = apply_filters(all_listings, filters)
-            print(f"Filters removed {before - len(all_listings)} listings, {len(all_listings)} remaining", file=sys.stderr)
-
-        all_listings = all_listings[:params.max_results]
-
-        # Resolve employer career pages if requested
-        if args.resolve and all_listings:
-            from job_harness.employer_resolver import resolve_listings
-            cache = EmployerCache() if args.cache else None
-            if cache:
-                print(f"Using employer cache ({len(cache.all_entries())} entries)", file=sys.stderr)
-            print("Resolving employer career pages...", file=sys.stderr)
-            enriched = resolve_listings(
-                [listing.to_dict() for listing in all_listings],
-                ensure_context(),
-                query=params.query,
-                cache=cache,
-            )
-            for listing, enrich in zip(all_listings, enriched, strict=False):
-                if enrich.careers_page:
-                    cp = enrich.careers_page
-                    listing.raw["careers_url"] = cp.careers_url
-                    listing.raw["careers_type"] = cp.page_type
-                    listing.raw["direct_vacancy_url"] = cp.direct_vacancy_url
-                    if cp.direct_vacancy_url:
-                        listing.url = cp.direct_vacancy_url
-                        listing.source = f"{listing.source}+direct"
-                    elif cp.careers_url:
-                        listing.raw["employer_careers"] = cp.careers_url
+        results = execute_search(
+            query=args.query,
+            ensure_context=ensure_context,
+            cache_factory=lambda: EmployerCache(),
+            sources=args.sources,
+            profile=args.profile,
+            country=args.country,
+            remote_only=args.remote_only,
+            experience=args.experience,
+            location=args.location,
+            max_results=args.max_results,
+            detail=args.detail,
+            resolve=args.resolve,
+            cache=args.cache,
+            exclude_keywords=args.exclude_keywords,
+            exclude_keywords_context=args.exclude_keywords_context,
+            exclude_companies=args.exclude_companies,
+            has_salary=args.has_salary,
+            skip_slow=args.skip_slow,
+            source_timeout_ms=args.source_timeout_ms,
+            raw_jsonl=args.raw_jsonl,
+            dedupe=args.dedupe,
+            debug=args.debug,
+            progress=lambda message: print(message, file=sys.stderr),
+        )
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     finally:
         if browser:
             browser.close()
         if pw:
             pw.stop()
-
-    from job_harness.models import SearchResults
-
-    results = SearchResults(params=params, listings=all_listings, errors=errors)
 
     # Format output
     formatter = get_formatter(args.format)
@@ -350,6 +261,145 @@ def cmd_company_live_batch(args: argparse.Namespace) -> None:
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 
+def cmd_wide_search(args: argparse.Namespace) -> None:
+    from job_harness.models import JobListing, SearchParams, SearchResults
+    from job_harness.search_runner import dedupe_listings
+
+    queries = list(args.query or [])
+    if args.queries_file:
+        queries.extend(
+            line.strip()
+            for line in Path(args.queries_file).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        )
+    if not queries:
+        print("Error: provide --query or --queries-file", file=sys.stderr)
+        sys.exit(1)
+
+    countries = [country.strip() or None for country in (args.countries or "").split(",")] if args.countries else [None]
+    output_dir = Path(args.output_dir)
+    raw_dir = output_dir / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+
+    pw = None
+    browser = None
+    context = None
+
+    def ensure_context():
+        nonlocal pw, browser, context
+        if context is None:
+            configure_playwright_tmpdir()
+            from rebrowser_playwright.sync_api import sync_playwright
+
+            pw = sync_playwright().start()
+            browser, context = create_browser(pw, headless=args.headless)
+        return context
+
+    runs = []
+    listings: list[JobListing] = []
+    try:
+        for query in queries:
+            for country in countries:
+                for profile in ("fast", "full"):
+                    raw_path = raw_dir / f"{_slug(query)}_{country or 'all'}_{profile}.jsonl"
+                    result = execute_search(
+                        query=query,
+                        ensure_context=ensure_context,
+                        cache_factory=lambda: EmployerCache(),
+                        sources="all",
+                        profile=profile,
+                        country=country,
+                        remote_only=args.remote_only,
+                        experience=args.experience,
+                        max_results=args.max_results,
+                        source_timeout_ms=args.source_timeout_ms,
+                        raw_jsonl=raw_path,
+                        dedupe=True,
+                        progress=lambda message: print(message, file=sys.stderr),
+                    )
+                    listings.extend(result.listings)
+                    runs.append({
+                        "query": query,
+                        "country": country,
+                        "profile": profile,
+                        "total": len(result.listings),
+                        "summary": result.summary,
+                    })
+                if args.company_live:
+                    listings.extend(_run_wide_company_live(args, query, country, raw_dir, runs))
+    finally:
+        if browser:
+            browser.close()
+        if pw:
+            pw.stop()
+
+    merged = dedupe_listings(listings)[:args.max_results]
+    result = SearchResults(
+        params=SearchParams(query="; ".join(queries), country=args.countries, remote_only=args.remote_only, experience=args.experience, max_results=args.max_results),
+        listings=merged,
+        summary={
+            "runs": runs,
+            "dedupe": {
+                "enabled": True,
+                "before": len(listings),
+                "after": len(merged),
+                "removed": len(listings) - len(merged),
+            },
+        },
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "results.json").write_text(json.dumps(result.to_dict(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (output_dir / "summary.json").write_text(json.dumps(result.summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (output_dir / "report.md").write_text(get_formatter("markdown").format(result), encoding="utf-8")
+    print(json.dumps({"output_dir": str(output_dir), "total": len(merged), "runs": len(runs)}, ensure_ascii=False, indent=2))
+
+
+def _run_wide_company_live(args: argparse.Namespace, query: str, country: str | None, raw_dir: Path, runs: list[dict]) -> list:
+    import asyncio
+
+    from job_harness.company_career_batch import run_company_career_batch
+    from job_harness.models import JobListing
+
+    jsonl_path = raw_dir / f"{_slug(query)}_{country or 'all'}_company-live.jsonl"
+    summary_path = raw_dir / f"{_slug(query)}_{country or 'all'}_company-live-summary.json"
+    summary = asyncio.run(
+        run_company_career_batch(
+            query=query,
+            output_jsonl=jsonl_path,
+            summary_json=summary_path,
+            country=country,
+            remote_only=args.remote_only,
+            max_companies=args.company_max_companies,
+            timeout_ms=args.company_timeout_ms,
+            headless=args.headless,
+            progress=args.progress,
+        )
+    )
+    runs.append({"query": query, "country": country, "profile": "company-live", "total": summary["total"], "summary": summary})
+    listings = []
+    for hit in summary["hits"]:
+        listings.append(
+            JobListing(
+                title=hit["title"],
+                url=hit["vacancy_url"],
+                company=hit["company"],
+                country=", ".join(hit.get("countries", [])) or None,
+                remote=hit.get("remote_match") is True,
+                location=", ".join(hit.get("countries", [])) or None,
+                skills=list(hit.get("stack", [])),
+                source="company_live",
+                raw=hit,
+            )
+        )
+    return listings
+
+
+def _slug(value: str) -> str:
+    import re
+
+    return re.sub(r"[^a-zA-Z0-9]+", "-", value.strip()).strip("-").lower() or "query"
+
+
 def cmd_resolve(args: argparse.Namespace) -> None:
     """Resolve aggregator listings to direct employer career pages."""
     listings = []
@@ -422,6 +472,7 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search for job listings")
     search_parser.add_argument("--query", "-q", help="Search query")
     search_parser.add_argument("--sources", "-s", default="all", help="Comma-separated scraper names (default: all)")
+    search_parser.add_argument("--profile", choices=["fast", "full"], help="Source profile; fast skips slow browser sources and company_directory")
     search_parser.add_argument("--country", help="CIS country code or name, e.g. RU, KZ, Armenia")
     search_parser.add_argument("--remote-only", action="store_true", help="Only remote listings")
     search_parser.add_argument("--experience", choices=["junior", "middle", "senior"], help="Minimum experience level")
@@ -439,6 +490,11 @@ def main() -> None:
     search_parser.add_argument("--debug", action="store_true", help="Save debug screenshots")
     search_parser.add_argument("--resolve", action="store_true", help="Resolve listings to direct employer career pages")
     search_parser.add_argument("--cache", action="store_true", help="Cache employer career page results for future searches")
+    search_parser.add_argument("--skip-slow", action="store_true", help="Skip browser-backed slow sources")
+    search_parser.add_argument("--source-timeout-ms", type=int, default=DEFAULT_SOURCE_TIMEOUT_MS, help=f"Per-source timeout in ms (default: {DEFAULT_SOURCE_TIMEOUT_MS})")
+    search_parser.add_argument("--raw-jsonl", help="Incremental raw JSONL output path")
+    search_parser.add_argument("--dedupe", dest="dedupe", action="store_true", default=True, help="Deduplicate results before applying max-results (default)")
+    search_parser.add_argument("--no-dedupe", dest="dedupe", action="store_false", help="Disable built-in dedupe")
 
     # --- list-sources ---
     subparsers.add_parser("list-sources", help="List available scrapers")
@@ -500,6 +556,23 @@ def main() -> None:
     batch_parser.add_argument("--headless", action="store_true", default=True, help="Run browser headless (default)")
     batch_parser.add_argument("--no-headless", dest="headless", action="store_false", help="Show browser window")
 
+    # --- wide-search ---
+    wide_parser = subparsers.add_parser("wide-search", help="Run fast/full multi-query search and write report artifacts")
+    wide_parser.add_argument("--query", "-q", action="append", help="Role query; repeat for variants")
+    wide_parser.add_argument("--queries-file", help="File with one query variant per line")
+    wide_parser.add_argument("--countries", help="Comma-separated country codes/names")
+    wide_parser.add_argument("--remote-only", action="store_true", help="Only remote listings when listing-level evidence allows it")
+    wide_parser.add_argument("--experience", choices=["junior", "middle", "senior"], help="Minimum experience level")
+    wide_parser.add_argument("--max-results", type=int, default=100, help="Max merged results (default: 100)")
+    wide_parser.add_argument("--source-timeout-ms", type=int, default=DEFAULT_SOURCE_TIMEOUT_MS, help=f"Per-source timeout in ms (default: {DEFAULT_SOURCE_TIMEOUT_MS})")
+    wide_parser.add_argument("--output-dir", required=True, help="Directory for results.json, summary.json, report.md, and raw files")
+    wide_parser.add_argument("--company-live", action="store_true", help="Also run company-live-batch")
+    wide_parser.add_argument("--company-max-companies", type=int, help="Maximum companies for company-live-batch")
+    wide_parser.add_argument("--company-timeout-ms", type=int, default=8000, help="Per-company timeout in ms for company-live-batch")
+    wide_parser.add_argument("--progress", action="store_true", help="Print company-live progress")
+    wide_parser.add_argument("--headless", action="store_true", default=True, help="Run browser headless (default)")
+    wide_parser.add_argument("--no-headless", dest="headless", action="store_false", help="Show browser window")
+
     # --- resolve ---
     resolve_parser = subparsers.add_parser("resolve", help="Resolve aggregator listings to employer career pages")
     resolve_parser.add_argument("--input-file", "-i", help="JSON file with search results")
@@ -521,6 +594,8 @@ def main() -> None:
         cmd_company_live_search(args)
     elif args.command == "company-live-batch":
         cmd_company_live_batch(args)
+    elif args.command == "wide-search":
+        cmd_wide_search(args)
     elif args.command == "resolve":
         cmd_resolve(args)
     else:

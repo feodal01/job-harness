@@ -16,7 +16,7 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/136.0.0.0 Safari/537.36"
 )
-FETCH_TIMEOUT_SECONDS = 15
+FETCH_TIMEOUT_SECONDS = 15.0
 VOID_TAGS = {
     "area", "base", "br", "col", "embed", "hr", "img", "input",
     "link", "meta", "param", "source", "track", "wbr",
@@ -30,16 +30,16 @@ class Anchor:
     attrs: dict[str, str]
 
 
-def fetch_text(url: str, *, verify_ssl: bool = True) -> str:
+def fetch_text(url: str, *, verify_ssl: bool = True, timeout_seconds: float | None = None) -> str:
     context = ssl.create_default_context() if verify_ssl else ssl._create_unverified_context()
     request = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(request, timeout=FETCH_TIMEOUT_SECONDS, context=context) as response:
+    with urlopen(request, timeout=timeout_seconds or FETCH_TIMEOUT_SECONDS, context=context) as response:
         return response.read().decode("utf-8", errors="replace")
 
 
-def fetch_json(url: str) -> dict:
+def fetch_json(url: str, *, timeout_seconds: float | None = None) -> dict:
     request = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
-    with urlopen(request, timeout=FETCH_TIMEOUT_SECONDS) as response:
+    with urlopen(request, timeout=timeout_seconds or FETCH_TIMEOUT_SECONDS) as response:
         return json.loads(response.read().decode("utf-8", errors="replace"))
 
 

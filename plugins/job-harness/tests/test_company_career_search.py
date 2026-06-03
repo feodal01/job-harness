@@ -112,6 +112,15 @@ class CompanyCareerSearchTest(unittest.TestCase):
         self.assertEqual(0, _score_text("penetration tester", terms))
         self.assertEqual(0, _score_text("vip quality assurance manager french speaking", terms))
 
+    def test_engineering_queries_reject_non_engineering_manager_false_positives(self) -> None:
+        ai_terms = _query_terms("AI")
+
+        self.assertEqual(0, _score_text("Product Manager Agentic AI", ai_terms))
+        self.assertEqual(0, _score_text("Product Lead Agentic AI", ai_terms))
+        self.assertEqual(0, _score_text("Risk Manager AI platform", ai_terms))
+        self.assertEqual(0, _score_text("Employer Brand Manager AI hiring", ai_terms))
+        self.assertGreater(_score_text("Software Engineering Manager Agentic AI", ai_terms), 0)
+
     def test_known_training_pages_are_not_vacancy_links(self) -> None:
         self.assertTrue(_is_non_vacancy_link("https://www.careerist.com/qa", "QA Engineering"))
         self.assertTrue(_is_non_vacancy_link("https://www.careerist.com/automation", "QA Automation"))
@@ -293,6 +302,38 @@ class CompanyCareerSearchTest(unittest.TestCase):
         self.assertEqual(1, data["total"])
         self.assertEqual("Alpha", data["hits"][0]["company"])
         self.assertEqual("https://alpha.test/jobs/python-developer", data["hits"][0]["vacancy_url"])
+
+    def test_remote_only_filters_only_explicit_non_remote_hits(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            directory_path = Path(tmpdir) / "companies.json"
+            directory_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "name": "Alpha",
+                            "careers_url": "https://alpha.test/careers",
+                            "sources": ["test"],
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            context = _FakeContext(
+                [
+                    _FakePage(
+                        [
+                            _FakeLink("/jobs/qa-remote", "QA Engineer Remote"),
+                            _FakeLink("/jobs/qa-onsite", "QA Engineer on-site"),
+                            _FakeLink("/jobs/qa", "QA Engineer"),
+                        ]
+                    )
+                ]
+            )
+
+            result = search_company_careers("QA", context, remote_only=True, directory_path=directory_path)
+
+        titles = [hit["title"] for hit in result.to_dict()["hits"]]
+        self.assertEqual(["QA Engineer", "QA Engineer Remote"], titles)
 
     def test_search_company_careers_records_navigation_errors(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
