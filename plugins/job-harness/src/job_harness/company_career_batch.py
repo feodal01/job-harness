@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from collections.abc import Sequence
 from dataclasses import asdict
 from json import JSONDecodeError
 from pathlib import Path
@@ -26,9 +27,16 @@ from job_harness.company_career_search import (
     _query_terms,
     _score_text,
 )
-from job_harness.company_directory import COMPANY_DIRECTORY_PATH, CompanyProfile, filter_company_directory
+from job_harness.company_directory import (
+    COMPANY_DIRECTORY_PATH,
+    CompanyProfile,
+    filter_company_directory,
+    normalize_company_key,
+)
+from job_harness.employer_cache import CompanyEntry
 
 DEFAULT_COMPANY_LIVE_WORKERS = 12
+RESOLVED_EMPLOYER_CACHE_SOURCE = "resolved-employer-cache"
 
 
 async def run_company_career_batch(
@@ -45,6 +53,7 @@ async def run_company_career_batch(
     workers: int = DEFAULT_COMPANY_LIVE_WORKERS,
     timeout_ms: int = 8000,
     directory_path: Path | str = COMPANY_DIRECTORY_PATH,
+    employer_cache_paths: Sequence[Path | str] | None = None,
     headless: bool = True,
     progress: bool = False,
 ) -> dict:
@@ -57,14 +66,16 @@ async def run_company_career_batch(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.parent.mkdir(parents=True, exist_ok=True)
 
-    companies = filter_company_directory(
+    companies = _load_company_targets(
         country=country,
         stack=stack,
         job_type=job_type,
         industry=industry,
         remote_only=remote_only,
         max_results=max_companies,
-        path=directory_path,
+        directory_path=directory_path,
+        output_path=output_path,
+        employer_cache_paths=employer_cache_paths,
     )
     completed = _read_completed_companies(output_path)
     pending = [company for company in companies if company.name not in completed]
@@ -109,6 +120,112 @@ async def run_company_career_batch(
             await browser.close()
 
     return _write_summary(query=query, companies_considered=len(companies), output_path=output_path, summary_path=summary_path)
+
+
+def _load_company_targets(
+    *,
+    country: str | None = None,
+    stack: str | None = None,
+    job_type: str | None = None,
+    industry: str | None = None,
+    remote_only: bool = False,
+    max_results: int | None = None,
+    directory_path: Path | str = COMPANY_DIRECTORY_PATH,
+    output_path: Path | str | None = None,
+    employer_cache_paths: Sequence[Path | str] | None = None,
+) -> list[CompanyProfile]:
+    companies = filter_company_directory(
+        country=country,
+        stack=stack,
+        job_type=job_type,
+        industry=industry,
+        remote_only=remote_only,
+        max_results=None,
+        path=directory_path,
+    )
+    cache_paths = (
+        [Path(path) for path in employer_cache_paths]
+        if employer_cache_paths is not None
+        else _default_employer_cache_paths(directory_path=Path(directory_path), output_path=Path(output_path) if output_path else None)
+    )
+    merged = _merge_resolved_employer_caches(companies, cache_paths)
+    return merged if max_results is None else merged[:max_results]
+
+
+def _default_employer_cache_paths(*, directory_path: Path, output_path: Path | None) -> list[Path]:
+    paths = [directory_path.parent / "company-careers.json"]
+    artifact_cache = _infer_artifact_cache_path(output_path) if output_path is not None else None
+    if artifact_cache is not None:
+        paths.append(artifact_cache)
+    paths.append(Path(".job-harness") / "companies" / "careers.json")
+    return _unique_paths(paths)
+
+
+def _infer_artifact_cache_path(output_path: Path) -> Path | None:
+    for parent in [output_path.parent, *output_path.parents]:
+        if parent.name == ".job-harness":
+            return parent / "companies" / "careers.json"
+    return None
+
+
+def _unique_paths(paths: Sequence[Path]) -> list[Path]:
+    unique: dict[Path, Path] = {}
+    for path in paths:
+        unique[path.resolve() if path.exists() else path] = path
+    return list(unique.values())
+
+
+def _merge_resolved_employer_caches(
+    companies: list[CompanyProfile],
+    cache_paths: Sequence[Path],
+) -> list[CompanyProfile]:
+    by_key = {normalize_company_key(company.name): company for company in companies}
+    for path in cache_paths:
+        for entry in _read_cache_entries(path):
+            if entry.ignored or not entry.careers_url:
+                continue
+            key = normalize_company_key(entry.company)
+            existing = by_key.get(key)
+            by_key[key] = _merge_cache_entry(existing, entry)
+    return sorted(by_key.values(), key=lambda company: company.name.casefold())
+
+
+def _read_cache_entries(path: Path) -> list[CompanyEntry]:
+    if not path.exists():
+        return []
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError(f"Employer cache must be a JSON object: {path}")
+
+    entries: list[CompanyEntry] = []
+    for value in raw.values():
+        if not isinstance(value, dict):
+            raise ValueError(f"Employer cache entries must be objects: {path}")
+        entries.append(CompanyEntry(**value))
+    return entries
+
+
+def _merge_cache_entry(existing: CompanyProfile | None, entry: CompanyEntry) -> CompanyProfile:
+    sources = set(existing.sources if existing else ())
+    sources.add(RESOLVED_EMPLOYER_CACHE_SOURCE)
+    return CompanyProfile(
+        name=existing.name if existing else entry.company,
+        careers_url=entry.careers_url,
+        linkedin_url=existing.linkedin_url if existing else None,
+        linkedin_jobs_url=existing.linkedin_jobs_url if existing else None,
+        description=existing.description if existing else None,
+        industry=existing.industry if existing else None,
+        headcount=existing.headcount if existing else None,
+        remote=existing.remote if existing else False,
+        job_types=existing.job_types if existing else (),
+        stack=existing.stack if existing else (),
+        countries=existing.countries if existing else (),
+        ats_type=entry.ats_type,
+        scraper_name=entry.scraper_name,
+        last_checked=entry.last_checked,
+        last_found_roles=entry.last_found_roles,
+        sources=tuple(sorted(sources)),
+    )
 
 
 async def _worker(

@@ -10,8 +10,11 @@ from unittest.mock import patch
 
 from job_harness.company_career_batch import (
     DEFAULT_COMPANY_LIVE_WORKERS,
+    RESOLVED_EMPLOYER_CACHE_SOURCE,
     _build_summary,
+    _default_employer_cache_paths,
     _check_company,
+    _load_company_targets,
     _read_completed_companies,
     _write_summary,
     run_company_career_batch,
@@ -58,6 +61,129 @@ class CompanyCareerBatchTest(unittest.TestCase):
 
         self.assertEqual(12, DEFAULT_COMPANY_LIVE_WORKERS)
         self.assertEqual(DEFAULT_COMPANY_LIVE_WORKERS, default)
+
+    def test_company_targets_include_resolved_employer_cache_entries(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            directory_path = Path(tmpdir) / "companies.json"
+            directory_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "name": "Bundled Co",
+                            "careers_url": "https://old.example.test/careers",
+                            "countries": ["Armenia"],
+                            "sources": ["test"],
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            cache_path = Path(tmpdir) / "careers.json"
+            cache_path.write_text(
+                json.dumps(
+                    {
+                        "bundled co": {
+                            "company": "Bundled Co",
+                            "careers_url": "https://new.example.test/jobs",
+                            "ats_type": "lever",
+                            "scraper_name": None,
+                            "last_checked": "2026-06-03",
+                            "last_found_roles": True,
+                            "ignored": False,
+                        },
+                        "resolved only": {
+                            "company": "Resolved Only",
+                            "careers_url": "https://resolved.example.test/careers",
+                            "ats_type": "direct",
+                            "scraper_name": None,
+                            "last_checked": "2026-06-03",
+                            "last_found_roles": False,
+                            "ignored": False,
+                        },
+                        "ignored co": {
+                            "company": "Ignored Co",
+                            "careers_url": "https://ignored.example.test/careers",
+                            "ats_type": "direct",
+                            "scraper_name": None,
+                            "last_checked": "2026-06-03",
+                            "last_found_roles": False,
+                            "ignored": True,
+                        },
+                        "empty co": {
+                            "company": "Empty Co",
+                            "careers_url": None,
+                            "ats_type": "unknown",
+                            "scraper_name": None,
+                            "last_checked": "2026-06-03",
+                            "last_found_roles": False,
+                            "ignored": False,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            targets = _load_company_targets(
+                directory_path=directory_path,
+                employer_cache_paths=[cache_path],
+            )
+
+        by_name = {target.name: target for target in targets}
+        self.assertEqual({"Bundled Co", "Resolved Only"}, set(by_name))
+        self.assertEqual("https://new.example.test/jobs", by_name["Bundled Co"].careers_url)
+        self.assertEqual("lever", by_name["Bundled Co"].ats_type)
+        self.assertEqual(("Armenia",), by_name["Bundled Co"].countries)
+        self.assertIn(RESOLVED_EMPLOYER_CACHE_SOURCE, by_name["Bundled Co"].sources)
+        self.assertEqual("https://resolved.example.test/careers", by_name["Resolved Only"].careers_url)
+        self.assertEqual((RESOLVED_EMPLOYER_CACHE_SOURCE,), by_name["Resolved Only"].sources)
+
+    def test_company_targets_apply_max_companies_after_cache_merge(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            directory_path = Path(tmpdir) / "companies.json"
+            directory_path.write_text(
+                json.dumps(
+                    [
+                        {"name": "B Co", "careers_url": "https://b.example.test", "sources": ["test"]},
+                        {"name": "C Co", "careers_url": "https://c.example.test", "sources": ["test"]},
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            cache_path = Path(tmpdir) / "careers.json"
+            cache_path.write_text(
+                json.dumps(
+                    {
+                        "a co": {
+                            "company": "A Co",
+                            "careers_url": "https://a.example.test",
+                            "ats_type": "direct",
+                            "scraper_name": None,
+                            "last_checked": "2026-06-03",
+                            "last_found_roles": False,
+                            "ignored": False,
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            targets = _load_company_targets(
+                directory_path=directory_path,
+                employer_cache_paths=[cache_path],
+                max_results=2,
+            )
+
+        self.assertEqual(["A Co", "B Co"], [target.name for target in targets])
+
+    def test_default_employer_cache_paths_include_artifact_root_from_output_path(self) -> None:
+        output_path = Path("/tmp/search/.job-harness/briefs/demo/runs/run/raw/company-live-results.jsonl")
+
+        paths = _default_employer_cache_paths(
+            directory_path=Path("data/company-directory.json"),
+            output_path=output_path,
+        )
+
+        self.assertIn(Path("/tmp/search/.job-harness/companies/careers.json"), paths)
 
     def test_check_company_times_out_hanging_link_extraction(self) -> None:
         page = _SlowEvaluatePage()

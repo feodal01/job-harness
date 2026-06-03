@@ -473,7 +473,10 @@ def main() -> None:
     live_parser.add_argument("--no-headless", dest="headless", action="store_false", help="Show browser window")
 
     # --- company-live-batch ---
-    batch_parser = subparsers.add_parser("company-live-batch", help="Concurrent resumable career-page search")
+    batch_parser = subparsers.add_parser(
+        "company-live-batch",
+        help="Concurrent resumable career-page search over bundled and cached employers",
+    )
     batch_parser.add_argument("--query", "-q", required=True, help="Role query to match on career pages")
     batch_parser.add_argument("--output-jsonl", required=True, help="Incremental JSONL output path, one record per company")
     batch_parser.add_argument("--summary-json", required=True, help="Summary JSON output path")

@@ -33,8 +33,8 @@ You are running a job search. Follow this workflow:
 - Use the bundled company directory as an employer-first expansion source. Treat `search_company_jobs` results as career entrypoints unless a specific vacancy URL was found separately. Treat `search_company_careers` results as live vacancy-link matches from checked company pages.
 - For a full-scale search across everything currently available, run both phases:
   1. Aggregators: call `search` with `sources=all`, `detail=true`, `resolve=true`, and `cache=true`; pass `country` when the brief has target countries.
-  2. Employer pages: run `job-harness company-live-batch` for the same role query with `--output-jsonl <run>/raw/company-live-results.jsonl`, `--summary-json <run>/raw/company-live-summary.json`, and `--progress`.
-  Do not pass `--workers` for normal full-scale runs; the plugin default is the operational concurrency setting. Use `company-live-search` only for narrow checks, not for the bundled 400+ company pass.
+  2. Employer pages: run `job-harness company-live-batch` for the same role query with `--output-jsonl <run>/raw/company-live-results.jsonl`, `--summary-json <run>/raw/company-live-summary.json`, and `--progress`. This batch searches the bundled company directory plus resolved employer career pages from the local employer cache when present.
+  Do not pass `--workers` for normal full-scale runs; the plugin default is the operational concurrency setting. Use `company-live-search` only for narrow checks, not for the bundled/cache-backed company pass.
 - Not finding a career page is normal for small companies — don't present it as failure.
 - Context-aware filtering: "nice to have" keywords should NOT exclude a listing.
 - Always save artifacts. The brief is the reusable source of truth; each run records one execution of that brief.
