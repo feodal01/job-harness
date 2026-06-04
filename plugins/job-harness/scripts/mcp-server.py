@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Callable
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from functools import partial
@@ -12,6 +12,20 @@ from pathlib import Path
 from typing import TypeVar
 
 from fastmcp import FastMCP
+
+# ---------------------------------------------------------------------------
+# TMPDIR safety — ensure Playwright can always create temp files
+# ---------------------------------------------------------------------------
+
+_tmpdir = os.environ.get(
+    "JOB_HARNESS_TMPDIR",
+    os.path.expanduser("~/.cache/job-harness/tmp"),
+)
+os.makedirs(_tmpdir, exist_ok=True)
+os.environ.setdefault("TMPDIR", _tmpdir)
+os.environ.setdefault("TEMP", _tmpdir)
+os.environ.setdefault("TMP", _tmpdir)
+tempfile.tempdir = _tmpdir
 
 mcp = FastMCP("job-harness")
 
@@ -25,35 +39,92 @@ _PUBLIC_CACHE = _PLUGIN_ROOT / "data" / "company-careers-public.json"
 _COMPANY_DIRECTORY = _PLUGIN_ROOT / "data" / "company-directory.json"
 
 # ---------------------------------------------------------------------------
-# Browser state (lazy-initialised, lives for the session)
+# Browser state — lazy-initialised sync Playwright running in a dedicated
+# thread, with asyncio.Lock for serialisation and graceful error recovery.
 # ---------------------------------------------------------------------------
 
 _browser_state: dict = {}
+_browser_lock = asyncio.Lock()
 _browser_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="job-harness-browser")
 _T = TypeVar("_T")
 
 
-async def _run_in_browser_thread(func: Callable[..., _T], *args, **kwargs) -> _T:
-    """Run sync Playwright code away from FastMCP's asyncio event loop."""
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(_browser_executor, partial(func, *args, **kwargs))
-
-
 def _ensure_browser():
-    """Return a Playwright BrowserContext, starting the browser if needed."""
-    if _browser_state.get("context") is None:
-        from job_harness.browser import configure_playwright_tmpdir, create_browser
+    """Return a sync Playwright BrowserContext, starting the browser if needed.
 
-        configure_playwright_tmpdir(_PLUGIN_ROOT / "data" / ".tmp")
+    Must be called from the browser executor thread so that all Playwright
+    objects live on the same thread.
+    """
+    if _browser_state.get("context") is not None:
+        return _browser_state["context"]
 
-        from rebrowser_playwright.sync_api import sync_playwright
+    from job_harness.browser import configure_playwright_tmpdir, create_browser
 
-        pw = sync_playwright().start()
-        browser, context = create_browser(pw, headless=True)
-        _browser_state["pw"] = pw
-        _browser_state["browser"] = browser
-        _browser_state["context"] = context
-    return _browser_state["context"]
+    configure_playwright_tmpdir(_PLUGIN_ROOT / "data" / ".tmp")
+
+    from rebrowser_playwright.sync_api import sync_playwright
+
+    pw = sync_playwright().start()
+    browser, context = create_browser(pw, headless=True)
+    _browser_state["pw"] = pw
+    _browser_state["browser"] = browser
+    _browser_state["context"] = context
+    return context
+
+
+def _reset_browser():
+    """Close and discard the current browser, allowing a fresh start."""
+    browser = _browser_state.pop("browser", None)
+    pw = _browser_state.pop("pw", None)
+    _browser_state.pop("context", None)
+    if browser:
+        try:
+            browser.close()
+        except Exception:
+            pass
+    if pw:
+        try:
+            pw.stop()
+        except Exception:
+            pass
+
+
+async def _with_browser(func, *args, **kwargs):
+    """Run *func* in the browser thread under the async lock.
+
+    Serialises concurrent MCP tool calls so that only one uses the browser
+    at a time.  On failure the browser is torn down so the next call starts
+    fresh instead of hanging permanently.
+    """
+    async with _browser_lock:
+        try:
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(
+                _browser_executor,
+                partial(_browser_guard, func, *args, **kwargs),
+            )
+        except Exception:
+            await asyncio.to_thread(_reset_browser)
+            raise
+
+
+def _browser_guard(func, *args, **kwargs):
+    """Wrapper that runs in the browser executor thread.
+
+    Recreates the browser on init failure, and tears it down on any
+    error so the next call gets a fresh instance.
+    """
+    try:
+        _ensure_browser()
+    except Exception:
+        _reset_browser()
+        _ensure_browser()
+
+    try:
+        return func(*args, **kwargs)
+    except Exception:
+        _reset_browser()
+        raise
 
 
 def _get_cache():
@@ -218,7 +289,7 @@ async def search_company_careers(
         max_results: Maximum vacancy links to return
         timeout_ms: Per-company page navigation timeout in milliseconds
     """
-    return await _run_in_browser_thread(
+    return await _with_browser(
         _search_company_careers_impl,
         query=query,
         country=country,
@@ -308,7 +379,7 @@ async def search(
         source_timeout_ms: Per-source timeout in milliseconds
         dedupe: Deduplicate normalized results before returning
     """
-    return await _run_in_browser_thread(
+    return await _with_browser(
         _search_impl,
         query=query,
         sources=sources,
@@ -393,7 +464,7 @@ async def resolve(
         query: Original search query (improves vacancy matching)
         cache: Use employer cache for resolution
     """
-    return await _run_in_browser_thread(_resolve_impl, listings=listings, query=query, cache=cache)
+    return await _with_browser(_resolve_impl, listings=listings, query=query, cache=cache)
 
 
 def _resolve_impl(
@@ -440,7 +511,7 @@ async def resolve_company(
         query: Search query for vacancy matching (e.g. "QA engineer")
         cache: Use employer cache
     """
-    return await _run_in_browser_thread(
+    return await _with_browser(
         _resolve_company_impl,
         company=company,
         query=query,

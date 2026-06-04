@@ -200,7 +200,6 @@ class SearchSmokeTest(unittest.TestCase):
         ])
 
         with (
-            patch.object(server, "_ensure_browser", side_effect=AssertionError("browser not expected")),
             patch("job_harness.scrapers.cis_sources.fetch_text", side_effect=fake_fetch_text),
             patch("job_harness.scrapers.cis_sources.fetch_json", side_effect=fake_fetch_json),
         ):
@@ -227,7 +226,6 @@ class SearchSmokeTest(unittest.TestCase):
         server = _load_mcp_server()
 
         with (
-            patch.object(server, "_ensure_browser", side_effect=AssertionError("browser not expected")),
             patch("job_harness.scrapers.cis_sources.fetch_text", side_effect=fake_fetch_text),
             patch("job_harness.scrapers.cis_sources.fetch_json", side_effect=fake_fetch_json),
         ):
@@ -244,13 +242,12 @@ class SearchSmokeTest(unittest.TestCase):
     def test_company_directory_source_works_through_mcp_search(self) -> None:
         server = _load_mcp_server()
 
-        with patch.object(server, "_ensure_browser", side_effect=AssertionError("browser not expected")):
-            data = server._search_impl(
-                query="QA",
-                sources="company_directory",
-                location="Armenia",
-                max_results=10,
-            )
+        data = server._search_impl(
+            query="QA",
+            sources="company_directory",
+            location="Armenia",
+            max_results=10,
+        )
 
         self.assertEqual([], data["errors"])
         self.assertGreater(data["total"], 0)

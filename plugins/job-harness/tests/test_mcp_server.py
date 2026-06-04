@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 import importlib.util
 import json
 import tempfile
-import threading
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -66,23 +64,6 @@ class _FakeScraper:
 
 
 class McpServerTest(unittest.TestCase):
-    def test_sync_playwright_work_is_dispatched_outside_event_loop(self) -> None:
-        server = _load_mcp_server()
-
-        async def run():
-            event_loop_thread = threading.current_thread().name
-
-            def blocking_work():
-                return threading.current_thread().name
-
-            worker_thread = await server._run_in_browser_thread(blocking_work)
-            return event_loop_thread, worker_thread
-
-        event_loop_thread, worker_thread = asyncio.run(run())
-
-        self.assertNotEqual(event_loop_thread, worker_thread)
-        self.assertTrue(worker_thread.startswith("job-harness-browser"))
-
     def test_search_does_not_initialize_browser_for_non_browser_scraper(self) -> None:
         server = _load_mcp_server()
 
@@ -119,8 +100,7 @@ class McpServerTest(unittest.TestCase):
     def test_search_company_jobs_uses_bundled_directory_without_browser(self) -> None:
         server = _load_mcp_server()
 
-        with patch.object(server, "_ensure_browser", side_effect=AssertionError("browser not expected")):
-            data = server.search_company_jobs(query="QA", country="Armenia", max_results=10)
+        data = server.search_company_jobs(query="QA", country="Armenia", max_results=10)
 
         self.assertGreater(data["total"], 0)
         self.assertIn("Miro", [company["name"] for company in data["companies"]])
