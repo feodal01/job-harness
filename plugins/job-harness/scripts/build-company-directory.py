@@ -15,7 +15,24 @@ SRC = ROOT / "src"
 sys.path.insert(0, str(SRC))
 
 from job_harness.company_directory import normalize_company_key  # noqa: E402
-from job_harness.employer_resolver import classify_careers_url  # noqa: E402
+
+# Inline ATS classifier (previously in employer_resolver.py). Pure
+# function used only by this build script.
+_ATS_PATTERNS: dict[str, tuple[str, ...]] = {
+    "greenhouse": ("greenhouse.io", "grnh.se"),
+    "lever": ("lever.co",),
+    "workday": ("workday.com", "wd1.myworkdayjobs.com", "wd5.myworkdayjobs.com"),
+    "huntflow": ("huntflow.ru", "huntflow.com"),
+}
+
+
+def classify_careers_url(url: str) -> str:
+    """Classify a career page URL by ATS type."""
+    lower = url.lower()
+    for ats_type, patterns in _ATS_PATTERNS.items():
+        if any(p in lower for p in patterns):
+            return ats_type
+    return "direct"
 
 SOURCE_HELLONEWJOB = "hellonewjob"
 SOURCE_PUBLIC_CACHE = "company-careers-public"

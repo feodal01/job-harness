@@ -1,20 +1,30 @@
-"""FastMCP server exposing job-harness tools to Claude Code."""
+"""FastMCP server exposing job-harness tools to Claude Code.
+
+Only the non-blocking async surface is exposed. Search runs through the
+SearchEngine + BrowserPool with a journal-backed lifecycle:
+
+  • search_start / search_status / search_results / search_cancel
+  • search_refine — re-filter a finished run's journal
+  • list_active_runs — discover recent runs (including post-restart)
+
+Lookup tools (no scraping, sub-50 ms):
+  • list_sources, search_company_jobs
+  • cache_get, cache_upsert, cache_stats
+"""
 
 from __future__ import annotations
 
-import asyncio
 import os
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Callable as _Callable
 from dataclasses import asdict
-from functools import partial
 from pathlib import Path
-from typing import TypeVar
 
 from fastmcp import FastMCP
 
 # ---------------------------------------------------------------------------
-# TMPDIR safety — ensure Playwright can always create temp files
+# TMPDIR safety — ensure Playwright can always create temp files.
+# Set BEFORE any Playwright import so chromium picks up the override.
 # ---------------------------------------------------------------------------
 
 _tmpdir = os.environ.get(
@@ -33,115 +43,79 @@ mcp = FastMCP("job-harness")
 # Paths
 # ---------------------------------------------------------------------------
 
-_PLUGIN_ROOT = Path(os.environ.get("JOB_HARNESS_ROOT", Path(__file__).resolve().parent.parent))
+_PLUGIN_ROOT = Path(
+    os.environ.get("JOB_HARNESS_ROOT", Path(__file__).resolve().parent.parent)
+)
 _LOCAL_CACHE = _PLUGIN_ROOT / "data" / "company-careers.json"
 _PUBLIC_CACHE = _PLUGIN_ROOT / "data" / "company-careers-public.json"
 _COMPANY_DIRECTORY = _PLUGIN_ROOT / "data" / "company-directory.json"
+_RUNS_ROOT = _PLUGIN_ROOT / "data" / ".runs"
+_SANITY_BASELINES = _PLUGIN_ROOT / "data" / "source_baselines.json"
+
 
 # ---------------------------------------------------------------------------
-# Browser state — lazy-initialised sync Playwright running in a dedicated
-# thread, with asyncio.Lock for serialisation and graceful error recovery.
+# Lazy singletons
 # ---------------------------------------------------------------------------
 
-_browser_state: dict = {}
-_browser_lock = asyncio.Lock()
-_browser_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="job-harness-browser")
-_T = TypeVar("_T")
+_engine_singleton = None
+_run_registry_singleton = None
+_browser_pool_singleton = None
 
 
-def _ensure_browser():
-    """Return a sync Playwright BrowserContext, starting the browser if needed.
+def _get_browser_pool():
+    """Construct the BrowserPool on first browser-needing call."""
+    global _browser_pool_singleton
+    if _browser_pool_singleton is None:
+        from job_harness.browser_pool import BrowserPool
 
-    Must be called from the browser executor thread so that all Playwright
-    objects live on the same thread.
-    """
-    if _browser_state.get("context") is not None:
-        return _browser_state["context"]
-
-    from job_harness.browser import configure_playwright_tmpdir, create_browser
-
-    configure_playwright_tmpdir(_PLUGIN_ROOT / "data" / ".tmp")
-
-    from rebrowser_playwright.sync_api import sync_playwright
-
-    pw = sync_playwright().start()
-    browser, context = create_browser(pw, headless=True)
-    _browser_state["pw"] = pw
-    _browser_state["browser"] = browser
-    _browser_state["context"] = context
-    return context
+        _browser_pool_singleton = BrowserPool(max_contexts=2)
+    return _browser_pool_singleton
 
 
-def _reset_browser():
-    """Close and discard the current browser, allowing a fresh start."""
-    browser = _browser_state.pop("browser", None)
-    pw = _browser_state.pop("pw", None)
-    _browser_state.pop("context", None)
-    if browser:
-        try:
-            browser.close()
-        except Exception:
-            pass
-    if pw:
-        try:
-            pw.stop()
-        except Exception:
-            pass
+def _get_engine():
+    global _engine_singleton
+    if _engine_singleton is None:
+        from job_harness.search_engine import SearchEngine
+
+        _engine_singleton = SearchEngine(
+            browser_pool=_get_browser_pool(),
+            sanity_baselines_path=_SANITY_BASELINES if _SANITY_BASELINES.exists() else None,
+        )
+    return _engine_singleton
 
 
-async def _with_browser(func, *args, **kwargs):
-    """Run *func* in the browser thread under the async lock.
+def _get_run_registry():
+    global _run_registry_singleton
+    if _run_registry_singleton is None:
+        # Lazy import side-effect: register every scraper.
+        import job_harness.scrapers  # noqa: F401
+        import job_harness.scrapers.career  # noqa: F401
+        from job_harness.run_registry import RunRegistry
 
-    Serialises concurrent MCP tool calls so that only one uses the browser
-    at a time.  On failure the browser is torn down so the next call starts
-    fresh instead of hanging permanently.
-    """
-    async with _browser_lock:
-        try:
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(
-                _browser_executor,
-                partial(_browser_guard, func, *args, **kwargs),
-            )
-        except Exception:
-            await asyncio.to_thread(_reset_browser)
-            raise
+        async def runner(request, journal, run_id):
+            await _get_engine().execute(request, journal=journal, run_id=run_id)
 
-
-def _browser_guard(func, *args, **kwargs):
-    """Wrapper that runs in the browser executor thread.
-
-    Recreates the browser on init failure, and tears it down on any
-    error so the next call gets a fresh instance.
-    """
-    try:
-        _ensure_browser()
-    except Exception:
-        _reset_browser()
-        _ensure_browser()
-
-    try:
-        return func(*args, **kwargs)
-    except Exception:
-        _reset_browser()
-        raise
+        _run_registry_singleton = RunRegistry(
+            runs_root=_RUNS_ROOT,
+            engine_runner=runner,
+        )
+    return _run_registry_singleton
 
 
 def _get_cache():
-    """Return an EmployerCache instance pointed at the plugin data dir."""
     from job_harness.employer_cache import EmployerCache
 
     return EmployerCache(path=_LOCAL_CACHE, public_path=_PUBLIC_CACHE)
 
 
 # ---------------------------------------------------------------------------
-# Tools — no browser required
+# Lookup tools — no scraping, sub-50 ms
 # ---------------------------------------------------------------------------
 
 
 @mcp.tool
 def list_sources() -> dict[str, dict]:
-    """List available job board scrapers and their display names."""
+    """List available job board scrapers and their honest capabilities."""
     import job_harness.scrapers  # noqa: F401
     import job_harness.scrapers.career  # noqa: F401
     from job_harness.registry import get_scraper_metadata
@@ -151,11 +125,7 @@ def list_sources() -> dict[str, dict]:
 
 @mcp.tool
 def cache_get(company: str) -> dict | None:
-    """Get the cache entry for a company. Returns null if not cached.
-
-    Args:
-        company: Company name to look up
-    """
+    """Get the cache entry for a company. Returns null if not cached."""
     cache = _get_cache()
     entry = cache.get(company)
     return asdict(entry) if entry else None
@@ -170,16 +140,7 @@ def cache_upsert(
     last_found_roles: bool = False,
     ignored: bool = False,
 ) -> dict:
-    """Insert or update a local cache entry.
-
-    Args:
-        company: Company name
-        careers_url: URL of the company career page, or null
-        ats_type: ATS classification (direct, greenhouse, lever, workday, huntflow, unknown)
-        scraper_name: Name of the per-company career scraper, if any
-        last_found_roles: Whether matching roles were found on the career page
-        ignored: Whether to skip this company in future resolution
-    """
+    """Insert or update a local cache entry."""
     from job_harness.employer_cache import CompanyEntry
 
     cache = _get_cache()
@@ -219,21 +180,7 @@ def search_company_jobs(
     remote_only: bool = False,
     max_results: int = 20,
 ) -> dict:
-    """Search the bundled company directory for employer career entrypoints.
-
-    This tool returns companies whose known hiring profile matches the query,
-    plus their career page and LinkedIn jobs links when available. It does not
-    claim that a specific vacancy is currently open.
-
-    Args:
-        query: Role, skill, company, or hiring profile query, e.g. "QA", "Python backend"
-        country: Optional country/city text from the company hiring locations
-        stack: Optional technology stack filter
-        job_type: Optional hiring function filter, e.g. "QA", "Developers", "Sales"
-        industry: Optional industry filter
-        remote_only: Only companies marked as remote-friendly in the directory
-        max_results: Maximum number of companies to return
-    """
+    """Search the bundled company directory for employer career entrypoints."""
     from job_harness.company_directory import search_company_directory
 
     companies = search_company_directory(
@@ -254,328 +201,8 @@ def search_company_jobs(
 
 
 # ---------------------------------------------------------------------------
-# Tools — browser required
+# Search request helpers
 # ---------------------------------------------------------------------------
-
-
-@mcp.tool
-async def search_company_careers(
-    query: str,
-    country: str | None = None,
-    stack: str | None = None,
-    job_type: str | None = None,
-    industry: str | None = None,
-    remote_only: bool = False,
-    max_companies: int | None = None,
-    max_results: int = 20,
-    timeout_ms: int = 8000,
-) -> dict:
-    """Search live career pages from the bundled company directory.
-
-    This performs a browser-based pass over company career URLs and returns
-    vacancy links whose text or URL matches the role query. Use this MCP tool
-    for targeted checks. For a full bundled/cache-backed company pass, run
-    the CLI `job-harness company-live-batch` command so results are
-    concurrent, resumable, and written incrementally.
-
-    Args:
-        query: Role query to match on career pages, e.g. "Python developer"
-        country: Optional company hiring-location filter
-        stack: Optional known company stack filter
-        job_type: Optional known hiring function filter
-        industry: Optional industry filter
-        remote_only: Only companies marked as remote-friendly in the directory
-        max_companies: Maximum companies to check; null means all matching companies
-        max_results: Maximum vacancy links to return
-        timeout_ms: Per-company page navigation timeout in milliseconds
-    """
-    return await _with_browser(
-        _search_company_careers_impl,
-        query=query,
-        country=country,
-        stack=stack,
-        job_type=job_type,
-        industry=industry,
-        remote_only=remote_only,
-        max_companies=max_companies,
-        max_results=max_results,
-        timeout_ms=timeout_ms,
-    )
-
-
-def _search_company_careers_impl(
-    query: str,
-    country: str | None = None,
-    stack: str | None = None,
-    job_type: str | None = None,
-    industry: str | None = None,
-    remote_only: bool = False,
-    max_companies: int | None = None,
-    max_results: int = 20,
-    timeout_ms: int = 8000,
-) -> dict:
-    from job_harness.company_career_search import search_company_careers
-
-    context = _ensure_browser()
-    result = search_company_careers(
-        query=query,
-        context=context,
-        country=country,
-        stack=stack,
-        job_type=job_type,
-        industry=industry,
-        remote_only=remote_only,
-        max_companies=max_companies,
-        max_results=max_results,
-        timeout_ms=timeout_ms,
-        directory_path=_COMPANY_DIRECTORY,
-    )
-    return result.to_dict()
-
-
-@mcp.tool
-async def search(
-    query: str,
-    sources: str = "all",
-    profile: str | None = None,
-    country: str | None = None,
-    remote_only: bool = False,
-    experience: str | None = None,
-    location: str | None = None,
-    max_results: int = 20,
-    detail: bool = False,
-    resolve: bool = False,
-    cache: bool = True,
-    exclude_keywords: str | None = None,
-    exclude_keywords_context: str | None = None,
-    exclude_companies: str | None = None,
-    has_salary: bool = False,
-    skip_slow: bool = False,
-    source_timeout_ms: int = 30_000,
-    dedupe: bool = True,
-) -> dict:
-    """Search job aggregators for listings matching the query.
-
-    Returns search results as a dictionary with 'params', 'listings',
-    'total', 'timestamp', and 'errors' keys.
-
-    Args:
-        query: Search query (e.g. "QA engineer", "Python backend")
-        sources: Comma-separated scraper names, or "all"
-        profile: Optional source profile: fast or full
-        country: CIS country code or name, e.g. RU, KZ, Armenia
-        remote_only: Only remote listings
-        experience: Minimum experience level (junior/middle/senior)
-        location: Location filter string
-        max_results: Maximum number of results
-        detail: Fetch full details for each listing
-        resolve: Resolve listings to direct employer career pages
-        cache: Use employer cache for resolution
-        exclude_keywords: Comma-separated keywords to exclude
-        exclude_keywords_context: Context words allowing excluded keywords
-        exclude_companies: Comma-separated company names to exclude
-        has_salary: Only listings with salary info
-        skip_slow: Skip browser-backed slow sources
-        source_timeout_ms: Per-source timeout in milliseconds
-        dedupe: Deduplicate normalized results before returning
-    """
-    return await _with_browser(
-        _search_impl,
-        query=query,
-        sources=sources,
-        profile=profile,
-        country=country,
-        remote_only=remote_only,
-        experience=experience,
-        location=location,
-        max_results=max_results,
-        detail=detail,
-        resolve=resolve,
-        cache=cache,
-        exclude_keywords=exclude_keywords,
-        exclude_keywords_context=exclude_keywords_context,
-        exclude_companies=exclude_companies,
-        has_salary=has_salary,
-        skip_slow=skip_slow,
-        source_timeout_ms=source_timeout_ms,
-        dedupe=dedupe,
-    )
-
-
-def _search_impl(
-    query: str,
-    sources: str = "all",
-    profile: str | None = None,
-    country: str | None = None,
-    remote_only: bool = False,
-    experience: str | None = None,
-    location: str | None = None,
-    max_results: int = 20,
-    detail: bool = False,
-    resolve: bool = False,
-    cache: bool = True,
-    exclude_keywords: str | None = None,
-    exclude_keywords_context: str | None = None,
-    exclude_companies: str | None = None,
-    has_salary: bool = False,
-    skip_slow: bool = False,
-    source_timeout_ms: int = 30_000,
-    dedupe: bool = True,
-) -> dict:
-    from job_harness.search_runner import execute_search
-
-    results = execute_search(
-        query=query,
-        ensure_context=_ensure_browser,
-        cache_factory=_get_cache,
-        sources=sources,
-        profile=profile,
-        country=country,
-        remote_only=remote_only,
-        experience=experience,
-        location=location,
-        max_results=max_results,
-        detail=detail,
-        resolve=resolve,
-        cache=cache,
-        exclude_keywords=exclude_keywords,
-        exclude_keywords_context=exclude_keywords_context,
-        exclude_companies=exclude_companies,
-        has_salary=has_salary,
-        skip_slow=skip_slow,
-        source_timeout_ms=source_timeout_ms,
-        dedupe=dedupe,
-    )
-    return results.to_dict()
-
-
-@mcp.tool
-async def resolve(
-    listings: list[dict],
-    query: str | None = None,
-    cache: bool = True,
-) -> list[dict]:
-    """Resolve a batch of job listings to direct employer career pages.
-
-    Each listing dict should have at least 'company', 'url', 'title', and 'source'.
-
-    Args:
-        listings: List of listing dicts to resolve
-        query: Original search query (improves vacancy matching)
-        cache: Use employer cache for resolution
-    """
-    return await _with_browser(_resolve_impl, listings=listings, query=query, cache=cache)
-
-
-def _resolve_impl(
-    listings: list[dict],
-    query: str | None = None,
-    cache: bool = True,
-) -> list[dict]:
-    from job_harness.employer_resolver import resolve_listings
-
-    context = _ensure_browser()
-    employer_cache = _get_cache() if cache else None
-    enriched = resolve_listings(listings, context, query=query, cache=employer_cache)
-
-    results = []
-    for e in enriched:
-        entry: dict[str, str | None] = {
-            "company": e.company,
-            "title": e.title,
-            "aggregator_url": e.original_url,
-            "source": e.source,
-            "best_url": e.best_url,
-        }
-        if e.careers_page:
-            cp = e.careers_page
-            entry["careers_url"] = cp.careers_url
-            entry["careers_type"] = cp.page_type
-            entry["direct_vacancy_url"] = cp.direct_vacancy_url
-            if cp.error:
-                entry["error"] = cp.error
-        results.append(entry)
-    return results
-
-
-@mcp.tool
-async def resolve_company(
-    company: str,
-    query: str | None = None,
-    cache: bool = True,
-) -> dict:
-    """Resolve a single company to its career page and optionally find a matching vacancy.
-
-    Args:
-        company: Company name to resolve
-        query: Search query for vacancy matching (e.g. "QA engineer")
-        cache: Use employer cache
-    """
-    return await _with_browser(
-        _resolve_company_impl,
-        company=company,
-        query=query,
-        cache=cache,
-    )
-
-
-def _resolve_company_impl(
-    company: str,
-    query: str | None = None,
-    cache: bool = True,
-) -> dict:
-    from job_harness.employer_resolver import resolve_company_careers
-
-    context = _ensure_browser()
-    employer_cache = _get_cache() if cache else None
-    result = resolve_company_careers(company, context, query=query, cache=employer_cache)
-    return asdict(result)
-
-
-# ---------------------------------------------------------------------------
-# Non-blocking surface — search_start / search_status / search_results /
-# search_cancel / search_refine / list_active_runs.
-#
-# These tools never block the agent's turn for longer than ~100 ms. The
-# engine runs as a background asyncio.Task; the journal on disk is the
-# source of truth so polling and result-reading work even after the
-# server restarts.
-# ---------------------------------------------------------------------------
-
-_RUNS_ROOT = _PLUGIN_ROOT / "data" / ".runs"
-_engine_singleton = None
-_run_registry_singleton = None
-
-
-def _get_engine():
-    global _engine_singleton
-    if _engine_singleton is None:
-        from job_harness.search_engine import SearchEngine
-
-        baselines = _PLUGIN_ROOT / "data" / "source_baselines.json"
-        _engine_singleton = SearchEngine(
-            sanity_baselines_path=baselines if baselines.exists() else None,
-        )
-    return _engine_singleton
-
-
-def _get_run_registry():
-    global _run_registry_singleton
-    if _run_registry_singleton is None:
-        # Lazy import so the registry's GC doesn't run at module load
-        # when no tool has been invoked.
-        import job_harness.scrapers  # noqa: F401  — register all scrapers
-        import job_harness.scrapers.career  # noqa: F401
-        from job_harness.run_registry import RunRegistry
-
-        async def runner(request, journal, run_id):
-            await _get_engine().execute(request, journal=journal, run_id=run_id)
-
-        _run_registry_singleton = RunRegistry(
-            runs_root=_RUNS_ROOT,
-            engine_runner=runner,
-        )
-    return _run_registry_singleton
 
 
 def _build_search_request(
@@ -645,6 +272,11 @@ def _summary_dict(reader) -> dict:
     return reader.snapshot().to_dict()
 
 
+# ---------------------------------------------------------------------------
+# Non-blocking search surface
+# ---------------------------------------------------------------------------
+
+
 @mcp.tool
 async def search_start(
     query: str,
@@ -670,7 +302,7 @@ async def search_start(
     """Kick off a search in the background. Returns immediately (<100ms).
 
     The run writes its results to data/.runs/<run_id>/raw.jsonl with
-    fsync per listing — search_status, search_results, search_cancel
+    fsync per listing. search_status, search_results, search_cancel
     operate on that journal and never block.
     """
     from job_harness.run_registry import MaxConcurrentRunsReached
@@ -712,8 +344,7 @@ async def search_start(
 
 @mcp.tool
 async def search_status(run_id: str) -> dict:
-    """Cheap (<50ms) poll. Reads the journal on disk; works after
-    server restart for runs evicted from memory."""
+    """Cheap (<50ms) poll. Reads the journal on disk."""
     from job_harness.run_registry import UnknownRunId
 
     registry = _get_run_registry()
@@ -726,7 +357,6 @@ async def search_status(run_id: str) -> dict:
     except UnknownRunId:
         return {"error": "unknown_run_id", "run_id": run_id}
     snap = reader.snapshot()
-    summary = _summary_dict(reader)
     return {
         "run_id": run_id,
         "state": snap.state.value,
@@ -736,7 +366,7 @@ async def search_status(run_id: str) -> dict:
         "listings_count": snap.listings_count,
         "errors": snap.errors,
         "sources": {name: s.to_dict() for name, s in snap.sources.items()},
-        "summary": summary,
+        "summary": _summary_dict(reader),
     }
 
 
@@ -744,12 +374,7 @@ async def search_status(run_id: str) -> dict:
 async def search_results(
     run_id: str, max_results: int = 20, include_partial: bool = True
 ) -> dict:
-    """Return the SearchResults snapshot derived from the journal.
-
-    Works on running, completed, cancelled, and failed runs. If the
-    run is still in flight and include_partial is False, returns a
-    {"error": "still_running"} placeholder.
-    """
+    """Return the SearchResults snapshot derived from the journal."""
     from job_harness.run_registry import UnknownRunId
     from job_harness.types import RunState
 
@@ -806,14 +431,7 @@ async def search_refine(
     max_results: int = 20,
     strict_refine: bool = False,
 ) -> dict:
-    """Re-filter the journal of a finished run without re-scraping.
-
-    The original capabilities determine whether a listing's source
-    can honestly enforce a refine filter; sources whose capability
-    for a refine filter is UNSUPPORTED have their listings tagged
-    with raw['filter_uncertain'][flag]=True (lenient) or removed
-    (strict_refine=True).
-    """
+    """Re-filter the journal of a finished run without re-scraping."""
     from job_harness.filters import (
         _exclude_companies,
         apply_filters,
@@ -837,16 +455,15 @@ async def search_refine(
         return {"error": "unknown_run_id", "run_id": run_id}
 
     snap = reader.snapshot()
-    listings_raw = list(snap.listings)
-    # Re-hydrate JobListing objects so the existing predicate filters work.
     listings: list[JobListing] = []
-    for raw in listings_raw:
+    for raw in snap.listings:
         try:
-            listings.append(JobListing(**{k: v for k, v in raw.items() if k in JobListing.__dataclass_fields__}))
+            listings.append(
+                JobListing(**{k: v for k, v in raw.items() if k in JobListing.__dataclass_fields__})
+            )
         except TypeError:
             continue
 
-    from collections.abc import Callable as _Callable
     predicates: list[_Callable[[JobListing], bool]] = []
     refine_flags: list[str] = []
     if remote_only:
@@ -889,9 +506,7 @@ async def search_refine(
 
 @mcp.tool
 async def list_active_runs(limit: int = 20) -> dict:
-    """Recent runs from data/.runs/, in-memory and on-disk together.
-
-    Useful after server restart to discover what runs exist."""
+    """Recent runs from data/.runs/, in-memory and on-disk together."""
     summaries = _get_run_registry().list_recent(limit=limit)
     return {"runs": [s.to_dict() for s in summaries]}
 

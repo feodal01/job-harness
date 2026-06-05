@@ -38,14 +38,14 @@ from time import monotonic as _monotonic
 from typing import Any
 
 import job_harness.registry as registry
-from job_harness.http_runner import HttpRunner, SourceOutcome
-from job_harness.models import JobListing, SearchParams, SearchResults
-from job_harness.run_journal import RunJournalReader, RunJournalWriter
-from job_harness.search_runner import (
-    _apply_filter_plan as apply_filter_plan,
+from job_harness.dedupe_filter import (
+    apply_filter_plan,
     build_filter_plan,
     dedupe_listings,
 )
+from job_harness.http_runner import HttpRunner, SourceOutcome
+from job_harness.models import JobListing, SearchParams, SearchResults
+from job_harness.run_journal import RunJournalReader, RunJournalWriter
 from job_harness.types import (
     CAPABILITY_FLAGS,
     FailureMode,
