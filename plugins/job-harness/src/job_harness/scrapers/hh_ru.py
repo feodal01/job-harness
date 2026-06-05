@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import sys
+from typing import ClassVar
 
 from job_harness.base import BaseScraper
 from job_harness.models import JobListing, SearchParams
 from job_harness.registry import register_scraper
+from job_harness.types import FilterSupport, ScraperCapabilities
 
 
 @register_scraper("hh_ru")
@@ -14,6 +16,17 @@ class HHRuScraper(BaseScraper):
     display_name = "hh.ru"
     BASE_URL = "https://hh.ru/search/vacancy"
     countries = ("RU",)
+
+    # remote_only via schedule=remote URL param; country via subdomain;
+    # experience via mapping in _build_search_url; query via text= param.
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.SERVER,
+        "country": FilterSupport.SERVER,
+        "experience": FilterSupport.SERVER,
+        "location": FilterSupport.BEST_EFFORT,
+        "has_salary": FilterSupport.UNSUPPORTED,
+        "query_match": FilterSupport.SERVER,
+    }
 
     def search(self, params: SearchParams) -> list[JobListing]:
         page = self.context.new_page()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from html.parser import HTMLParser
+from typing import ClassVar
 from urllib.error import URLError
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
@@ -11,6 +12,7 @@ from urllib.request import Request, urlopen
 from job_harness.base import BaseScraper
 from job_harness.models import JobListing, SearchParams
 from job_harness.registry import register_scraper
+from job_harness.types import FilterSupport, ScraperCapabilities
 
 _USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -154,6 +156,15 @@ class HabrCareerScraper(BaseScraper):
     countries = ("RU",)
     requires_browser = False
     detail_requires_browser = False
+
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.SERVER,           # remote=true URL param
+        "country": FilterSupport.CLIENT,               # RU-only by design
+        "experience": FilterSupport.SERVER,            # qualification=
+        "location": FilterSupport.BEST_EFFORT,
+        "has_salary": FilterSupport.UNSUPPORTED,
+        "query_match": FilterSupport.SERVER,           # q=
+    }
 
     def search(self, params: SearchParams) -> list[JobListing]:
         listings: list[JobListing] = []

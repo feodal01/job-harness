@@ -5,11 +5,30 @@ from __future__ import annotations
 import re
 import time
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 from job_harness.models import JobListing, SearchParams
+from job_harness.types import (
+    CAPABILITY_FLAGS,
+    FilterSupport,
+    ScraperCapabilities,
+    Transport,
+)
 
 # Experience level ordering for normalization
 _EXP_ORDER = {"junior": 0, "middle": 1, "senior": 2}
+
+# Default capability matrix — every flag UNSUPPORTED. Subclasses MUST
+# override with an honest declaration; the capability-matrix test fails
+# CI if a class leaves the default.
+_DEFAULT_CAPABILITIES: ScraperCapabilities = {
+    "remote_only": FilterSupport.UNSUPPORTED,
+    "country": FilterSupport.UNSUPPORTED,
+    "experience": FilterSupport.UNSUPPORTED,
+    "location": FilterSupport.UNSUPPORTED,
+    "has_salary": FilterSupport.UNSUPPORTED,
+    "query_match": FilterSupport.UNSUPPORTED,
+}
 
 
 class BaseScraper(ABC):
@@ -19,6 +38,12 @@ class BaseScraper(ABC):
     requires_browser: bool = True
     detail_requires_browser: bool = True
 
+    # New capability surface — see plans/resilient-scraping.md §3.
+    # Subclasses declare per-flag enforcement honesty. The capability
+    # matrix test (tests/test_capability_matrix.py) asserts every
+    # registered scraper overrides this with an explicit declaration.
+    capabilities: ClassVar[ScraperCapabilities] = _DEFAULT_CAPABILITIES
+
     def __init__(self, context, max_results: int = 20, debug: bool = False, timeout_ms: int | None = None):
         self.context = context
         self.max_results = max_results
@@ -27,6 +52,24 @@ class BaseScraper(ABC):
         self._started_at = time.monotonic()
         self.timed_out = False
         self.runtime_error: Exception | None = None
+
+    @classmethod
+    def transport(cls) -> Transport:
+        """Which runner the engine will use to dispatch this scraper."""
+        return Transport.BROWSER if cls.requires_browser else Transport.HTTP
+
+    @classmethod
+    def declares_full_capabilities(cls) -> bool:
+        """True iff this class explicitly set its `capabilities` ClassVar.
+
+        Used by the capability-matrix test to fail loudly if a scraper
+        is added without an honest declaration.
+        """
+        # Identity check against the module-level default sentinel —
+        # subclasses that override with their own dict are not == it.
+        return cls.capabilities is not _DEFAULT_CAPABILITIES and all(
+            key in cls.capabilities for key in CAPABILITY_FLAGS
+        )
 
     @property
     def fetch_timeout_seconds(self) -> float | None:
