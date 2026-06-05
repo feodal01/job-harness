@@ -102,7 +102,7 @@ class CapabilityCoverageTest(unittest.TestCase):
         from job_harness.models import SearchParams
         from job_harness.scrapers.hh_ru import HHRuScraper
 
-        scraper = HHRuScraper(context=None, max_results=1)
+        scraper = HHRuScraper(max_results=1)
         with_remote = scraper._build_search_url(
             SearchParams(query="QA", remote_only=True, country="RU")
         )

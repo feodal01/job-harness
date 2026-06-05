@@ -34,6 +34,7 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from time import monotonic as _monotonic
 from typing import Any
 
 import job_harness.registry as registry
@@ -232,18 +233,28 @@ class SearchEngine:
         self,
         *,
         http_runner: HttpRunner | None = None,
+        browser_pool: Any | None = None,
         scraper_factory: Callable[[str, int, int, bool], Any] | None = None,
         sanity_baselines_path: Path | None = None,
     ) -> None:
         # http_runner is owned externally so callers can shutdown() its
         # executor explicitly when the process exits.
         self._http_runner = http_runner or HttpRunner()
+        # browser_pool is optional: when not provided, browser sources
+        # are recorded as SKIPPED (no browser available). The MCP layer
+        # injects a real pool at module load; tests that don't exercise
+        # browser sources can leave it as None.
+        self._browser_pool = browser_pool
         self._scraper_factory = scraper_factory or _default_scraper_factory
         self._sanity_baselines_path = sanity_baselines_path
 
     @property
     def http_runner(self) -> HttpRunner:
         return self._http_runner
+
+    @property
+    def browser_pool(self) -> Any | None:
+        return self._browser_pool
 
     async def execute(
         self,
@@ -395,11 +406,11 @@ class SearchEngine:
     ) -> SourceOutcome:
         """Build the scraper instance and hand it to the matching runner.
 
-        For HTTP sources the HttpRunner enforces the deadline.
-        For browser sources the engine currently records SKIPPED with
-        NOT_IN_PROFILE because the existing scrapers still use sync
-        Playwright (they will be migrated to async + BrowserPool in the
-        next phase).
+        HTTP sources go through HttpRunner (own executor, per-source
+        deadline). Browser sources go through BrowserPool.run_with_page
+        (async Playwright, semaphore-capped, anti-bot probe). When no
+        browser_pool was injected, browser sources are SKIPPED with a
+        clear note instead of silently dropped.
         """
         journal.write_source_started(
             source=entry.name,
@@ -420,20 +431,110 @@ class SearchEngine:
                 scraper, params, deadline_ms=request.source_timeout_ms,
             )
 
-        # Browser source — synthesise a SKIPPED outcome until Phase 5.
-        return SourceOutcome(
-            status=SourceStatus(
-                source=entry.name,
-                display_name=entry.display_name,
-                transport=Transport.BROWSER,
-                state=SourceState.SKIPPED,
-                failure_mode=FailureMode.NOT_IN_PROFILE,
-                duration_ms=0,
-                flag_enforcement=entry.capabilities,
-                error_message="browser scraper migration to async BrowserPool pending",
-            ),
-            listings=[],
+        # Browser source.
+        if self._browser_pool is None:
+            return SourceOutcome(
+                status=SourceStatus(
+                    source=entry.name,
+                    display_name=entry.display_name,
+                    transport=Transport.BROWSER,
+                    state=SourceState.SKIPPED,
+                    failure_mode=FailureMode.NOT_IN_PROFILE,
+                    duration_ms=0,
+                    flag_enforcement=entry.capabilities,
+                    error_message="no browser_pool configured for this engine",
+                ),
+                listings=[],
+            )
+        return await self._run_browser_source(entry, request, params)
+
+    async def _run_browser_source(
+        self,
+        entry: _SourceEntry,
+        request: SearchRequest,
+        params: SearchParams,
+    ) -> SourceOutcome:
+        """Dispatch one browser scraper through the BrowserPool.
+
+        Translates pool outcomes into SourceStatus:
+          • normal return     → OK
+          • BlockedResult     → BLOCKED with the matched FailureMode
+          • TimeoutError      → TIMEOUT / GOTO_TIMEOUT
+          • PoolAcquireError  → TIMEOUT / POOL_ACQUIRE_TIMEOUT
+          • Other exception   → ERROR / PARSE_ERROR
+        """
+        # Local imports to keep the engine module load-light. browser_pool
+        # is only needed at dispatch time.
+        from job_harness.browser_pool import BlockedResult, PoolAcquireTimeout
+        from job_harness.types import BLOCK_REASON_TO_FAILURE_MODE
+
+        scraper = self._scraper_factory(
+            entry.name,
+            request.max_results,
+            request.source_timeout_ms,
+            False,
         )
+
+        async def _callable(page: Any) -> list[JobListing]:
+            return await scraper.search_with_page(page, params)
+
+        started_at = _monotonic()
+        listings: list[JobListing] = []
+        state = SourceState.OK
+        failure_mode: FailureMode | None = None
+        anti_bot_signal: str | None = None
+        error_class: str | None = None
+        error_message: str | None = None
+
+        assert self._browser_pool is not None, "_run_browser_source requires browser_pool"
+        try:
+            result = await self._browser_pool.run_with_page(
+                _callable, timeout_ms=request.source_timeout_ms,
+            )
+        except asyncio.CancelledError:
+            raise
+        except TimeoutError as exc:
+            state, failure_mode = SourceState.TIMEOUT, FailureMode.GOTO_TIMEOUT
+            error_class, error_message = type(exc).__name__, "browser page deadline exceeded"
+        except PoolAcquireTimeout as exc:
+            state, failure_mode = SourceState.TIMEOUT, FailureMode.POOL_ACQUIRE_TIMEOUT
+            error_class, error_message = type(exc).__name__, str(exc)
+        except Exception as exc:
+            state, failure_mode = SourceState.ERROR, FailureMode.PARSE_ERROR
+            error_class, error_message = type(exc).__name__, str(exc)
+        else:
+            if isinstance(result, BlockedResult):
+                state = SourceState.BLOCKED
+                failure_mode = BLOCK_REASON_TO_FAILURE_MODE[result.block.reason]
+                anti_bot_signal = result.block.signal
+                error_class = "BrowserBlocked"
+                error_message = f"page tripped {result.block.reason.value}"
+                # Discard partial listings parsed before the block was
+                # detected — we cannot trust their integrity.
+            elif isinstance(result, list):
+                listings = result
+            else:
+                state, failure_mode = SourceState.ERROR, FailureMode.PARSE_ERROR
+                error_class = "ProtocolError"
+                error_message = (
+                    f"scraper returned {type(result).__name__}, expected list[JobListing]"
+                )
+
+        duration_ms = int((_monotonic() - started_at) * 1000)
+        status = SourceStatus(
+            source=entry.name,
+            display_name=entry.display_name,
+            transport=Transport.BROWSER,
+            state=state,
+            failure_mode=failure_mode,
+            duration_ms=duration_ms,
+            raw_count=len(listings),
+            flag_enforcement=entry.capabilities,
+            anti_bot_signal=anti_bot_signal,
+            error_class=error_class,
+            error_message=error_message,
+        )
+        return SourceOutcome(status=status, listings=listings)
 
     def _coerce_outcome(
         self,
@@ -606,17 +707,20 @@ def _request_to_params(request: SearchRequest) -> SearchParams:
 def _default_scraper_factory(
     name: str, max_results: int, timeout_ms: int, debug: bool
 ) -> Any:
-    """Construct a legacy-API scraper (context=None for HTTP scrapers).
+    """Construct a scraper instance for engine dispatch.
 
-    Used until Phase 5 migrates scrapers to the new ScraperContext.
+    HTTP scrapers keep the legacy `(context, max_results, ...)` ctor;
+    we pass None for the context they don't use.
+
+    Browser scrapers extend BaseBrowserScraper, whose `__init__` accepts
+    only `(max_results, debug, timeout_ms)` because the engine hands
+    them a Page at search time.
     """
-    return registry.create_scraper(
-        name,
-        None,
-        max_results=max_results,
-        timeout_ms=timeout_ms,
-        debug=debug,
-    )
+    cls = registry.get_scraper_class(name)
+    if cls.requires_browser:
+        # Browser scrapers don't take a context — engine hands them a Page.
+        return cls(max_results=max_results, timeout_ms=timeout_ms, debug=debug)  # type: ignore[call-arg]
+    return cls(context=None, max_results=max_results, timeout_ms=timeout_ms, debug=debug)
 
 
 def _build_flag_enforcement_summary(

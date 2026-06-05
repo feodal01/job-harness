@@ -127,3 +127,44 @@ class BaseScraper(ABC):
         if self.debug:
             safe = re.sub(r'[^\w]', '_', name)
             page.screenshot(path=f"debug_{self.name}_{safe}.png")
+
+
+class BaseBrowserScraper(BaseScraper):
+    """Browser scraper dispatched through the async BrowserPool.
+
+    Subclasses implement `search_with_page(page, params)` using async
+    Playwright. The engine acquires a page from the pool and passes it
+    in; the pool enforces the per-call deadline via asyncio.wait_for
+    and runs the anti-bot probe afterwards.
+
+    Browser scrapers do NOT implement the sync `search(params)`; the
+    engine is the only dispatch path.
+    """
+
+    requires_browser = True
+    detail_requires_browser = True
+
+    def __init__(self, max_results: int = 20, debug: bool = False, timeout_ms: int | None = None):
+        # No `context` argument — the engine hands a Page directly to
+        # search_with_page. Pass None to the parent so unused legacy
+        # state stays nominal.
+        super().__init__(None, max_results=max_results, debug=debug, timeout_ms=timeout_ms)
+
+    def search(self, params: SearchParams) -> list[JobListing]:
+        raise NotImplementedError(
+            f"{type(self).__name__} is async-only; the SearchEngine "
+            "dispatches it via BrowserPool.run_with_page → search_with_page"
+        )
+
+    def fetch_detail(self, listing: JobListing) -> JobListing:
+        raise NotImplementedError(
+            f"{type(self).__name__} is async-only; use fetch_detail_with_page"
+        )
+
+    @abstractmethod
+    async def search_with_page(self, page, params: SearchParams) -> list[JobListing]:
+        """Run the scraper against the given async Playwright Page."""
+
+    async def fetch_detail_with_page(self, listing: JobListing, page) -> JobListing:
+        """Async detail fetch. Default: no enrichment."""
+        return listing
