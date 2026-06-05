@@ -1,18 +1,21 @@
 """IBS career site scraper — ibs.ru/career/vacancies/.
 
 Bitrix-powered site. Uses SEF (Search Engine Friendly) filter URLs for
-server-side filtering, e.g. /career/vacancies/filter/napravlenie-is-testirovanie/apply/.
-Vacancies are in a.jobs-item cards with .jobs-item-title, .jobs-item-tags,
-.jobs-item-desc.
+server-side filtering: /career/vacancies/filter/napravlenie-is-testirovanie/apply/.
+
+Async-only: dispatched by SearchEngine through BrowserPool.
 """
 
 from __future__ import annotations
 
-from job_harness.models import JobListing, SearchParams
-from job_harness.scrapers.career.base import BaseCareerScraper, register_career_scraper
+from typing import ClassVar
 
-# Query keyword → Bitrix SEF URL_ID mapping
-# Property 210 (Направление) is the primary category filter
+from job_harness.base import BaseBrowserScraper
+from job_harness.models import JobListing, SearchParams
+from job_harness.registry import register_scraper
+from job_harness.types import FilterSupport, ScraperCapabilities
+
+# Query keyword → Bitrix SEF segment mapping (property 210 — primary direction).
 _DIRECTION_MAP = {
     "тестиров": "testirovanie",
     "qa": "testirovanie",
@@ -27,7 +30,7 @@ _DIRECTION_MAP = {
     "инженер": "inzhenery",
 }
 
-# Sub-category filters (property 523 — specialization within direction)
+# Sub-category filters (property 523 — specialisation within direction).
 _SUBCATEGORY_MAP = {
     "ручн": "ruchnoe-testirovanie",
     "авто": "avtomatizirovannoe-testirovanie",
@@ -39,14 +42,14 @@ _SUBCATEGORY_MAP = {
     "data": "upravlenie-dannymi",
 }
 
-# Work format filters (property 209)
+# Work format filters (property 209).
 _FORMAT_MAP = {
     "удален": "online",
     "офис": "office",
     "гибрид": "flexible",
 }
 
-# City filters (property 217)
+# City filters (property 217).
 _CITY_MAP = {
     "москва": "moscow",
     "мск": "moscow",
@@ -57,79 +60,83 @@ _CITY_MAP = {
     "тюмень": "tyumen",
 }
 
+_BASE_URL = "https://ibs.ru/career/vacancies/"
 _BASE_FILTER_URL = "https://ibs.ru/career/vacancies/filter"
 
 
-@register_career_scraper("ibs")
-class IBSCareerScraper(BaseCareerScraper):
-    company = "IBS"
-    careers_url = "https://ibs.ru/career/vacancies/"
+@register_scraper("career:ibs")
+class IBSCareerScraper(BaseBrowserScraper):
+    display_name = "IBS (career)"
+    countries = ("RU",)
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.SERVER,        # format-is-online segment
+        "country": FilterSupport.CLIENT,            # RU-only
+        "experience": FilterSupport.UNSUPPORTED,
+        "location": FilterSupport.SERVER,           # gorod-is-* segment
+        "has_salary": FilterSupport.UNSUPPORTED,
+        "query_match": FilterSupport.SERVER,        # napravlenie-is-* segment
+    }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    async def search_with_page(self, page, params: SearchParams) -> list[JobListing]:
         url = self._build_filter_url(params)
-        page = self.context.new_page()
-        results = []
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=15000)
-            page.wait_for_timeout(3000)
+        await page.goto(url, wait_until="domcontentloaded")
+        await page.wait_for_timeout(1500)
 
-            items = page.locator("a.jobs-item")
-            for i in range(min(items.count(), params.max_results)):
-                try:
-                    item = items.nth(i)
-                    href = item.get_attribute("href") or ""
-                    if not href:
-                        continue
+        listings: list[JobListing] = []
+        items = page.locator("a.jobs-item")
+        count = await items.count()
+        for i in range(min(count, self.max_results)):
+            try:
+                item = items.nth(i)
+                href = await item.get_attribute("href") or ""
+                if not href:
+                    continue
 
-                    title_el = item.locator(".jobs-item-title")
-                    title = title_el.inner_text().strip() if title_el.count() > 0 else ""
+                title_loc = item.locator(".jobs-item-title")
+                title = (await title_loc.inner_text()).strip() if await title_loc.count() > 0 else ""
 
-                    tags_el = item.locator(".jobs-item-tags")
-                    tags_text = tags_el.inner_text().strip() if tags_el.count() > 0 else ""
+                tags_loc = item.locator(".jobs-item-tags")
+                tags_text = (await tags_loc.inner_text()).strip() if await tags_loc.count() > 0 else ""
 
-                    desc_el = item.locator(".jobs-item-desc")
-                    description = desc_el.inner_text().strip() if desc_el.count() > 0 else ""
+                desc_loc = item.locator(".jobs-item-desc")
+                description = (await desc_loc.inner_text()).strip() if await desc_loc.count() > 0 else ""
 
-                    if href.startswith("/"):
-                        href = "https://ibs.ru" + href
+                if href.startswith("/"):
+                    href = "https://ibs.ru" + href
 
-                    tags = [t.strip().lstrip("#").strip() for t in tags_text.split("\n") if t.strip()]
-                    remote = "УДАЛЕННО" in tags_text.upper()
+                tags = [t.strip().lstrip("#").strip() for t in tags_text.split("\n") if t.strip()]
+                remote = "УДАЛЕННО" in tags_text.upper()
 
-                    listing = self._make_listing(
+                listings.append(
+                    JobListing(
                         title=title or href,
                         url=href,
+                        company="IBS",
+                        country="RU",
                         remote=remote,
                         skills=tags,
                         description=description or None,
+                        source=self.name,
                     )
-                    results.append(listing)
-                except Exception:
-                    continue
-        finally:
-            page.close()
-        return results
+                )
+            except Exception:
+                continue
+        return listings
+
+    # ----- URL builder ---------------------------------------------------
 
     def _build_filter_url(self, params: SearchParams) -> str:
-        """Build a Bitrix SEF filter URL from search parameters.
-
-        Filter segments are slash-separated:
-        /filter/napravlenie-is-testirovanie/format-is-online/apply/
-        """
-        segments = []
+        segments: list[str] = []
         q = params.query.lower()
 
-        # Primary direction filter (property 210)
         direction = self._match_keyword(q, _DIRECTION_MAP)
         if direction:
             segments.append(f"napravlenie-is-{direction}")
 
-        # Sub-category filter (property 523)
         subcat = self._match_keyword(q, _SUBCATEGORY_MAP)
         if subcat:
             segments.append(subcat)
 
-        # Remote only or work format from query (property 209)
         if params.remote_only:
             segments.append("format-is-online")
         else:
@@ -137,14 +144,13 @@ class IBSCareerScraper(BaseCareerScraper):
             if fmt:
                 segments.append(f"format-is-{fmt}")
 
-        # City from query or location param (property 217)
         city = _CITY_MAP.get((params.location or "").lower()) or self._match_keyword(q, _CITY_MAP)
         if city:
             segments.append(f"gorod-is-{city}")
 
         if segments:
             return f"{_BASE_FILTER_URL}/{'/'.join(segments)}/apply/"
-        return self.careers_url
+        return _BASE_URL
 
     @staticmethod
     def _match_keyword(query: str, mapping: dict[str, str]) -> str | None:

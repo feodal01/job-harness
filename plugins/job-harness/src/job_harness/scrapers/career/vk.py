@@ -1,18 +1,24 @@
 """VK career site scraper — team.vk.company.
 
-Uses __NEXT_DATA__ SSR JSON for structured data. Supports server-side
-filtering by specialty (e.g. ?specialty=284 for QA).
+Uses __NEXT_DATA__ SSR JSON for structured data when available, falls
+back to DOM parsing. Supports server-side filtering by specialty via
+the `specialty=` URL param (e.g. specialty=284 for QA).
+
+Async-only: dispatched by SearchEngine through BrowserPool.
 """
 
 from __future__ import annotations
 
 import json
+from typing import ClassVar
 
+from job_harness.base import BaseBrowserScraper
 from job_harness.models import JobListing, SearchParams
-from job_harness.scrapers.career.base import BaseCareerScraper, register_career_scraper
+from job_harness.registry import register_scraper
+from job_harness.types import FilterSupport, ScraperCapabilities
 
-# Specialty ID mapping for common filters
-SPECIALTY_MAP = {
+# VK's specialty IDs for common queries.
+_SPECIALTY_MAP = {
     "qa": 284,
     "backend": 282,
     "frontend": 287,
@@ -25,90 +31,106 @@ SPECIALTY_MAP = {
 }
 
 
-@register_career_scraper("vk")
-class VKCareerScraper(BaseCareerScraper):
-    company = "ВКонтакте"
-    careers_url = "https://team.vk.company/vacancy/"
+@register_scraper("career:vk")
+class VKCareerScraper(BaseBrowserScraper):
+    display_name = "ВКонтакте (career)"
+    BASE_URL = "https://team.vk.company/vacancy/"
+    countries = ("RU",)
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.SERVER,            # remote=true URL param
+        "country": FilterSupport.CLIENT,                # RU-only
+        "experience": FilterSupport.UNSUPPORTED,
+        "location": FilterSupport.CLIENT,
+        "has_salary": FilterSupport.UNSUPPORTED,
+        "query_match": FilterSupport.SERVER,            # specialty=
+    }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
-        page = self.context.new_page()
-        results = []
-        try:
-            url = self._build_url(params)
-            page.goto(url, wait_until="domcontentloaded", timeout=15000)
-            page.wait_for_timeout(3000)
+    async def search_with_page(self, page, params: SearchParams) -> list[JobListing]:
+        url = self._build_url(params)
+        await page.goto(url, wait_until="domcontentloaded")
+        await page.wait_for_timeout(1000)
 
-            vacancies = self._parse_next_data(page)
-            if not vacancies:
-                # Fallback: parse DOM if __NEXT_DATA__ unavailable
-                vacancies = self._parse_dom(page)
+        # Prefer __NEXT_DATA__ if present — it contains structured rows.
+        vacancies = await self._read_next_data(page)
+        if not vacancies:
+            vacancies = await self._read_dom(page)
 
-            for v in vacancies[:params.max_results]:
-                results.append(self._to_listing(v))
-        finally:
-            page.close()
-        return results
+        listings: list[JobListing] = []
+        for v in vacancies[: self.max_results]:
+            listings.append(self._to_listing(v))
+        return listings
+
+    # ----- internal -------------------------------------------------------
 
     def _build_url(self, params: SearchParams) -> str:
-        url = self.careers_url
-        query_parts = []
-
+        parts: list[str] = []
         specialty_id = self._detect_specialty(params.query)
         if specialty_id:
-            query_parts.append(f"specialty={specialty_id}")
-
+            parts.append(f"specialty={specialty_id}")
         if params.remote_only:
-            query_parts.append("remote=true")
+            parts.append("remote=true")
+        if params.query and specialty_id is None:
+            parts.append(f"search={params.query}")
+        return self.BASE_URL + ("?" + "&".join(parts) if parts else "")
 
-        if params.query and not specialty_id:
-            query_parts.append(f"search={params.query}")
-
-        if query_parts:
-            url += "?" + "&".join(query_parts)
-        return url
-
-    def _detect_specialty(self, query: str) -> int | None:
-        q = query.lower()
-        for keyword, sid in SPECIALTY_MAP.items():
-            if keyword in q:
+    @staticmethod
+    def _detect_specialty(query: str) -> int | None:
+        lowered = query.lower()
+        for keyword, sid in _SPECIALTY_MAP.items():
+            if keyword in lowered:
                 return sid
         return None
 
-    def _parse_next_data(self, page) -> list[dict]:
+    async def _read_next_data(self, page) -> list[dict]:
         try:
-            data = page.evaluate("""() => {
-                const el = document.getElementById('__NEXT_DATA__');
-                return el ? el.textContent : null;
-            }""")
-            if not data:
-                return []
-            parsed = json.loads(data)
-            return parsed["props"]["pageProps"]["initialVacancies"]
-        except (json.JSONDecodeError, KeyError, TypeError):
+            data = await page.evaluate(
+                "() => { const el = document.getElementById('__NEXT_DATA__');"
+                " return el ? el.textContent : null; }"
+            )
+        except Exception:
             return []
+        if not data:
+            return []
+        try:
+            parsed = json.loads(data)
+            value = parsed["props"]["pageProps"]["initialVacancies"]
+        except (KeyError, TypeError, json.JSONDecodeError):
+            return []
+        return value if isinstance(value, list) else []
 
-    def _parse_dom(self, page) -> list[dict]:
-        vacancies = []
-        links = page.locator("a.vacancy_vacancyItem__jrNqL")
-        for i in range(min(links.count(), 50)):
+    async def _read_dom(self, page) -> list[dict]:
+        # Fallback when __NEXT_DATA__ isn't present (rare).
+        items = page.locator("a.vacancy_vacancyItem__jrNqL")
+        count = await items.count()
+        out: list[dict] = []
+        for i in range(min(count, 50)):
             try:
-                href = links.nth(i).get_attribute("href") or ""
-                text = links.nth(i).inner_text().strip()
+                href = await items.nth(i).get_attribute("href") or ""
+                text = (await items.nth(i).inner_text()).strip()
                 if not text or href == "/vacancy/":
                     continue
-                vacancies.append({"id": href.strip("/").split("/")[-1], "title": text, "href": href})
+                out.append({"id": href.strip("/").split("/")[-1], "title": text, "href": href})
             except Exception:
                 continue
-        return vacancies
+        return out
 
     def _to_listing(self, v: dict) -> JobListing:
         if "href" in v:
-            # DOM fallback
             href = v["href"]
-            url = f"https://team.vk.company{href}" if href.startswith("/") else href
-            return self._make_listing(title=v.get("title", ""), url=url)
+            url = (
+                f"https://team.vk.company{href}"
+                if href.startswith("/")
+                else href
+            )
+            return JobListing(
+                title=v.get("title", ""),
+                url=url,
+                company=self.display_name,
+                country="RU",
+                source=self.name,
+            )
 
-        # __NEXT_DATA__ structured
+        # Structured __NEXT_DATA__ shape.
         vac_id = v.get("id", "")
         url = f"https://team.vk.company/vacancy/{vac_id}/"
         group = v.get("group", {}).get("name", "")
@@ -122,12 +144,14 @@ class VKCareerScraper(BaseCareerScraper):
         if work_format:
             location = f"{town}, {work_format}"
 
-        return self._make_listing(
+        return JobListing(
             title=v.get("title", ""),
             url=url,
-            company=group or self.company,
+            company=group or self.display_name,
+            country="RU",
             location=location,
             remote=remote,
             skills=tags,
-            experience=specialty,
+            experience=specialty or None,
+            source=self.name,
         )
