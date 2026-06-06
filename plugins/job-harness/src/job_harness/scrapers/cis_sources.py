@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from typing import ClassVar
 from urllib.parse import urlencode
 
 from job_harness.base import BaseScraper
@@ -19,6 +20,7 @@ from job_harness.scrapers.http_common import (
     fetch_text,
     normalize_text,
 )
+from job_harness.types import FilterSupport, ScraperCapabilities
 
 _SALARY_RE = re.compile(r"(?:от\s*)?(?:~\s*)?\d[\d\s.,]*(?:K|к)?(?:\s*(?:₽|\$|€|руб))?", re.I)
 _DATE_RE = re.compile(r"\b\d{1,2}\s+[а-яё]+\b", re.I)
@@ -174,6 +176,14 @@ class HireHiScraper(_HtmlAnchorScraper):
     link_pattern = re.compile(
         r"^/(?:qa|marketing|devops|analytics|development|design|management|backend|frontend|fullstack|python|java|go|mobile|ml-ai)/[^/]+-\d+$"
     )
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.BEST_EFFORT,   # parsed from anchor text via _is_remote
+        "country": FilterSupport.CLIENT,            # RU-only by design
+        "experience": FilterSupport.BEST_EFFORT,
+        "location": FilterSupport.BEST_EFFORT,
+        "has_salary": FilterSupport.BEST_EFFORT,
+        "query_match": FilterSupport.SERVER,        # query= URL param
+    }
 
     def _listing_from_anchor(self, anchor: Anchor, url: str, params: SearchParams) -> JobListing | None:
         text = normalize_text(anchor.text)
@@ -205,6 +215,15 @@ class HirifyScraper(BaseScraper):
     countries = CIS_COUNTRY_CODES
     requires_browser = False
     detail_requires_browser = False
+
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.CLIENT,        # work_format field
+        "country": FilterSupport.CLIENT,            # country/location field
+        "experience": FilterSupport.BEST_EFFORT,
+        "location": FilterSupport.CLIENT,
+        "has_salary": FilterSupport.CLIENT,         # salary_from/_to
+        "query_match": FilterSupport.SERVER,        # search= API param
+    }
 
     def search(self, params: SearchParams) -> list[JobListing]:
         data = fetch_json(self._build_search_url(params), timeout_seconds=self.fetch_timeout_seconds)
@@ -290,6 +309,15 @@ class StaffAmScraper(BaseScraper):
     requires_browser = False
     detail_requires_browser = False
 
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.CLIENT,        # is_remote in __NEXT_DATA__
+        "country": FilterSupport.CLIENT,            # AM-only by design
+        "experience": FilterSupport.BEST_EFFORT,
+        "location": FilterSupport.CLIENT,           # job_city
+        "has_salary": FilterSupport.UNSUPPORTED,
+        "query_match": FilterSupport.BEST_EFFORT,   # URL-category map + post-filter
+    }
+
     def search(self, params: SearchParams) -> list[JobListing]:
         html = fetch_text(self._build_search_url(params), timeout_seconds=self.fetch_timeout_seconds)
         data = extract_next_data(html)
@@ -371,6 +399,14 @@ class GeekJobScraper(_HtmlAnchorScraper):
     countries = CIS_COUNTRY_CODES
     link_pattern = re.compile(r"^/vacancy/[a-f0-9]+$")
     verify_ssl = False
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.BEST_EFFORT,
+        "country": FilterSupport.BEST_EFFORT,
+        "experience": FilterSupport.BEST_EFFORT,
+        "location": FilterSupport.BEST_EFFORT,
+        "has_salary": FilterSupport.BEST_EFFORT,
+        "query_match": FilterSupport.CLIENT,        # _listing_matches_query post-filter
+    }
 
     def search(self, params: SearchParams) -> list[JobListing]:
         html = fetch_text(
@@ -447,6 +483,14 @@ class TalentoScraper(_HtmlAnchorScraper):
     query_param = "q"
     countries = CIS_COUNTRY_CODES
     link_pattern = re.compile(r"^/jobs/[a-f0-9-]+$")
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.BEST_EFFORT,
+        "country": FilterSupport.BEST_EFFORT,
+        "experience": FilterSupport.BEST_EFFORT,
+        "location": FilterSupport.BEST_EFFORT,
+        "has_salary": FilterSupport.BEST_EFFORT,
+        "query_match": FilterSupport.BEST_EFFORT,
+    }
 
     def _listing_from_anchor(self, anchor: Anchor, url: str, params: SearchParams) -> JobListing | None:
         label = normalize_text(anchor.attrs.get("aria-label", "") or anchor.text)
@@ -473,6 +517,15 @@ class FinderWorkScraper(BaseScraper):
     countries = CIS_COUNTRY_CODES
     requires_browser = False
     detail_requires_browser = False
+
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.CLIENT,        # distant_work field
+        "country": FilterSupport.CLIENT,            # locations
+        "experience": FilterSupport.CLIENT,         # experience enum field
+        "location": FilterSupport.CLIENT,
+        "has_salary": FilterSupport.CLIENT,         # salary_from/_to
+        "query_match": FilterSupport.SERVER,
+    }
 
     def search(self, params: SearchParams) -> list[JobListing]:
         data = fetch_json(
@@ -546,6 +599,15 @@ class ItJobsUzScraper(BaseScraper):
     countries = ("UZ",)
     requires_browser = False
     detail_requires_browser = False
+
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.CLIENT,        # workType enum
+        "country": FilterSupport.CLIENT,            # UZ-only by design
+        "experience": FilterSupport.CLIENT,         # experienceLevel enum
+        "location": FilterSupport.CLIENT,
+        "has_salary": FilterSupport.CLIENT,         # salaryMin/Max
+        "query_match": FilterSupport.SERVER,
+    }
 
     def search(self, params: SearchParams) -> list[JobListing]:
         data = fetch_json(self._build_search_url(params), timeout_seconds=self.fetch_timeout_seconds)
@@ -645,6 +707,15 @@ class JobTurboScraper(BaseScraper):
     requires_browser = False
     detail_requires_browser = False
 
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.BEST_EFFORT,
+        "country": FilterSupport.BEST_EFFORT,
+        "experience": FilterSupport.UNSUPPORTED,
+        "location": FilterSupport.BEST_EFFORT,
+        "has_salary": FilterSupport.BEST_EFFORT,
+        "query_match": FilterSupport.SERVER,
+    }
+
     def search(self, params: SearchParams) -> list[JobListing]:
         html = fetch_text(self.SEARCH_URL, timeout_seconds=self.fetch_timeout_seconds)
         listings = self._parse_search_results(html, params)
@@ -701,6 +772,15 @@ class GetmatchScraper(BaseScraper):
     countries = CIS_COUNTRY_CODES
     requires_browser = False
     detail_requires_browser = False
+
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.CLIENT,        # location_requirements.format
+        "country": FilterSupport.CLIENT,
+        "experience": FilterSupport.BEST_EFFORT,
+        "location": FilterSupport.CLIENT,
+        "has_salary": FilterSupport.CLIENT,         # salary_description
+        "query_match": FilterSupport.SERVER,        # specialization
+    }
 
     def search(self, params: SearchParams) -> list[JobListing]:
         slugs: list[str | None] = list(self._matching_specialization_slugs(params.query))

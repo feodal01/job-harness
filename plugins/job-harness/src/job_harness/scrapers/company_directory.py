@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from job_harness.base import BaseScraper
 from job_harness.company_directory import CompanyProfile, search_company_directory
 from job_harness.models import JobListing, SearchParams
 from job_harness.registry import register_scraper
+from job_harness.types import FilterSupport, ScraperCapabilities
 
 
 @register_scraper("company_directory")
@@ -13,6 +16,18 @@ class CompanyDirectoryScraper(BaseScraper):
     display_name = "Company Directory"
     requires_browser = False
     detail_requires_browser = False
+
+    # The bundled directory tells us per-company facts (remote, country)
+    # but nothing per-vacancy. experience/has_salary cannot be enforced
+    # at this layer.
+    capabilities: ClassVar[ScraperCapabilities] = {
+        "remote_only": FilterSupport.CLIENT,
+        "country": FilterSupport.CLIENT,
+        "experience": FilterSupport.UNSUPPORTED,
+        "location": FilterSupport.CLIENT,
+        "has_salary": FilterSupport.UNSUPPORTED,
+        "query_match": FilterSupport.CLIENT,
+    }
 
     def search(self, params: SearchParams) -> list[JobListing]:
         profiles = search_company_directory(

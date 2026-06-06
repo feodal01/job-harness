@@ -257,6 +257,44 @@ class CompanyCareerBatchTest(unittest.TestCase):
         self.assertEqual("https://linkedin.test/company/alpha/jobs/", record["alternate_url"])
         fallback.assert_called_once()
 
+    def test_linkedin_only_timeout_is_reported_as_access_issue(self) -> None:
+        company = CompanyProfile(
+            name="Alpha",
+            careers_url=None,
+            linkedin_jobs_url="https://www.linkedin.com/company/alpha/jobs/",
+        )
+
+        with patch(
+            "job_harness.company_career_batch._find_matching_links_http",
+            side_effect=TimeoutError("_ssl.c:1063: The handshake operation timed out"),
+        ):
+            record = asyncio.run(_check_company(_AsyncContext(_SlowEvaluatePage()), company, ["qa"], timeout_ms=10))
+
+        self.assertEqual("access_issue", record["status"])
+        self.assertEqual("network_restricted", record["reason"])
+        self.assertEqual("https://www.linkedin.com/company/alpha/jobs/", record["alternate_url"])
+        self.assertIn("VPN", record["remediation"])
+
+    def test_linkedin_fallback_timeout_after_direct_fail_is_access_issue(self) -> None:
+        page = _SlowEvaluatePage()
+        company = CompanyProfile(
+            name="Alpha",
+            careers_url="https://alpha.test/careers",
+            linkedin_jobs_url="https://www.linkedin.com/company/alpha/jobs/",
+        )
+
+        with patch(
+            "job_harness.company_career_batch._find_matching_links_http",
+            side_effect=TimeoutError("_ssl.c:1063: The handshake operation timed out"),
+        ):
+            record = asyncio.run(_check_company(_AsyncContext(page), company, ["qa"], timeout_ms=10))
+
+        self.assertEqual("access_issue", record["status"])
+        self.assertEqual("network_restricted", record["reason"])
+        self.assertEqual("https://alpha.test/careers", record["careers_url"])
+        self.assertEqual("https://www.linkedin.com/company/alpha/jobs/", record["alternate_url"])
+        self.assertGreaterEqual(len(record["attempt_errors"]), 3)
+
     def test_check_company_marks_known_no_open_positions_without_network(self) -> None:
         company = CompanyProfile(
             name="Alpha",
@@ -316,23 +354,27 @@ class CompanyCareerBatchTest(unittest.TestCase):
                         ),
                         json.dumps({"company": "Beta", "status": "skipped", "hits": []}),
                         json.dumps({"company": "Gamma", "status": "error", "error": "timeout", "hits": []}),
+                        json.dumps({"company": "Delta", "status": "access_issue", "error": "blocked", "hits": []}),
                     ]
                 )
                 + "\n",
                 encoding="utf-8",
             )
 
-            summary = _build_summary(query="QA", companies_considered=3, output_path=path)
+            summary = _build_summary(query="QA", companies_considered=4, output_path=path)
 
         self.assertEqual("QA", summary["query"])
-        self.assertEqual(3, summary["companies_recorded"])
+        self.assertEqual(4, summary["companies_recorded"])
         self.assertEqual(1, summary["companies_checked"])
         self.assertEqual(1, summary["companies_skipped"])
         self.assertEqual(1, summary["companies_error"])
+        self.assertEqual(1, summary["companies_access_issue"])
         self.assertEqual(0, summary["companies_pending"])
         self.assertEqual(1, summary["total"])
         self.assertEqual("Alpha", summary["hits"][0]["company"])
         self.assertEqual("Gamma", summary["errors"][0]["company"])
+        self.assertEqual("Delta", summary["access_issues"][0]["company"])
+        self.assertIn("VPN", summary["warnings"][0])
 
     def test_write_summary_updates_incremental_summary_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from dataclasses import asdict
 from json import JSONDecodeError
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from job_harness.browser import configure_playwright_tmpdir, create_browser_async
 from job_harness.company_career_search import (
@@ -38,6 +38,22 @@ from job_harness.employer_cache import CompanyEntry
 
 DEFAULT_COMPANY_LIVE_WORKERS = 12
 RESOLVED_EMPLOYER_CACHE_SOURCE = "resolved-employer-cache"
+NETWORK_RESTRICTED_HOSTS = (
+    "linkedin.com",
+    "telegram.org",
+    "telegram.me",
+    "t.me",
+)
+NETWORK_RESTRICTED_ERROR_MARKERS = (
+    "handshake operation timed out",
+    "operation timed out",
+    "timed out",
+    "timeout",
+    "connection reset",
+    "connection refused",
+    "nodename nor servname provided",
+    "name or service not known",
+)
 
 
 async def run_company_career_batch(
@@ -307,6 +323,15 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
                     "hits": [asdict(hit) for hit in hits],
                 }
             except Exception as exc:
+                access_issue = _network_access_issue_record(
+                    company=company,
+                    careers_url=None,
+                    alternate_url=company.linkedin_jobs_url,
+                    error=str(exc),
+                    attempt_errors=[{"method": "alternate_jobs_http", "error": str(exc)}],
+                )
+                if access_issue is not None:
+                    return access_issue
                 return {
                     "company": company.name,
                     "status": "error",
@@ -400,6 +425,15 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
                     }
                 except Exception as alternate_exc:
                     attempt_errors.append({"method": "alternate_jobs_http", "error": str(alternate_exc)})
+            access_issue = _network_access_issue_record(
+                company=company,
+                careers_url=company.careers_url,
+                alternate_url=company.linkedin_jobs_url,
+                error=attempt_errors[-1]["error"],
+                attempt_errors=attempt_errors,
+            )
+            if access_issue is not None:
+                return access_issue
             return {
                 "company": company.name,
                 "status": "error",
@@ -511,6 +545,7 @@ def _build_summary(*, query: str, companies_considered: int, output_path: Path) 
     hits = []
     for record in records:
         hits.extend(record.get("hits", []))
+    access_issues = [record for record in records if record["status"] == "access_issue"]
 
     return {
         "query": query,
@@ -519,12 +554,14 @@ def _build_summary(*, query: str, companies_considered: int, output_path: Path) 
         "companies_checked": sum(1 for record in records if record["status"] == "ok"),
         "companies_skipped": sum(1 for record in records if record["status"] == "skipped"),
         "companies_error": sum(1 for record in records if record["status"] == "error"),
+        "companies_access_issue": len(access_issues),
         "companies_pending": max(0, companies_considered - len(records)),
         "total": len(hits),
         "hits": sorted(hits, key=lambda hit: (-hit["score"], hit["company"].casefold(), hit["title"].casefold())),
         "errors": [record for record in records if record["status"] == "error"],
+        "access_issues": access_issues,
         "skipped": [record for record in records if record["status"] == "skipped"],
-        "warnings": _summary_warnings(companies_considered),
+        "warnings": _summary_warnings(companies_considered, access_issue_count=len(access_issues)),
     }
 
 
@@ -536,10 +573,56 @@ def _write_summary(*, query: str, companies_considered: int, output_path: Path, 
     return summary
 
 
-def _summary_warnings(companies_considered: int) -> list[str]:
+def _network_access_issue_record(
+    *,
+    company: CompanyProfile,
+    careers_url: str | None,
+    alternate_url: str | None,
+    error: str,
+    attempt_errors: list[dict],
+) -> dict | None:
+    restricted_urls = [
+        url for url in (careers_url, alternate_url)
+        if url and _is_network_restricted_url(url)
+    ]
+    if not restricted_urls:
+        return None
+    if not _looks_like_network_restriction(error):
+        return None
+
+    return {
+        "company": company.name,
+        "status": "access_issue",
+        "reason": "network_restricted",
+        "careers_url": careers_url,
+        "alternate_url": alternate_url,
+        "restricted_urls": restricted_urls,
+        "error": error,
+        "attempt_errors": attempt_errors,
+        "remediation": "Retry with VPN enabled or from a network where LinkedIn/Telegram are reachable.",
+        "hits": [],
+    }
+
+
+def _is_network_restricted_url(url: str) -> bool:
+    host = urlparse(url).hostname or ""
+    return any(host == restricted or host.endswith(f".{restricted}") for restricted in NETWORK_RESTRICTED_HOSTS)
+
+
+def _looks_like_network_restriction(error: str) -> bool:
+    lowered = error.casefold()
+    return any(marker in lowered for marker in NETWORK_RESTRICTED_ERROR_MARKERS)
+
+
+def _summary_warnings(companies_considered: int, *, access_issue_count: int = 0) -> list[str]:
+    warnings = []
     if companies_considered == 0:
-        return ["No companies matched the structured filters; check country, stack, industry, and job-type aliases."]
-    return []
+        warnings.append("No companies matched the structured filters; check country, stack, industry, and job-type aliases.")
+    if access_issue_count:
+        warnings.append(
+            f"{access_issue_count} company career checks hit network-restricted URLs; ask the user to enable VPN or retry from another network."
+        )
+    return warnings
 
 
 def _iter_jsonl_records(path: Path):
