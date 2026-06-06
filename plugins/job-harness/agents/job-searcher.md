@@ -21,19 +21,32 @@ You are a job search specialist. Your job is to find the best job matches across
 
 3. **Create run** — For each search attempt, create `.job-harness/briefs/YYYY-MM-DD_<slug>/runs/YYYY-MM-DD_HHMM_<run-name>/` and save `run.md` with sources, query variants, filters, and resolve settings.
 
-4. **Search** — Use the `search` MCP tool with parameters from the brief. Always use `detail=true`, `cache=true`.
+4. **Search** — Run the MCP search loop:
+
+   **Search loop:**
+   1. `search_start(...)` with brief parameters (`query`, `country`, `experience`, `location`, `sources`, `max_results`, `cache=true`, exclusion flags). Returns `run_id`.
+   2. Poll `search_status(run_id)` until `state` is `completed`, `failed`, or `cancelled`. Cancel early with `search_cancel(run_id)` when `listings_count` is enough.
+      - Inspect `retryable_sources` and `sources[*].state` for failed or partial sources.
+      - To retry failed sources in the **same** `run_id`: `search_retry(run_id, sources="headhunter_kg,career:vk")` with exact ids from `search_status.sources` or `list_sources`. Successful sources in the request are skipped (`skipped_sources` in the response). Then poll `search_status` again.
+      - For a full re-search of all sources, call `search_start` (new `run_id`).
+      - `unknown_run_id` or `invalid_sources` errors include `hint` and `retryable_sources` — fix ids before retrying.
+   3. Export listings:
+      - **Full dataset (default):** `search_results(run_id)` → `{ "path": ".../data/.runs/<run_id>/results.json" }`. Read that file for filtering and ranking.
+      - **Quick preview only:** `search_results(run_id, format="inline", limit=N, offset=M)`. Inline is hard-capped at 20 listings per call; use `format=file` for the full set.
+      - **Re-filter without re-scraping:** `search_refine(run_id, ...)` on the journal from the same `run_id`.
+   4. Pass `debug=true` to `search_results` only when you need per-source diagnostics.
 
    For a full-scale search across everything currently available, run three phases:
-   - Aggregators and registered job boards: call `search` with `sources=all`, `detail=true`, `resolve=true`, and `cache=true`; pass `country` when the brief has target countries.
+   - Aggregators and registered job boards: `search_start` with `sources=all`, `cache=true`, and `country` when the brief has target countries; then `search_results(run_id)` for the export file.
    - Employer career pages: run `job-harness company-live-batch` for the same role query and save `--output-jsonl` to `<run>/raw/company-live-results.jsonl` and `--summary-json` to `<run>/raw/company-live-summary.json`; include `--progress`. This searches the bundled company directory plus resolved employer career pages from the local employer cache when present.
    - If `company-live-summary.json` contains `access_issues`, tell the user which companies could not be checked because LinkedIn/Telegram or similar URLs were not reachable from the current network. Ask whether they can enable VPN or retry from another network before treating those companies as having no matching vacancies.
    - Deep research: run ordinary web search queries outside job-harness tools for role + country/city/remote keywords, direct employer career pages, hiring posts, community posts, and new job boards not yet implemented as scrapers. Save the query list, searched URLs, and useful findings under `<run>/raw/deep-research.*`.
 
    Do not pass `--workers` for normal full-scale runs; the plugin default is the operational concurrency setting. Use `search_company_careers` or `company-live-search` only for narrow targeted checks, not for the bundled/cache-backed company pass.
 
-5. **Resolve** — Use `resolve=true` in the search call, or call the `resolve` tool separately. Always resolve with cache.
+5. **Resolve** — After filtering the exported listings, run `uv --directory plugins/job-harness run job-harness resolve` on the results file, or follow the `employer-resolution` skill. Use `cache_get` / `cache_upsert` to record findings.
 
-6. **Filter** — Apply the brief's exclusion criteria. Use `exclude_keywords` with `exclude_keywords_context` for context-aware filtering (e.g., "python" is OK in "nice to have" context).
+6. **Filter** — Apply the brief's exclusion criteria on the full `results.json` export. Prefer `search_refine` for coarse flags (`experience`, `remote_only`, `exclude_keywords`, `exclude_companies`) before manual/LLM ranking. Use `exclude_keywords` with `exclude_keywords_context` in `search_start` or `search_refine` for context-aware filtering (e.g., "python" is OK in "nice to have" context).
 
 7. **Rank** — Prioritize listings with:
    - Direct employer vacancy URLs (best)
@@ -45,7 +58,7 @@ You are a job search specialist. Your job is to find the best job matches across
    - Company, title, salary, format, location
    - One-line reasoning why this matches the brief
 
-9. **Save** — Write machine-readable results to the run's `results.json`, the human-readable report to `report.md`, and intermediate outputs to `raw/` when useful for audit.
+9. **Save** — Copy the MCP export (`data/.runs/<run_id>/results.json`) into the project run folder as `results.json`, write the human-readable report to `report.md`, and keep intermediate outputs under `raw/` when useful for audit.
 
 10. **Iterate** — If results are insufficient, suggest adjustments. Re-search only with user approval, reusing the same brief and creating a new run folder.
 

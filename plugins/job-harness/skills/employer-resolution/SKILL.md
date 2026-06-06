@@ -23,11 +23,12 @@ Run resolution **after** search, on the filtered set of listings you plan to pre
 
 ## How
 
-### Using MCP tools
+### Using MCP and CLI tools
 
-- `resolve` tool — batch resolve listings from search results
-- `resolve_company` tool — resolve a single company
-- `cache_get` / `cache_upsert` — read/write cache entries
+- **Input listings** — read the export from `search_results(run_id)` (`format=file`, default). The file path is in `{ "path": ".../data/.runs/<run_id>/results.json" }`.
+- **Batch resolve** — run:
+  `uv --directory plugins/job-harness run job-harness resolve --input-file <path-to-results.json> --cache`
+- **Single company** — use `cache_get` / `cache_upsert` MCP tools, or CLI `job-harness resolve-company`
 
 ### Manual agent-driven resolution
 
@@ -61,7 +62,7 @@ This means the resolver will have varying success rates by company size. Don't p
 
 ## Data flow
 
-Search results JSON → `resolve` MCP tool → enriched results with:
+MCP `results.json` export → CLI `job-harness resolve` → enriched results with:
 - `raw.careers_url` — employer career page URL
 - `raw.careers_type` — ATS classification (direct, greenhouse, lever, workday, huntflow)
 - `raw.direct_vacancy_url` — direct link to the same vacancy on employer site
@@ -91,7 +92,7 @@ Cache entries include:
 
 Cache is fresh for 7 days. After that, re-verify. If a company has `ignored: true`, skip it entirely.
 
-Use `cache=true` when calling `search` or `resolve` MCP tools.
+Use `cache=true` in `search_start` and `--cache` on CLI `job-harness resolve`.
 
 ## Per-company career scrapers
 

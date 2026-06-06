@@ -540,10 +540,16 @@ async def search_status(run_id: str) -> dict:
      "errors": [...] }."""
 
 @mcp.tool
-async def search_results(run_id: str, max_results: int = 20,
-                         include_partial: bool = True) -> dict:
-    """Returns the SearchResults snapshot derived from the journal.
-    Works on running, completed, cancelled, and failed runs."""
+async def search_results(
+    run_id: str,
+    format: str = "file",
+    limit: int = 20,
+    offset: int = 0,
+    include_partial: bool = True,
+    debug: bool = False,
+) -> dict:
+    """Export listings from the journal. format=file writes results.json;
+    format=inline returns a paginated slice (hard-capped at 20)."""
 
 @mcp.tool
 async def search_cancel(run_id: str) -> dict:
@@ -608,10 +614,12 @@ for d in delays:
         search_cancel(run_id); break
     if elapsed > 120:
         search_cancel(run_id); break
-final = search_results(run_id)
+export = search_results(run_id)              # default format=file → { "path": ".../results.json" }
+# Read export["path"] for the full listing dataset.
+# Quick preview only: search_results(run_id, format="inline", limit=10)  # hard-capped at 20
 ```
 
-Each `search_status` call is under 50 ms (reads the journal), so total polling overhead is well under 1 s.
+Each `search_status` call is under 50 ms (reads the journal), so total polling overhead is well under 1 s. `search_results` with `format=file` materialises the agent-facing export; inline mode is for previews only.
 
 ### 10.6 Cancellation semantics
 
@@ -739,7 +747,7 @@ Non-blocking (`test_mcp_async_surface.py`):
 
 1. `search_start` returns within 100 ms even if the engine task takes 30 s.
 2. `search_status` reflects in-progress source statuses; ≤ 50 ms.
-3. `search_results` on a running run returns a partial snapshot; on a completed run, the final result.
+3. `search_results(format=inline)` on a running run can return partial listings when `include_partial=true`; `format=file` writes whatever is in the journal so far. On completion, the export contains all journal listings.
 4. `search_cancel` returns `cancelling` immediately; `summary.json` reaches `cancelled` within 2 s.
 5. `search_cancel` is idempotent.
 6. Two concurrent `search_start` calls produce distinct `run_id`s and disjoint journals.

@@ -109,7 +109,7 @@ Each search run under a brief gets its own timestamped folder:
 
 - `brief.md`: confirmed reusable search profile.
 - `run.md`: what this run did, including sources, query variants, filters, and resolve settings.
-- `results.json`: machine-readable vacancies and metadata.
+- `results.json`: machine-readable vacancies and metadata. Copy from the MCP export (`search_results(run_id)` → `data/.runs/<run_id>/results.json`) after filtering/ranking; do not treat inline `search_results(format=inline)` slices as the final artifact.
 - `report.md`: human-readable final report.
 - `raw/`: intermediate source outputs and resolver data for audit.
 - `.job-harness/companies/careers.json`: local memory of employer career pages for this project.

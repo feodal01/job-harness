@@ -10,15 +10,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from job_harness.models import JobListing
 from job_harness.run_journal import (
     EVENT_LISTING,
     EVENT_RUN_STARTED,
     EVENT_SOURCE_STATUS,
+    JournalSnapshot,
     RunJournalReader,
     RunJournalWriter,
     generate_run_id,
     is_run_id,
     iter_run_dirs,
+    materialize_listings,
 )
 from job_harness.types import (
     FAILURE_MODE_TO_STATE,
@@ -374,6 +377,70 @@ time.sleep(60)
             # The run is RUNNING because no run_finished was written.
             self.assertEqual(snap.state, RunState.RUNNING)
             self.assertEqual(snap.listings_count, 5)
+
+
+class RetryReplayTest(unittest.TestCase):
+    def test_listings_purged_removes_source_listings(self):
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d)
+            w = RunJournalWriter(run_dir)
+            w.write_run_started(run_id="r-x", request=_make_request())
+            w.write_listing(
+                source="bad",
+                listing={"title": "A", "url": "https://x/1", "company": "Co", "source": "bad"},
+            )
+            w.write_listing(
+                source="ok",
+                listing={"title": "B", "url": "https://x/2", "company": "Co", "source": "ok"},
+            )
+            w.write_listings_purged(sources=["bad"])
+            w.write_listing(
+                source="bad",
+                listing={"title": "A2", "url": "https://x/3", "company": "Co", "source": "bad"},
+            )
+            w.write_run_finished(state=RunState.COMPLETED, final_listings_count=2, errors=[])
+            w.close()
+
+            snap = RunJournalReader(run_dir).snapshot()
+            titles = {item["title"] for item in snap.listings}
+            self.assertEqual(titles, {"B", "A2"})
+
+    def test_run_retry_started_reopens_running_state(self):
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d)
+            w = RunJournalWriter(run_dir)
+            w.write_run_started(run_id="r-x", request=_make_request())
+            w.write_run_finished(state=RunState.COMPLETED, final_listings_count=0, errors=[])
+            w.write_run_retry_started(sources=["bad"])
+            snap = RunJournalReader(run_dir).snapshot()
+            self.assertEqual(snap.state, RunState.RUNNING)
+            self.assertIsNone(snap.ended_at)
+            w.write_run_finished(state=RunState.COMPLETED, final_listings_count=0, errors=[])
+            w.close()
+            snap2 = RunJournalReader(run_dir).snapshot()
+            self.assertEqual(snap2.state, RunState.COMPLETED)
+
+    def test_materialize_listings_dedupes(self):
+        listing = JobListing(
+            title="QA",
+            url="https://hh.ru/vacancy/123",
+            company="Acme",
+            source="hh_ru",
+        ).to_dict()
+        snap = JournalSnapshot(
+            run_id="r-x",
+            state=RunState.COMPLETED,
+            started_at="",
+            ended_at="",
+            elapsed_ms=0,
+            request={"query": "QA", "dedupe": True, "max_results": 20},
+            sources={},
+            listings=[listing, dict(listing, source="habr_career")],
+            listings_count=2,
+            errors=[],
+        )
+        materialized = materialize_listings(snap)
+        self.assertEqual(len(materialized), 1)
 
 
 class DiskFullSimulationTest(unittest.TestCase):

@@ -13,6 +13,7 @@ from job_harness.run_journal import RunJournalReader, RunJournalWriter
 from job_harness.run_registry import (
     MaxConcurrentRunsReached,
     RunRegistry,
+    RunStillActive,
     UnknownRunId,
 )
 from job_harness.types import RunState, SearchRequest
@@ -22,15 +23,17 @@ from job_harness.types import RunState, SearchRequest
 # ---------------------------------------------------------------------------
 
 
-async def _success_runner(request, journal, run_id):
-    journal.write_run_started(run_id=run_id, request=request)
+async def _success_runner(request, journal, run_id, retry_sources=None):
+    if retry_sources is None:
+        journal.write_run_started(run_id=run_id, request=request)
     journal.write_run_finished(state=RunState.COMPLETED, final_listings_count=0, errors=[])
     journal.rewrite_summary(RunJournalReader(journal.run_dir).snapshot())
 
 
 def _make_slow_runner(start_evt: asyncio.Event, release_evt: asyncio.Event):
-    async def runner(request, journal, run_id):
-        journal.write_run_started(run_id=run_id, request=request)
+    async def runner(request, journal, run_id, retry_sources=None):
+        if retry_sources is None:
+            journal.write_run_started(run_id=run_id, request=request)
         start_evt.set()
         try:
             await release_evt.wait()
@@ -251,6 +254,38 @@ class RetentionGCTest(unittest.IsolatedAsyncioTestCase):
                 run_retention_hours=24,
             )
             self.assertFalse((Path(d) / old_id).exists())
+            await reg.shutdown()
+
+
+class RetryTest(unittest.IsolatedAsyncioTestCase):
+    async def test_retry_rejects_active_run(self):
+        start = asyncio.Event()
+        release = asyncio.Event()
+        with tempfile.TemporaryDirectory() as d:
+            reg = RunRegistry(
+                runs_root=Path(d),
+                engine_runner=_make_slow_runner(start, release),
+            )
+            run = await reg.start(_request())
+            await asyncio.wait_for(start.wait(), timeout=2.0)
+            with self.assertRaises(RunStillActive):
+                await reg.retry(run.run_id, retried_sources=("src",))
+            release.set()
+            assert run.task is not None
+            await run.task
+            await reg.shutdown()
+
+    async def test_retry_respins_completed_run(self):
+        with tempfile.TemporaryDirectory() as d:
+            reg = RunRegistry(runs_root=Path(d), engine_runner=_success_runner)
+            run = await reg.start(_request())
+            assert run.task is not None
+            await run.task
+            retried = await reg.retry(run.run_id, retried_sources=("src",))
+            assert retried.task is not None
+            await retried.task
+            events = list(RunJournalReader(run.run_dir).iter_events())
+            self.assertTrue(any(e.get("type") == "run_retry_started" for e in events))
             await reg.shutdown()
 
 
