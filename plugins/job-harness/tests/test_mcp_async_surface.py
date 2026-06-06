@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import json
 import tempfile
 import time
 import unittest
@@ -18,7 +19,7 @@ from typing import ClassVar
 from job_harness.base import BaseScraper
 from job_harness.models import JobListing, SearchParams
 from job_harness.registry import _SCRAPERS, register_scraper
-from job_harness.types import FilterSupport, RunState, ScraperCapabilities
+from job_harness.types import FilterSupport, RunState, ScraperCapabilities, SourceState
 
 # ---------------------------------------------------------------------------
 # MCP server loader (mirrors tests/test_mcp_server.py)
@@ -77,6 +78,23 @@ class _SlowScraper(_OkScraper):
     def search(self, params: SearchParams):
         time.sleep(type(self).SLEEP_S)
         return [JobListing(title=f"slow-{self.name}", url=f"https://x/{self.name}/1", company=f"Co-{self.name}", source=self.name)]
+
+
+class _FlakyScraper(_OkScraper):
+    _fail_first: ClassVar[bool] = True
+
+    def search(self, params: SearchParams):
+        if type(self)._fail_first:
+            type(self)._fail_first = False
+            raise RuntimeError("transient failure")
+        return [
+            JobListing(
+                title="QA retry",
+                url="https://hh.ru/vacancy/999",
+                company="Acme",
+                source=self.name,
+            )
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +164,19 @@ async def _wait_state(server, run_id, target: RunState, timeout: float = 5.0) ->
     raise AssertionError(f"run {run_id} never reached {target}")
 
 
+async def _wait_source_ok(
+    server, run_id: str, source: str, timeout: float = 5.0
+) -> dict:
+    """Wait until a source reports state=ok (retry may finish before RUNNING is observed)."""
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        s = await server.search_status(run_id)
+        if s.get("sources", {}).get(source, {}).get("state") == SourceState.OK.value:
+            return s
+        await asyncio.sleep(0.02)
+    raise AssertionError(f"source {source} in run {run_id} never reached ok")
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -172,8 +203,12 @@ class StatusAndResultsTest(unittest.IsolatedAsyncioTestCase):
             r = await server.search_start(query="QA", sources="src")
             await _wait_state(server, r["run_id"], RunState.COMPLETED)
             results = await server.search_results(r["run_id"])
-            self.assertEqual(results["state"], RunState.COMPLETED.value)
-            self.assertEqual(results["total"], 2)
+            self.assertIn("path", results)
+            payload = json.loads(Path(results["path"]).read_text(encoding="utf-8"))
+            self.assertEqual(payload["state"], RunState.COMPLETED.value)
+            self.assertEqual(payload["listings_count"], 2)
+            self.assertEqual(len(payload["listings"]), 2)
+            self.assertNotIn("sources", payload)
             await server._get_run_registry().shutdown()
 
     async def test_status_reflects_running_then_completed(self):
@@ -222,6 +257,101 @@ class CancelTest(unittest.IsolatedAsyncioTestCase):
             await server._get_run_registry().shutdown()
 
 
+class SearchResultsFormatTest(unittest.IsolatedAsyncioTestCase):
+    async def test_file_format_writes_results_json(self):
+        server = _load_mcp_server()
+        with _RegistryContext({"src": _OkScraper}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="src")
+            await _wait_state(server, r["run_id"], RunState.COMPLETED)
+            out = await server.search_results(r["run_id"], format="file")
+            path = Path(out["path"])
+            self.assertTrue(path.exists())
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["listings_count"], 2)
+            self.assertEqual(len(payload["listings"]), 2)
+            self.assertIn("request", payload)
+            await server._get_run_registry().shutdown()
+
+    async def test_inline_format_returns_slice(self):
+        server = _load_mcp_server()
+        with _RegistryContext({"src": _OkScraper}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="src")
+            await _wait_state(server, r["run_id"], RunState.COMPLETED)
+            out = await server.search_results(r["run_id"], format="inline", limit=1, offset=0)
+            self.assertEqual(out["total"], 2)
+            self.assertEqual(out["limit"], 1)
+            self.assertEqual(len(out["listings"]), 1)
+            self.assertNotIn("sources", out)
+            await server._get_run_registry().shutdown()
+
+    async def test_inline_limit_hard_cap(self):
+        server = _load_mcp_server()
+        with _RegistryContext({"src": _OkScraper}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="src")
+            await _wait_state(server, r["run_id"], RunState.COMPLETED)
+            out = await server.search_results(r["run_id"], format="inline", limit=100)
+            self.assertEqual(out["limit"], server.INLINE_LIMIT_MAX)
+            self.assertTrue(out["limit_capped"])
+            self.assertIn("hint", out)
+            self.assertEqual(len(out["listings"]), 2)
+            await server._get_run_registry().shutdown()
+
+    async def test_inline_offset_pagination(self):
+        server = _load_mcp_server()
+        with _RegistryContext({"src": _OkScraper}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="src")
+            await _wait_state(server, r["run_id"], RunState.COMPLETED)
+            out = await server.search_results(r["run_id"], format="inline", limit=1, offset=1)
+            self.assertEqual(out["offset"], 1)
+            self.assertEqual(len(out["listings"]), 1)
+            self.assertEqual(out["listings"][0]["experience"], "junior")
+            await server._get_run_registry().shutdown()
+
+    async def test_debug_includes_sources_inline(self):
+        server = _load_mcp_server()
+        with _RegistryContext({"src": _OkScraper}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="src")
+            await _wait_state(server, r["run_id"], RunState.COMPLETED)
+            out = await server.search_results(r["run_id"], format="inline", debug=True)
+            self.assertIn("sources", out)
+            self.assertIn("src", out["sources"])
+            await server._get_run_registry().shutdown()
+
+    async def test_debug_includes_sources_in_file(self):
+        server = _load_mcp_server()
+        with _RegistryContext({"src": _OkScraper}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="src")
+            await _wait_state(server, r["run_id"], RunState.COMPLETED)
+            out = await server.search_results(r["run_id"], format="file", debug=True)
+            payload = json.loads(Path(out["path"]).read_text(encoding="utf-8"))
+            self.assertIn("sources", payload)
+            self.assertIn("src", payload["sources"])
+            await server._get_run_registry().shutdown()
+
+    async def test_unknown_run_id_both_formats(self):
+        server = _load_mcp_server()
+        with _RunsRootContext(server):
+            for fmt in ("file", "inline"):
+                out = await server.search_results("r-99999999-999999-deadbe", format=fmt)
+                self.assertEqual(out["error"], "unknown_run_id")
+
+    async def test_still_running_without_partial(self):
+        class VerySlow(_SlowScraper):
+            SLEEP_S = 5.0
+
+        server = _load_mcp_server()
+        with _RegistryContext({"slow": VerySlow}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="slow", total_timeout_ms=10_000)
+            await asyncio.sleep(0.05)
+            out = await server.search_results(
+                r["run_id"], format="inline", include_partial=False
+            )
+            self.assertEqual(out["error"], "still_running")
+            await server.search_cancel(r["run_id"])
+            await _wait_state(server, r["run_id"], RunState.CANCELLED, timeout=3)
+            await server._get_run_registry().shutdown()
+
+
 class RefineTest(unittest.IsolatedAsyncioTestCase):
     async def test_refine_filters_journal_without_rescrape(self):
         server = _load_mcp_server()
@@ -248,6 +378,81 @@ class ListRunsTest(unittest.IsolatedAsyncioTestCase):
             await server._get_run_registry().shutdown()
 
 
+class SearchRetryTest(unittest.IsolatedAsyncioTestCase):
+    async def test_retry_failed_source_and_skip_ok(self):
+        server = _load_mcp_server()
+        _FlakyScraper._fail_first = True
+        with _RegistryContext({"ok": _OkScraper, "flaky": _FlakyScraper}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="ok,flaky")
+            await _wait_state(server, r["run_id"], RunState.COMPLETED)
+            status = await server.search_status(r["run_id"])
+            self.assertIn("flaky", status["retryable_sources"])
+            retry = await server.search_retry(r["run_id"], sources="ok,flaky")
+            self.assertEqual(retry["retried_sources"], ["flaky"])
+            self.assertEqual(retry["skipped_sources"]["ok"]["reason"], "already_ok")
+            await _wait_source_ok(server, r["run_id"], "flaky")
+            results = await server.search_results(r["run_id"], format="file")
+            payload = json.loads(Path(results["path"]).read_text(encoding="utf-8"))
+            self.assertEqual(payload["listings_count"], 3)
+            await server._get_run_registry().shutdown()
+
+    async def test_retry_unknown_run_id_includes_hint(self):
+        server = _load_mcp_server()
+        with _RunsRootContext(server):
+            out = await server.search_retry("r-99999999-999999-deadbe", sources="hh_ru")
+            self.assertEqual(out["error"], "unknown_run_id")
+            self.assertIn("hint", out)
+            await server._get_run_registry().shutdown()
+
+    async def test_retry_invalid_sources_returns_retryable_hint(self):
+        server = _load_mcp_server()
+        with _RegistryContext({"src": _OkScraper}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="src")
+            await _wait_state(server, r["run_id"], RunState.COMPLETED)
+            out = await server.search_retry(r["run_id"], sources="hh.ru,made_up")
+            self.assertEqual(out["error"], "invalid_sources")
+            self.assertIn("retryable_sources", out)
+            self.assertIn("sources_in_run", out)
+            await server._get_run_registry().shutdown()
+
+    async def test_retry_dedupes_export_after_recovery(self):
+        class _DupOk(_OkScraper):
+            def search(self, params: SearchParams):
+                return [
+                    JobListing(
+                        title="QA",
+                        url="https://hh.ru/vacancy/42",
+                        company="Acme",
+                        source=self.name,
+                    )
+                ]
+
+        class _DupFlaky(_FlakyScraper):
+            def search(self, params: SearchParams):
+                if type(self)._fail_first:
+                    type(self)._fail_first = False
+                    raise RuntimeError("fail")
+                return [
+                    JobListing(
+                        title="QA duplicate",
+                        url="https://hh.ru/vacancy/42",
+                        company="Acme",
+                        source=self.name,
+                    )
+                ]
+
+        server = _load_mcp_server()
+        _DupFlaky._fail_first = True
+        with _RegistryContext({"ok": _DupOk, "flaky": _DupFlaky}), _RunsRootContext(server):
+            r = await server.search_start(query="QA", sources="ok,flaky", dedupe=True)
+            await _wait_state(server, r["run_id"], RunState.COMPLETED)
+            await server.search_retry(r["run_id"], sources="flaky")
+            await _wait_source_ok(server, r["run_id"], "flaky")
+            out = await server.search_results(r["run_id"], format="inline")
+            self.assertEqual(out["total"], 1)
+            await server._get_run_registry().shutdown()
+
+
 class MaxConcurrentRunsTest(unittest.IsolatedAsyncioTestCase):
     async def test_cap_returns_structured_error(self):
         class VerySlow(_SlowScraper):
@@ -258,8 +463,17 @@ class MaxConcurrentRunsTest(unittest.IsolatedAsyncioTestCase):
             # Construct the registry with a cap of 1.
             from job_harness.run_registry import RunRegistry
 
-            async def runner(request, journal, run_id):
-                await server._get_engine().execute(request, journal=journal, run_id=run_id)
+            async def runner(request, journal, run_id, retry_sources=None):
+                engine = server._get_engine()
+                if retry_sources:
+                    await engine.execute_retry(
+                        request,
+                        journal=journal,
+                        run_id=run_id,
+                        sources=retry_sources,
+                    )
+                else:
+                    await engine.execute(request, journal=journal, run_id=run_id)
 
             server._run_registry_singleton = RunRegistry(
                 runs_root=server._RUNS_ROOT,

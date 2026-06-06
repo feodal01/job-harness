@@ -48,6 +48,8 @@ EVENT_DEDUPE_DECISION = "dedupe_decision"
 EVENT_ENGINE_PROGRESS = "engine_progress"
 EVENT_SOURCE_STATUS = "source_status"
 EVENT_RUN_FINISHED = "run_finished"
+EVENT_LISTINGS_PURGED = "listings_purged"
+EVENT_RUN_RETRY_STARTED = "run_retry_started"
 
 ALL_EVENT_TYPES: frozenset[str] = frozenset(
     {
@@ -60,6 +62,8 @@ ALL_EVENT_TYPES: frozenset[str] = frozenset(
         EVENT_ENGINE_PROGRESS,
         EVENT_SOURCE_STATUS,
         EVENT_RUN_FINISHED,
+        EVENT_LISTINGS_PURGED,
+        EVENT_RUN_RETRY_STARTED,
     }
 )
 
@@ -330,6 +334,24 @@ class RunJournalWriter:
             }
         )
 
+    def write_listings_purged(self, *, sources: list[str]) -> None:
+        self._append(
+            {
+                "type": EVENT_LISTINGS_PURGED,
+                "ts": utc_now_iso(),
+                "sources": list(sources),
+            }
+        )
+
+    def write_run_retry_started(self, *, sources: list[str]) -> None:
+        self._append(
+            {
+                "type": EVENT_RUN_RETRY_STARTED,
+                "ts": utc_now_iso(),
+                "sources": list(sources),
+            }
+        )
+
     # --- summary.json -----------------------------------------------------
 
     def rewrite_summary(self, snapshot: JournalSnapshot) -> None:
@@ -397,6 +419,7 @@ class RunJournalReader:
         self._run_dir = Path(run_dir)
         self._raw_path = self._run_dir / "raw.jsonl"
         self._summary_path = self._run_dir / "summary.json"
+        self._results_path = self._run_dir / "results.json"
 
     @property
     def run_dir(self) -> Path:
@@ -409,6 +432,10 @@ class RunJournalReader:
     @property
     def summary_path(self) -> Path:
         return self._summary_path
+
+    @property
+    def results_path(self) -> Path:
+        return self._results_path
 
     def exists(self) -> bool:
         return self._run_dir.exists()
@@ -452,9 +479,8 @@ class RunJournalReader:
         request: dict[str, Any] = {}
         # Source bookkeeping is small; we materialise everything.
         sources: dict[str, SourceStatus] = {}
-        listings: list[dict[str, Any]] = []
-        errors: list[str] = []
-        run_finished_state: RunState | None = None
+        listing_entries: list[tuple[str, dict[str, Any]]] = []
+        state = RunState.RUNNING
 
         # We don't have wall-clock from the journal alone; use ts deltas.
         first_ts: str | None = None
@@ -477,21 +503,35 @@ class RunJournalReader:
             elif etype == EVENT_LISTING:
                 listing = record.get("listing")
                 if isinstance(listing, dict):
-                    listings.append(listing)
+                    source = str(record.get("source") or listing.get("source") or "")
+                    listing_entries.append((source, listing))
+            elif etype == EVENT_LISTINGS_PURGED:
+                purge = set(record.get("sources") or ())
+                listing_entries = [
+                    (source, listing)
+                    for source, listing in listing_entries
+                    if source not in purge
+                    and str(listing.get("source") or "") not in purge
+                ]
             elif etype == EVENT_SOURCE_STATUS:
                 try:
                     status = SourceStatus.from_dict(record)
                 except (KeyError, ValueError):
                     continue
                 sources[status.source] = status
-                if status.error_message and status.state != SourceState.OK:
-                    errors.append(f"{status.source}: {status.error_message}")
+            elif etype == EVENT_RUN_RETRY_STARTED:
+                state = RunState.RUNNING
+                ended_at = None
             elif etype == EVENT_RUN_FINISHED:
-                run_finished_state = RunState(record.get("state", RunState.FAILED.value))
+                state = RunState(record.get("state", RunState.FAILED.value))
                 ended_at = record.get("ts")
-                for err in record.get("errors") or ():
-                    if err not in errors:
-                        errors.append(err)
+
+        listings = [listing for _, listing in listing_entries]
+        errors = [
+            f"{status.source}: {status.error_message}"
+            for status in sources.values()
+            if status.error_message and status.state != SourceState.OK
+        ]
 
         # Compute elapsed from first/last ts when possible. Tests use the
         # exact ISO format produced by utc_now_iso(), so a round-trip
@@ -501,8 +541,6 @@ class RunJournalReader:
             elapsed_ms = max(0, _iso_delta_ms(first_ts, last_ts))
         # Keep the linter happy about the unused intermediate.
         _ = elapsed_started_ms
-
-        state = run_finished_state if run_finished_state is not None else RunState.RUNNING
 
         return JournalSnapshot(
             run_id=run_id,
@@ -528,10 +566,78 @@ class RunJournalReader:
         except (OSError, json.JSONDecodeError):
             return None
 
+    # --- results.json ------------------------------------------------------
+
+    def write_results(self, payload: dict[str, Any]) -> Path:
+        """Atomically write the agent-facing results export."""
+        _atomic_write_json(self._results_path, payload)
+        return self._results_path.resolve()
+
+
+def materialize_listings(snap: JournalSnapshot) -> list[dict[str, Any]]:
+    """Build the agent-facing listing set with optional dedupe."""
+    from job_harness.dedupe_filter import dedupe_listings
+    from job_harness.models import JobListing
+
+    listings: list[JobListing] = []
+    fields = JobListing.__dataclass_fields__
+    for raw in snap.listings:
+        try:
+            listings.append(
+                JobListing(**{k: v for k, v in raw.items() if k in fields})
+            )
+        except TypeError:
+            continue
+
+    if snap.request.get("dedupe", True):
+        listings = dedupe_listings(listings)
+
+    max_results = int(snap.request.get("max_results", 20))
+    return [item.to_dict() for item in listings[:max_results]]
+
+
+def build_results_payload(
+    snap: JournalSnapshot,
+    *,
+    include_sources: bool = False,
+) -> dict[str, Any]:
+    """Build the envelope written to results.json."""
+    listings = materialize_listings(snap)
+    payload: dict[str, Any] = {
+        "run_id": snap.run_id,
+        "state": snap.state.value,
+        "started_at": snap.started_at,
+        "ended_at": snap.ended_at,
+        "elapsed_ms": snap.elapsed_ms,
+        "listings_count": len(listings),
+        "request": snap.request,
+        "errors": list(snap.errors),
+        "listings": listings,
+    }
+    if include_sources:
+        payload["sources"] = {
+            name: status.to_dict() for name, status in snap.sources.items()
+        }
+    return payload
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
+    """Write JSON atomically via tmp + replace + fsync."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    encoded = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+    fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+    try:
+        os.write(fd, encoded)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    os.replace(tmp, path)
 
 
 def _iso_delta_ms(a: str, b: str) -> int:

@@ -262,6 +262,52 @@ class SearchRequest:
             "extra": dict(self.extra),
         }
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SearchRequest:
+        """Reconstruct a frozen request from a journal snapshot."""
+        raw_sources = data.get("sources")
+        sources: tuple[str, ...] | None
+        if raw_sources is None:
+            sources = None
+        elif isinstance(raw_sources, list):
+            sources = tuple(str(item) for item in raw_sources)
+        else:
+            sources = (str(raw_sources),)
+
+        def _tuple_field(name: str) -> tuple[str, ...]:
+            value = data.get(name) or ()
+            if isinstance(value, list):
+                return tuple(str(item) for item in value)
+            if isinstance(value, str):
+                return (value,)
+            return ()
+
+        return cls(
+            query=str(data.get("query", "")),
+            country=data.get("country"),
+            remote_only=bool(data.get("remote_only", False)),
+            experience=data.get("experience"),
+            location=data.get("location"),
+            max_results=int(data.get("max_results", 20)),
+            sources=sources,
+            profile=data.get("profile"),
+            detail=bool(data.get("detail", False)),
+            resolve=bool(data.get("resolve", False)),
+            cache=bool(data.get("cache", True)),
+            exclude_keywords=_tuple_field("exclude_keywords"),
+            exclude_keywords_context=_tuple_field("exclude_keywords_context"),
+            exclude_companies=_tuple_field("exclude_companies"),
+            has_salary=bool(data.get("has_salary", False)),
+            strict_flags=bool(data.get("strict_flags", True)),
+            dedupe=bool(data.get("dedupe", True)),
+            source_timeout_ms=int(data.get("source_timeout_ms", 30_000)),
+            total_timeout_ms=int(data.get("total_timeout_ms", 90_000)),
+            resolve_timeout_ms_per_company=int(
+                data.get("resolve_timeout_ms_per_company", 8_000)
+            ),
+            extra=dict(data.get("extra") or {}),
+        )
+
 
 @dataclass(frozen=True)
 class SourceStatus:

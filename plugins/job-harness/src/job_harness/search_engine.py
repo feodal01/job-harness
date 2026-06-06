@@ -45,7 +45,11 @@ from job_harness.dedupe_filter import (
 )
 from job_harness.http_runner import HttpRunner, SourceOutcome
 from job_harness.models import JobListing, SearchParams, SearchResults
-from job_harness.run_journal import RunJournalReader, RunJournalWriter
+from job_harness.run_journal import (
+    RunJournalReader,
+    RunJournalWriter,
+    materialize_listings,
+)
 from job_harness.types import (
     CAPABILITY_FLAGS,
     FailureMode,
@@ -384,6 +388,136 @@ class SearchEngine:
 
         journal.write_run_finished(
             state=run_state, final_listings_count=len(final), errors=errors,
+        )
+        self._rewrite_summary(journal)
+
+        return SearchResults(
+            params=params,
+            listings=final,
+            errors=errors,
+            summary=summary,
+        )
+
+    async def execute_retry(
+        self,
+        request: SearchRequest,
+        *,
+        journal: RunJournalWriter,
+        run_id: str,
+        sources: tuple[str, ...],
+        progress: ProgressSink = None,
+    ) -> SearchResults:
+        """Re-dispatch only the named sources into an existing run journal."""
+        _validate_request(request)
+        params = _request_to_params(request)
+        _emit(progress, f"run {run_id} retry started for {','.join(sources)}")
+
+        eligible, skipped = _resolve_sources(request)
+
+        for skip in skipped:
+            self._record_skip(journal, skip)
+
+        filter_plan = build_filter_plan(
+            remote_only=request.remote_only,
+            has_salary=request.has_salary,
+            exclude_companies=",".join(request.exclude_companies) or None,
+            experience=request.experience,
+            exclude_keywords=",".join(request.exclude_keywords) or None,
+            exclude_keywords_context=",".join(request.exclude_keywords_context) or None,
+            location=request.location,
+        )
+
+        outcomes: list[SourceOutcome] = []
+        all_listings: list[JobListing] = []
+        errors: list[str] = []
+        run_state = RunState.COMPLETED
+
+        try:
+            tasks = [
+                asyncio.create_task(
+                    self._run_one_source(entry, request, params, journal, progress),
+                    name=f"engine:source:{entry.name}",
+                )
+                for entry in eligible
+            ]
+            total_timeout_s = max(0.001, request.total_timeout_ms / 1000.0)
+            try:
+                results = await asyncio.wait_for(
+                    asyncio.gather(*tasks, return_exceptions=True),
+                    timeout=total_timeout_s,
+                )
+            except TimeoutError:
+                for t in tasks:
+                    if not t.done():
+                        t.cancel()
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                run_state = RunState.CANCELLED
+
+            for entry, result in zip(eligible, results, strict=True):
+                outcomes.append(self._coerce_outcome(entry, result, run_state))
+
+            for outcome in outcomes:
+                for listing in outcome.listings:
+                    journal.write_listing(
+                        source=outcome.status.source, listing=listing.to_dict()
+                    )
+                journal.write_source_status(outcome.status)
+                if outcome.status.error_message and outcome.status.state != SourceState.OK:
+                    errors.append(f"{outcome.status.source}: {outcome.status.error_message}")
+                all_listings.extend(outcome.listings)
+
+        except asyncio.CancelledError:
+            run_state = RunState.CANCELLED
+            snap = RunJournalReader(journal.run_dir).snapshot()
+            materialized = materialize_listings(snap)
+            journal.write_run_finished(
+                state=run_state,
+                final_listings_count=len(materialized),
+                errors=errors,
+            )
+            self._rewrite_summary(journal)
+            raise
+
+        filtered = apply_filter_plan(all_listings, filter_plan)
+        deduped = dedupe_listings(filtered) if request.dedupe else filtered
+        final = deduped[: request.max_results]
+
+        flag_enforcement = _build_flag_enforcement_summary(
+            request=request, eligible=eligible, skipped=skipped, outcomes=outcomes,
+        )
+        result_sanity = self._build_result_sanity(
+            request=request, outcomes=outcomes,
+        )
+        summary = {
+            "source_statuses": [o.status.to_dict() for o in outcomes]
+            + [self._skip_status_dict(s) for s in skipped],
+            "flag_enforcement": flag_enforcement,
+            "result_sanity": result_sanity,
+            "filters": {
+                "enabled": [item.name for item in filter_plan],
+                "before": len(all_listings),
+                "after": len(filtered),
+                "removed": len(all_listings) - len(filtered),
+            },
+            "dedupe": {
+                "enabled": request.dedupe,
+                "before": len(filtered),
+                "after": len(deduped),
+                "removed": len(filtered) - len(deduped),
+            },
+            "max_results": {
+                "requested": request.max_results,
+                "returned": len(final),
+            },
+            "retry_sources": list(sources),
+        }
+
+        snap = RunJournalReader(journal.run_dir).snapshot()
+        materialized = materialize_listings(snap)
+        journal.write_run_finished(
+            state=run_state,
+            final_listings_count=len(materialized),
+            errors=errors,
         )
         self._rewrite_summary(journal)
 

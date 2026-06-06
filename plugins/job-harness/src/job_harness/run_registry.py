@@ -60,6 +60,10 @@ class UnknownRunId(Exception):
     """Raised when a caller references a run_id we don't know."""
 
 
+class RunStillActive(Exception):
+    """Raised when retry is requested while the run task is still live."""
+
+
 # ---------------------------------------------------------------------------
 # Run record
 # ---------------------------------------------------------------------------
@@ -74,6 +78,7 @@ class Run:
     started_at: datetime
     last_poll_at: datetime
     journal: RunJournalWriter | None = None
+    retry_sources: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -97,9 +102,13 @@ class RunSummary:
         }
 
 
-# Callback signature for `start`: given (request, journal, run_id),
-# return an awaitable that runs the engine and writes the journal.
-EngineRunner = Callable[[SearchRequest, RunJournalWriter, str], Awaitable[Any]]
+# Callback signature for `start` / `retry`: given (request, journal, run_id,
+# retry_sources), return an awaitable that runs the engine and writes the
+# journal. `retry_sources` is None for a normal start.
+EngineRunner = Callable[
+    [SearchRequest, RunJournalWriter, str, tuple[str, ...] | None],
+    Awaitable[Any],
+]
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +226,64 @@ class RunRegistry:
             raise UnknownRunId(run_id)
         return run
 
+    async def retry(
+        self,
+        run_id: str,
+        *,
+        retried_sources: tuple[str, ...],
+        strict_flags: bool | None = None,
+    ) -> Run:
+        """Re-dispatch failed sources into an existing run journal."""
+        from dataclasses import replace
+
+        from job_harness.types import SearchRequest
+
+        if not is_run_id(run_id):
+            raise UnknownRunId(run_id)
+        run_dir = self._runs_root / run_id
+        if not run_dir.exists():
+            raise UnknownRunId(run_id)
+
+        snap = RunJournalReader(run_dir).snapshot()
+        if snap.state == RunState.RUNNING:
+            raise RunStillActive(run_id)
+
+        base_request = SearchRequest.from_dict(snap.request)
+        if strict_flags is not None:
+            base_request = replace(base_request, strict_flags=strict_flags)
+        retry_request = replace(base_request, sources=retried_sources)
+
+        async with self._lock:
+            existing = self._runs.get(run_id)
+            if existing is not None and _is_active(existing):
+                raise RunStillActive(run_id)
+
+            active = [r for r in self._runs.values() if _is_active(r)]
+            if len(active) >= self._max_concurrent_runs:
+                summaries = [_summary_for(r, self._clock()) for r in active]
+                raise MaxConcurrentRunsReached(summaries)
+
+            now = self._clock()
+            journal = RunJournalWriter(run_dir)
+            journal.write_listings_purged(sources=list(retried_sources))
+            journal.write_run_retry_started(sources=list(retried_sources))
+            started_at = existing.started_at if existing is not None else now
+            run = Run(
+                run_id=run_id,
+                run_dir=run_dir,
+                request=retry_request,
+                task=None,
+                started_at=started_at,
+                last_poll_at=now,
+                journal=journal,
+                retry_sources=retried_sources,
+            )
+            run.task = asyncio.create_task(
+                self._supervise(run), name=f"run-retry:{run_id}"
+            )
+            self._runs[run_id] = run
+            return run
+
     async def touch(self, run_id: str) -> Run:
         """Bump `last_poll_at` for idle timeout tracking."""
         async with self._lock:
@@ -293,7 +360,12 @@ class RunRegistry:
         assert run.journal is not None
         try:
             try:
-                await self._engine_runner(run.request, run.journal, run.run_id)
+                await self._engine_runner(
+                    run.request,
+                    run.journal,
+                    run.run_id,
+                    run.retry_sources,
+                )
             except asyncio.CancelledError:
                 # Engine already wrote state=cancelled before re-raising.
                 raise

@@ -92,8 +92,17 @@ def _get_run_registry():
         import job_harness.scrapers.career  # noqa: F401
         from job_harness.run_registry import RunRegistry
 
-        async def runner(request, journal, run_id):
-            await _get_engine().execute(request, journal=journal, run_id=run_id)
+        async def runner(request, journal, run_id, retry_sources=None):
+            engine = _get_engine()
+            if retry_sources:
+                await engine.execute_retry(
+                    request,
+                    journal=journal,
+                    run_id=run_id,
+                    sources=retry_sources,
+                )
+            else:
+                await engine.execute(request, journal=journal, run_id=run_id)
 
         _run_registry_singleton = RunRegistry(
             runs_root=_RUNS_ROOT,
@@ -272,6 +281,29 @@ def _summary_dict(reader) -> dict:
     return reader.snapshot().to_dict()
 
 
+INLINE_LIMIT_MAX = 20
+_INLINE_LIMIT_HINT = (
+    f"Requested limit exceeds maximum {INLINE_LIMIT_MAX}. "
+    "Use format=file for the full dataset."
+)
+
+
+async def _read_snap_or_error(run_id: str):
+    """Return (reader, snapshot) or an error dict for unknown runs."""
+    from job_harness.run_registry import UnknownRunId
+
+    registry = _get_run_registry()
+    try:
+        await registry.touch(run_id)
+    except UnknownRunId:
+        pass
+    try:
+        reader = registry.read_journal(run_id)
+    except UnknownRunId:
+        return None, None, {"error": "unknown_run_id", "run_id": run_id}
+    return reader, reader.snapshot(), None
+
+
 # ---------------------------------------------------------------------------
 # Non-blocking search surface
 # ---------------------------------------------------------------------------
@@ -302,8 +334,9 @@ async def search_start(
     """Kick off a search in the background. Returns immediately (<100ms).
 
     The run writes its results to data/.runs/<run_id>/raw.jsonl with
-    fsync per listing. search_status, search_results, search_cancel
-    operate on that journal and never block.
+    fsync per listing. search_status polls the journal; search_results
+    exports results.json (default) or an inline listings slice;
+    search_cancel operates on the journal and never blocks.
     """
     from job_harness.run_registry import MaxConcurrentRunsReached
 
@@ -357,6 +390,8 @@ async def search_status(run_id: str) -> dict:
     except UnknownRunId:
         return {"error": "unknown_run_id", "run_id": run_id}
     snap = reader.snapshot()
+    from job_harness.source_retry import build_retryable_sources, build_sources_by_state
+
     return {
         "run_id": run_id,
         "state": snap.state.value,
@@ -366,17 +401,105 @@ async def search_status(run_id: str) -> dict:
         "listings_count": snap.listings_count,
         "errors": snap.errors,
         "sources": {name: s.to_dict() for name, s in snap.sources.items()},
+        "retryable_sources": build_retryable_sources(snap),
+        "sources_by_state": build_sources_by_state(snap),
         "summary": _summary_dict(reader),
     }
 
 
 @mcp.tool
 async def search_results(
-    run_id: str, max_results: int = 20, include_partial: bool = True
+    run_id: str,
+    format: str = "file",
+    limit: int = 20,
+    offset: int = 0,
+    include_partial: bool = True,
+    debug: bool = False,
 ) -> dict:
-    """Return the SearchResults snapshot derived from the journal."""
-    from job_harness.run_registry import UnknownRunId
+    """Export run listings from the journal.
+
+    format=file (default): materialise results.json and return its path.
+    format=inline: return a paginated listings slice (hard-capped at 20).
+    Pass debug=true to include per-source diagnostics.
+    """
+    from job_harness.run_journal import build_results_payload
     from job_harness.types import RunState
+
+    reader, snap, error = await _read_snap_or_error(run_id)
+    if error is not None:
+        return error
+    assert reader is not None and snap is not None
+
+    if snap.state == RunState.RUNNING and not include_partial:
+        return {"run_id": run_id, "state": "running", "error": "still_running"}
+
+    if format == "file":
+        payload = build_results_payload(snap, include_sources=debug)
+        path = reader.write_results(payload)
+        return {"path": str(path)}
+
+    if format != "inline":
+        return {
+            "error": "invalid_format",
+            "run_id": run_id,
+            "format": format,
+            "allowed": ["file", "inline"],
+        }
+
+    from job_harness.run_journal import materialize_listings
+
+    materialized = materialize_listings(snap)
+    effective_limit = min(limit, INLINE_LIMIT_MAX)
+    start = max(0, offset)
+    listings = materialized[start : start + effective_limit]
+    response: dict = {
+        "listings": listings,
+        "offset": start,
+        "limit": effective_limit,
+        "total": len(materialized),
+    }
+    if limit > INLINE_LIMIT_MAX:
+        response["limit_capped"] = True
+        response["hint"] = _INLINE_LIMIT_HINT
+    if debug:
+        response["sources"] = {
+            name: status.to_dict() for name, status in snap.sources.items()
+        }
+    return response
+
+
+@mcp.tool
+async def search_retry(
+    run_id: str,
+    sources: str,
+    strict_flags: bool | None = None,
+) -> dict:
+    """Re-dispatch failed sources in the same run without re-scraping ok ones."""
+    import job_harness.registry as scraper_registry
+    import job_harness.scrapers  # noqa: F401
+    import job_harness.scrapers.career  # noqa: F401
+    from job_harness.run_registry import (
+        MaxConcurrentRunsReached,
+        RunStillActive,
+        UnknownRunId,
+    )
+    from job_harness.source_retry import (
+        build_retryable_sources,
+        parse_sources_csv,
+        validate_retry_sources,
+    )
+    from job_harness.types import RunState
+
+    _RETRY_HINT = (
+        "For a full re-search with a new run id, call search_start."
+    )
+    _UNKNOWN_RUN_HINT = (
+        "Verify the run_id from search_start or list_active_runs."
+    )
+    _INVALID_SOURCES_HINT = (
+        "Use exact source ids from search_status.sources or list_sources. "
+        "Retry only sources that failed in this run."
+    )
 
     registry = _get_run_registry()
     try:
@@ -386,22 +509,62 @@ async def search_results(
     try:
         reader = registry.read_journal(run_id)
     except UnknownRunId:
-        return {"error": "unknown_run_id", "run_id": run_id}
+        return {
+            "error": "unknown_run_id",
+            "run_id": run_id,
+            "hint": _UNKNOWN_RUN_HINT,
+        }
+
     snap = reader.snapshot()
-    if snap.state == RunState.RUNNING and not include_partial:
-        return {"run_id": run_id, "state": "running", "error": "still_running"}
-    listings = snap.listings[:max_results]
+    if snap.state == RunState.RUNNING:
+        return {"error": "run_still_active", "run_id": run_id, "state": "running"}
+
+    requested = parse_sources_csv(sources)
+    if not requested:
+        return {"error": "sources_required", "run_id": run_id}
+
+    registered = {name for name, _ in scraper_registry.iter_registered()}
+    validation = validate_retry_sources(requested, snap, registered)
+    if validation.has_invalid_sources:
+        return {
+            "error": "invalid_sources",
+            "run_id": run_id,
+            "unknown_sources": list(validation.unknown_sources),
+            "not_in_run_sources": list(validation.not_in_run_sources),
+            "retryable_sources": build_retryable_sources(snap),
+            "sources_in_run": sorted(snap.sources.keys()),
+            "hint": _INVALID_SOURCES_HINT,
+        }
+
+    if not validation.can_start:
+        return {
+            "error": "no_sources_to_retry",
+            "run_id": run_id,
+            "skipped_sources": validation.skipped_sources,
+            "retryable_sources": build_retryable_sources(snap),
+            "hint": _RETRY_HINT,
+        }
+
+    try:
+        run = await registry.retry(
+            run_id,
+            retried_sources=validation.retried_sources,
+            strict_flags=strict_flags,
+        )
+    except RunStillActive:
+        return {"error": "run_still_active", "run_id": run_id, "state": "running"}
+    except MaxConcurrentRunsReached as exc:
+        return {
+            "error": "max_concurrent_runs_reached",
+            "active_runs": [s.to_dict() for s in exc.active],
+        }
+
     return {
-        "run_id": run_id,
-        "state": snap.state.value,
-        "started_at": snap.started_at,
-        "ended_at": snap.ended_at,
-        "elapsed_ms": snap.elapsed_ms,
-        "request": snap.request,
-        "total": len(listings),
-        "listings": listings,
-        "errors": snap.errors,
-        "sources": {name: s.to_dict() for name, s in snap.sources.items()},
+        "run_id": run.run_id,
+        "state": RunState.RUNNING.value,
+        "retried_sources": list(validation.retried_sources),
+        "skipped_sources": validation.skipped_sources,
+        "hint": _RETRY_HINT,
     }
 
 
@@ -454,9 +617,11 @@ async def search_refine(
     except UnknownRunId:
         return {"error": "unknown_run_id", "run_id": run_id}
 
+    from job_harness.run_journal import materialize_listings
+
     snap = reader.snapshot()
     listings: list[JobListing] = []
-    for raw in snap.listings:
+    for raw in materialize_listings(snap):
         try:
             listings.append(
                 JobListing(**{k: v for k, v in raw.items() if k in JobListing.__dataclass_fields__})

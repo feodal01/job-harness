@@ -212,6 +212,46 @@ class ConcurrencyTest(unittest.IsolatedAsyncioTestCase):
         engine.http_runner.shutdown()
 
 
+class ExecuteRetryTest(unittest.IsolatedAsyncioTestCase):
+    async def test_execute_retry_only_dispatches_named_sources(self):
+        class _FailOnceScraper(_OkScraper):
+            _calls: ClassVar[dict[str, int]] = {}
+
+            def search(self, params: SearchParams) -> list[JobListing]:
+                calls = type(self)._calls.get(self.name, 0)
+                type(self)._calls[self.name] = calls + 1
+                if calls == 0:
+                    raise RuntimeError("first attempt failed")
+                return super().search(params)
+
+        engine = SearchEngine()
+        with _RegistryContext({"good": _OkScraper, "flaky": _FailOnceScraper}), tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d)
+            with RunJournalWriter(run_dir) as journal:
+                await _run(
+                    engine,
+                    _request(sources=("good", "flaky")),
+                    journal,
+                    run_id="r-retry-test",
+                )
+                retry_request = _request(sources=("flaky",))
+                journal.write_listings_purged(sources=["flaky"])
+                journal.write_run_retry_started(sources=["flaky"])
+                await engine.execute_retry(
+                    retry_request,
+                    journal=journal,
+                    run_id="r-retry-test",
+                    sources=("flaky",),
+                )
+            snap = RunJournalReader(run_dir).snapshot()
+            self.assertEqual(snap.sources["good"].state, SourceState.OK)
+            self.assertEqual(snap.sources["flaky"].state, SourceState.OK)
+            self.assertEqual(snap.listings_count, 4)
+            events = list(RunJournalReader(run_dir).iter_events())
+            self.assertTrue(any(e.get("type") == "listings_purged" for e in events))
+        engine.http_runner.shutdown()
+
+
 class FailureModeTest(unittest.IsolatedAsyncioTestCase):
     async def test_one_source_raising_does_not_block_others(self):
         engine = SearchEngine()

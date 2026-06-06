@@ -53,7 +53,10 @@ The plugin includes:
 - **Commands**: `/job-search`, `/job-resolve`
 - **Skills**: `user-briefing`, `employer-resolution`, `aggregator-scrapers`, `scraper-insights`
 - **Agent**: `job-searcher` — full automated workflow
-- **MCP tools**: `search`, `resolve`, `resolve_company`, `list_sources`, `cache_get`, `cache_upsert`, `cache_stats`
+- **MCP tools (search surface)**: `search_start`, `search_status`, `search_results`, `search_cancel`, `search_refine`, `list_active_runs`
+- **MCP tools (lookup)**: `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`
+
+**Search workflow:** `search_start` → poll `search_status` → `search_results(run_id)` (default writes `results.json` and returns `{ path }`). Use `format=inline` for previews (max 20 listings per call). Employer resolution: `job-harness resolve`.
 
 The Python CLI still works standalone from the plugin root: `uv --directory plugins/job-harness run job-harness search --query "QA" --resolve --cache`
 

@@ -22,7 +22,7 @@ Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
 - Employer resolution: aggregator listings → direct employer career pages
 - Per-company career scrapers (VK, IBS)
 - Bundled employer career page registry, updated with plugin releases
-- MCP server with 7 tools for Claude Code and Codex integration
+- MCP server with async search tools (`search_start`, `search_status`, `search_results`, …) for Claude Code and Codex integration
 - Slash commands: `/job-search`, `/job-resolve`
 - Output in Markdown / JSON / CSV
 - Stealth browser via rebrowser-playwright
@@ -40,7 +40,7 @@ claude plugin marketplace add feodal01/job-harness
 claude plugin install job-harness@job-harness
 ```
 
-The plugin provides MCP tools (`search`, `resolve`, `resolve_company`, `list_sources`, `cache_get`, `cache_upsert`, `cache_stats`), slash commands (`/job-search`, `/job-resolve`), and skills (`user-briefing`, `employer-resolution`, `aggregator-scrapers`, `scraper-insights`).
+The plugin provides MCP tools (`search_start`, `search_status`, `search_results`, `search_refine`, `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`, …), slash commands (`/job-search`, `/job-resolve`), skills (`user-briefing`, `employer-resolution`, `aggregator-scrapers`, `scraper-insights`), and CLI commands including `job-harness resolve`.
 
 ### As a Codex plugin from GitHub
 
