@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-os.environ.setdefault("REBROWSER_PATCHES_RUNTIME_FIX_MODE", "0")
+os.environ.setdefault("REBROWSER_PATCHES_RUNTIME_FIX_MODE", "addBinding")
 
 from rebrowser_playwright.sync_api import Browser, BrowserContext
 

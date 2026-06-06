@@ -6,6 +6,7 @@ import asyncio
 import json
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 
 from job_harness.run_journal import RunJournalReader, RunJournalWriter
@@ -223,8 +224,13 @@ class RestartRecoveryTest(unittest.IsolatedAsyncioTestCase):
             writer.rewrite_summary(RunJournalReader(run_dir).snapshot())
             writer.close()
             # Construct a new registry pointed at this directory — should
-            # flag the orphan as failed.
-            reg = RunRegistry(runs_root=Path(d), engine_runner=_success_runner)
+            # flag the orphan as failed. Keep the injected clock close to
+            # run_id so retention GC does not erase the fixture.
+            reg = RunRegistry(
+                runs_root=Path(d),
+                engine_runner=_success_runner,
+                clock=lambda: datetime(2026, 6, 5, 0, 1, tzinfo=UTC),
+            )
             data = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
             self.assertEqual(data["state"], RunState.FAILED.value)
             self.assertEqual(data.get("failure_reason"), "server_restart")

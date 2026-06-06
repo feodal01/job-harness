@@ -10,6 +10,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 from tests._support.fake_browser import (
     FakeBrowser,
@@ -24,6 +25,7 @@ from job_harness.models import SearchParams
 from job_harness.registry import _SCRAPERS, register_scraper
 from job_harness.run_journal import RunJournalWriter
 from job_harness.scrapers.hh_ru import (
+    _CARD_SELECTOR,
     HeadHunterKgScraper,
     HHKzScraper,
     HHRuScraper,
@@ -56,6 +58,36 @@ def _request(**overrides):
     overrides.setdefault("source_timeout_ms", 5000)
     overrides.setdefault("total_timeout_ms", 8000)
     return SearchRequest(**overrides)
+
+
+class _FailingCountLocator:
+    def __init__(self, inner: Any, page: _FailingCountPage) -> None:
+        self._inner = inner
+        self._page = page
+
+    async def count(self) -> int:
+        if self._page.remaining_count_failures > 0:
+            self._page.remaining_count_failures -= 1
+            raise RuntimeError(
+                "Locator.count: Execution context was destroyed, "
+                "most likely because of a navigation"
+            )
+        return await self._inner.count()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+
+class _FailingCountPage(FakePage):
+    def __init__(self, *, behaviour: PageBehaviour, remaining_count_failures: int) -> None:
+        super().__init__(behaviour=behaviour)
+        self.remaining_count_failures = remaining_count_failures
+
+    def locator(self, selector: str) -> Any:
+        locator = super().locator(selector)
+        if selector == _CARD_SELECTOR:
+            return _FailingCountLocator(locator, self)
+        return locator
 
 
 class _RegistryContext:
@@ -119,6 +151,20 @@ class HHRuParseTest(unittest.IsolatedAsyncioTestCase):
         scraper = HHKzScraper(max_results=10)
         listings = await scraper.search_with_page(page, SearchParams(query="QA"))
         self.assertEqual(listings[0].country, "KZ")
+
+    async def test_retries_when_card_count_races_with_navigation(self):
+        dom = card_dom(
+            {"title": "QA", "link_href": "https://hh.uz/vacancy/1", "company": "X"}
+        )
+        page = _FailingCountPage(
+            behaviour=PageBehaviour(dom=dom),
+            remaining_count_failures=1,
+        )
+        scraper = HHUzScraper(max_results=10)
+        listings = await scraper.search_with_page(page, SearchParams(query="QA"))
+        self.assertEqual(len(listings), 1)
+        self.assertEqual(listings[0].url, "https://hh.uz/vacancy/1")
+        self.assertEqual(page.remaining_count_failures, 0)
 
     async def test_search_url_includes_remote_when_requested(self):
         scraper = HHRuScraper()

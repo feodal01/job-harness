@@ -157,6 +157,16 @@ class HHRuScraper(BaseBrowserScraper):
 
     async def _parse_cards_async(self, page) -> list[JobListing]:
         """Read every visible vacancy card on the current page."""
+        for attempt in range(3):
+            try:
+                return await self._parse_cards_once(page)
+            except Exception as exc:
+                if not _is_navigation_context_error(exc) or attempt == 2:
+                    raise
+                await _settle_after_navigation(page)
+        return []
+
+    async def _parse_cards_once(self, page) -> list[JobListing]:
         listings: list[JobListing] = []
         cards = page.locator(_CARD_SELECTOR)
         count = await cards.count()
@@ -226,6 +236,25 @@ async def _first_attribute(card: Any, selectors: tuple[str, ...], name: str) -> 
             except Exception:
                 continue
     return None
+
+
+async def _settle_after_navigation(page: Any) -> None:
+    wait_for_load_state = getattr(page, "wait_for_load_state", None)
+    if callable(wait_for_load_state):
+        try:
+            await wait_for_load_state("domcontentloaded", timeout=3000)
+        except Exception:
+            pass
+    await page.wait_for_timeout(500)
+
+
+def _is_navigation_context_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "execution context was destroyed" in message
+        or "most likely because of a navigation" in message
+        or "cannot find context with specified id" in message
+    )
 
 
 # ---------------------------------------------------------------------------
