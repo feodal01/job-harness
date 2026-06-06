@@ -19,13 +19,14 @@ You are running a job search. Follow this workflow:
    2. Poll `search_status(run_id)` until the run finishes or has enough listings. Check `retryable_sources` for failed sources.
       - Retry in the same run: `search_retry(run_id, sources="hh_ru,career:vk")` — exact source ids only; ok sources are skipped automatically.
       - Full re-search: new `search_start` (new `run_id`).
-   3. `search_results(run_id)` (default `format=file`) → read `path` for the full listing export.
-   4. Optional preview: `search_results(run_id, format="inline", limit=10)` — max 20 per call.
-   5. Optional re-filter: `search_refine(run_id, ...)` without re-scraping.
+   3. `search_results(run_id)` (default `format=file`) → returns `path` to the full on-disk export (`results.json`).
+   4. **Context safety:** `results.json` can be very large and will bloat the context if read whole. Do not paste or load the entire file into chat. Prefer `search_refine` first, then `search_results(..., format="inline", limit=N)` for previews; read the file in targeted slices (counts, top-N fields) when you need more.
+   5. Optional preview: `search_results(run_id, format="inline", limit=10)` — max 20 per call.
+   6. Optional re-filter: `search_refine(run_id, ...)` without re-scraping.
 
    If aggregator results are sparse or the user wants employer-first discovery, use `search_company_jobs` or `search_start` with `sources=company_directory`. Use `company-live-search` CLI only for small targeted live checks.
 
-5. **Filter and analyze** — Work from the exported `results.json` file (full dataset), not from inline slices alone. Apply brief exclusions, then `search_refine` for coarse filters, then LLM ranking. Use `exclude_keywords` and `exclude_keywords_context` in `search_start` or `search_refine`.
+5. **Filter and analyze** — Work from the exported dataset on disk, not from loading the whole `results.json` into context. Apply brief exclusions via `search_refine` first, then analyze inline slices or selected fields from the file. Use `exclude_keywords` and `exclude_keywords_context` in `search_start` or `search_refine`.
 
 6. **Present** — Show top matches with:
    - Direct employer URL (if resolved) as primary link
@@ -51,3 +52,4 @@ You are running a job search. Follow this workflow:
 - Not finding a career page is normal for small companies — don't present it as failure.
 - Context-aware filtering: "nice to have" keywords should NOT exclude a listing.
 - Always save artifacts. The brief is the reusable source of truth; each run records one execution of that brief.
+- `results.json` is for persistence and targeted reads — copy it to the run folder, but keep in-context work to small previews and refined subsets.
