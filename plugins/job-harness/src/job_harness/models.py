@@ -12,7 +12,7 @@ class SearchParams:
     query: str
     country: str | None = None
     remote_only: bool = False
-    experience: str | None = None  # "junior" | "middle" | "senior"
+    experience_levels: tuple[str, ...] = ()
     location: str | None = None
     max_results: int = 20
     extra: dict = field(default_factory=dict)  # Platform-specific parameters
@@ -25,7 +25,13 @@ class JobListing:
     company: str
     country: str | None = None
     salary: str | None = None
+    # Internal native structured/server grade input only. Best-effort sources
+    # must leave this empty and let the grade engine estimate from text fields.
     experience: str | None = None
+    experience_levels: list[str] = field(default_factory=list)
+    experience_origin: str = "unknown"
+    experience_confidence: str = "none"
+    experience_evidence: list[str] = field(default_factory=list)
     remote: bool = False
     location: str | None = None
     description: str | None = None
@@ -42,7 +48,10 @@ class JobListing:
             "company": self.company,
             "country": self.country,
             "salary": self.salary,
-            "experience": self.experience,
+            "experience_levels": self.experience_levels,
+            "experience_origin": self.experience_origin,
+            "experience_confidence": self.experience_confidence,
+            "experience_evidence": self.experience_evidence,
             "remote": self.remote,
             "location": self.location,
             "description": self.description,
@@ -71,7 +80,7 @@ class SearchResults:
                 "query": self.params.query,
                 "country": self.params.country,
                 "remote_only": self.params.remote_only,
-                "experience": self.params.experience,
+                "experience_levels": list(self.params.experience_levels),
                 "location": self.params.location,
                 "max_results": self.params.max_results,
             },

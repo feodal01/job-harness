@@ -18,8 +18,9 @@ Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
 
 - Job search on hh.ru and Habr Career
 - Detailed parsing of descriptions and skills
-- Filtering by experience, remote, keywords (context-aware — "nice to have" is not a requirement)
+- Exact grade filtering by `experience_levels`, with native/estimated/unknown grade assessment
 - Employer resolution: aggregator listings → direct employer career pages
+- Known company career-page probing through the normal search pipeline
 - Per-company career scrapers (VK, IBS)
 - Bundled employer career page registry, updated with plugin releases
 - MCP server with async search tools (`search_start`, `search_status`, `search_results`, …) for Claude Code and Codex integration

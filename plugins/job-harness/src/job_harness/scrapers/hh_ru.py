@@ -148,8 +148,10 @@ class HHRuScraper(BaseBrowserScraper):
         }
         if params.remote_only:
             query_params["schedule"] = "remote"
-        if params.experience and params.experience in _EXPERIENCE_URL_MAP:
-            query_params["experience"] = _EXPERIENCE_URL_MAP[params.experience]
+        if len(params.experience_levels) == 1:
+            level = params.experience_levels[0]
+            if level in _EXPERIENCE_URL_MAP:
+                query_params["experience"] = _EXPERIENCE_URL_MAP[level]
         query_params.update(params.extra)
         return self.BASE_URL + "?" + urlencode(query_params)
 

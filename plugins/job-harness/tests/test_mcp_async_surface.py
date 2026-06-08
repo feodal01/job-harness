@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import inspect
 import json
 import tempfile
 import time
@@ -304,7 +305,7 @@ class SearchResultsFormatTest(unittest.IsolatedAsyncioTestCase):
             out = await server.search_results(r["run_id"], format="inline", limit=1, offset=1)
             self.assertEqual(out["offset"], 1)
             self.assertEqual(len(out["listings"]), 1)
-            self.assertEqual(out["listings"][0]["experience"], "junior")
+            self.assertEqual(out["listings"][0]["experience_levels"], ["junior"])
             await server._get_run_registry().shutdown()
 
     async def test_debug_includes_sources_inline(self):
@@ -358,12 +359,28 @@ class RefineTest(unittest.IsolatedAsyncioTestCase):
         with _RegistryContext({"src": _OkScraper}), _RunsRootContext(server):
             r = await server.search_start(query="QA", sources="src")
             await _wait_state(server, r["run_id"], RunState.COMPLETED)
-            refined = await server.search_refine(r["run_id"], experience="senior")
+            refined = await server.search_refine(
+                r["run_id"], experience_levels=["senior"]
+            )
             # Only the senior listing survives.
             self.assertEqual(refined["total"], 1)
-            self.assertEqual(refined["listings"][0]["experience"], "senior")
-            self.assertIn("experience", refined["refine_filters"])
+            self.assertEqual(refined["listings"][0]["experience_levels"], ["senior"])
+            self.assertIn("experience_levels", refined["refine_filters"])
             await server._get_run_registry().shutdown()
+
+    async def test_invalid_experience_levels_return_structured_error(self):
+        server = _load_mcp_server()
+        with _RegistryContext({"src": _OkScraper}), _RunsRootContext(server):
+            out = await server.search_start(
+                query="QA", sources="src", experience_levels=["midle"]
+            )
+            self.assertEqual(out["error"], "invalid_experience_levels")
+            await server._get_run_registry().shutdown()
+
+    async def test_old_experience_parameter_is_absent(self):
+        server = _load_mcp_server()
+        self.assertNotIn("experience", inspect.signature(server.search_start).parameters)
+        self.assertNotIn("experience", inspect.signature(server.search_refine).parameters)
 
 
 class ListRunsTest(unittest.IsolatedAsyncioTestCase):

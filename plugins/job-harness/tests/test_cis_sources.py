@@ -198,6 +198,7 @@ class CisSourcesTest(unittest.TestCase):
         self.assertEqual("Test Labs", listings[0].company)
         self.assertEqual("RU", listings[0].country)
         self.assertEqual("250 000 ₽", listings[0].salary)
+        self.assertIsNone(listings[0].experience)
         self.assertTrue(listings[0].remote)
 
     def test_hirehi_search_filters_by_any_it_role_not_only_qa(self) -> None:
@@ -209,6 +210,7 @@ class CisSourcesTest(unittest.TestCase):
         self.assertEqual(1, len(listings))
         self.assertEqual("Middle Support Engineer", listings[0].title)
         self.assertIn("/devops/", listings[0].url)
+        self.assertIsNone(listings[0].experience)
 
     def test_hirify_maps_api_response(self) -> None:
         scraper = HirifyScraper(context=None, max_results=5)
@@ -221,7 +223,7 @@ class CisSourcesTest(unittest.TestCase):
         self.assertEqual("AM", listings[0].country)
         self.assertEqual("4000 - 6000 USD", listings[0].salary)
         self.assertTrue(listings[0].remote)
-        self.assertEqual("senior", listings[0].experience)
+        self.assertIsNone(listings[0].experience)
 
     def test_hirify_reads_nested_company_and_marks_missing_company(self) -> None:
         scraper = HirifyScraper(context=None, max_results=5)
@@ -275,7 +277,7 @@ class CisSourcesTest(unittest.TestCase):
         self.assertEqual("Fresh Talent", listings[0].company)
         self.assertEqual("AM", listings[0].country)
         self.assertEqual("от 500K ₽", listings[0].salary)
-        self.assertEqual("senior", listings[0].experience)
+        self.assertIsNone(listings[0].experience)
 
     def test_talento_uses_aria_label_for_title_and_company(self) -> None:
         scraper = TalentoScraper(context=None, max_results=5)
@@ -286,6 +288,7 @@ class CisSourcesTest(unittest.TestCase):
         self.assertEqual("QA Automation Engineer", listings[0].title)
         self.assertEqual("Т-Банк", listings[0].company)
         self.assertEqual("RU", listings[0].country)
+        self.assertIsNone(listings[0].experience)
 
     def test_finder_work_maps_api_response(self) -> None:
         scraper = FinderWorkScraper(context=None, max_results=5)
@@ -342,7 +345,7 @@ class CisSourcesTest(unittest.TestCase):
         self.assertEqual("https://jobturbo.ru/vakansiya/35564", listings[0].url)
         self.assertEqual("RU", listings[0].country)
         self.assertTrue(listings[0].remote)
-        self.assertEqual("senior", listings[1].experience)
+        self.assertIsNone(listings[1].experience)
 
     def test_getmatch_uses_matching_specialization_and_maps_offer(self) -> None:
         scraper = GetmatchScraper(context=None, max_results=5)
@@ -361,6 +364,7 @@ class CisSourcesTest(unittest.TestCase):
         self.assertEqual("Ozon Банк", listings[0].company)
         self.assertEqual("RU", listings[0].country)
         self.assertEqual("от 365 000 ₽/мес до налогов", listings[0].salary)
+        self.assertIsNone(listings[0].experience)
         self.assertTrue(listings[0].remote)
         self.assertEqual(["PyTest", "Docker"], listings[0].skills)
 

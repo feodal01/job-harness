@@ -11,6 +11,7 @@ from job_harness.scrapers.cis_sources import (  # noqa: F401
     StaffAmScraper,
     TalentoScraper,
 )
+from job_harness.scrapers.company_careers import CompanyCareersScraper  # noqa: F401
 from job_harness.scrapers.company_directory import CompanyDirectoryScraper  # noqa: F401
 from job_harness.scrapers.habr_career import HabrCareerScraper  # noqa: F401
 from job_harness.scrapers.hh_ru import (  # noqa: F401

@@ -24,6 +24,7 @@ import job_harness.scrapers.career  # noqa: F401
 from job_harness.browser_pool import BrowserPool
 from job_harness.company_directory import search_company_directory
 from job_harness.countries import format_country_codes, normalize_country_code
+from job_harness.experience_engine import parse_experience_levels_csv
 from job_harness.formatters import get_formatter
 from job_harness.registry import get_scraper_metadata
 from job_harness.run_journal import RunJournalWriter, generate_run_id
@@ -46,11 +47,17 @@ def cmd_search(args: argparse.Namespace) -> None:
     else:
         sources_tuple = tuple(s.strip() for s in args.sources.split(",") if s.strip())
 
+    try:
+        experience_levels = parse_experience_levels_csv(args.experience_levels)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
     request = SearchRequest(
         query=args.query,
         country=normalize_country_code(args.country),
         remote_only=args.remote_only,
-        experience=args.experience,
+        experience_levels=experience_levels,
         location=args.location,
         max_results=args.max_results,
         sources=sources_tuple,
@@ -198,7 +205,10 @@ def main() -> None:
     s.add_argument("--profile", choices=["fast", "full"], help="Source profile")
     s.add_argument("--country", help="CIS country code or name (e.g. RU, KZ, Armenia)")
     s.add_argument("--remote-only", action="store_true", help="Only remote listings")
-    s.add_argument("--experience", choices=["junior", "middle", "senior"], help="Minimum experience level")
+    s.add_argument(
+        "--experience-levels",
+        help="Comma-separated exact levels: junior,middle,senior",
+    )
     s.add_argument("--location", help="Location filter string")
     s.add_argument("--max-results", type=int, default=20)
     s.add_argument("--detail", action="store_true", help="Fetch full details for each listing")

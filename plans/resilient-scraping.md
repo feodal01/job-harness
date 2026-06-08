@@ -95,6 +95,7 @@ For each requested filter `F`:
 2. **Unsupported scrapers are not silently included.**
    * `strict_flags=True` (the default): drop them with `SourceState.SKIPPED_UNSUPPORTED_FLAG`.
    * `strict_flags=False`: include them; mark each returned listing with `raw["filter_uncertain"][F] = True`; downrank them in the dedupe quality tuple.
+   * Exception: `experience_levels` is handled by the deterministic grade engine, so unsupported native grade support no longer skips a source by itself.
 3. **Best-effort enforcement is double-checked.** After parsing, the engine reapplies the heuristic and records `raw["filter_decision"][F] ∈ {"kept","dropped","unknown"}` per listing.
 4. **Client and server enforcement are trusted but verified** by the capability tests in §11.3.
 
@@ -559,7 +560,7 @@ async def search_cancel(run_id: str) -> dict:
 @mcp.tool
 async def search_refine(
     run_id: str, *,
-    experience: str | None = None,
+    experience_levels: list[str] | None = None,
     has_salary: bool = False,
     remote_only: bool = False,
     exclude_companies: str | None = None,
@@ -570,10 +571,10 @@ async def search_refine(
     strict_refine: bool = False,
 ) -> dict:
     """Re-filter the journal of a finished run without re-scraping.
-    Returns a SearchResults snapshot. Honours the same flag_enforcement
-    semantics; listings whose source declared a refine filter as
-    'unsupported' are tagged raw['filter_uncertain'][flag]=True unless
-    strict_refine=True (in which case they are dropped)."""
+    Returns a SearchResults snapshot. Experience levels are exact grades
+    applied through the grade engine; unknown grades are kept inline and
+    ranked after matched listings. Other filters honour the same
+    flag_enforcement semantics."""
 
 @mcp.tool
 async def list_active_runs(limit: int = 20) -> dict:
@@ -964,7 +965,7 @@ Cancellation:
 
 ### 14.3 "Теперь только junior"
 
-After a completed run, the agent calls `search_refine(run_id, experience="junior", strict_refine=False)`. The engine reads the journal, applies the filter, returns a new `SearchResults` snapshot. Listings whose source declared `experience=unsupported` are tagged `filter_uncertain[experience]=True`. No scrapers are invoked. Returns in <200 ms.
+After a completed run, the agent calls `search_refine(run_id, experience_levels=["junior"], strict_refine=False)`. The engine reads the journal, applies exact grade filtering through the deterministic grade engine, and returns a new `SearchResults` snapshot. Sources whose native grade support is `unsupported` are not skipped solely for grade filtering; their listings are marked `estimated` or `unknown`. No scrapers are invoked. Returns in <200 ms.
 
 ### 14.4 "Найди и отдай прямые ссылки на работодателей"
 

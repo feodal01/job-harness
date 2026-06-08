@@ -50,14 +50,16 @@ def no_keywords(
     return predicate
 
 
-def min_experience(level: str) -> Callable[[JobListing], bool]:
-    """Factory: keep listings at or above the given experience level."""
-    order = {"junior": 0, "middle": 1, "senior": 2}
-    min_level = order.get(level, 0)
+def experience_in(levels: list[str] | tuple[str, ...]) -> Callable[[JobListing], bool]:
+    """Factory: keep listings whose assessed grade is in the given exact set.
+
+    Unknown-grade listings are retained so callers can inspect them separately.
+    """
+    requested = set(levels)
     def predicate(listing: JobListing) -> bool:
-        if not listing.experience:
+        if listing.experience_origin == "unknown":
             return True
-        return order.get(listing.experience, 0) >= min_level
+        return bool(requested.intersection(listing.experience_levels))
     return predicate
 
 

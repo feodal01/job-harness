@@ -42,6 +42,11 @@ from job_harness.dedupe_filter import (
     apply_filter_plan,
     build_filter_plan,
     dedupe_listings,
+    order_by_experience_match,
+)
+from job_harness.experience_engine import (
+    annotate_listing_experience,
+    parse_experience_levels,
 )
 from job_harness.http_runner import HttpRunner, SourceOutcome
 from job_harness.models import JobListing, SearchParams, SearchResults
@@ -108,7 +113,7 @@ def _resolve_sources(
 
     eligible: list[_SourceEntry] = []
     skipped: list[_SkipEntry] = []
-    requested_flags = _requested_flags(request)
+    requested_flags = _strict_requested_flags(request)
 
     for name in candidate_names:
         try:
@@ -193,19 +198,28 @@ def _resolve_sources(
 
 
 def _requested_flags(request: SearchRequest) -> tuple[str, ...]:
-    """The user-requested filter flags that drive the strict-flag policy."""
+    """The user-requested filter flags for result summaries."""
     flags: list[str] = []
     if request.remote_only:
         flags.append("remote_only")
     if request.has_salary:
         flags.append("has_salary")
-    if request.experience:
+    if request.experience_levels:
         flags.append("experience")
     if request.location:
         flags.append("location")
     # query_match is always requested; we don't enforce strict on it
     # because every scraper declares at least best_effort.
     return tuple(flags)
+
+
+def _strict_requested_flags(request: SearchRequest) -> tuple[str, ...]:
+    """Requested flags that can skip sources under strict policy.
+
+    Grade filtering is handled by the grade engine for every source, so
+    `experience` no longer skips sources that lack native grade support.
+    """
+    return tuple(flag for flag in _requested_flags(request) if flag != "experience")
 
 
 def _capabilities_view(caps: Any) -> dict[str, FilterSupport]:
@@ -291,7 +305,7 @@ class SearchEngine:
             remote_only=request.remote_only,
             has_salary=request.has_salary,
             exclude_companies=",".join(request.exclude_companies) or None,
-            experience=request.experience,
+            experience_levels=request.experience_levels,
             exclude_keywords=",".join(request.exclude_keywords) or None,
             exclude_keywords_context=",".join(request.exclude_keywords_context) or None,
             location=request.location,
@@ -333,6 +347,7 @@ class SearchEngine:
             for outcome in outcomes:
                 # Listings recorded per-source as they complete.
                 for listing in outcome.listings:
+                    _annotate_listing_from_outcome(listing, outcome)
                     journal.write_listing(source=outcome.status.source, listing=listing.to_dict())
                 journal.write_source_status(outcome.status)
                 if outcome.status.error_message and outcome.status.state != SourceState.OK:
@@ -353,7 +368,9 @@ class SearchEngine:
         # Post-processing: apply filters in code (don't trust scrapers),
         # dedupe, truncate.
         filtered = apply_filter_plan(all_listings, filter_plan)
-        deduped = dedupe_listings(filtered) if request.dedupe else filtered
+        ranked = order_by_experience_match(filtered, request.experience_levels)
+        deduped = dedupe_listings(ranked) if request.dedupe else ranked
+        deduped = order_by_experience_match(deduped, request.experience_levels)
         final = deduped[: request.max_results]
 
         # Build the rich summary.
@@ -373,6 +390,11 @@ class SearchEngine:
                 "before": len(all_listings),
                 "after": len(filtered),
                 "removed": len(all_listings) - len(filtered),
+                "experience": _experience_filter_summary(
+                    all_listings,
+                    filtered,
+                    request.experience_levels,
+                ),
             },
             "dedupe": {
                 "enabled": request.dedupe,
@@ -421,7 +443,7 @@ class SearchEngine:
             remote_only=request.remote_only,
             has_salary=request.has_salary,
             exclude_companies=",".join(request.exclude_companies) or None,
-            experience=request.experience,
+            experience_levels=request.experience_levels,
             exclude_keywords=",".join(request.exclude_keywords) or None,
             exclude_keywords_context=",".join(request.exclude_keywords_context) or None,
             location=request.location,
@@ -458,6 +480,7 @@ class SearchEngine:
 
             for outcome in outcomes:
                 for listing in outcome.listings:
+                    _annotate_listing_from_outcome(listing, outcome)
                     journal.write_listing(
                         source=outcome.status.source, listing=listing.to_dict()
                     )
@@ -479,7 +502,9 @@ class SearchEngine:
             raise
 
         filtered = apply_filter_plan(all_listings, filter_plan)
-        deduped = dedupe_listings(filtered) if request.dedupe else filtered
+        ranked = order_by_experience_match(filtered, request.experience_levels)
+        deduped = dedupe_listings(ranked) if request.dedupe else ranked
+        deduped = order_by_experience_match(deduped, request.experience_levels)
         final = deduped[: request.max_results]
 
         flag_enforcement = _build_flag_enforcement_summary(
@@ -498,6 +523,11 @@ class SearchEngine:
                 "before": len(all_listings),
                 "after": len(filtered),
                 "removed": len(all_listings) - len(filtered),
+                "experience": _experience_filter_summary(
+                    all_listings,
+                    filtered,
+                    request.experience_levels,
+                ),
             },
             "dedupe": {
                 "enabled": request.dedupe,
@@ -647,6 +677,15 @@ class SearchEngine:
                 # detected — we cannot trust their integrity.
             elif isinstance(result, list):
                 listings = result
+                if getattr(scraper, "timed_out", False):
+                    if listings:
+                        state = SourceState.PARTIAL
+                        failure_mode = FailureMode.SLOW_PAGINATION
+                    else:
+                        state = SourceState.TIMEOUT
+                        failure_mode = FailureMode.GOTO_TIMEOUT
+                        error_class = "TimeoutError"
+                        error_message = "browser source deadline reached before completion"
             else:
                 state, failure_mode = SourceState.ERROR, FailureMode.PARSE_ERROR
                 error_class = "ProtocolError"
@@ -824,6 +863,7 @@ def _validate_request(request: SearchRequest) -> None:
         raise ValueError("total_timeout_ms must be >= 1")
     if request.profile not in (None, "fast", "full"):
         raise ValueError("profile must be one of None, 'fast', 'full'")
+    parse_experience_levels(request.experience_levels, allow_empty=True)
 
 
 def _request_to_params(request: SearchRequest) -> SearchParams:
@@ -831,7 +871,7 @@ def _request_to_params(request: SearchRequest) -> SearchParams:
         query=request.query,
         country=request.country,
         remote_only=request.remote_only,
-        experience=request.experience,
+        experience_levels=request.experience_levels,
         location=request.location,
         max_results=request.max_results,
         extra=dict(request.extra),
@@ -880,7 +920,15 @@ def _build_flag_enforcement_summary(
         for entry in eligible:
             support = entry.capabilities.get(flag, FilterSupport.UNSUPPORTED)
             applied = support != FilterSupport.UNSUPPORTED and entry.name in by_outcome
-            by_source[entry.name] = {"support": support.value, "applied": applied}
+            if flag == "experience":
+                applied = entry.name in by_outcome
+                by_source[entry.name] = {
+                    "support": support.value,
+                    "applied": applied,
+                    "applied_by": "grade_engine",
+                }
+            else:
+                by_source[entry.name] = {"support": support.value, "applied": applied}
         for skip in skipped:
             if skip.failure_mode != FailureMode.UNSUPPORTED_FLAG:
                 continue
@@ -895,6 +943,41 @@ def _build_flag_enforcement_summary(
             "by_source": by_source,
         }
     return block
+
+
+def _annotate_listing_from_outcome(listing: JobListing, outcome: SourceOutcome) -> None:
+    raw_support = outcome.status.flag_enforcement.get("experience", FilterSupport.UNSUPPORTED)
+    support = raw_support if isinstance(raw_support, FilterSupport) else FilterSupport(str(raw_support))
+    annotate_listing_experience(listing, outcome.status.source, support)
+
+
+def _experience_filter_summary(
+    before: list[JobListing],
+    after: list[JobListing],
+    requested_levels: tuple[str, ...],
+) -> dict[str, Any]:
+    if not requested_levels:
+        return {}
+    requested = set(requested_levels)
+
+    def matched(listing: JobListing) -> bool:
+        return bool(requested.intersection(listing.experience_levels))
+
+    return {
+        "requested_levels": list(requested_levels),
+        "native_matched": sum(
+            1 for listing in after
+            if listing.experience_origin == "native" and matched(listing)
+        ),
+        "estimated_matched": sum(
+            1 for listing in after
+            if listing.experience_origin == "estimated" and matched(listing)
+        ),
+        "unknown_kept": sum(
+            1 for listing in after if listing.experience_origin == "unknown"
+        ),
+        "removed": len(before) - len(after),
+    }
 
 
 def _tokenise(query: str) -> tuple[str, ...]:
@@ -933,5 +1016,3 @@ def _baseline_min(
             if isinstance(value, int) and value > 0:
                 return value
     return None
-
-

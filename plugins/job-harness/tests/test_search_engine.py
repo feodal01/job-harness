@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 from typing import ClassVar
 
-from job_harness.base import BaseScraper
+from job_harness.base import BaseBrowserScraper, BaseScraper
 from job_harness.models import JobListing, SearchParams
 from job_harness.registry import _SCRAPERS, register_scraper
 from job_harness.run_journal import RunJournalReader, RunJournalWriter
@@ -98,8 +98,34 @@ class _BrowserScraper(_OkScraper):
     detail_requires_browser = True
 
 
+class _PartialBrowserScraper(BaseBrowserScraper):
+    display_name = "Partial Browser"
+    capabilities: ClassVar[ScraperCapabilities] = _capabilities()
+
+    @classmethod
+    def supports_country(cls, country):
+        return True
+
+    async def search_with_page(self, page, params: SearchParams) -> list[JobListing]:
+        self.mark_timed_out()
+        return [
+            JobListing(
+                title="QA from partial browser",
+                url="https://x/browser/1",
+                company="Browser Co",
+                source=self.name,
+            )
+        ]
+
+
 class _UnsupportedRemoteScraper(_OkScraper):
     capabilities: ClassVar[ScraperCapabilities] = _capabilities(remote_only=FilterSupport.UNSUPPORTED)
+
+
+class _UnsupportedExperienceScraper(_OkScraper):
+    capabilities: ClassVar[ScraperCapabilities] = _capabilities(
+        experience=FilterSupport.UNSUPPORTED
+    )
 
 
 class _RUOnlyScraper(_OkScraper):
@@ -145,6 +171,11 @@ def _request(**overrides) -> SearchRequest:
 
 async def _run(engine: SearchEngine, request, journal, run_id="r-test-000000"):
     return await engine.execute(request, journal=journal, run_id=run_id)
+
+
+class _InlineBrowserPool:
+    async def run_with_page(self, func, *, timeout_ms=None):
+        return await func(object())
 
 
 # ---------------------------------------------------------------------------
@@ -303,6 +334,18 @@ class FailureModeTest(unittest.IsolatedAsyncioTestCase):
                 self.assertNotEqual(statuses[s]["state"], SourceState.OK.value)
         engine.http_runner.shutdown()
 
+    async def test_browser_source_can_return_partial_listings(self):
+        engine = SearchEngine(browser_pool=_InlineBrowserPool())
+        with _RegistryContext({"browser": _PartialBrowserScraper}), tempfile.TemporaryDirectory() as d:
+            with RunJournalWriter(Path(d)) as journal:
+                result = await _run(engine, _request(sources=("browser",)), journal)
+            self.assertEqual(len(result.listings), 1)
+            status = result.summary["source_statuses"][0]
+            self.assertEqual(status["state"], SourceState.PARTIAL.value)
+            self.assertEqual(status["failure_mode"], FailureMode.SLOW_PAGINATION.value)
+            self.assertEqual(status["raw_count"], 1)
+        engine.http_runner.shutdown()
+
 
 class CountryRoutingTest(unittest.IsolatedAsyncioTestCase):
     async def test_country_mismatch_skips_with_not_in_country(self):
@@ -359,6 +402,27 @@ class StrictFlagPolicyTest(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(block["remote_only"]["by_source"]["ok"]["applied"])
         engine.http_runner.shutdown()
 
+    async def test_experience_filter_does_not_skip_unsupported_sources(self):
+        engine = SearchEngine()
+        with _RegistryContext({"src": _UnsupportedExperienceScraper}), tempfile.TemporaryDirectory() as d:
+            with RunJournalWriter(Path(d)) as journal:
+                result = await _run(
+                    engine,
+                    _request(sources=("src",), experience_levels=("middle",)),
+                    journal,
+                )
+            statuses = {s["source"]: s for s in result.summary["source_statuses"]}
+            self.assertEqual(statuses["src"]["state"], SourceState.OK.value)
+            self.assertEqual(
+                result.summary["flag_enforcement"]["experience"]["by_source"]["src"],
+                {
+                    "support": FilterSupport.UNSUPPORTED.value,
+                    "applied": True,
+                    "applied_by": "grade_engine",
+                },
+            )
+        engine.http_runner.shutdown()
+
 
 class ProfileTest(unittest.IsolatedAsyncioTestCase):
     async def test_fast_profile_skips_browser_sources(self):
@@ -406,6 +470,60 @@ class DedupeAndFilterTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(result.listings), 1)
             self.assertEqual(result.summary["max_results"]["requested"], 1)
             self.assertEqual(result.summary["max_results"]["returned"], 1)
+        engine.http_runner.shutdown()
+
+    async def test_exact_experience_filter_keeps_middle_and_unknown_only(self):
+        class GradeScraper(_OkScraper):
+            capabilities: ClassVar[ScraperCapabilities] = _capabilities(
+                experience=FilterSupport.UNSUPPORTED
+            )
+
+            def search(self, params: SearchParams) -> list[JobListing]:
+                return [
+                    JobListing(
+                        title="Middle QA",
+                        url="https://x/middle",
+                        company="Acme",
+                        source=self.name,
+                    ),
+                    JobListing(
+                        title="Senior QA",
+                        url="https://x/senior",
+                        company="Acme",
+                        source=self.name,
+                    ),
+                    JobListing(
+                        title="QA Engineer",
+                        url="https://x/unknown",
+                        company="Acme",
+                        source=self.name,
+                    ),
+                ]
+
+        engine = SearchEngine()
+        with _RegistryContext({"src": GradeScraper}), tempfile.TemporaryDirectory() as d:
+            with RunJournalWriter(Path(d)) as journal:
+                result = await _run(
+                    engine,
+                    _request(sources=("src",), experience_levels=("middle",)),
+                    journal,
+                )
+            self.assertEqual(
+                ["Middle QA", "QA Engineer"],
+                [listing.title for listing in result.listings],
+            )
+            self.assertEqual(["middle"], result.listings[0].experience_levels)
+            self.assertEqual("unknown", result.listings[1].experience_origin)
+            self.assertEqual(
+                {
+                    "requested_levels": ["middle"],
+                    "native_matched": 0,
+                    "estimated_matched": 1,
+                    "unknown_kept": 1,
+                    "removed": 1,
+                },
+                result.summary["filters"]["experience"],
+            )
         engine.http_runner.shutdown()
 
 

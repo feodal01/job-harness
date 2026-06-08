@@ -6,7 +6,13 @@ import json
 import unittest
 from typing import Any
 
-from job_harness.filters import apply_filters, has_salary, min_experience, no_keywords, remote_only
+from job_harness.filters import (
+    apply_filters,
+    experience_in,
+    has_salary,
+    no_keywords,
+    remote_only,
+)
 from job_harness.formatters import CsvFormatter, JsonFormatter, MarkdownFormatter
 from job_harness.models import JobListing, SearchParams, SearchResults
 
@@ -18,6 +24,10 @@ def _listing(**overrides: Any) -> JobListing:
         "company": "Example",
         "salary": "200 000 ₽",
         "experience": "senior",
+        "experience_levels": ["senior"],
+        "experience_origin": "native",
+        "experience_confidence": "high",
+        "experience_evidence": ["habr_career: native senior"],
         "remote": True,
         "description": "Manual testing and API checks.",
         "requirements": "Python будет плюсом.",
@@ -32,13 +42,28 @@ class FiltersAndFormattersTest(unittest.TestCase):
     def test_apply_filters_keeps_only_matching_listings(self) -> None:
         listings = [
             _listing(title="Remote Senior QA"),
-            _listing(title="Office Junior QA", remote=False, experience="junior"),
+            _listing(
+                title="Office Junior QA",
+                remote=False,
+                experience="junior",
+                experience_levels=["junior"],
+            ),
             _listing(title="Remote Without Salary", salary=None),
+            _listing(
+                title="Remote Unknown Grade",
+                experience=None,
+                experience_levels=[],
+                experience_origin="unknown",
+                experience_confidence="none",
+                salary="180 000 ₽",
+            ),
         ]
 
-        filtered = apply_filters(listings, [remote_only, min_experience("middle"), has_salary])
+        filtered = apply_filters(
+            listings, [remote_only, experience_in(("middle",)), has_salary]
+        )
 
-        self.assertEqual(["Remote Senior QA"], [listing.title for listing in filtered])
+        self.assertEqual(["Remote Unknown Grade"], [listing.title for listing in filtered])
 
     def test_no_keywords_honors_ignore_context(self) -> None:
         listing = _listing(requirements="Java обязателен. Python будет плюсом.")
@@ -89,7 +114,10 @@ class FiltersAndFormattersTest(unittest.TestCase):
                 "company",
                 "country",
                 "salary",
-                "experience",
+                "experience_levels",
+                "experience_origin",
+                "experience_confidence",
+                "experience_evidence",
                 "remote",
                 "location",
                 "skills",
@@ -98,8 +126,10 @@ class FiltersAndFormattersTest(unittest.TestCase):
             ],
             rows[0],
         )
-        self.assertEqual("Python; SQL", rows[1][8])
-        self.assertEqual("habr_career", rows[1][9])
+        self.assertEqual("senior", rows[1][5])
+        self.assertEqual("native", rows[1][6])
+        self.assertEqual("Python; SQL", rows[1][11])
+        self.assertEqual("habr_career", rows[1][12])
 
     def test_markdown_formatter_includes_summary_and_listing(self) -> None:
         results = SearchResults(
@@ -127,7 +157,7 @@ class FiltersAndFormattersTest(unittest.TestCase):
         self.assertIn("## Source Status", markdown)
         self.assertIn("| habr_career | ok | 1 | 1 | 1 | 12 ms |", markdown)
         self.assertIn("## Summary", markdown)
-        self.assertIn("| 1 | Example | not specified | 200 000 ₽ | remote | senior |", markdown)
+        self.assertIn("| 1 | Example | not specified | 200 000 ₽ | remote | senior (native, high) |", markdown)
 
 
 if __name__ == "__main__":

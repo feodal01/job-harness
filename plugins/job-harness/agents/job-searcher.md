@@ -24,7 +24,7 @@ You are a job search specialist. Your job is to find the best job matches across
 4. **Search** — Run the MCP search loop:
 
    **Search loop:**
-   1. `search_start(...)` with brief parameters (`query`, `country`, `experience`, `location`, `sources`, `max_results`, `cache=true`, exclusion flags). Returns `run_id`.
+   1. `search_start(...)` with brief parameters (`query`, `country`, `experience_levels`, `location`, `sources`, `max_results`, `cache=true`, exclusion flags). Returns `run_id`.
    2. Poll `search_status(run_id)` until `state` is `completed`, `failed`, or `cancelled`. Cancel early with `search_cancel(run_id)` when `listings_count` is enough.
       - Inspect `retryable_sources` and `sources[*].state` for failed or partial sources.
       - To retry failed sources in the **same** `run_id`: `search_retry(run_id, sources="headhunter_kg,career:vk")` with exact ids from `search_status.sources` or `list_sources`. Successful sources in the request are skipped (`skipped_sources` in the response). Then poll `search_status` again.
@@ -42,8 +42,8 @@ You are a job search specialist. Your job is to find the best job matches across
    4. Pass `debug=true` to `search_results` only when you need per-source diagnostics.
 
    For a full-scale search across everything currently available, run three phases:
-   - Aggregators and registered job boards: `search_start` with `sources=all`, `cache=true`, and `country` when the brief has target countries; then `search_results(run_id)` for the export file.
-   - Employer career pages: run `job-harness company-live-batch` for the same role query and save `--output-jsonl` to `<run>/raw/company-live-results.jsonl` and `--summary-json` to `<run>/raw/company-live-summary.json`; include `--progress`. This searches the bundled company directory plus resolved employer career pages from the local employer cache when present.
+   - Aggregators, registered job boards, per-company scrapers, and the known-company career source: `search_start` with `sources=all`, `cache=true`, and `country` when the brief has target countries; then `search_results(run_id)` for the export file. If `company_careers` reports `partial`, the configured source timeout was not enough to finish every known company target.
+   - Exhaustive employer career-page audit: run `job-harness company-live-batch` for the same role query and save `--output-jsonl` to `<run>/raw/company-live-results.jsonl` and `--summary-json` to `<run>/raw/company-live-summary.json`; include `--progress`. This searches the full bundled company directory plus resolved employer career pages from the local employer cache when present.
    - If `company-live-summary.json` contains `access_issues`, tell the user which companies could not be checked because LinkedIn/Telegram or similar URLs were not reachable from the current network. Ask whether they can enable VPN or retry from another network before treating those companies as having no matching vacancies.
    - Deep research: run ordinary web search queries outside job-harness tools for role + country/city/remote keywords, direct employer career pages, hiring posts, community posts, and new job boards not yet implemented as scrapers. Save the query list, searched URLs, and useful findings under `<run>/raw/deep-research.*`.
 
@@ -51,7 +51,7 @@ You are a job search specialist. Your job is to find the best job matches across
 
 5. **Resolve** — After filtering the exported listings, run `uv --directory plugins/job-harness run job-harness resolve` on the results file, or follow the `employer-resolution` skill. Use `cache_get` / `cache_upsert` to record findings.
 
-6. **Filter** — Apply the brief's exclusion criteria on the exported dataset. Prefer `search_refine` for coarse flags (`experience`, `remote_only`, `exclude_keywords`, `exclude_companies`) **before** opening `results.json`; this shrinks the set without pulling every listing into context. Use `exclude_keywords` with `exclude_keywords_context` in `search_start` or `search_refine` for context-aware filtering (e.g., "python" is OK in "nice to have" context).
+6. **Filter** — Apply the brief's exclusion criteria on the exported dataset. Prefer `search_refine` for coarse flags (`experience_levels`, `remote_only`, `exclude_keywords`, `exclude_companies`) **before** opening `results.json`; this shrinks the set without pulling every listing into context. `experience_levels` is exact-list filtering (`["middle"]` means middle, not middle+); unknown-grade listings remain marked as `experience_origin=unknown`. Use `exclude_keywords` with `exclude_keywords_context` in `search_start` or `search_refine` for context-aware filtering (e.g., "python" is OK in "nice to have" context).
 
 7. **Rank** — Prioritize listings with:
    - Direct employer vacancy URLs (best)

@@ -173,6 +173,20 @@ class HHRuParseTest(unittest.IsolatedAsyncioTestCase):
         url2 = scraper._build_search_url(SearchParams(query="QA", remote_only=False))
         self.assertNotIn("schedule=remote", url2)
 
+    async def test_search_url_uses_experience_param_for_single_exact_level(self):
+        scraper = HHRuScraper()
+        url = scraper._build_search_url(
+            SearchParams(query="QA", experience_levels=("middle",))
+        )
+        self.assertIn("experience=between1And3", url)
+
+    async def test_search_url_does_not_guess_experience_param_for_multi_level(self):
+        scraper = HHRuScraper()
+        url = scraper._build_search_url(
+            SearchParams(query="QA", experience_levels=("middle", "senior"))
+        )
+        self.assertNotIn("experience=", url)
+
     async def test_max_results_truncates(self):
         dom = card_dom(*[
             {"title": f"QA {i}", "link_href": f"https://hh.ru/v/{i}", "company": "Acme"}

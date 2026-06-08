@@ -214,8 +214,8 @@ class HabrCareerScraper(BaseScraper):
         query_params = {"q": params.query, "type": "all"}
         if params.remote_only:
             query_params["remote"] = "true"
-        if params.experience:
-            query_params["qualification"] = params.experience
+        if len(params.experience_levels) == 1:
+            query_params["qualification"] = params.experience_levels[0]
         query_params.update(params.extra)
         return self.BASE_URL + "?" + urlencode(query_params)
 
