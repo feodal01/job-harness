@@ -1,0 +1,457 @@
+{
+  "collected_at": "2026-06-08T09:40:00+03:00",
+  "collection_notes": [
+    "Samples were collected with the job-harness CLI from live public job sources.",
+    "The fixture is intentionally offline: tests recreate JobListing objects from the stored fields and do not call the network."
+  ],
+  "cases": [
+    {
+      "id": "habr_career_native_middle_manual_qa",
+      "source": "habr_career",
+      "support": "server",
+      "listing": {
+        "title": "Middle Manual QA-инженер",
+        "url": "https://career.habr.com/vacancies/1000166684",
+        "company": "AGIMA",
+        "country": "RU",
+        "salary": "до 80 000 ₽",
+        "experience": "middle",
+        "remote": true,
+        "skills": ["Jira", "Confluence", "Agile"]
+      },
+      "expected": {
+        "levels": ["middle"],
+        "origin": "native",
+        "confidence": "high",
+        "evidence_contains": ["habr_career: native middle"]
+      }
+    },
+    {
+      "id": "habr_career_native_senior_quality_engineer",
+      "source": "habr_career",
+      "support": "server",
+      "listing": {
+        "title": "Главный инженер по качеству (QA-инженер)",
+        "url": "https://career.habr.com/vacancies/1000165585",
+        "company": "Банк России",
+        "country": "RU",
+        "experience": "senior",
+        "remote": false,
+        "skills": ["Функциональное тестирование", "Контроль качества"]
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "native",
+        "confidence": "high",
+        "evidence_contains": ["habr_career: native senior"]
+      }
+    },
+    {
+      "id": "finder_work_native_senior_qa_lead",
+      "source": "finder_work",
+      "support": "client",
+      "listing": {
+        "title": "Senior QA Engineer / Tech Lead QA",
+        "url": "https://finder.work/vacancies/30404386",
+        "company": "Вижн",
+        "country": "RU",
+        "salary": "to 150000 RUR",
+        "experience": "senior",
+        "remote": true,
+        "location": "Москва",
+        "description": "Мы ищем Senior QA, который берет ownership за качество продукта."
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "native",
+        "confidence": "high",
+        "evidence_contains": ["finder_work: native senior"]
+      }
+    },
+    {
+      "id": "finder_work_unknown_plain_qa",
+      "source": "finder_work",
+      "support": "client",
+      "listing": {
+        "title": "Тестировщик (QA)",
+        "url": "https://finder.work/vacancies/30466621",
+        "company": "Pimax",
+        "country": "RU",
+        "salary": "100000 - 150000 RUR",
+        "remote": true,
+        "location": "Москва",
+        "description": "Знание основ тестирования, теория QA, виды тестирования, жизненный цикл бага. Опыт ручного тестирования."
+      },
+      "expected": {
+        "levels": [],
+        "origin": "unknown",
+        "confidence": "none",
+        "evidence_contains": []
+      }
+    },
+    {
+      "id": "hirehi_best_effort_estimated_middle_title",
+      "source": "hirehi",
+      "support": "best_effort",
+      "listing": {
+        "title": "middle system administrator",
+        "url": "https://hirehi.ru/devops/system-administrator-49717",
+        "company": "МТС",
+        "country": "RU",
+        "salary": "188 640 ₽",
+        "remote": true
+      },
+      "expected": {
+        "levels": ["middle"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: middle"]
+      }
+    },
+    {
+      "id": "getmatch_best_effort_estimated_senior_title",
+      "source": "getmatch",
+      "support": "best_effort",
+      "listing": {
+        "title": "Senior ML Engineer с опытом в обучении генеративных моделей: TTS, LLM, CV",
+        "url": "https://getmatch.ru/vacancies/34221-senior-ml-engineer-s-opytom-v",
+        "company": "Сбер",
+        "country": "RU",
+        "salary": "400 000 — 700 000 ₽/мес на руки",
+        "remote": true,
+        "location": "Москва",
+        "description": "Экспериментировать с LLM-моделями для TTS, разрабатывать технологии клонирования голоса.",
+        "skills": ["Machine Learning"]
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: senior"]
+      }
+    },
+    {
+      "id": "it_jobs_uz_native_junior_qa",
+      "source": "it_jobs_uz",
+      "support": "client",
+      "listing": {
+        "title": "Strong Junior QA Engineer",
+        "url": "https://www.it-jobs.uz/en/jobs/aoba-jamoasiga-strong-junior-qa-engineer-kerak-unknown-8168",
+        "company": "AOBA",
+        "country": "UZ",
+        "experience": "junior",
+        "remote": false,
+        "description": "Dasturiy ta'minotni testlash sohasida kamida 1 yillik ish tajribasi.",
+        "skills": ["qa"]
+      },
+      "expected": {
+        "levels": ["junior"],
+        "origin": "native",
+        "confidence": "high",
+        "evidence_contains": ["it_jobs_uz: native junior"]
+      }
+    },
+    {
+      "id": "it_jobs_uz_client_source_estimated_middle_title",
+      "source": "it_jobs_uz",
+      "support": "client",
+      "listing": {
+        "title": "Middle Fullstack QA (Uzum Tezkor)",
+        "url": "https://www.it-jobs.uz/en/jobs/middle-fullstack-qa-uzum-tezkor",
+        "company": "Uzum",
+        "country": "UZ",
+        "remote": true,
+        "description": "Uzum Tezkor - сервис быстрой доставки из ресторанов и магазинов.",
+        "requirements": "Опыт автоматизации тестирования на Java. Опыт ручного тестирования бэкенд, web и мобильных приложений.",
+        "skills": ["Kafka", "RabbitMQ", "NATS", "SQL", "Redis"]
+      },
+      "expected": {
+        "levels": ["middle"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: middle"]
+      }
+    },
+    {
+      "id": "hirehi_estimated_senior_engineering_manager",
+      "source": "hirehi",
+      "support": "best_effort",
+      "listing": {
+        "title": "senior engineering manager",
+        "url": "https://hirehi.ru/management/engineering-manager-49765",
+        "company": "STRABA",
+        "country": "RU",
+        "salary": "от 480 000 ₽",
+        "remote": true
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: senior"]
+      }
+    },
+    {
+      "id": "hirehi_estimated_senior_mlops_engineer",
+      "source": "hirehi",
+      "support": "best_effort",
+      "listing": {
+        "title": "senior mlops engineer",
+        "url": "https://hirehi.ru/devops/mlops-engineer-49764",
+        "company": "Usetech",
+        "country": "RU",
+        "salary": "461 914 ₽",
+        "remote": true
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: senior"]
+      }
+    },
+    {
+      "id": "hirehi_estimated_senior_data_analyst",
+      "source": "hirehi",
+      "support": "best_effort",
+      "listing": {
+        "title": "senior data analyst",
+        "url": "https://hirehi.ru/analytics/data-analyst-49759",
+        "company": "ДОМ.РФ",
+        "country": "RU",
+        "salary": "от 200 000 ₽",
+        "remote": true
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: senior"]
+      }
+    },
+    {
+      "id": "hirehi_estimated_senior_system_administrator",
+      "source": "hirehi",
+      "support": "best_effort",
+      "listing": {
+        "title": "senior system administrator",
+        "url": "https://hirehi.ru/devops/system-administrator-49745",
+        "company": "Tango",
+        "country": "RU",
+        "salary": "286 546 ₽",
+        "remote": false
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: senior"]
+      }
+    },
+    {
+      "id": "hirehi_estimated_junior_graphic_designer",
+      "source": "hirehi",
+      "support": "best_effort",
+      "listing": {
+        "title": "junior графический дизайнер",
+        "url": "https://hirehi.ru/design/graficheskii-dizainer-49750",
+        "company": "NDA",
+        "country": "RU",
+        "salary": "от 60 000 ₽",
+        "remote": true
+      },
+      "expected": {
+        "levels": ["junior"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: junior"]
+      }
+    },
+    {
+      "id": "hirify_estimated_senior_qa_engineer_csharp",
+      "source": "hirify",
+      "support": "best_effort",
+      "listing": {
+        "title": "Senior QA Engineer (C#)",
+        "url": "https://hirify.me/jobs/613473-senior-qa-engineer-csharp",
+        "company": "Acumatica",
+        "remote": true,
+        "posted_date": "2026-06-08T06:01:12.000000Z",
+        "raw": {"id": 613473}
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: senior"]
+      }
+    },
+    {
+      "id": "hirify_estimated_senior_lead_ios_engineer",
+      "source": "hirify",
+      "support": "best_effort",
+      "listing": {
+        "title": "Senior/Lead iOS Engineer",
+        "url": "https://hirify.me/jobs/612681-senior-lead-ios-engineer",
+        "company": "Social Discovery Group",
+        "remote": true,
+        "posted_date": "2026-06-08T06:01:12.000000Z",
+        "raw": {"id": 612681}
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: senior"]
+      }
+    },
+    {
+      "id": "hirify_estimated_middle_support_linux_sql",
+      "source": "hirify",
+      "support": "best_effort",
+      "listing": {
+        "title": "Middle Специалист технической поддержки (Linux/SQL)",
+        "url": "https://hirify.me/jobs/617109-middle-specialist-texniceskoi-podderzki-linuxsql",
+        "company": "ГПБ-ИТ",
+        "remote": true,
+        "posted_date": "2026-06-08T06:37:19.000000Z",
+        "raw": {"id": 617109}
+      },
+      "expected": {
+        "levels": ["middle"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: middle"]
+      }
+    },
+    {
+      "id": "hirify_estimated_middle_sql_developer",
+      "source": "hirify",
+      "support": "best_effort",
+      "listing": {
+        "title": "Middle SQL Developer (Fintech)",
+        "url": "https://hirify.me/jobs/617102-middle-sql-developer-fintech",
+        "company": "ГПБ-ИТ",
+        "remote": false,
+        "posted_date": "2026-06-08T06:26:04.000000Z",
+        "raw": {"id": 617102}
+      },
+      "expected": {
+        "levels": ["middle"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: middle"]
+      }
+    },
+    {
+      "id": "hirify_estimated_middle_senior_data_scientist",
+      "source": "hirify",
+      "support": "best_effort",
+      "listing": {
+        "title": "Middle/Senior Data Scientist (Fintech)",
+        "url": "https://hirify.me/jobs/617086-middlesenior-data-scientist-fintech",
+        "company": "ДОМ.РФ",
+        "remote": true,
+        "posted_date": "2026-06-08T06:03:40.000000Z",
+        "raw": {"id": 617086}
+      },
+      "expected": {
+        "levels": ["middle", "senior"],
+        "origin": "estimated",
+        "confidence": "high",
+        "evidence_contains": ["title: explicit multi-grade"]
+      }
+    },
+    {
+      "id": "hirify_estimated_middle_qa_engineer",
+      "source": "hirify",
+      "support": "best_effort",
+      "listing": {
+        "title": "Middle QA Engineer",
+        "url": "https://hirify.me/jobs/610078-middle-qa-engineer",
+        "company": "atomatiq",
+        "remote": true,
+        "posted_date": "2026-06-08T06:01:11.000000Z",
+        "raw": {"id": 610078}
+      },
+      "expected": {
+        "levels": ["middle"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: middle"]
+      }
+    },
+    {
+      "id": "talento_estimated_senior_business_analyst",
+      "source": "talento",
+      "support": "best_effort",
+      "listing": {
+        "title": "Старший бизнес-аналитик/Senior Business Analyst",
+        "url": "https://talento.works/jobs/c534f179-46ac-4a19-b4c3-1cf78c720200",
+        "company": "Caspian International Restaurants company",
+        "country": "RU",
+        "remote": false
+      },
+      "expected": {
+        "levels": ["senior"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: senior"]
+      }
+    },
+    {
+      "id": "talento_estimated_middle_java_developer",
+      "source": "talento",
+      "support": "best_effort",
+      "listing": {
+        "title": "Middle Java developer (SmartWay)",
+        "url": "https://talento.works/jobs/0292da48-72d2-44a2-bfbd-57528d4f09f2",
+        "company": "Сбер. IT",
+        "country": "RU",
+        "remote": false
+      },
+      "expected": {
+        "levels": ["middle"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: middle"]
+      }
+    },
+    {
+      "id": "talento_estimated_middle_qa_engineer",
+      "source": "talento",
+      "support": "best_effort",
+      "listing": {
+        "title": "Middle QA Engineer",
+        "url": "https://talento.works/jobs/ad44b7a1-b86b-4a35-a039-3e5a89f16665",
+        "company": "",
+        "country": "RU",
+        "remote": false
+      },
+      "expected": {
+        "levels": ["middle"],
+        "origin": "estimated",
+        "confidence": "medium",
+        "evidence_contains": ["title: middle"]
+      }
+    },
+    {
+      "id": "talento_estimated_middle_senior_csharp_developer",
+      "source": "talento",
+      "support": "best_effort",
+      "listing": {
+        "title": "Middle/Senior C# Developer",
+        "url": "https://talento.works/jobs/6b0687b3-dc14-473c-8685-64c99232990a",
+        "company": "DevHunt",
+        "country": "RU",
+        "remote": false
+      },
+      "expected": {
+        "levels": ["middle", "senior"],
+        "origin": "estimated",
+        "confidence": "high",
+        "evidence_contains": ["title: explicit multi-grade"]
+      }
+    }
+  ]
+}

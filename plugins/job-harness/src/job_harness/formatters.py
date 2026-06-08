@@ -26,8 +26,8 @@ class MarkdownFormatter(BaseFormatter):
             meta_parts.append(f"Country: {p.country}")
         if p.remote_only:
             meta_parts.append("Remote: yes")
-        if p.experience:
-            meta_parts.append(f"Experience: {p.experience}")
+        if p.experience_levels:
+            meta_parts.append(f"Experience levels: {', '.join(p.experience_levels)}")
         if p.location:
             meta_parts.append(f"Location: {p.location}")
         meta_parts.append("Sources: all")
@@ -63,7 +63,7 @@ class MarkdownFormatter(BaseFormatter):
                 lines.append(f"- **Country:** {listing.country}")
             if listing.salary:
                 lines.append(f"- **Salary:** {listing.salary}")
-            lines.append(f"- **Experience:** {listing.experience or 'not specified'}")
+            lines.append(f"- **Experience levels:** {_experience_summary(listing)}")
             fmt = "remote" if listing.remote else "not specified"
             lines.append(f"- **Format:** {fmt}")
             if listing.location:
@@ -85,7 +85,7 @@ class MarkdownFormatter(BaseFormatter):
             fmt = "remote" if listing.remote else "not specified"
             lines.append(
                 f"| {i} | {listing.company} | {listing.country or 'not specified'} | "
-                f"{listing.salary or 'not specified'} | {fmt} | {listing.experience or 'not specified'} |"
+                f"{listing.salary or 'not specified'} | {fmt} | {_experience_summary(listing)} |"
             )
 
         lines.append("")
@@ -102,7 +102,22 @@ class CsvFormatter(BaseFormatter):
     def format(self, results: SearchResults) -> str:
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["title", "url", "company", "country", "salary", "experience", "remote", "location", "skills", "source", "posted_date"])
+        writer.writerow([
+            "title",
+            "url",
+            "company",
+            "country",
+            "salary",
+            "experience_levels",
+            "experience_origin",
+            "experience_confidence",
+            "experience_evidence",
+            "remote",
+            "location",
+            "skills",
+            "source",
+            "posted_date",
+        ])
         for listing in results.listings:
             writer.writerow([
                 listing.title,
@@ -110,7 +125,10 @@ class CsvFormatter(BaseFormatter):
                 listing.company,
                 listing.country or "",
                 listing.salary or "",
-                listing.experience or "",
+                ";".join(listing.experience_levels),
+                listing.experience_origin,
+                listing.experience_confidence,
+                "; ".join(listing.experience_evidence),
                 listing.remote,
                 listing.location or "",
                 "; ".join(listing.skills),
@@ -132,3 +150,8 @@ def get_formatter(format_name: str) -> BaseFormatter:
     if not cls:
         raise ValueError(f"Unknown format: {format_name}. Available: {list(FORMATTERS.keys())}")
     return cls()
+
+
+def _experience_summary(listing) -> str:
+    levels = ", ".join(listing.experience_levels) if listing.experience_levels else "unknown"
+    return f"{levels} ({listing.experience_origin}, {listing.experience_confidence})"

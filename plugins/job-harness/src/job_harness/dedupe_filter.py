@@ -11,12 +11,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from urllib.parse import urlparse, urlunparse
 
+from job_harness.experience_engine import experience_match_rank
 from job_harness.filters import (
     _exclude_companies,
     apply_filters,
+    experience_in,
     has_salary as has_salary_filter,
     location_in,
-    min_experience,
     no_keywords,
     remote_only as remote_only_filter,
 )
@@ -37,7 +38,7 @@ def build_filter_plan(
     remote_only: bool,
     has_salary: bool,
     exclude_companies: str | None,
-    experience: str | None,
+    experience_levels: tuple[str, ...],
     exclude_keywords: str | None,
     exclude_keywords_context: str | None,
     location: str | None,
@@ -54,8 +55,9 @@ def build_filter_plan(
                 _exclude_companies([c.strip() for c in exclude_companies.split(",")]),
             )
         )
-    if experience:
-        plan.append(FilterPlan(f"min_experience:{experience}", min_experience(experience)))
+    if experience_levels:
+        label = ",".join(experience_levels)
+        plan.append(FilterPlan(f"experience_in:{label}", experience_in(experience_levels)))
     if exclude_keywords:
         keywords = [k.strip() for k in exclude_keywords.split(",")]
         ignore_words = (
@@ -79,6 +81,18 @@ def apply_filter_plan(
     if not plan:
         return list(listings)
     return apply_filters(listings, [item.predicate for item in plan])
+
+
+def order_by_experience_match(
+    listings: list[JobListing],
+    experience_levels: tuple[str, ...],
+) -> list[JobListing]:
+    if not experience_levels:
+        return list(listings)
+    return sorted(
+        listings,
+        key=lambda listing: experience_match_rank(listing, experience_levels),
+    )
 
 
 def dedupe_listings(listings: list[JobListing]) -> list[JobListing]:

@@ -221,7 +221,7 @@ def _build_search_request(
     profile: str | None = None,
     country: str | None = None,
     remote_only: bool = False,
-    experience: str | None = None,
+    experience_levels: list[str] | None = None,
     location: str | None = None,
     max_results: int = 20,
     detail: bool = False,
@@ -237,6 +237,7 @@ def _build_search_request(
     dedupe: bool = True,
 ):
     from job_harness.countries import normalize_country_code
+    from job_harness.experience_engine import parse_experience_levels
     from job_harness.types import SearchRequest
 
     source_tuple: tuple[str, ...] | None
@@ -245,11 +246,14 @@ def _build_search_request(
     else:
         source_tuple = tuple(s.strip() for s in sources.split(",") if s.strip())
 
+    if experience_levels is not None and not [level for level in experience_levels if str(level).strip()]:
+        raise ValueError("experience_levels must contain at least one level")
+
     return SearchRequest(
         query=query,
         country=normalize_country_code(country),
         remote_only=remote_only,
-        experience=experience,
+        experience_levels=parse_experience_levels(experience_levels, allow_empty=True),
         location=location,
         max_results=max_results,
         sources=source_tuple,
@@ -316,7 +320,7 @@ async def search_start(
     profile: str | None = None,
     country: str | None = None,
     remote_only: bool = False,
-    experience: str | None = None,
+    experience_levels: list[str] | None = None,
     location: str | None = None,
     max_results: int = 20,
     detail: bool = False,
@@ -340,27 +344,30 @@ async def search_start(
     """
     from job_harness.run_registry import MaxConcurrentRunsReached
 
-    request = _build_search_request(
-        query=query,
-        sources=sources,
-        profile=profile,
-        country=country,
-        remote_only=remote_only,
-        experience=experience,
-        location=location,
-        max_results=max_results,
-        detail=detail,
-        resolve=resolve,
-        cache=cache,
-        exclude_keywords=exclude_keywords,
-        exclude_keywords_context=exclude_keywords_context,
-        exclude_companies=exclude_companies,
-        has_salary=has_salary,
-        source_timeout_ms=source_timeout_ms,
-        total_timeout_ms=total_timeout_ms,
-        strict_flags=strict_flags,
-        dedupe=dedupe,
-    )
+    try:
+        request = _build_search_request(
+            query=query,
+            sources=sources,
+            profile=profile,
+            country=country,
+            remote_only=remote_only,
+            experience_levels=experience_levels,
+            location=location,
+            max_results=max_results,
+            detail=detail,
+            resolve=resolve,
+            cache=cache,
+            exclude_keywords=exclude_keywords,
+            exclude_keywords_context=exclude_keywords_context,
+            exclude_companies=exclude_companies,
+            has_salary=has_salary,
+            source_timeout_ms=source_timeout_ms,
+            total_timeout_ms=total_timeout_ms,
+            strict_flags=strict_flags,
+            dedupe=dedupe,
+        )
+    except ValueError as exc:
+        return {"error": "invalid_experience_levels", "message": str(exc)}
     try:
         run = await _get_run_registry().start(request)
     except MaxConcurrentRunsReached as exc:
@@ -584,7 +591,7 @@ async def search_cancel(run_id: str) -> dict:
 @mcp.tool
 async def search_refine(
     run_id: str,
-    experience: str | None = None,
+    experience_levels: list[str] | None = None,
     has_salary: bool = False,
     remote_only: bool = False,
     exclude_companies: str | None = None,
@@ -595,12 +602,17 @@ async def search_refine(
     strict_refine: bool = False,
 ) -> dict:
     """Re-filter the journal of a finished run without re-scraping."""
+    from job_harness.dedupe_filter import dedupe_listings, order_by_experience_match
+    from job_harness.experience_engine import (
+        annotate_listing_experience,
+        parse_experience_levels,
+    )
     from job_harness.filters import (
         _exclude_companies,
         apply_filters,
+        experience_in,
         has_salary as has_salary_filter,
         location_in,
-        min_experience,
         no_keywords,
         remote_only as remote_only_filter,
     )
@@ -617,17 +629,37 @@ async def search_refine(
     except UnknownRunId:
         return {"error": "unknown_run_id", "run_id": run_id}
 
-    from job_harness.run_journal import materialize_listings
-
     snap = reader.snapshot()
+    if experience_levels is not None and not [level for level in experience_levels if str(level).strip()]:
+        return {
+            "error": "invalid_experience_levels",
+            "message": "experience_levels must contain at least one level",
+            "run_id": run_id,
+        }
+    try:
+        parsed_experience_levels = parse_experience_levels(
+            experience_levels,
+            allow_empty=True,
+        )
+    except ValueError as exc:
+        return {"error": "invalid_experience_levels", "message": str(exc), "run_id": run_id}
+
     listings: list[JobListing] = []
-    for raw in materialize_listings(snap):
+    for raw in snap.listings:
         try:
-            listings.append(
-                JobListing(**{k: v for k, v in raw.items() if k in JobListing.__dataclass_fields__})
+            listing = JobListing(
+                **{k: v for k, v in raw.items() if k in JobListing.__dataclass_fields__}
             )
         except TypeError:
             continue
+        status = snap.sources.get(listing.source)
+        support = (
+            status.flag_enforcement.get("experience")
+            if status is not None
+            else None
+        )
+        annotate_listing_experience(listing, listing.source, support or "unsupported")
+        listings.append(listing)
 
     predicates: list[_Callable[[JobListing], bool]] = []
     refine_flags: list[str] = []
@@ -639,9 +671,9 @@ async def search_refine(
         refine_flags.append("has_salary")
     if exclude_companies:
         predicates.append(_exclude_companies([c.strip() for c in exclude_companies.split(",")]))
-    if experience:
-        predicates.append(min_experience(experience))
-        refine_flags.append("experience")
+    if parsed_experience_levels:
+        predicates.append(experience_in(parsed_experience_levels))
+        refine_flags.append("experience_levels")
     if exclude_keywords:
         keywords = [k.strip() for k in exclude_keywords.split(",")]
         ignore_words = (
@@ -655,6 +687,10 @@ async def search_refine(
         refine_flags.append("location")
 
     filtered = apply_filters(listings, predicates) if predicates else listings
+    filtered = order_by_experience_match(filtered, parsed_experience_levels)
+    if snap.request.get("dedupe", True):
+        filtered = dedupe_listings(filtered)
+        filtered = order_by_experience_match(filtered, parsed_experience_levels)
     final = filtered[:max_results]
 
     return {

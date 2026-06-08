@@ -576,7 +576,12 @@ class RunJournalReader:
 
 def materialize_listings(snap: JournalSnapshot) -> list[dict[str, Any]]:
     """Build the agent-facing listing set with optional dedupe."""
-    from job_harness.dedupe_filter import dedupe_listings
+    from job_harness.dedupe_filter import (
+        apply_filter_plan,
+        build_filter_plan,
+        dedupe_listings,
+        order_by_experience_match,
+    )
     from job_harness.models import JobListing
 
     listings: list[JobListing] = []
@@ -589,8 +594,22 @@ def materialize_listings(snap: JournalSnapshot) -> list[dict[str, Any]]:
         except TypeError:
             continue
 
+    experience_levels = tuple(str(item) for item in snap.request.get("experience_levels") or ())
+    filter_plan = build_filter_plan(
+        remote_only=bool(snap.request.get("remote_only", False)),
+        has_salary=bool(snap.request.get("has_salary", False)),
+        exclude_companies=",".join(snap.request.get("exclude_companies") or ()) or None,
+        experience_levels=experience_levels,
+        exclude_keywords=",".join(snap.request.get("exclude_keywords") or ()) or None,
+        exclude_keywords_context=",".join(snap.request.get("exclude_keywords_context") or ()) or None,
+        location=snap.request.get("location"),
+    )
+    listings = apply_filter_plan(listings, filter_plan)
+    listings = order_by_experience_match(listings, experience_levels)
+
     if snap.request.get("dedupe", True):
         listings = dedupe_listings(listings)
+        listings = order_by_experience_match(listings, experience_levels)
 
     max_results = int(snap.request.get("max_results", 20))
     return [item.to_dict() for item in listings[:max_results]]

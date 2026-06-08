@@ -123,6 +123,7 @@ class VKScraperTest(unittest.IsolatedAsyncioTestCase):
         listings = await scraper.search_with_page(page, SearchParams(query="qa"))
         self.assertEqual(len(listings), 1)
         self.assertEqual(listings[0].url, "https://team.vk.company/vacancy/42/")
+        self.assertIsNone(listings[0].experience)
 
 
 # ---------------------------------------------------------------------------

@@ -294,9 +294,9 @@ def _tail(lines: list[str], *, max_lines: int) -> str:
 
 
 # Registered scraper sources returned by `job-harness list-sources`.
-# This is not the 400+ company directory. The `company_directory` source
-# below is a local JSON lookup with `--max-results 1`; it does not visit
-# every employer career page.
+# `company_directory` is a local JSON lookup with `--max-results 1`.
+# `company_careers` is a bounded live probe over known employer career URLs;
+# the full 400+ company batch is still exercised separately below.
 _LIVE_REGISTERED_SOURCE_CASES: tuple[tuple[str, str, str], ...] = (
     ("hirehi", "RU", "QA"),
     ("hirify", "RU", "QA"),
@@ -308,6 +308,7 @@ _LIVE_REGISTERED_SOURCE_CASES: tuple[tuple[str, str, str], ...] = (
     ("jobturbo", "RU", "QA"),
     ("getmatch", "RU", "QA"),
     ("company_directory", "RU", "QA"),
+    ("company_careers", "RU", "QA"),
     ("habr_career", "RU", "QA"),
     ("hh_ru", "RU", "QA"),
     ("hh_kz", "KZ", "QA"),
@@ -317,6 +318,7 @@ _LIVE_REGISTERED_SOURCE_CASES: tuple[tuple[str, str, str], ...] = (
     ("career:ibs", "RU", "QA"),
     ("career:vk", "RU", "QA"),
 )
+_LIVE_REGISTERED_SOURCE_PARTIAL_OK = {"company_careers"}
 
 
 def _run_live_registered_source_smokes() -> int:
@@ -429,16 +431,20 @@ def _run_live_source_smoke(*, source: str, country: str, query: str) -> str | No
     errors = payload.get("errors") or []
     total = int(payload.get("total") or 0)
     raw_count = int(source_status.get("raw_count") or 0)
-    if (
-        errors
-        or not source_status
-        or source_status.get("state") != "ok"
-        or source_status.get("failure_mode") is not None
+    state = source_status.get("state")
+    failure_mode = source_status.get("failure_mode")
+    partial_ok = (
+        source in _LIVE_REGISTERED_SOURCE_PARTIAL_OK
+        and state == "partial"
+        and failure_mode == "slow_pagination"
+    )
+    if errors or not source_status or (state != "ok" and not partial_ok) or (
+        failure_mode is not None and not partial_ok
     ):
         return (
             f"{source}: total={total}, raw_count={raw_count}, "
-            f"state={source_status.get('state')!r}, "
-            f"failure_mode={source_status.get('failure_mode')!r}, errors={errors!r}"
+            f"state={state!r}, "
+            f"failure_mode={failure_mode!r}, errors={errors!r}"
         )
 
     print(

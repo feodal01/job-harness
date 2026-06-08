@@ -212,7 +212,7 @@ class SearchRequest:
     query: str
     country: str | None = None
     remote_only: bool = False
-    experience: str | None = None
+    experience_levels: tuple[str, ...] = ()
     location: str | None = None
     max_results: int = 20
 
@@ -242,7 +242,7 @@ class SearchRequest:
             "query": self.query,
             "country": self.country,
             "remote_only": self.remote_only,
-            "experience": self.experience,
+            "experience_levels": list(self.experience_levels),
             "location": self.location,
             "max_results": self.max_results,
             "sources": list(self.sources) if self.sources is not None else None,
@@ -286,7 +286,7 @@ class SearchRequest:
             query=str(data.get("query", "")),
             country=data.get("country"),
             remote_only=bool(data.get("remote_only", False)),
-            experience=data.get("experience"),
+            experience_levels=tuple(str(item) for item in data.get("experience_levels") or ()),
             location=data.get("location"),
             max_results=int(data.get("max_results", 20)),
             sources=sources,

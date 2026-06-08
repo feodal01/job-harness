@@ -100,6 +100,20 @@ class HabrCareerScraperTest(unittest.TestCase):
         self.assertEqual("QA Automation Engineer / SDET", listings[1].title)
         self.assertEqual(2, fetch.call_count)
 
+    def test_search_url_uses_qualification_for_single_exact_level(self) -> None:
+        scraper = HabrCareerScraper(context=_ForbiddenBrowserContext())
+        url = scraper._build_search_url(
+            SearchParams(query="QA", experience_levels=("middle",))
+        )
+        self.assertIn("qualification=middle", url)
+
+    def test_search_url_does_not_guess_qualification_for_multi_level(self) -> None:
+        scraper = HabrCareerScraper(context=_ForbiddenBrowserContext())
+        url = scraper._build_search_url(
+            SearchParams(query="QA", experience_levels=("middle", "senior"))
+        )
+        self.assertNotIn("qualification=", url)
+
     def test_fetch_detail_extracts_description_without_playwright(self) -> None:
         scraper = HabrCareerScraper(context=_ForbiddenBrowserContext(), max_results=1)
         listing = JobListing(

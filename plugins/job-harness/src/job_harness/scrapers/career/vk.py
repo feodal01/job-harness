@@ -138,7 +138,6 @@ class VKCareerScraper(BaseBrowserScraper):
         work_format = v.get("work_format", "")
         remote = v.get("remote", False)
         tags = [t["name"] for t in v.get("tags", [])]
-        specialty = v.get("specialty", {}).get("name", "")
 
         location = town
         if work_format:
@@ -152,6 +151,5 @@ class VKCareerScraper(BaseBrowserScraper):
             location=location,
             remote=remote,
             skills=tags,
-            experience=specialty or None,
             source=self.name,
         )

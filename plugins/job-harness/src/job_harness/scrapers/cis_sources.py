@@ -73,14 +73,6 @@ def _salary_from_text(text: str) -> str | None:
     return normalize_text(match.group(0)).removeprefix("~").strip()
 
 
-def _experience_from_text(scraper: BaseScraper, text: str) -> str | None:
-    lower = text.casefold()
-    for raw in ("senior", "middle", "junior", "lead", "intern"):
-        if raw in lower:
-            return "senior" if raw == "lead" else "junior" if raw == "intern" else raw
-    return scraper.normalize_experience(text)
-
-
 def _query_tokens(query: str) -> set[str]:
     return {
         token
@@ -202,7 +194,6 @@ class HireHiScraper(_HtmlAnchorScraper):
             company=company,
             country="RU",
             salary=_salary_from_text(text),
-            experience=_experience_from_text(self, text),
             remote=_is_remote(text),
             source=self.name,
         )
@@ -257,7 +248,6 @@ class HirifyScraper(BaseScraper):
             company=company,
             country=country,
             salary=salary,
-            experience=_experience_from_text(self, str(item.get("grade") or title)),
             remote=_is_remote(work_format),
             location=item.get("location"),
             posted_date=item.get("published_at") or item.get("updated_at"),
@@ -468,7 +458,6 @@ class GeekJobScraper(_HtmlAnchorScraper):
             company=company,
             country=_country_from_text(" ".join(meaningful)),
             salary=salary,
-            experience=_experience_from_text(self, " ".join(meaningful)),
             remote=_is_remote(" ".join(meaningful)),
             location=location,
             source=self.name,
@@ -505,7 +494,6 @@ class TalentoScraper(_HtmlAnchorScraper):
             url=url,
             company=company,
             country=params.country,
-            experience=_experience_from_text(self, title),
             source=self.name,
         )
 
@@ -757,7 +745,6 @@ class JobTurboScraper(BaseScraper):
             url=url,
             company="",
             country=params.country,
-            experience=_experience_from_text(self, name),
             remote=True,
             source=self.name,
         )
@@ -860,7 +847,6 @@ class GetmatchScraper(BaseScraper):
             company=normalize_text(str(company.get("name") or "")),
             country=_country_from_text(country_text),
             salary=offer.get("salary_description") or self._format_salary(offer),
-            experience=_experience_from_text(self, title),
             remote=any(item.get("format") == "remote" for item in location_requirements),
             location=location or None,
             description=normalize_text(re.sub(r"<[^>]+>", " ", offer.get("offer_description") or "")) or None,
