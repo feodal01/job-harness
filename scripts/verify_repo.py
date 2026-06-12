@@ -320,6 +320,11 @@ _LIVE_REGISTERED_SOURCE_CASES: tuple[tuple[str, str, str], ...] = (
 )
 _LIVE_REGISTERED_SOURCE_PARTIAL_OK = {"company_careers"}
 _LIVE_REGISTERED_SOURCE_TIMEOUT_OK = {"company_careers"}
+_LIVE_REGISTERED_SOURCE_BLOCKED_OK_FAILURES = {
+    "anti_bot_page",
+    "captcha_page",
+    "login_redirect",
+}
 _LIVE_REGISTERED_SOURCE_PROCESS_TIMEOUT_S = 60
 _LIVE_REGISTERED_SOURCE_PROCESS_TIMEOUT_OVERRIDES_S = {
     # company_careers can legitimately spend two 30s source attempts under
@@ -450,7 +455,11 @@ def _run_live_source_smoke(*, source: str, country: str, query: str) -> str | No
         and state == "timeout"
         and failure_mode in {"goto_timeout", "http_timeout"}
     )
-    non_ok_allowed = partial_ok or timeout_ok
+    blocked_ok = (
+        state == "blocked"
+        and failure_mode in _LIVE_REGISTERED_SOURCE_BLOCKED_OK_FAILURES
+    )
+    non_ok_allowed = partial_ok or timeout_ok or blocked_ok
     if (
         (errors and not non_ok_allowed)
         or not source_status
@@ -463,8 +472,9 @@ def _run_live_source_smoke(*, source: str, country: str, query: str) -> str | No
             f"failure_mode={failure_mode!r}, errors={errors!r}"
         )
 
+    label = "live source access-limited" if blocked_ok else "live source ok"
     print(
-        "live source ok: "
+        f"{label}: "
         f"{source} total={total}, listings_written={listings_written}, "
         f"elapsed_ms={source_status.get('elapsed_ms')}"
     )

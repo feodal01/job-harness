@@ -20,6 +20,8 @@ from tests._support.fake_browser import (
 
 from job_harness.browser_pool import (
     BlockedResult,
+    BlockSignal,
+    BrowserBlocked,
     BrowserPool,
     PoolAcquireTimeout,
     is_blocked,
@@ -283,6 +285,30 @@ class AntiBotProbeTest(unittest.IsolatedAsyncioTestCase):
         assert block is not None
         self.assertEqual(block.reason, BlockReason.LOGIN_REDIRECT)
 
+    async def test_anti_bot_redirect_path_detected(self):
+        page = FakePage(
+            behaviour=PageBehaviour(
+                url="https://omsk.hh.ru/vpncheeck?backUrl=%2Fsearch%2Fvacancy"
+            )
+        )
+        block = await is_blocked(page)
+        assert block is not None
+        self.assertEqual(block.reason, BlockReason.ANTI_BOT_PAGE)
+        self.assertIn("vpncheeck", block.signal)
+
+    async def test_anti_bot_body_detected(self):
+        page = FakePage(
+            behaviour=PageBehaviour(
+                title="",
+                url="https://hh.ru/search/vacancy",
+                content="<html><body>You have been blocked</body></html>",
+            )
+        )
+        block = await is_blocked(page)
+        assert block is not None
+        self.assertEqual(block.reason, BlockReason.ANTI_BOT_PAGE)
+        self.assertIn("blocked", block.signal)
+
     async def test_clean_page_returns_none(self):
         page = FakePage(behaviour=PageBehaviour(title="QA Engineer at Acme", url="https://acme.test/jobs/qa"))
         block = await is_blocked(page)
@@ -307,6 +333,22 @@ class AntiBotProbeTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(out, BlockedResult)
         self.assertEqual(out.block.reason, BlockReason.ANTI_BOT_PAGE)
         self.assertEqual(out.partial, "value-from-func")
+        await pool.shutdown()
+
+    async def test_pool_wraps_browser_blocked_exception(self):
+        browser = FakeBrowser()
+        pool = BrowserPool(max_contexts=1, browser_factory=_factory(browser))
+
+        async def use(page):
+            raise BrowserBlocked(
+                BlockSignal(reason=BlockReason.ANTI_BOT_PAGE, signal="HTTP 403")
+            )
+
+        out = await pool.run_with_page(use, timeout_ms=1000)
+        self.assertIsInstance(out, BlockedResult)
+        self.assertEqual(out.block.reason, BlockReason.ANTI_BOT_PAGE)
+        self.assertEqual(out.block.signal, "HTTP 403")
+        self.assertIsNone(out.partial)
         await pool.shutdown()
 
 

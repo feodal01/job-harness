@@ -66,6 +66,22 @@ _CAPTCHA_IFRAME_SELECTORS: tuple[str, ...] = (
     'iframe[src*="distil"]',
 )
 _LOGIN_PATH_RE = re.compile(r"^/(?:login|auth|sign[-_]?in|users/sign_in)(?:/|$)")
+_ANTI_BOT_PATH_RE = re.compile(
+    r"^/(?:vpncheck|vpncheeck|captcha|blocked|access-denied)(?:/|$)"
+)
+_ANTI_BOT_BODY_RE = re.compile(
+    r"(?is)("
+    r"403 forbidden|"
+    r"you have been blocked|"
+    r"verify you are human|"
+    r"checking your browser|"
+    r"cf-chl|"
+    r"__cf_chl_"
+    r")"
+)
+_CAPTCHA_BODY_RE = re.compile(
+    r"(?is)(prove you are human|complete the captcha|captcha challenge)"
+)
 
 
 @dataclass(frozen=True)
@@ -112,6 +128,18 @@ async def is_blocked(page: Any) -> BlockSignal | None:
         parsed = urlparse(url)
         if parsed.path and _LOGIN_PATH_RE.match(parsed.path):
             return BlockSignal(reason=BlockReason.LOGIN_REDIRECT, signal=url)
+        if parsed.path and _ANTI_BOT_PATH_RE.match(parsed.path):
+            return BlockSignal(reason=BlockReason.ANTI_BOT_PAGE, signal=url)
+
+    try:
+        content = await page.content()
+    except Exception:
+        content = ""
+    if content:
+        if m := _CAPTCHA_BODY_RE.search(content):
+            return BlockSignal(reason=BlockReason.CAPTCHA_PAGE, signal=m.group(0))
+        if m := _ANTI_BOT_BODY_RE.search(content):
+            return BlockSignal(reason=BlockReason.ANTI_BOT_PAGE, signal=m.group(0))
     return None
 
 
@@ -130,6 +158,28 @@ class BlockedResult[T]:
 
     block: BlockSignal
     partial: T | None = None
+
+
+class BrowserBlocked(Exception):
+    """Raised by browser scrapers when a navigation response is blocked."""
+
+    def __init__(self, block: BlockSignal) -> None:
+        self.block = block
+        super().__init__(f"{block.reason.value}: {block.signal}")
+
+
+def raise_for_blocked_response(response: Any) -> None:
+    """Turn blocked browser navigation responses into a pool block result."""
+    status = _response_status(response)
+    if status is None:
+        return
+    if status in (403, 451):
+        raise BrowserBlocked(
+            BlockSignal(
+                reason=BlockReason.ANTI_BOT_PAGE,
+                signal=f"HTTP {status}",
+            )
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -260,6 +310,10 @@ class BrowserPool:
 
             try:
                 value = await asyncio.wait_for(func(page), timeout=timeout_s)
+            except BrowserBlocked as exc:
+                async with self._lock:
+                    self._state.consecutive_hangs = 0
+                return BlockedResult(block=exc.block)
             except TimeoutError:
                 async with self._lock:
                     self._state.consecutive_hangs += 1
@@ -412,3 +466,15 @@ async def _default_browser_factory() -> Any:
     # The browser is what the pool needs; the throwaway ctx is discarded
     # so the pool's own context lifecycle stays consistent.
     return browser
+
+
+def _response_status(response: Any) -> int | None:
+    if response is None:
+        return None
+    status = getattr(response, "status", None)
+    if callable(status):
+        try:
+            status = status()
+        except Exception:
+            return None
+    return status if isinstance(status, int) else None
