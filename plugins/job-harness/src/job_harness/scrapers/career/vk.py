@@ -13,6 +13,7 @@ import json
 from typing import ClassVar
 
 from job_harness.base import BaseBrowserScraper
+from job_harness.browser_pool import raise_for_blocked_response
 from job_harness.models import RawListing, SearchParams
 from job_harness.registry import register_scraper
 from job_harness.types import FilterSupport, ScraperCapabilities, SearchCriterion, SourceGroup
@@ -56,7 +57,8 @@ class VKCareerScraper(BaseBrowserScraper):
 
     async def search_with_page(self, page, params: SearchParams) -> list[RawListing]:
         url = self._build_url(params)
-        await page.goto(url, wait_until="domcontentloaded")
+        response = await page.goto(url, wait_until="domcontentloaded")
+        raise_for_blocked_response(response)
         await page.wait_for_timeout(1000)
 
         # Prefer __NEXT_DATA__ if present — it contains structured rows.

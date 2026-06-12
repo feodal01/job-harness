@@ -28,6 +28,7 @@ from job_harness.scrapers.career.ibs import IBSCareerScraper
 from job_harness.scrapers.career.vk import VKCareerScraper
 from job_harness.search_engine import SearchEngine
 from job_harness.types import (
+    FailureMode,
     SearchRequest,
     SourceState,
     Transport,
@@ -208,6 +209,36 @@ class RegistrySanityTest(unittest.TestCase):
 
 
 class EngineIntegrationTest(unittest.IsolatedAsyncioTestCase):
+    async def test_engine_marks_career_vk_antibot_body_blocked(self):
+        def page_factory():
+            return FakePage(
+                behaviour=PageBehaviour(
+                    title="",
+                    content="<html><body>You have been blocked</body></html>",
+                )
+            )
+
+        def context_factory(**_kw):
+            return FakeContext(page_factory=page_factory)
+
+        browser = FakeBrowser(context_factory=context_factory)
+        pool = BrowserPool(max_contexts=1, browser_factory=_factory(browser))
+        engine = SearchEngine(browser_pool=pool)
+        with _RegistryContext({"career:vk": VKCareerScraper}), tempfile.TemporaryDirectory() as d:
+            with RunJournalWriter(Path(d)) as journal:
+                result = await engine.execute(
+                    SearchRequest(query="QA", sources=("career:vk",), country="RU"),
+                    journal=journal,
+                    run_id="r-x",
+                )
+            status = result.summary["source_statuses"][0]
+            self.assertEqual(status["source"], "career:vk")
+            self.assertEqual(status["state"], SourceState.BLOCKED.value)
+            self.assertEqual(status["failure_mode"], FailureMode.ANTI_BOT_PAGE.value)
+            self.assertEqual(status["listings_written"], 0)
+        engine.http_runner.shutdown()
+        await pool.shutdown()
+
     async def test_engine_dispatches_career_ibs_via_pool(self):
         def page_factory():
             return FakePage(

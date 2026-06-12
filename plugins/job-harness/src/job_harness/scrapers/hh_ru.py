@@ -15,6 +15,7 @@ from typing import Any, ClassVar
 from urllib.parse import urlencode
 
 from job_harness.base import BaseBrowserScraper
+from job_harness.browser_pool import raise_for_blocked_response
 from job_harness.models import RawListing, SearchParams
 from job_harness.registry import register_scraper
 from job_harness.types import FilterSupport, ScraperCapabilities, SearchCriterion, SourceGroup
@@ -81,7 +82,8 @@ class HHRuScraper(BaseBrowserScraper):
         the wall-clock deadline; we do not poll a cooperative one here.
         """
         url = self._build_search_url(params)
-        await page.goto(url, wait_until="domcontentloaded")
+        response = await page.goto(url, wait_until="domcontentloaded")
+        raise_for_blocked_response(response)
         # Brief settle for late-rendered cards. The pool's deadline
         # bounds this; if the page is mid-anti-bot it is detected by
         # the pool's `is_blocked` probe after this call returns.

@@ -89,6 +89,31 @@ class _FailingCountPage(FakePage):
         return locator
 
 
+class _StatusResponse:
+    def __init__(self, status: int) -> None:
+        self.status = status
+
+
+class _StatusPage(FakePage):
+    def __init__(self, *, behaviour: PageBehaviour, status: int) -> None:
+        super().__init__(behaviour=behaviour)
+        self._status = status
+
+    async def goto(self, url: str, **kwargs: Any):
+        await super().goto(url, **kwargs)
+        return _StatusResponse(self._status)
+
+
+class _RedirectPage(FakePage):
+    def __init__(self, *, behaviour: PageBehaviour, final_url: str) -> None:
+        super().__init__(behaviour=behaviour)
+        self._final_url = final_url
+
+    async def goto(self, url: str, **kwargs: Any) -> None:
+        await super().goto(url, **kwargs)
+        self.behaviour.url = self._final_url
+
+
 class _RegistryContext:
     def __init__(self, classes: dict[str, type]):
         self._classes = classes
@@ -286,6 +311,58 @@ class EngineBrowserDispatchTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(status["state"], SourceState.BLOCKED.value)
             self.assertEqual(status["failure_mode"], FailureMode.ANTI_BOT_PAGE.value)
             self.assertIn("Доступ ограничен", status["error"])
+        engine.http_runner.shutdown()
+        await pool.shutdown()
+
+    async def test_http_block_status_marks_blocked(self):
+        def page_factory():
+            return _StatusPage(
+                behaviour=PageBehaviour(title="Job listings"),
+                status=451,
+            )
+
+        def context_factory(**_kw):
+            return FakeContext(page_factory=page_factory)
+
+        browser = FakeBrowser(context_factory=context_factory)
+        pool = BrowserPool(max_contexts=1, browser_factory=_factory(browser))
+        engine = SearchEngine(browser_pool=pool)
+        with _RegistryContext({"hh_ru": HHRuScraper}), tempfile.TemporaryDirectory() as d:
+            with RunJournalWriter(Path(d)) as journal:
+                result = await engine.execute(
+                    _request(country="RU"), journal=journal, run_id="r-x"
+                )
+            status = result.summary["source_statuses"][0]
+            self.assertEqual(status["state"], SourceState.BLOCKED.value)
+            self.assertEqual(status["failure_mode"], FailureMode.ANTI_BOT_PAGE.value)
+            self.assertIn("HTTP 451", status["error"])
+            self.assertEqual(status["listings_written"], 0)
+        engine.http_runner.shutdown()
+        await pool.shutdown()
+
+    async def test_anti_abuse_redirect_marks_blocked(self):
+        def page_factory():
+            return _RedirectPage(
+                behaviour=PageBehaviour(title=""),
+                final_url="https://omsk.hh.ru/vpncheeck?backUrl=%2Fsearch%2Fvacancy",
+            )
+
+        def context_factory(**_kw):
+            return FakeContext(page_factory=page_factory)
+
+        browser = FakeBrowser(context_factory=context_factory)
+        pool = BrowserPool(max_contexts=1, browser_factory=_factory(browser))
+        engine = SearchEngine(browser_pool=pool)
+        with _RegistryContext({"hh_ru": HHRuScraper}), tempfile.TemporaryDirectory() as d:
+            with RunJournalWriter(Path(d)) as journal:
+                result = await engine.execute(
+                    _request(country="RU"), journal=journal, run_id="r-x"
+                )
+            status = result.summary["source_statuses"][0]
+            self.assertEqual(status["state"], SourceState.BLOCKED.value)
+            self.assertEqual(status["failure_mode"], FailureMode.ANTI_BOT_PAGE.value)
+            self.assertIn("vpncheeck", status["error"])
+            self.assertEqual(status["listings_written"], 0)
         engine.http_runner.shutdown()
         await pool.shutdown()
 

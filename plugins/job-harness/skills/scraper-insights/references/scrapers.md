@@ -71,6 +71,14 @@ Format:
 
 **Origin:** hh.ru occasionally serves CAPTCHAs to automated browsers.
 
+### Anti-abuse redirects with empty titles
+
+**Pattern:** Anti-bot systems may redirect browser traffic to an abuse-check URL or return an HTTP block status while rendering a page with an empty title and no result cards. The scraper sees a normal navigation completion and can silently return zero results.
+
+**Strategy:** Inspect navigation response status, final URL path, and compact body markers in addition to title and captcha iframes. Treat known block statuses such as 403/451 and abuse-check paths as blocked source states, not successful empty searches.
+
+**Origin:** hh.ru redirected headless search traffic to `/vpncheeck` with zero vacancy cards while direct HTTP showed 451/403-like anti-abuse markers.
+
 ### Google search result URL extraction
 
 **Pattern:** Google search results link `href` attributes are either redirect URLs (`/url?q=ACTUAL_URL&...`) or relative paths (`/search?q=...`). Using them directly causes navigation errors or loops back to Google.

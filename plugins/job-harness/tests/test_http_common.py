@@ -205,12 +205,19 @@ class FetchErrorTaxonomyTest(unittest.TestCase):
         self.assertEqual(self.s.calls, 1)
         self.assertIn("cf-chl", ctx.exception.marker or "")
 
-    def test_403_plain_classified_as_client_error(self):
+    def test_403_plain_classified_as_anti_bot(self):
         self.s.respond(_h_status(403, body=b"nope"))
-        with self.assertRaises(HttpClientError) as ctx:
+        with self.assertRaises(AntiBotBlocked) as ctx:
             fetch_text(self.s.url, deadline_ms=3000, retries=0)
         self.assertEqual(ctx.exception.status_code, 403)
-        self.assertNotIsInstance(ctx.exception, AntiBotBlocked)
+        self.assertIsNone(ctx.exception.marker)
+
+    def test_451_plain_classified_as_anti_bot(self):
+        self.s.respond(_h_status(451, body=b"nope"))
+        with self.assertRaises(AntiBotBlocked) as ctx:
+            fetch_text(self.s.url, deadline_ms=3000, retries=0)
+        self.assertEqual(ctx.exception.status_code, 451)
+        self.assertIsNone(ctx.exception.marker)
 
     def test_302_redirect_to_login_path_classified(self):
         # The server sends 302 → /login. urlopen follows redirects by

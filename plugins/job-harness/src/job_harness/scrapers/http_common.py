@@ -12,7 +12,7 @@ Status-code handling (verified empirically with `urllib.request`):
                                      immediately without sleep
   • 5xx without Retry-After       → one retry inside budget, then
                                      HttpServerError
-  • 403 with anti-bot body marker → AntiBotBlocked, no retry
+  • 403 / 451                     → AntiBotBlocked, no retry
   • 4xx (not 429)                 → HttpClientError, no retry
   • 30x → /login,/auth,…         → LoginRequired
   • URLError/OSError/socket.timeout → retry inside budget, then NetworkError
@@ -299,16 +299,15 @@ def _classify_http_error(exc: HTTPError, *, remaining_s: float) -> FetchError | 
         except Exception:
             pass
 
-    # 403 with anti-bot body markers — terminal, no retry.
-    if code == 403:
+    # Access blocks are terminal and should not look like scraper success.
+    if code in (403, 451):
         marker = next((m for m in ANTI_BOT_BODY_MARKERS if m in body_lower), None)
-        if marker:
-            return AntiBotBlocked(
-                f"anti-bot response (marker={marker})", marker=marker, status_code=403
-            )
-        client = HttpClientError(f"HTTP {code} for {exc.url}")
-        client.status_code = code
-        return client
+        suffix = f" (marker={marker})" if marker else ""
+        return AntiBotBlocked(
+            f"access blocked with HTTP {code}{suffix}",
+            marker=marker,
+            status_code=code,
+        )
 
     if code in (429, 503):
         retry_after = _parse_retry_after(headers.get("Retry-After"))
