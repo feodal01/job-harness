@@ -11,9 +11,9 @@ from __future__ import annotations
 from typing import ClassVar
 
 from job_harness.base import BaseBrowserScraper
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.registry import register_scraper
-from job_harness.types import FilterSupport, ScraperCapabilities
+from job_harness.types import FilterSupport, ScraperCapabilities, SearchCriterion, SourceGroup
 
 # Query keyword → Bitrix SEF segment mapping (property 210 — primary direction).
 _DIRECTION_MAP = {
@@ -68,6 +68,16 @@ _BASE_FILTER_URL = "https://ibs.ru/career/vacancies/filter"
 class IBSCareerScraper(BaseBrowserScraper):
     display_name = "IBS (career)"
     countries = ("RU",)
+    source_group = SourceGroup.COMPANY_CAREER
+    source_limit = 100
+    server_criteria = frozenset(
+        {
+            SearchCriterion.QUERY,
+            SearchCriterion.COUNTRY,
+            SearchCriterion.REMOTE_ONLY,
+            SearchCriterion.LOCATION,
+        }
+    )
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.SERVER,        # format-is-online segment
         "country": FilterSupport.CLIENT,            # RU-only
@@ -77,12 +87,12 @@ class IBSCareerScraper(BaseBrowserScraper):
         "query_match": FilterSupport.SERVER,        # napravlenie-is-* segment
     }
 
-    async def search_with_page(self, page, params: SearchParams) -> list[JobListing]:
+    async def search_with_page(self, page, params: SearchParams) -> list[RawListing]:
         url = self._build_filter_url(params)
         await page.goto(url, wait_until="domcontentloaded")
         await page.wait_for_timeout(1500)
 
-        listings: list[JobListing] = []
+        listings: list[RawListing] = []
         items = page.locator("a.jobs-item")
         count = await items.count()
         for i in range(min(count, self.max_results)):
@@ -108,13 +118,13 @@ class IBSCareerScraper(BaseBrowserScraper):
                 remote = "УДАЛЕННО" in tags_text.upper()
 
                 listings.append(
-                    JobListing(
+                    RawListing(
                         title=title or href,
                         url=href,
                         company="IBS",
                         country="RU",
                         remote=remote,
-                        skills=tags,
+                        skills=tuple(tags),
                         description=description or None,
                         source=self.name,
                     )

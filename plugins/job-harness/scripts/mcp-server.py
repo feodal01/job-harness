@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import os
 import tempfile
-from collections.abc import Callable as _Callable
 from dataclasses import asdict
 from pathlib import Path
 
@@ -218,11 +217,14 @@ def _build_search_request(
     *,
     query: str,
     sources: str = "all",
+    source_groups: list[str] | None = None,
     profile: str | None = None,
     country: str | None = None,
     remote_only: bool = False,
     experience_levels: list[str] | None = None,
     location: str | None = None,
+    salary_from: int | None = None,
+    freshness_days: int | None = None,
     max_results: int = 20,
     detail: bool = False,
     resolve: bool = False,
@@ -231,14 +233,12 @@ def _build_search_request(
     exclude_keywords_context: str | None = None,
     exclude_companies: str | None = None,
     has_salary: bool = False,
-    source_timeout_ms: int = 30_000,
-    total_timeout_ms: int = 90_000,
     strict_flags: bool = True,
     dedupe: bool = True,
 ):
     from job_harness.countries import normalize_country_code
     from job_harness.experience_engine import parse_experience_levels
-    from job_harness.types import SearchRequest
+    from job_harness.types import SearchRequest, SourceGroup
 
     source_tuple: tuple[str, ...] | None
     if sources in (None, "", "all"):
@@ -249,14 +249,19 @@ def _build_search_request(
     if experience_levels is not None and not [level for level in experience_levels if str(level).strip()]:
         raise ValueError("experience_levels must contain at least one level")
 
+    parsed_source_groups = tuple(SourceGroup(group) for group in (source_groups or []))
+
     return SearchRequest(
         query=query,
         country=normalize_country_code(country),
         remote_only=remote_only,
         experience_levels=parse_experience_levels(experience_levels, allow_empty=True),
         location=location,
+        salary_from=salary_from,
+        freshness_days=freshness_days,
         max_results=max_results,
         sources=source_tuple,
+        source_groups=parsed_source_groups,
         profile=profile,
         detail=detail,
         resolve=resolve,
@@ -273,8 +278,6 @@ def _build_search_request(
         has_salary=has_salary,
         strict_flags=strict_flags,
         dedupe=dedupe,
-        source_timeout_ms=source_timeout_ms,
-        total_timeout_ms=total_timeout_ms,
     )
 
 
@@ -317,11 +320,14 @@ async def _read_snap_or_error(run_id: str):
 async def search_start(
     query: str,
     sources: str = "all",
+    source_groups: list[str] | None = None,
     profile: str | None = None,
     country: str | None = None,
     remote_only: bool = False,
     experience_levels: list[str] | None = None,
     location: str | None = None,
+    salary_from: int | None = None,
+    freshness_days: int | None = None,
     max_results: int = 20,
     detail: bool = False,
     resolve: bool = False,
@@ -330,8 +336,6 @@ async def search_start(
     exclude_keywords_context: str | None = None,
     exclude_companies: str | None = None,
     has_salary: bool = False,
-    source_timeout_ms: int = 30_000,
-    total_timeout_ms: int = 90_000,
     strict_flags: bool = True,
     dedupe: bool = True,
 ) -> dict:
@@ -348,11 +352,14 @@ async def search_start(
         request = _build_search_request(
             query=query,
             sources=sources,
+            source_groups=source_groups,
             profile=profile,
             country=country,
             remote_only=remote_only,
             experience_levels=experience_levels,
             location=location,
+            salary_from=salary_from,
+            freshness_days=freshness_days,
             max_results=max_results,
             detail=detail,
             resolve=resolve,
@@ -361,13 +368,16 @@ async def search_start(
             exclude_keywords_context=exclude_keywords_context,
             exclude_companies=exclude_companies,
             has_salary=has_salary,
-            source_timeout_ms=source_timeout_ms,
-            total_timeout_ms=total_timeout_ms,
             strict_flags=strict_flags,
             dedupe=dedupe,
         )
     except ValueError as exc:
-        return {"error": "invalid_experience_levels", "message": str(exc)}
+        error = (
+            "invalid_experience_levels"
+            if "experience_levels" in str(exc)
+            else "invalid_request"
+        )
+        return {"error": error, "message": str(exc)}
     try:
         run = await _get_run_registry().start(request)
     except MaxConcurrentRunsReached as exc:
@@ -378,6 +388,8 @@ async def search_start(
     return {
         "run_id": run.run_id,
         "run_dir": str(run.run_dir),
+        "raw_search_path": str((run.run_dir / "raw_search.jsonl").resolve()),
+        "results_path": str((run.run_dir / "results.json").resolve()),
         "started_at": run.started_at.isoformat(),
     }
 
@@ -406,6 +418,8 @@ async def search_status(run_id: str) -> dict:
         "ended_at": snap.ended_at,
         "elapsed_ms": snap.elapsed_ms,
         "listings_count": snap.listings_count,
+        "raw_search_path": str(reader.raw_search_path.resolve()),
+        "results_path": str(reader.results_path.resolve()),
         "errors": snap.errors,
         "sources": {name: s.to_dict() for name, s in snap.sources.items()},
         "retryable_sources": build_retryable_sources(snap),
@@ -602,21 +616,8 @@ async def search_refine(
     strict_refine: bool = False,
 ) -> dict:
     """Re-filter the journal of a finished run without re-scraping."""
-    from job_harness.dedupe_filter import dedupe_listings, order_by_experience_match
-    from job_harness.experience_engine import (
-        annotate_listing_experience,
-        parse_experience_levels,
-    )
-    from job_harness.filters import (
-        _exclude_companies,
-        apply_filters,
-        experience_in,
-        has_salary as has_salary_filter,
-        location_in,
-        no_keywords,
-        remote_only as remote_only_filter,
-    )
-    from job_harness.models import JobListing
+    from job_harness.experience_engine import parse_experience_levels
+    from job_harness.result_pipeline import raw_listings_from_dicts, run_result_pipeline
     from job_harness.run_registry import UnknownRunId
 
     registry = _get_run_registry()
@@ -644,60 +645,48 @@ async def search_refine(
     except ValueError as exc:
         return {"error": "invalid_experience_levels", "message": str(exc), "run_id": run_id}
 
-    listings: list[JobListing] = []
-    for raw in snap.listings:
-        try:
-            listing = JobListing(
-                **{k: v for k, v in raw.items() if k in JobListing.__dataclass_fields__}
-            )
-        except TypeError:
-            continue
-        status = snap.sources.get(listing.source)
-        support = (
-            status.flag_enforcement.get("experience")
-            if status is not None
-            else None
-        )
-        annotate_listing_experience(listing, listing.source, support or "unsupported")
-        listings.append(listing)
-
-    predicates: list[_Callable[[JobListing], bool]] = []
     refine_flags: list[str] = []
     if remote_only:
-        predicates.append(remote_only_filter)
         refine_flags.append("remote_only")
     if has_salary:
-        predicates.append(has_salary_filter)
         refine_flags.append("has_salary")
-    if exclude_companies:
-        predicates.append(_exclude_companies([c.strip() for c in exclude_companies.split(",")]))
     if parsed_experience_levels:
-        predicates.append(experience_in(parsed_experience_levels))
         refine_flags.append("experience_levels")
-    if exclude_keywords:
-        keywords = [k.strip() for k in exclude_keywords.split(",")]
-        ignore_words = (
-            [w.strip() for w in exclude_keywords_context.split(",")]
-            if exclude_keywords_context
-            else None
-        )
-        predicates.append(no_keywords(*keywords, ignore_context=ignore_words))
     if location:
-        predicates.append(location_in(location))
         refine_flags.append("location")
 
-    filtered = apply_filters(listings, predicates) if predicates else listings
-    filtered = order_by_experience_match(filtered, parsed_experience_levels)
-    if snap.request.get("dedupe", True):
-        filtered = dedupe_listings(filtered)
-        filtered = order_by_experience_match(filtered, parsed_experience_levels)
-    final = filtered[:max_results]
+    refined_request = dict(snap.request)
+    refined_request.update(
+        {
+            "experience_levels": list(parsed_experience_levels),
+            "has_salary": has_salary,
+            "remote_only": remote_only,
+            "exclude_companies": [
+                c.strip() for c in (exclude_companies or "").split(",") if c.strip()
+            ],
+            "exclude_keywords": [
+                k.strip() for k in (exclude_keywords or "").split(",") if k.strip()
+            ],
+            "exclude_keywords_context": [
+                k.strip()
+                for k in (exclude_keywords_context or "").split(",")
+                if k.strip()
+            ],
+            "location": location,
+            "max_results": max_results,
+        }
+    )
+    pipeline = run_result_pipeline(
+        raw_listings=raw_listings_from_dicts(snap.listings),
+        request=refined_request,
+        sources=snap.sources,
+    )
 
     return {
         "run_id": run_id,
         "state": snap.state.value,
-        "total": len(final),
-        "listings": [item.to_dict() for item in final],
+        "total": len(pipeline.listings),
+        "listings": [item.to_dict() for item in pipeline.listings],
         "errors": snap.errors,
         "refine_filters": refine_flags,
         "policy": "strict" if strict_refine else "lenient",

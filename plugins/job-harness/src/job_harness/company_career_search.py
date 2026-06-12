@@ -411,14 +411,15 @@ def _find_matching_links_http(
     query_terms: list[str],
     *,
     url: str | None = None,
+    deadline_ms: int | None = None,
 ) -> list[CompanyVacancyHit]:
     target_url = url or company.careers_url
     if not target_url:
         return []
     try:
-        html = fetch_text(target_url)
+        html = fetch_text(target_url, deadline_ms=deadline_ms)
     except Exception:
-        html = fetch_text(target_url, verify_ssl=False)
+        html = fetch_text(target_url, verify_ssl=False, deadline_ms=deadline_ms)
     return _find_matching_links_from_html(
         html=html,
         base_url=target_url,
@@ -491,16 +492,31 @@ def _find_matching_link_snapshot(
     return _dedupe_hits(hits)
 
 
-def _find_matching_ats_jobs(company: CompanyProfile, query_terms: list[str]) -> list[CompanyVacancyHit] | None:
+def _find_matching_ats_jobs(
+    company: CompanyProfile,
+    query_terms: list[str],
+    *,
+    deadline_ms: int | None = None,
+) -> list[CompanyVacancyHit] | None:
     if not company.careers_url:
         return None
     lever_account = _lever_account(company.careers_url)
     if lever_account is not None:
-        return _find_matching_lever_jobs(company, query_terms, lever_account)
+        return _find_matching_lever_jobs(
+            company,
+            query_terms,
+            lever_account,
+            deadline_ms=deadline_ms,
+        )
 
     ashby_board = _ashby_board(company.careers_url)
     if ashby_board is not None:
-        return _find_matching_ashby_jobs(company, query_terms, ashby_board)
+        return _find_matching_ashby_jobs(
+            company,
+            query_terms,
+            ashby_board,
+            deadline_ms=deadline_ms,
+        )
 
     return None
 
@@ -509,12 +525,17 @@ def _find_matching_lever_jobs(
     company: CompanyProfile,
     query_terms: list[str],
     lever_account: str,
+    *,
+    deadline_ms: int | None = None,
 ) -> list[CompanyVacancyHit]:
     careers_url = company.careers_url
     if careers_url is None:
         raise ValueError("Lever company careers_url is required")
 
-    postings = fetch_json(f"https://api.lever.co/v0/postings/{lever_account}?mode=json")
+    postings = fetch_json(
+        f"https://api.lever.co/v0/postings/{lever_account}?mode=json",
+        deadline_ms=deadline_ms,
+    )
     if not isinstance(postings, list):
         raise ValueError("Lever postings API returned non-list payload")
 
@@ -556,12 +577,17 @@ def _find_matching_ashby_jobs(
     company: CompanyProfile,
     query_terms: list[str],
     ashby_board: str,
+    *,
+    deadline_ms: int | None = None,
 ) -> list[CompanyVacancyHit]:
     careers_url = company.careers_url
     if careers_url is None:
         raise ValueError("Ashby company careers_url is required")
 
-    payload = fetch_json(f"https://api.ashbyhq.com/posting-api/job-board/{ashby_board}")
+    payload = fetch_json(
+        f"https://api.ashbyhq.com/posting-api/job-board/{ashby_board}",
+        deadline_ms=deadline_ms,
+    )
     postings = payload.get("jobs") if isinstance(payload, dict) else None
     if not isinstance(postings, list):
         raise ValueError("Ashby postings API returned non-list jobs payload")

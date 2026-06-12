@@ -60,11 +60,11 @@ class CompanyDirectoryTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must be a JSON list"):
                 load_company_directory(path)
 
-    def test_company_directory_is_registered_as_non_browser_scraper(self) -> None:
+    def test_company_directory_is_registered_as_directory_source(self) -> None:
         metadata = get_scraper_metadata()["company_directory"]
 
-        self.assertFalse(metadata["requires_browser"])
-        self.assertFalse(metadata["detail_requires_browser"])
+        self.assertEqual("directory", metadata["group"])
+        self.assertGreater(metadata["source_limit"], 0)
 
     def test_company_directory_scraper_returns_career_entrypoints(self) -> None:
         scraper = create_scraper("company_directory", context=None, max_results=5)

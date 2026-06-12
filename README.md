@@ -23,6 +23,12 @@ Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
 - Known company career-page probing through the normal search pipeline
 - Per-company career scrapers (VK, IBS)
 - Bundled employer career page registry, updated with plugin releases
+- Strict source catalog via `list_sources`: exact source ids, source groups (`aggregator`, `company_career`, `directory`, `other`), server-supported criteria, and per-source raw limits
+- Named source selection with `sources=hh_ru,career:vk` and group selection with `source_groups=["aggregator"]` / `--source-groups aggregator`
+- Raw exhaustive search artifact: `raw_search.jsonl` stores unranked, undeduped, unfiltered source facts before downstream analysis
+- Presentation export separation: `results.json` is the downstream filtered/deduped/ranked export, capped by `max_results`; raw scraping is capped by each source's `source_limit`, not by `max_results`
+- Server-only search criteria for `salary_from` and `freshness_days`; unsupported sources keep all raw listings and report unsupported criteria in source summaries
+- Source-level retry for transient zero-listing failures, with attempts/retries recorded per source
 - MCP server with async search tools (`search_start`, `search_status`, `search_results`, …) for Claude Code and Codex integration
 - Slash commands: `/job-search`, `/job-resolve`
 - Output in Markdown / JSON / CSV
@@ -111,6 +117,15 @@ uv --directory plugins/job-harness run job-harness resolve --input-file results.
 # List available scrapers
 uv --directory plugins/job-harness run job-harness list-sources
 ```
+
+### Search layer artifacts
+
+Every MCP/CLI search now has two artifact layers:
+
+- `raw_search.jsonl` — raw search evidence, one `RawSearchRecord` per line. It is not globally truncated, ranked, deduped, grade-estimated, or filtered.
+- `results.json` — downstream export for presentation. It applies grade assessment, filters, dedupe, ordering, and `max_results`.
+
+Use `list_sources` before a run to inspect exact source ids, groups, supported server criteria, and source limits. Use exact ids with `sources` or semantic groups with `source_groups`; if both are provided, the selected set is their union in registry order.
 
 ## Employer Resolution
 

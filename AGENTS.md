@@ -26,12 +26,14 @@ plugins/job-harness/
 ├── data/
 │   └── company-careers-public.json # bundled registry shipped with releases
 └── src/job_harness/
-├── models.py            # SearchParams, JobListing, SearchResults
+├── models.py            # SearchParams, RawListing, RawSearchRecord, JobListing, SearchResults
 ├── base.py              # BaseScraper ABC (search + fetch_detail)
-├── registry.py          # @register_scraper decorator, scraper discovery
+├── registry.py          # @register_scraper decorator, strict source catalog
 ├── browser.py           # Stealth browser factory (rebrowser-playwright)
 ├── filters.py           # Callable-based filter system
 ├── formatters.py        # Markdown, JSON, CSV output
+├── result_pipeline.py   # Downstream filtering/dedupe/ranking from raw listings
+├── source_runtime.py    # Engine-level source timeout/retry policy
 ├── employer_resolver.py # Resolve aggregator listings to direct employer pages
 ├── employer_cache.py    # JSON cache of company → career page mappings
 ├── cli.py               # CLI entry point (search, resolve, list-sources)
@@ -56,7 +58,14 @@ The plugin includes:
 - **MCP tools (search surface)**: `search_start`, `search_status`, `search_results`, `search_cancel`, `search_refine`, `list_active_runs`
 - **MCP tools (lookup)**: `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`
 
-**Search workflow:** `search_start` → poll `search_status` → `search_results(run_id)` (default writes `results.json` and returns `{ path }`). Use `format=inline` for previews (max 20 listings per call). Employer resolution: `job-harness resolve`.
+**Search workflow:** call `list_sources` first to inspect exact source ids, groups, server-supported criteria, and source limits. Then run `search_start` → poll `search_status` → `search_results(run_id)` (default writes downstream `results.json` and returns `{ path }`). Use `format=inline` for previews (max 20 listings per call). Raw search evidence is written separately to `raw_search.jsonl`; it is not filtered, ranked, deduped, grade-estimated, or globally capped by `max_results`.
+
+New search-layer features to preserve:
+
+- Exact source selection via `sources` and semantic source selection via `source_groups`.
+- Per-source raw collection limits from the source catalog; `max_results` only caps downstream presentation.
+- Server-only `salary_from` and `freshness_days`; unsupported sources still collect raw listings and report unsupported criteria in source summaries.
+- Source-level retry for transient zero-listing failures; source summaries record `attempts`, `retries`, `limit_reached`, `server_criteria_used`, and `unsupported_requested_criteria`.
 
 The Python CLI still works standalone from the plugin root: `uv --directory plugins/job-harness run job-harness search --query "QA" --resolve --cache`
 

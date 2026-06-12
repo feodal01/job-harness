@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-from job_harness.types import CAPABILITY_FLAGS, FilterSupport, ScraperCapabilities
+from job_harness.types import (
+    ScraperCapabilities,
+    SourceDescriptor,
+)
 
 if TYPE_CHECKING:
     from job_harness.base import BaseScraper
@@ -36,25 +39,20 @@ def get_scraper_info() -> dict[str, str]:
 
 
 def get_scraper_metadata() -> dict[str, dict]:
-    def _caps(cls) -> dict[str, str]:
-        # TypedDict.items() loses precise value types for mypy; do the
-        # lookup keyed by the known CAPABILITY_FLAGS instead.
-        return {
-            flag: cast(FilterSupport, cls.capabilities.get(flag, FilterSupport.UNSUPPORTED)).value
-            for flag in CAPABILITY_FLAGS
-        }
-
     return {
-        name: {
-            "display_name": cls.display_name,
-            "countries": list(cls.countries),
-            "requires_browser": cls.requires_browser,
-            "detail_requires_browser": cls.detail_requires_browser,
-            "transport": cls.transport().value,
-            "capabilities": _caps(cls),
-        }
+        name: get_source_descriptor(name).to_dict()
         for name, cls in _SCRAPERS.items()
     }
+
+
+def get_source_descriptor(name: str) -> SourceDescriptor:
+    cls = get_scraper_class(name)
+    return SourceDescriptor(
+        group=cls.source_group,
+        countries=tuple(cls.countries),
+        server_criteria=cls.server_criteria,
+        source_limit=cls.source_limit,
+    )
 
 
 def get_scraper_capabilities(name: str) -> ScraperCapabilities:

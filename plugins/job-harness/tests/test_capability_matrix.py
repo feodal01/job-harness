@@ -20,6 +20,8 @@ from job_harness.base import BaseScraper
 from job_harness.types import (
     CAPABILITY_FLAGS,
     FilterSupport,
+    SearchCriterion,
+    SourceGroup,
     Transport,
 )
 
@@ -62,17 +64,21 @@ class CapabilityMatrixTest(unittest.TestCase):
                 f"{name}: transport() inconsistent with requires_browser",
             )
 
-    def test_metadata_exposes_capabilities(self):
+    def test_metadata_exposes_source_descriptors_only(self):
         meta = registry.get_scraper_metadata()
         for name in meta:
-            caps = meta[name]["capabilities"]
             self.assertEqual(
-                set(caps),
-                set(CAPABILITY_FLAGS),
-                f"{name}: metadata capabilities keys mismatch",
+                set(meta[name]),
+                {"group", "countries", "server_criteria", "source_limit"},
             )
-            for value in caps.values():
-                self.assertIn(value, {fs.value for fs in FilterSupport})
+            self.assertIn(meta[name]["group"], {group.value for group in SourceGroup})
+            self.assertGreater(meta[name]["source_limit"], 0)
+            for criterion in meta[name]["server_criteria"]:
+                self.assertIn(criterion, {item.value for item in SearchCriterion})
+
+    def test_every_registered_scraper_declares_source_descriptor(self):
+        for name, cls in registry.iter_registered():
+            self.assertTrue(cls.declares_source_descriptor(), name)
 
     def test_base_default_is_marker_not_a_real_declaration(self):
         """The default sentinel must read as 'unsupported' for every flag."""

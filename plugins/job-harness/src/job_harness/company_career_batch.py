@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+import time
 from collections.abc import Sequence
 from dataclasses import asdict
 from json import JSONDecodeError
@@ -45,6 +46,7 @@ NETWORK_RESTRICTED_HOSTS = (
     "t.me",
 )
 NETWORK_RESTRICTED_ERROR_MARKERS = (
+    "budget exhausted",
     "handshake operation timed out",
     "operation timed out",
     "timed out",
@@ -294,6 +296,20 @@ def _filter_remote_record(record: dict) -> None:
 
 
 async def _check_company(context, company: CompanyProfile, query_terms: list[str], timeout_ms: int) -> dict:
+    started = time.monotonic()
+
+    def remaining_ms() -> int:
+        return max(0, timeout_ms - int((time.monotonic() - started) * 1000))
+
+    def require_budget(method: str) -> int:
+        remaining = remaining_ms()
+        if remaining <= 0:
+            raise TimeoutError(f"{method} budget exhausted after {timeout_ms}ms")
+        return remaining
+
+    def stage_budget(method: str, cap_ms: int) -> int:
+        return max(1, min(require_budget(method), cap_ms))
+
     if _has_known_no_open_positions(company):
         return {
             "company": company.name,
@@ -312,6 +328,7 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
                     company,
                     query_terms,
                     url=company.linkedin_jobs_url,
+                    deadline_ms=require_budget("alternate_jobs_http"),
                 )
                 return {
                     "company": company.name,
@@ -351,7 +368,12 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
 
     attempt_errors = []
     try:
-        ats_hits = await asyncio.to_thread(_find_matching_ats_jobs, company, query_terms)
+        ats_hits = await asyncio.to_thread(
+            _find_matching_ats_jobs,
+            company,
+            query_terms,
+            deadline_ms=require_budget("ats_api"),
+        )
         if ats_hits is not None:
             return {
                 "company": company.name,
@@ -366,9 +388,20 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
 
     page = await context.new_page()
     try:
-        await page.goto(company.careers_url, wait_until="domcontentloaded", timeout=timeout_ms)
-        await page.wait_for_timeout(1000)
-        hits = await _find_matching_links_with_timeout(page, company, query_terms, timeout_ms)
+        await page.goto(
+            company.careers_url,
+            wait_until="domcontentloaded",
+            timeout=stage_budget("browser_goto", max(1, timeout_ms // 2)),
+        )
+        await page.wait_for_timeout(
+            stage_budget("browser_settle", min(1000, max(1, timeout_ms // 5)))
+        )
+        hits = await _find_matching_links_with_timeout(
+            page,
+            company,
+            query_terms,
+            stage_budget("browser_links", max(1, timeout_ms // 3)),
+        )
         return {
             "company": company.name,
             "status": "ok",
@@ -380,7 +413,12 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
     except Exception as exc:
         attempt_errors.append({"method": "browser", "error": str(exc)})
         try:
-            hits = await _find_matching_browser_html_with_timeout(page, company, query_terms, timeout_ms)
+            hits = await _find_matching_browser_html_with_timeout(
+                page,
+                company,
+                query_terms,
+                stage_budget("browser_html", max(1, timeout_ms // 3)),
+            )
             return {
                 "company": company.name,
                 "status": "ok",
@@ -393,7 +431,12 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
         except Exception as html_exc:
             attempt_errors.append({"method": "browser_html", "error": str(html_exc)})
         try:
-            hits = await asyncio.to_thread(_find_matching_links_http, company, query_terms)
+            hits = await asyncio.to_thread(
+                _find_matching_links_http,
+                company,
+                query_terms,
+                deadline_ms=require_budget("http"),
+            )
             return {
                 "company": company.name,
                 "status": "ok",
@@ -412,6 +455,7 @@ async def _check_company(context, company: CompanyProfile, query_terms: list[str
                         company,
                         query_terms,
                         url=company.linkedin_jobs_url,
+                        deadline_ms=require_budget("alternate_jobs_http"),
                     )
                     return {
                         "company": company.name,
@@ -456,9 +500,13 @@ async def _find_matching_browser_html_with_timeout(
     timeout_ms: int,
 ) -> list[CompanyVacancyHit]:
     task = asyncio.create_task(page.content())
-    done, _ = await asyncio.wait({task}, timeout=timeout_ms / 1000)
+    try:
+        done, _ = await asyncio.wait({task}, timeout=timeout_ms / 1000)
+    except asyncio.CancelledError:
+        await _cancel_and_consume_task(task)
+        raise
     if task not in done:
-        task.add_done_callback(_consume_task_exception)
+        await _cancel_and_consume_task(task)
         raise TimeoutError(f"browser HTML snapshot timeout after {timeout_ms}ms")
     return _find_matching_links_from_html(
         html=task.result(),
@@ -476,18 +524,20 @@ async def _find_matching_links_with_timeout(
     timeout_ms: int,
 ) -> list[CompanyVacancyHit]:
     task = asyncio.create_task(_find_matching_links_async(page, company, query_terms))
-    done, _ = await asyncio.wait({task}, timeout=timeout_ms / 1000)
+    try:
+        done, _ = await asyncio.wait({task}, timeout=timeout_ms / 1000)
+    except asyncio.CancelledError:
+        await _cancel_and_consume_task(task)
+        raise
     if task not in done:
-        task.add_done_callback(_consume_task_exception)
+        await _cancel_and_consume_task(task)
         raise TimeoutError(f"link extraction timeout after {timeout_ms}ms")
     return task.result()
 
 
-def _consume_task_exception(task: asyncio.Task) -> None:
-    try:
-        task.exception()
-    except (asyncio.CancelledError, Exception):
-        pass
+async def _cancel_and_consume_task(task: asyncio.Task) -> None:
+    task.cancel()
+    await asyncio.gather(task, return_exceptions=True)
 
 
 async def _find_matching_links_async(page, company: CompanyProfile, query_terms: list[str]) -> list[CompanyVacancyHit]:

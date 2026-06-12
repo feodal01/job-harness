@@ -27,7 +27,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
 
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.scrapers.http_common import (
     AntiBotBlocked,
     FetchError,
@@ -38,14 +38,7 @@ from job_harness.scrapers.http_common import (
     ParseError,
     RateLimited,
 )
-from job_harness.types import (
-    FailureMode,
-    FilterSupport,
-    ScraperCapabilities,
-    SourceState,
-    SourceStatus,
-    Transport,
-)
+from job_harness.types import FailureMode, SourceGroup, SourceState, SourceStatus
 
 # ---------------------------------------------------------------------------
 # Source outcome — what the runner returns to the engine for one source
@@ -57,7 +50,7 @@ class SourceOutcome:
     """Final, journaled state of one source after the runner is done."""
 
     status: SourceStatus
-    listings: list[JobListing] = field(default_factory=list)
+    listings: list[RawListing] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -110,7 +103,7 @@ class HttpRunner:
         """Dispatch one scraper call.
 
         The scraper is expected to follow the current `BaseScraper`
-        contract: `scraper.search(params)` returns `list[JobListing]`.
+        contract: `scraper.search(params)` returns `list[RawListing]`.
         The scraper's per-call timeout has already been wired through
         the legacy `timeout_ms` constructor arg; the runner only needs
         to enforce its own wall-clock guard via the executor.
@@ -120,23 +113,27 @@ class HttpRunner:
 
         started = time.monotonic()
         loop = asyncio.get_running_loop()
-        flag_enforcement = _build_flag_enforcement_view(getattr(scraper, "capabilities", {}))
 
-        def _call() -> list[JobListing]:
+        def _call() -> list[RawListing]:
             return scraper.search(params)
 
         # The to_thread-equivalent awaitable is cancellable; the
         # underlying thread keeps running until urlopen returns, but we
         # don't wait on it. We use our own executor (not the loop
         # default) so a hung thread does not block process teardown.
-        listings: list[JobListing] = []
+        listings: list[RawListing] = []
         exc: BaseException | None = None
         try:
             fut = loop.run_in_executor(self._executor, _call)
-            listings = await asyncio.wait_for(
-                fut,
+            done, _pending = await asyncio.wait(
+                {fut},
                 timeout=max(0.001, deadline_ms / 1000.0),
             )
+            if fut in done:
+                listings = fut.result()
+            else:
+                fut.cancel()
+                exc = TimeoutError()
         except TimeoutError as e:
             exc = e
         except asyncio.CancelledError:
@@ -161,16 +158,15 @@ class HttpRunner:
 
         status = SourceStatus(
             source=scraper.name,
-            display_name=getattr(scraper, "display_name", scraper.name),
-            transport=Transport.HTTP,
+            group=getattr(scraper, "source_group", SourceGroup.OTHER),
             state=state,
             failure_mode=failure_mode,
-            duration_ms=duration_ms,
-            raw_count=len(listings),
-            flag_enforcement=flag_enforcement,
-            anti_bot_signal=anti_bot_signal,
-            error_class=error_class,
-            error_message=error_message,
+            source_limit=getattr(scraper, "source_limit", max(len(listings), 1)),
+            deadline_ms=deadline_ms,
+            elapsed_ms=duration_ms,
+            supported_server_criteria=tuple(getattr(scraper, "server_criteria", ())),
+            listings_written=len(listings),
+            error=anti_bot_signal or error_message or error_class,
         )
         return SourceOutcome(status=status, listings=listings)
 
@@ -243,38 +239,15 @@ class HttpRunner:
             self._recent_network_failures = []
 
     def _short_circuit_outage(self, scraper: Any) -> SourceOutcome:
-        flag_enforcement = _build_flag_enforcement_view(getattr(scraper, "capabilities", {}))
         status = SourceStatus(
             source=scraper.name,
-            display_name=getattr(scraper, "display_name", scraper.name),
-            transport=Transport.HTTP,
+            group=getattr(scraper, "source_group", SourceGroup.OTHER),
             state=SourceState.ERROR,
             failure_mode=FailureMode.GLOBAL_NETWORK_OUTAGE,
-            duration_ms=0,
-            flag_enforcement=flag_enforcement,
-            error_class="GlobalNetworkOutage",
-            error_message="HTTP runner short-circuited after repeated network failures",
+            source_limit=getattr(scraper, "source_limit", 1),
+            deadline_ms=1,
+            elapsed_ms=0,
+            supported_server_criteria=tuple(getattr(scraper, "server_criteria", ())),
+            error="HTTP runner short-circuited after repeated network failures",
         )
         return SourceOutcome(status=status, listings=[])
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _build_flag_enforcement_view(
-    capabilities: ScraperCapabilities | dict[str, Any],
-) -> dict[str, FilterSupport]:
-    """Coerce the scraper's `capabilities` TypedDict into a plain dict
-    of FilterSupport values for the SourceStatus field."""
-    view: dict[str, FilterSupport] = {}
-    for key, raw in (capabilities or {}).items():
-        if isinstance(raw, FilterSupport):
-            view[key] = raw
-            continue
-        try:
-            view[key] = FilterSupport(str(raw))
-        except (ValueError, TypeError):
-            view[key] = FilterSupport.UNSUPPORTED
-    return view

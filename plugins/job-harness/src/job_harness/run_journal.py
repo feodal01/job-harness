@@ -22,11 +22,13 @@ import os
 import secrets
 import threading
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from job_harness.models import RawSearchRecord
+from job_harness.result_pipeline import raw_listings_from_dicts, run_result_pipeline
 from job_harness.types import (
     RunState,
     SearchRequest,
@@ -90,9 +92,6 @@ class JournalSnapshot:
     listings: list[dict[str, Any]]
     listings_count: int
     errors: list[str]
-    flag_enforcement: dict[str, Any] = field(default_factory=dict)
-    result_sanity: dict[str, Any] = field(default_factory=dict)
-
     def to_dict(self) -> dict[str, Any]:
         return {
             "run_id": self.run_id,
@@ -104,8 +103,8 @@ class JournalSnapshot:
             "sources": {name: status.to_dict() for name, status in self.sources.items()},
             "listings_count": self.listings_count,
             "errors": list(self.errors),
-            "flag_enforcement": dict(self.flag_enforcement),
-            "result_sanity": dict(self.result_sanity),
+            "raw_search_path": str(Path(self.run_id) / "raw_search.jsonl") if self.run_id else None,
+            "results_path": str(Path(self.run_id) / "results.json") if self.run_id else None,
         }
 
 
@@ -165,9 +164,15 @@ class RunJournalWriter:
         self._run_dir = Path(run_dir)
         self._run_dir.mkdir(parents=True, exist_ok=True)
         self._raw_path = self._run_dir / "raw.jsonl"
+        self._raw_search_path = self._run_dir / "raw_search.jsonl"
         self._summary_path = self._run_dir / "summary.json"
         self._fd = os.open(
             str(self._raw_path),
+            os.O_WRONLY | os.O_CREAT | os.O_APPEND,
+            0o644,
+        )
+        self._raw_search_fd = os.open(
+            str(self._raw_search_path),
             os.O_WRONLY | os.O_CREAT | os.O_APPEND,
             0o644,
         )
@@ -184,6 +189,10 @@ class RunJournalWriter:
     @property
     def raw_path(self) -> Path:
         return self._raw_path
+
+    @property
+    def raw_search_path(self) -> Path:
+        return self._raw_search_path
 
     @property
     def summary_path(self) -> Path:
@@ -210,6 +219,22 @@ class RunJournalWriter:
             try:
                 os.write(self._fd, encoded)
                 os.fsync(self._fd)
+            except OSError as exc:
+                if exc.errno == 28:
+                    self._disk_full = True
+                raise
+
+    def _append_raw_search(self, record: dict[str, Any]) -> None:
+        if self._closed:
+            raise RuntimeError(f"journal {self._raw_search_path} already closed")
+        payload = json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n"
+        encoded = payload.encode("utf-8")
+        with self._lock:
+            if self._disk_full:
+                raise OSError(28, "No space left on device")
+            try:
+                os.write(self._raw_search_fd, encoded)
+                os.fsync(self._raw_search_fd)
             except OSError as exc:
                 if exc.errno == 28:
                     self._disk_full = True
@@ -272,6 +297,10 @@ class RunJournalWriter:
                 "listing": listing,
             }
         )
+
+    def write_raw_listing(self, record: RawSearchRecord) -> None:
+        self._append_raw_search(record.to_dict())
+        self.write_listing(source=record.source, listing=record.listing.to_dict())
 
     def write_filter_decision(
         self,
@@ -393,6 +422,10 @@ class RunJournalWriter:
                 os.close(self._fd)
             except OSError:
                 pass
+            try:
+                os.close(self._raw_search_fd)
+            except OSError:
+                pass
 
     def __enter__(self) -> RunJournalWriter:
         return self
@@ -418,6 +451,7 @@ class RunJournalReader:
     def __init__(self, run_dir: Path) -> None:
         self._run_dir = Path(run_dir)
         self._raw_path = self._run_dir / "raw.jsonl"
+        self._raw_search_path = self._run_dir / "raw_search.jsonl"
         self._summary_path = self._run_dir / "summary.json"
         self._results_path = self._run_dir / "results.json"
 
@@ -428,6 +462,10 @@ class RunJournalReader:
     @property
     def raw_path(self) -> Path:
         return self._raw_path
+
+    @property
+    def raw_search_path(self) -> Path:
+        return self._raw_search_path
 
     @property
     def summary_path(self) -> Path:
@@ -528,9 +566,9 @@ class RunJournalReader:
 
         listings = [listing for _, listing in listing_entries]
         errors = [
-            f"{status.source}: {status.error_message}"
+            f"{status.source}: {status.error}"
             for status in sources.values()
-            if status.error_message and status.state != SourceState.OK
+            if status.error and status.state != SourceState.OK
         ]
 
         # Compute elapsed from first/last ts when possible. Tests use the
@@ -576,43 +614,13 @@ class RunJournalReader:
 
 def materialize_listings(snap: JournalSnapshot) -> list[dict[str, Any]]:
     """Build the agent-facing listing set with optional dedupe."""
-    from job_harness.dedupe_filter import (
-        apply_filter_plan,
-        build_filter_plan,
-        dedupe_listings,
-        order_by_experience_match,
+    raw_listings = raw_listings_from_dicts(snap.listings)
+    result = run_result_pipeline(
+        raw_listings=raw_listings,
+        request=snap.request,
+        sources=snap.sources,
     )
-    from job_harness.models import JobListing
-
-    listings: list[JobListing] = []
-    fields = JobListing.__dataclass_fields__
-    for raw in snap.listings:
-        try:
-            listings.append(
-                JobListing(**{k: v for k, v in raw.items() if k in fields})
-            )
-        except TypeError:
-            continue
-
-    experience_levels = tuple(str(item) for item in snap.request.get("experience_levels") or ())
-    filter_plan = build_filter_plan(
-        remote_only=bool(snap.request.get("remote_only", False)),
-        has_salary=bool(snap.request.get("has_salary", False)),
-        exclude_companies=",".join(snap.request.get("exclude_companies") or ()) or None,
-        experience_levels=experience_levels,
-        exclude_keywords=",".join(snap.request.get("exclude_keywords") or ()) or None,
-        exclude_keywords_context=",".join(snap.request.get("exclude_keywords_context") or ()) or None,
-        location=snap.request.get("location"),
-    )
-    listings = apply_filter_plan(listings, filter_plan)
-    listings = order_by_experience_match(listings, experience_levels)
-
-    if snap.request.get("dedupe", True):
-        listings = dedupe_listings(listings)
-        listings = order_by_experience_match(listings, experience_levels)
-
-    max_results = int(snap.request.get("max_results", 20))
-    return [item.to_dict() for item in listings[:max_results]]
+    return [item.to_dict() for item in result.listings]
 
 
 def build_results_payload(

@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 
 from job_harness.base import BaseScraper
 from job_harness.countries import CIS_COUNTRY_CODES
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.registry import register_scraper
 from job_harness.scrapers.http_common import (
     Anchor,
@@ -20,7 +20,7 @@ from job_harness.scrapers.http_common import (
     fetch_text,
     normalize_text,
 )
-from job_harness.types import FilterSupport, ScraperCapabilities
+from job_harness.types import FilterSupport, ScraperCapabilities, SearchCriterion, SourceGroup
 
 _SALARY_RE = re.compile(r"(?:от\s*)?(?:~\s*)?\d[\d\s.,]*(?:K|к)?(?:\s*(?:₽|\$|€|руб))?", re.I)
 _DATE_RE = re.compile(r"\b\d{1,2}\s+[а-яё]+\b", re.I)
@@ -81,7 +81,7 @@ def _query_tokens(query: str) -> set[str]:
     }
 
 
-def _listing_matches_query(listing: JobListing, query: str) -> bool:
+def _listing_matches_query(listing: RawListing, query: str) -> bool:
     tokens = _query_tokens(query)
     if not tokens:
         return True
@@ -111,8 +111,11 @@ class _HtmlAnchorScraper(BaseScraper):
     link_pattern: re.Pattern[str]
     default_country: str | None = None
     verify_ssl = True
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 50
+    server_criteria = frozenset({SearchCriterion.QUERY})
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         html = fetch_text(
             self._build_search_url(params),
             verify_ssl=self.verify_ssl,
@@ -121,14 +124,14 @@ class _HtmlAnchorScraper(BaseScraper):
         listings = self._parse_search_results(html, params)
         return [listing for listing in listings if _listing_matches_query(listing, params.query)][: self.max_results]
 
-    def fetch_detail(self, listing: JobListing) -> JobListing:
+    def fetch_detail(self, listing: RawListing) -> RawListing:
         return listing
 
     def _build_search_url(self, params: SearchParams) -> str:
         query = urlencode({self.query_param: params.query})
         return f"{self.base_url}{self.search_path}?{query}"
 
-    def _parse_search_results(self, html: str, params: SearchParams) -> list[JobListing]:
+    def _parse_search_results(self, html: str, params: SearchParams) -> list[RawListing]:
         listings = []
         seen: set[str] = set()
         for anchor in extract_anchors(html):
@@ -143,12 +146,12 @@ class _HtmlAnchorScraper(BaseScraper):
                 listings.append(listing)
         return listings
 
-    def _listing_from_anchor(self, anchor: Anchor, url: str, params: SearchParams) -> JobListing | None:
+    def _listing_from_anchor(self, anchor: Anchor, url: str, params: SearchParams) -> RawListing | None:
         title = anchor.text or anchor.attrs.get("aria-label", "")
         title = normalize_text(title)
         if not title:
             return None
-        return JobListing(
+        return RawListing(
             title=title,
             url=url,
             company="",
@@ -165,6 +168,7 @@ class HireHiScraper(_HtmlAnchorScraper):
     query_param = "query"
     countries = ("RU",)
     default_country = "RU"
+    server_criteria = frozenset({SearchCriterion.QUERY, SearchCriterion.COUNTRY})
     link_pattern = re.compile(
         r"^/(?:qa|marketing|devops|analytics|development|design|management|backend|frontend|fullstack|python|java|go|mobile|ml-ai)/[^/]+-\d+$"
     )
@@ -177,7 +181,7 @@ class HireHiScraper(_HtmlAnchorScraper):
         "query_match": FilterSupport.SERVER,        # query= URL param
     }
 
-    def _listing_from_anchor(self, anchor: Anchor, url: str, params: SearchParams) -> JobListing | None:
+    def _listing_from_anchor(self, anchor: Anchor, url: str, params: SearchParams) -> RawListing | None:
         text = normalize_text(anchor.text)
         if not text:
             return None
@@ -188,7 +192,7 @@ class HireHiScraper(_HtmlAnchorScraper):
             title, rest = text.split(" в ", 1)
             company = rest.split(",", 1)[0].strip()
 
-        return JobListing(
+        return RawListing(
             title=title.strip(),
             url=url,
             company=company,
@@ -206,6 +210,9 @@ class HirifyScraper(BaseScraper):
     countries = CIS_COUNTRY_CODES
     requires_browser = False
     detail_requires_browser = False
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 100
+    server_criteria = frozenset({SearchCriterion.QUERY, SearchCriterion.SALARY_FROM})
 
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.CLIENT,        # work_format field
@@ -216,18 +223,21 @@ class HirifyScraper(BaseScraper):
         "query_match": FilterSupport.SERVER,        # search= API param
     }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         data = fetch_json(self._build_search_url(params), timeout_seconds=self.fetch_timeout_seconds)
         listings = [self._listing_from_item(item, params) for item in data.get("data", [])]
         return [listing for listing in listings if listing is not None][: self.max_results]
 
-    def fetch_detail(self, listing: JobListing) -> JobListing:
+    def fetch_detail(self, listing: RawListing) -> RawListing:
         return listing
 
     def _build_search_url(self, params: SearchParams) -> str:
-        return f"{self.API_URL}?{urlencode({'search': params.query})}"
+        query_params = {"search": params.query}
+        if params.salary_from is not None:
+            query_params["salary_from"] = str(params.salary_from)
+        return f"{self.API_URL}?{urlencode(query_params)}"
 
-    def _listing_from_item(self, item: dict, params: SearchParams) -> JobListing | None:
+    def _listing_from_item(self, item: dict, params: SearchParams) -> RawListing | None:
         title = normalize_text(str(item.get("title") or ""))
         slug = normalize_text(str(item.get("slug") or ""))
         if not title or not slug:
@@ -242,7 +252,7 @@ class HirifyScraper(BaseScraper):
         if not company:
             raw["company_missing"] = True
 
-        return JobListing(
+        return RawListing(
             title=title,
             url=f"https://hirify.me/jobs/{slug}",
             company=company,
@@ -298,6 +308,9 @@ class StaffAmScraper(BaseScraper):
     countries = ("AM",)
     requires_browser = False
     detail_requires_browser = False
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 100
+    server_criteria = frozenset({SearchCriterion.QUERY, SearchCriterion.COUNTRY})
 
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.CLIENT,        # is_remote in __NEXT_DATA__
@@ -308,7 +321,7 @@ class StaffAmScraper(BaseScraper):
         "query_match": FilterSupport.BEST_EFFORT,   # URL-category map + post-filter
     }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         html = fetch_text(self._build_search_url(params), timeout_seconds=self.fetch_timeout_seconds)
         data = extract_next_data(html)
         jobs = data["props"]["pageProps"].get("jobs", [])
@@ -323,7 +336,7 @@ class StaffAmScraper(BaseScraper):
         ]
         return filtered[: self.max_results]
 
-    def fetch_detail(self, listing: JobListing) -> JobListing:
+    def fetch_detail(self, listing: RawListing) -> RawListing:
         return listing
 
     def _build_search_url(self, params: SearchParams) -> str:
@@ -353,7 +366,7 @@ class StaffAmScraper(BaseScraper):
             return str(value.get("en") or value.get("ru") or value.get("am") or "")
         return str(value or "")
 
-    def _listing_from_job(self, job: dict) -> JobListing | None:
+    def _listing_from_job(self, job: dict) -> RawListing | None:
         title = normalize_text(self._localized(job.get("title")))
         company_data = job.get("companiesStruct") or {}
         company = normalize_text(self._localized(company_data.get("title")))
@@ -367,7 +380,7 @@ class StaffAmScraper(BaseScraper):
         city = self._localized((job.get("job_city") or {}).get("title"))
         activated_at = job.get("activated_at") or {}
 
-        return JobListing(
+        return RawListing(
             title=title,
             url=f"{self.BASE_URL}/en/jobs/{category_code}/{job_slug}",
             company=company,
@@ -398,7 +411,7 @@ class GeekJobScraper(_HtmlAnchorScraper):
         "query_match": FilterSupport.CLIENT,        # _listing_matches_query post-filter
     }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         html = fetch_text(
             f"{self.base_url}{self.search_path}",
             verify_ssl=self.verify_ssl,
@@ -408,7 +421,7 @@ class GeekJobScraper(_HtmlAnchorScraper):
         filtered = [listing for listing in listings if _listing_matches_query(listing, params.query)]
         return filtered[: self.max_results]
 
-    def _parse_search_results(self, html: str, params: SearchParams) -> list[JobListing]:
+    def _parse_search_results(self, html: str, params: SearchParams) -> list[RawListing]:
         grouped: dict[str, list[str]] = {}
         for anchor in extract_anchors(html):
             if self.link_pattern.match(anchor.href):
@@ -421,7 +434,7 @@ class GeekJobScraper(_HtmlAnchorScraper):
                 listings.append(listing)
         return listings
 
-    def _listing_from_texts(self, href: str, texts: list[str]) -> JobListing | None:
+    def _listing_from_texts(self, href: str, texts: list[str]) -> RawListing | None:
         cleaned = [normalize_text(text) for text in texts if normalize_text(text)]
         meaningful = [
             text for text in cleaned
@@ -452,7 +465,7 @@ class GeekJobScraper(_HtmlAnchorScraper):
         if not title:
             return None
 
-        return JobListing(
+        return RawListing(
             title=title,
             url=absolute_url(self.base_url, href),
             company=company,
@@ -481,7 +494,7 @@ class TalentoScraper(_HtmlAnchorScraper):
         "query_match": FilterSupport.BEST_EFFORT,
     }
 
-    def _listing_from_anchor(self, anchor: Anchor, url: str, params: SearchParams) -> JobListing | None:
+    def _listing_from_anchor(self, anchor: Anchor, url: str, params: SearchParams) -> RawListing | None:
         label = normalize_text(anchor.attrs.get("aria-label", "") or anchor.text)
         if not label:
             return None
@@ -489,7 +502,7 @@ class TalentoScraper(_HtmlAnchorScraper):
         title = label
         if ": " in label:
             company, title = label.split(": ", 1)
-        return JobListing(
+        return RawListing(
             title=title,
             url=url,
             company=company,
@@ -505,6 +518,9 @@ class FinderWorkScraper(BaseScraper):
     countries = CIS_COUNTRY_CODES
     requires_browser = False
     detail_requires_browser = False
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 100
+    server_criteria = frozenset({SearchCriterion.QUERY, SearchCriterion.SALARY_FROM})
 
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.CLIENT,        # distant_work field
@@ -515,18 +531,21 @@ class FinderWorkScraper(BaseScraper):
         "query_match": FilterSupport.SERVER,
     }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
+        query_params = {"search": params.query}
+        if params.salary_from is not None:
+            query_params["salary_from"] = str(params.salary_from)
         data = fetch_json(
-            f"{self.API_URL}?{urlencode({'search': params.query})}",
+            f"{self.API_URL}?{urlencode(query_params)}",
             timeout_seconds=self.fetch_timeout_seconds,
         )
         listings = [self._listing_from_item(item) for item in data.get("items", [])]
         return [listing for listing in listings if listing is not None][: self.max_results]
 
-    def fetch_detail(self, listing: JobListing) -> JobListing:
+    def fetch_detail(self, listing: RawListing) -> RawListing:
         return listing
 
-    def _listing_from_item(self, item: dict) -> JobListing | None:
+    def _listing_from_item(self, item: dict) -> RawListing | None:
         title = normalize_text(str(item.get("title") or ""))
         item_id = item.get("id")
         if not title or item_id is None:
@@ -542,7 +561,7 @@ class FinderWorkScraper(BaseScraper):
             raw["external_url"] = external_url["value"]
             raw["external_source"] = external_url.get("label")
 
-        return JobListing(
+        return RawListing(
             title=title,
             url=f"https://finder.work/vacancies/{item_id}",
             company=normalize_text(str(company.get("title") or "")),
@@ -587,6 +606,9 @@ class ItJobsUzScraper(BaseScraper):
     countries = ("UZ",)
     requires_browser = False
     detail_requires_browser = False
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 100
+    server_criteria = frozenset({SearchCriterion.QUERY, SearchCriterion.SALARY_FROM})
 
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.CLIENT,        # workType enum
@@ -597,7 +619,7 @@ class ItJobsUzScraper(BaseScraper):
         "query_match": FilterSupport.SERVER,
     }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         data = fetch_json(self._build_search_url(params), timeout_seconds=self.fetch_timeout_seconds)
         listings = [
             listing for listing in (self._listing_from_item(item) for item in data.get("data", []))
@@ -606,7 +628,7 @@ class ItJobsUzScraper(BaseScraper):
         filtered = [listing for listing in listings if _listing_matches_query(listing, params.query)]
         return filtered[: self.max_results]
 
-    def fetch_detail(self, listing: JobListing) -> JobListing:
+    def fetch_detail(self, listing: RawListing) -> RawListing:
         return listing
 
     def _build_search_url(self, params: SearchParams) -> str:
@@ -614,6 +636,8 @@ class ItJobsUzScraper(BaseScraper):
         category_slug = self._category_slug_for_query(params.query)
         if category_slug:
             params_dict["category"] = category_slug
+        if params.salary_from is not None:
+            params_dict["salaryMin"] = str(params.salary_from)
         return f"{self.API_URL}?{urlencode(params_dict)}"
 
     def _category_slug_for_query(self, query: str) -> str | None:
@@ -634,7 +658,7 @@ class ItJobsUzScraper(BaseScraper):
                 return slug
         return None
 
-    def _listing_from_item(self, item: dict) -> JobListing | None:
+    def _listing_from_item(self, item: dict) -> RawListing | None:
         title = normalize_text(str(item.get("title") or ""))
         slug = normalize_text(str(item.get("slug") or ""))
         if not title or not slug:
@@ -642,7 +666,7 @@ class ItJobsUzScraper(BaseScraper):
 
         apply_url = item.get("applyUrl") or item.get("sourceUrl")
 
-        return JobListing(
+        return RawListing(
             title=title,
             url=f"{self.BASE_URL}/en/jobs/{slug}",
             company=normalize_text(str(item.get("companyName") or "")),
@@ -653,7 +677,7 @@ class ItJobsUzScraper(BaseScraper):
             location=item.get("location"),
             description=item.get("description"),
             requirements=item.get("requirements"),
-            skills=[str(tag) for tag in item.get("tags") or []],
+            skills=tuple(str(tag) for tag in item.get("tags") or []),
             posted_date=item.get("publishedAt") or item.get("createdAt"),
             source=self.name,
             raw={
@@ -694,6 +718,9 @@ class JobTurboScraper(BaseScraper):
     countries = CIS_COUNTRY_CODES
     requires_browser = False
     detail_requires_browser = False
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 50
+    server_criteria = frozenset({SearchCriterion.QUERY})
 
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.BEST_EFFORT,
@@ -704,16 +731,16 @@ class JobTurboScraper(BaseScraper):
         "query_match": FilterSupport.SERVER,
     }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         html = fetch_text(self.SEARCH_URL, timeout_seconds=self.fetch_timeout_seconds)
         listings = self._parse_search_results(html, params)
         filtered = [listing for listing in listings if _listing_matches_query(listing, params.query)]
         return filtered[: self.max_results]
 
-    def fetch_detail(self, listing: JobListing) -> JobListing:
+    def fetch_detail(self, listing: RawListing) -> RawListing:
         return listing
 
-    def _parse_search_results(self, html: str, params: SearchParams) -> list[JobListing]:
+    def _parse_search_results(self, html: str, params: SearchParams) -> list[RawListing]:
         listings = []
         for item_list in self._extract_item_lists(html):
             for entry in item_list.get("itemListElement", []):
@@ -735,12 +762,12 @@ class JobTurboScraper(BaseScraper):
             item_lists.extend(entry for entry in entries if entry.get("@type") == "ItemList")
         return item_lists
 
-    def _listing_from_item(self, item: dict, params: SearchParams) -> JobListing | None:
+    def _listing_from_item(self, item: dict, params: SearchParams) -> RawListing | None:
         name = normalize_text(str(item.get("name") or ""))
         url = normalize_text(str(item.get("url") or ""))
         if not name or "/vakansiya/" not in url:
             return None
-        return JobListing(
+        return RawListing(
             title=name,
             url=url,
             company="",
@@ -759,6 +786,9 @@ class GetmatchScraper(BaseScraper):
     countries = CIS_COUNTRY_CODES
     requires_browser = False
     detail_requires_browser = False
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 100
+    server_criteria = frozenset({SearchCriterion.QUERY})
 
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.CLIENT,        # location_requirements.format
@@ -769,7 +799,7 @@ class GetmatchScraper(BaseScraper):
         "query_match": FilterSupport.SERVER,        # specialization
     }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         slugs: list[str | None] = list(self._matching_specialization_slugs(params.query))
         if not slugs:
             slugs = [None]
@@ -787,7 +817,7 @@ class GetmatchScraper(BaseScraper):
                         return listings
         return listings
 
-    def fetch_detail(self, listing: JobListing) -> JobListing:
+    def fetch_detail(self, listing: RawListing) -> RawListing:
         return listing
 
     def _matching_specialization_slugs(self, query: str) -> list[str]:
@@ -829,7 +859,7 @@ class GetmatchScraper(BaseScraper):
             query_params["sp"] = specialization_slug
         return f"{self.OFFERS_URL}?{urlencode(query_params)}"
 
-    def _listing_from_offer(self, offer: dict) -> JobListing | None:
+    def _listing_from_offer(self, offer: dict) -> RawListing | None:
         title = normalize_text(str(offer.get("position") or ""))
         url = normalize_text(str(offer.get("url") or ""))
         if not title or not url:
@@ -841,7 +871,7 @@ class GetmatchScraper(BaseScraper):
         location = ", ".join(item.get("label", "") for item in location_items).strip()
         country_text = " ".join(item.get("country", "") for item in location_requirements)
 
-        return JobListing(
+        return RawListing(
             title=title,
             url=absolute_url(self.BASE_URL, url),
             company=normalize_text(str(company.get("name") or "")),
@@ -850,7 +880,7 @@ class GetmatchScraper(BaseScraper):
             remote=any(item.get("format") == "remote" for item in location_requirements),
             location=location or None,
             description=normalize_text(re.sub(r"<[^>]+>", " ", offer.get("offer_description") or "")) or None,
-            skills=[skill.get("name", "") for skill in offer.get("skills_objects") or [] if skill.get("name")],
+            skills=tuple(skill.get("name", "") for skill in offer.get("skills_objects") or [] if skill.get("name")),
             posted_date=offer.get("published_at"),
             source=self.name,
             raw={"id": offer.get("id"), "analytics_id": offer.get("analytics_id")},

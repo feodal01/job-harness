@@ -14,7 +14,7 @@ from job_harness.registry import _SCRAPERS, register_scraper
 from job_harness.run_journal import RunJournalWriter
 from job_harness.scrapers.company_careers import CompanyCareersScraper
 from job_harness.search_engine import SearchEngine
-from job_harness.types import SearchRequest, SourceState
+from job_harness.types import SearchCriterion, SearchRequest, SourceState
 
 
 def _factory(browser: FakeBrowser):
@@ -85,10 +85,10 @@ class CompanyCareersScraperTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("https://alpha.test/jobs/middle-qa", listing.url)
         self.assertIsNone(listing.experience)
         self.assertEqual("Middle QA Engineer", listing.description)
-        self.assertEqual(["QA", "Python"], listing.skills)
+        self.assertEqual(("QA", "Python"), listing.skills)
         self.assertEqual("ats_api", listing.raw["method"])
 
-    async def test_scraping_scope_is_not_capped_by_requested_result_limit(self) -> None:
+    async def test_scraping_scope_can_cover_all_selected_companies(self) -> None:
         companies = [
             CompanyProfile(name="Alpha", careers_url="https://alpha.test/careers"),
             CompanyProfile(name="Beta", careers_url="https://beta.test/careers"),
@@ -98,7 +98,7 @@ class CompanyCareersScraperTest(unittest.IsolatedAsyncioTestCase):
             patch("job_harness.scrapers.company_careers._check_company", new_callable=AsyncMock) as check,
         ):
             check.side_effect = [_record("Alpha"), _record("Beta", "Senior QA Engineer")]
-            scraper = CompanyCareersScraper(max_results=1, timeout_ms=5_000)
+            scraper = CompanyCareersScraper(max_results=200, timeout_ms=5_000)
 
             listings = await scraper.search_with_page(FakePage(), SearchParams(query="QA", country="RU"))
 
@@ -138,9 +138,9 @@ class CompanyCareersScraperTest(unittest.IsolatedAsyncioTestCase):
         status = result.summary["source_statuses"][0]
         self.assertEqual("company_careers", status["source"])
         self.assertEqual(SourceState.OK.value, status["state"])
-        self.assertEqual(
-            "grade_engine",
-            result.summary["flag_enforcement"]["experience"]["by_source"]["company_careers"]["applied_by"],
+        self.assertIn(
+            SearchCriterion.EXPERIENCE_LEVELS.value,
+            status["unsupported_requested_criteria"],
         )
         engine.http_runner.shutdown()
         await pool.shutdown()

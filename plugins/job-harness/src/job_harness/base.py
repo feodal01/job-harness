@@ -7,11 +7,13 @@ import time
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.types import (
     CAPABILITY_FLAGS,
     FilterSupport,
     ScraperCapabilities,
+    SearchCriterion,
+    SourceGroup,
     Transport,
 )
 
@@ -37,6 +39,9 @@ class BaseScraper(ABC):
     countries: tuple[str, ...] = ()
     requires_browser: bool = True
     detail_requires_browser: bool = True
+    source_group: ClassVar[SourceGroup] = SourceGroup.OTHER
+    server_criteria: ClassVar[frozenset[SearchCriterion]] = frozenset()
+    source_limit: ClassVar[int] = 50
 
     # New capability surface — see plans/resilient-scraping.md §3.
     # Subclasses declare per-flag enforcement honesty. The capability
@@ -44,11 +49,19 @@ class BaseScraper(ABC):
     # registered scraper overrides this with an explicit declaration.
     capabilities: ClassVar[ScraperCapabilities] = _DEFAULT_CAPABILITIES
 
-    def __init__(self, context, max_results: int = 20, debug: bool = False, timeout_ms: int | None = None):
+    def __init__(
+        self,
+        context,
+        max_results: int = 20,
+        debug: bool = False,
+        timeout_ms: int | None = None,
+        company_probe_timeout_ms: int = 8_000,
+    ):
         self.context = context
         self.max_results = max_results
         self.debug = debug
         self.timeout_ms = timeout_ms
+        self.company_probe_timeout_ms = company_probe_timeout_ms
         self._started_at = time.monotonic()
         self.timed_out = False
         self.runtime_error: Exception | None = None
@@ -69,6 +82,16 @@ class BaseScraper(ABC):
         # subclasses that override with their own dict are not == it.
         return cls.capabilities is not _DEFAULT_CAPABILITIES and all(
             key in cls.capabilities for key in CAPABILITY_FLAGS
+        )
+
+    @classmethod
+    def declares_source_descriptor(cls) -> bool:
+        return (
+            isinstance(cls.source_group, SourceGroup)
+            and isinstance(cls.server_criteria, frozenset)
+            and all(isinstance(item, SearchCriterion) for item in cls.server_criteria)
+            and isinstance(cls.source_limit, int)
+            and cls.source_limit > 0
         )
 
     @property
@@ -95,12 +118,12 @@ class BaseScraper(ABC):
         self.timed_out = True
 
     @abstractmethod
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         """Search for job listings matching the given parameters."""
 
     @abstractmethod
-    def fetch_detail(self, listing: JobListing) -> JobListing:
-        """Fetch full details for a single listing. Returns enriched JobListing."""
+    def fetch_detail(self, listing: RawListing) -> RawListing:
+        """Fetch full details for a single listing. Returns enriched RawListing."""
 
     def normalize_experience(self, raw: str | None) -> str | None:
         """Normalize experience string to junior/middle/senior."""
@@ -144,27 +167,39 @@ class BaseBrowserScraper(BaseScraper):
     requires_browser = True
     detail_requires_browser = True
 
-    def __init__(self, max_results: int = 20, debug: bool = False, timeout_ms: int | None = None):
+    def __init__(
+        self,
+        max_results: int = 20,
+        debug: bool = False,
+        timeout_ms: int | None = None,
+        company_probe_timeout_ms: int = 8_000,
+    ):
         # No `context` argument — the engine hands a Page directly to
         # search_with_page. Pass None to the parent so unused legacy
         # state stays nominal.
-        super().__init__(None, max_results=max_results, debug=debug, timeout_ms=timeout_ms)
+        super().__init__(
+            None,
+            max_results=max_results,
+            debug=debug,
+            timeout_ms=timeout_ms,
+            company_probe_timeout_ms=company_probe_timeout_ms,
+        )
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         raise NotImplementedError(
             f"{type(self).__name__} is async-only; the SearchEngine "
             "dispatches it via BrowserPool.run_with_page → search_with_page"
         )
 
-    def fetch_detail(self, listing: JobListing) -> JobListing:
+    def fetch_detail(self, listing: RawListing) -> RawListing:
         raise NotImplementedError(
             f"{type(self).__name__} is async-only; use fetch_detail_with_page"
         )
 
     @abstractmethod
-    async def search_with_page(self, page, params: SearchParams) -> list[JobListing]:
+    async def search_with_page(self, page, params: SearchParams) -> list[RawListing]:
         """Run the scraper against the given async Playwright Page."""
 
-    async def fetch_detail_with_page(self, listing: JobListing, page) -> JobListing:
+    async def fetch_detail_with_page(self, listing: RawListing, page) -> RawListing:
         """Async detail fetch. Default: no enrichment."""
         return listing

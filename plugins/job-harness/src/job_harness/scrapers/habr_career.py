@@ -10,9 +10,9 @@ from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
 
 from job_harness.base import BaseScraper
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.registry import register_scraper
-from job_harness.types import FilterSupport, ScraperCapabilities
+from job_harness.types import FilterSupport, ScraperCapabilities, SearchCriterion, SourceGroup
 
 _USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -156,6 +156,17 @@ class HabrCareerScraper(BaseScraper):
     countries = ("RU",)
     requires_browser = False
     detail_requires_browser = False
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 100
+    server_criteria = frozenset(
+        {
+            SearchCriterion.QUERY,
+            SearchCriterion.COUNTRY,
+            SearchCriterion.REMOTE_ONLY,
+            SearchCriterion.EXPERIENCE_LEVELS,
+            SearchCriterion.SALARY_FROM,
+        }
+    )
 
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.SERVER,           # remote=true URL param
@@ -166,8 +177,8 @@ class HabrCareerScraper(BaseScraper):
         "query_match": FilterSupport.SERVER,           # q=
     }
 
-    def search(self, params: SearchParams) -> list[JobListing]:
-        listings: list[JobListing] = []
+    def search(self, params: SearchParams) -> list[RawListing]:
+        listings: list[RawListing] = []
         url: str | None = self._build_search_url(params)
 
         try:
@@ -185,12 +196,12 @@ class HabrCareerScraper(BaseScraper):
 
         return listings[:self.max_results]
 
-    def fetch_detail(self, listing: JobListing) -> JobListing:
+    def fetch_detail(self, listing: RawListing) -> RawListing:
         try:
             html = self._fetch_html(listing.url)
             parser = _HabrDetailParser()
             parser.feed(html)
-            return JobListing(
+            return RawListing(
                 title=listing.title,
                 url=listing.url,
                 company=listing.company,
@@ -201,7 +212,7 @@ class HabrCareerScraper(BaseScraper):
                 location=listing.location,
                 description=parser.description,
                 requirements=listing.requirements,
-                skills=listing.skills,
+                skills=tuple(listing.skills),
                 posted_date=listing.posted_date,
                 source=listing.source,
                 raw=listing.raw,
@@ -216,6 +227,8 @@ class HabrCareerScraper(BaseScraper):
             query_params["remote"] = "true"
         if len(params.experience_levels) == 1:
             query_params["qualification"] = params.experience_levels[0]
+        if params.salary_from is not None:
+            query_params["salary"] = str(params.salary_from)
         query_params.update(params.extra)
         return self.BASE_URL + "?" + urlencode(query_params)
 
@@ -233,7 +246,7 @@ class HabrCareerScraper(BaseScraper):
             raise last_error
         raise RuntimeError(f"Failed to fetch {url}")
 
-    def _parse_search_results(self, html: str, page_url: str) -> tuple[list[JobListing], str | None]:
+    def _parse_search_results(self, html: str, page_url: str) -> tuple[list[RawListing], str | None]:
         parser = _HabrVacancyParser()
         parser.feed(html)
         listings = []
@@ -252,7 +265,7 @@ class HabrCareerScraper(BaseScraper):
 
             salary = card.get("salary", "").strip()
             card_text = " ".join(card.get("text", []))
-            listings.append(JobListing(
+            listings.append(RawListing(
                 title=title,
                 url=url,
                 company=card.get("company", "").strip(),
@@ -261,7 +274,7 @@ class HabrCareerScraper(BaseScraper):
                 experience=experience,
                 remote="Можно удалённо" in card_text or "Можно из дома" in card_text,
                 source=self.name,
-                skills=card.get("skills", []),
+                skills=tuple(card.get("skills", [])),
             ))
 
         next_url = urljoin(page_url, parser.next_href) if parser.next_href else None

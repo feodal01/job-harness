@@ -15,9 +15,9 @@ from typing import Any, ClassVar
 from urllib.parse import urlencode
 
 from job_harness.base import BaseBrowserScraper
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.registry import register_scraper
-from job_harness.types import FilterSupport, ScraperCapabilities
+from job_harness.types import FilterSupport, ScraperCapabilities, SearchCriterion, SourceGroup
 
 # hh.ru's data-qa attributes used by both layouts. The "serp-item__..."
 # selectors are the current layout; the older "vacancy-serp__..." names
@@ -49,6 +49,18 @@ class HHRuScraper(BaseBrowserScraper):
     display_name = "hh.ru"
     BASE_URL = "https://hh.ru/search/vacancy"
     countries = ("RU",)
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 100
+    server_criteria = frozenset(
+        {
+            SearchCriterion.QUERY,
+            SearchCriterion.COUNTRY,
+            SearchCriterion.REMOTE_ONLY,
+            SearchCriterion.EXPERIENCE_LEVELS,
+            SearchCriterion.SALARY_FROM,
+            SearchCriterion.FRESHNESS,
+        }
+    )
 
     # remote_only via schedule=remote URL param; country via subdomain;
     # experience via mapping in _build_search_url; query via text= param.
@@ -63,7 +75,7 @@ class HHRuScraper(BaseBrowserScraper):
 
     # ----- async dispatch path -------------------------------------------
 
-    async def search_with_page(self, page, params: SearchParams) -> list[JobListing]:
+    async def search_with_page(self, page, params: SearchParams) -> list[RawListing]:
         """Open the search URL, parse the first page, paginate until
         `max_results` is reached. The pool's `asyncio.wait_for` enforces
         the wall-clock deadline; we do not poll a cooperative one here.
@@ -75,7 +87,7 @@ class HHRuScraper(BaseBrowserScraper):
         # the pool's `is_blocked` probe after this call returns.
         await page.wait_for_timeout(800)
 
-        listings: list[JobListing] = []
+        listings: list[RawListing] = []
         seen_urls: set[str] = set()
 
         while len(listings) < self.max_results:
@@ -102,7 +114,7 @@ class HHRuScraper(BaseBrowserScraper):
 
         return listings[: self.max_results]
 
-    async def fetch_detail_with_page(self, listing: JobListing, page) -> JobListing:
+    async def fetch_detail_with_page(self, listing: RawListing, page) -> RawListing:
         await page.goto(listing.url, wait_until="domcontentloaded")
         await page.wait_for_timeout(500)
 
@@ -122,7 +134,7 @@ class HHRuScraper(BaseBrowserScraper):
             except Exception:
                 continue
 
-        return JobListing(
+        return RawListing(
             title=listing.title,
             url=listing.url,
             company=listing.company,
@@ -132,7 +144,7 @@ class HHRuScraper(BaseBrowserScraper):
             remote=listing.remote,
             location=listing.location,
             description=description,
-            skills=skills if skills else listing.skills,
+            skills=tuple(skills) if skills else listing.skills,
             posted_date=listing.posted_date,
             source=listing.source,
             raw=listing.raw,
@@ -152,12 +164,17 @@ class HHRuScraper(BaseBrowserScraper):
             level = params.experience_levels[0]
             if level in _EXPERIENCE_URL_MAP:
                 query_params["experience"] = _EXPERIENCE_URL_MAP[level]
+        if params.salary_from is not None:
+            query_params["salary"] = str(params.salary_from)
+            query_params["only_with_salary"] = "true"
+        if params.freshness_days is not None:
+            query_params["period"] = str(params.freshness_days)
         query_params.update(params.extra)
         return self.BASE_URL + "?" + urlencode(query_params)
 
     # ----- async parsing helpers -----------------------------------------
 
-    async def _parse_cards_async(self, page) -> list[JobListing]:
+    async def _parse_cards_async(self, page) -> list[RawListing]:
         """Read every visible vacancy card on the current page."""
         for attempt in range(3):
             try:
@@ -168,8 +185,8 @@ class HHRuScraper(BaseBrowserScraper):
                 await _settle_after_navigation(page)
         return []
 
-    async def _parse_cards_once(self, page) -> list[JobListing]:
-        listings: list[JobListing] = []
+    async def _parse_cards_once(self, page) -> list[RawListing]:
+        listings: list[RawListing] = []
         cards = page.locator(_CARD_SELECTOR)
         count = await cards.count()
         for i in range(count):
@@ -181,7 +198,7 @@ class HHRuScraper(BaseBrowserScraper):
                 listings.append(listing)
         return listings
 
-    async def _parse_one_card(self, card) -> JobListing | None:
+    async def _parse_one_card(self, card) -> RawListing | None:
         title = await _first_text(card, (_TITLE_PRIMARY, _TITLE_FALLBACK))
         if not title:
             return None
@@ -198,7 +215,7 @@ class HHRuScraper(BaseBrowserScraper):
         is_remote_locator = card.locator(_REMOTE_LABEL)
         is_remote = await is_remote_locator.count() > 0
 
-        return JobListing(
+        return RawListing(
             title=title.strip(),
             url=url,
             company=company.strip(),

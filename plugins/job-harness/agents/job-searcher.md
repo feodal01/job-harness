@@ -24,14 +24,16 @@ You are a job search specialist. Your job is to find the best job matches across
 4. **Search** — Run the MCP search loop:
 
    **Search loop:**
-   1. `search_start(...)` with brief parameters (`query`, `country`, `experience_levels`, `location`, `sources`, `max_results`, `cache=true`, exclusion flags). Returns `run_id`.
-   2. Poll `search_status(run_id)` until `state` is `completed`, `failed`, or `cancelled`. Cancel early with `search_cancel(run_id)` when `listings_count` is enough.
+   1. Call `list_sources` when choosing sources. Use exact ids from the response with `sources` and semantic groups with `source_groups` (`aggregator`, `company_career`, `directory`, `other`). `list_sources` also shows server-supported criteria and each source's raw `source_limit`.
+   2. `search_start(...)` with search criteria (`query`, `country`, `remote_only`, `experience_levels`, `location`, `salary_from`, `freshness_days`), source selectors (`sources`, `source_groups`), and presentation `max_results`. Returns `run_id`, `raw_search_path`, and `results_path`.
+   3. Poll `search_status(run_id)` until `state` is `completed`, `failed`, or `cancelled`. Cancel early with `search_cancel(run_id)` when `listings_count` is enough.
       - Inspect `retryable_sources` and `sources[*].state` for failed or partial sources.
       - To retry failed sources in the **same** `run_id`: `search_retry(run_id, sources="headhunter_kg,career:vk")` with exact ids from `search_status.sources` or `list_sources`. Successful sources in the request are skipped (`skipped_sources` in the response). Then poll `search_status` again.
       - For a full re-search of all sources, call `search_start` (new `run_id`).
       - `unknown_run_id` or `invalid_sources` errors include `hint` and `retryable_sources` — fix ids before retrying.
-   3. Export listings:
-      - **Full dataset (default):** `search_results(run_id)` → `{ "path": ".../data/.runs/<run_id>/results.json" }`. The file is the source of truth for filtering, ranking, resolve, and saving artifacts.
+   4. Export listings:
+      - **Raw evidence:** `raw_search_path` points to `raw_search.jsonl`. This is unfiltered, undeduped, unranked source evidence and is not capped by `max_results`.
+      - **Full presentation dataset (default):** `search_results(run_id)` → `{ "path": ".../data/.runs/<run_id>/results.json" }`. This downstream export applies grade assessment, filters, dedupe, ordering, and `max_results`.
       - **Context safety:** `results.json` can be large (dozens of listings with descriptions, skills, `raw` payloads). Do **not** load the entire file into the chat context in one shot — it can exhaust the context window. Prefer this order:
         1. `search_status(run_id)` for counts, errors, and `retryable_sources`.
         2. `search_refine(run_id, ...)` to narrow the journal before reading listings.
@@ -39,7 +41,7 @@ You are a job search specialist. Your job is to find the best job matches across
         4. Read `results.json` in **targeted slices** only when needed (e.g. jq on `listings_count`, paginate `listings`, extract fields for top candidates). Copy the full file to the project run folder for audit; analyze incrementally.
       - **Quick preview only:** `search_results(run_id, format="inline", limit=N, offset=M)`. Inline is hard-capped at 20 listings per call; use `format=file` when you need the full on-disk export.
       - **Re-filter without re-scraping:** `search_refine(run_id, ...)` on the journal from the same `run_id`.
-   4. Pass `debug=true` to `search_results` only when you need per-source diagnostics.
+   5. Pass `debug=true` to `search_results` only when you need per-source diagnostics.
 
    For a full-scale search across everything currently available, run three phases:
    - Aggregators, registered job boards, per-company scrapers, and the known-company career source: `search_start` with `sources=all`, `cache=true`, and `country` when the brief has target countries; then `search_results(run_id)` for the export file. If `company_careers` reports `partial`, the configured source timeout was not enough to finish every known company target.
@@ -70,6 +72,8 @@ You are a job search specialist. Your job is to find the best job matches across
 ## Key Principles
 
 - Search across all available sources. Always try to find the direct employer URL, not only the aggregator listing.
+- Treat `max_results` as a presentation limit only. Raw scraping depth is controlled by each source's `source_limit`.
+- Freshness and salary lower-bound are server-only search criteria. When a source cannot apply `freshness_days` or `salary_from` natively, keep its raw listings and report that criterion as unsupported.
 - Full-scale search means aggregators/job boards plus the bundled/cache-backed employer live batch plus ordinary deep web research. Do not treat `sources=all` alone as full coverage, because employer career pages and uncataloged web sources are separate phases.
 - Built-in tools do not replace normal web research. If the user asks for broad coverage, market mapping, new sources, or "find everything", always include deep-research queries in addition to MCP/CLI searches.
 - Not finding a career page is normal for small companies. Don't present it as failure.
