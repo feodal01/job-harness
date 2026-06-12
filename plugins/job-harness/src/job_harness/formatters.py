@@ -30,6 +30,10 @@ class MarkdownFormatter(BaseFormatter):
             meta_parts.append(f"Experience levels: {', '.join(p.experience_levels)}")
         if p.location:
             meta_parts.append(f"Location: {p.location}")
+        if p.salary_from is not None:
+            meta_parts.append(f"Salary from: {p.salary_from}")
+        if p.freshness_days is not None:
+            meta_parts.append(f"Freshness: {p.freshness_days} days")
         meta_parts.append("Sources: all")
         lines.append(" | ".join(meta_parts))
         lines.append(f"Date: {results.timestamp}")
@@ -42,13 +46,14 @@ class MarkdownFormatter(BaseFormatter):
         if source_statuses:
             lines.append("## Source Status")
             lines.append("")
-            lines.append("| Source | Status | Raw | After filters | After dedupe | Duration |")
-            lines.append("|---|---|---:|---:|---:|---:|")
+            lines.append("| Source | State | Raw | Attempts | Retries | Limit | Duration |")
+            lines.append("|---|---|---:|---:|---:|---|---:|")
             for status in source_statuses:
                 lines.append(
-                    f"| {status['source']} | {status['status']} | {status['raw_count']} | "
-                    f"{status['after_filter_count']} | {status['after_dedupe_count']} | "
-                    f"{status['duration_ms']} ms |"
+                    f"| {status['source']} | {status['state']} | "
+                    f"{status['listings_written']} | {status['attempts']} | "
+                    f"{status['retries']} | {status['limit_reached']} | "
+                    f"{status['elapsed_ms'] or 0} ms |"
                 )
             lines.append("")
             lines.append("---")

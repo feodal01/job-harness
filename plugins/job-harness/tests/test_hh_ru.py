@@ -33,11 +33,12 @@ from job_harness.scrapers.hh_ru import (
     RabotaByScraper,
 )
 from job_harness.search_engine import SearchEngine
+from job_harness.source_runtime import SourceRuntimeConfig
 from job_harness.types import (
     FailureMode,
+    SearchCriterion,
     SearchRequest,
     SourceState,
-    Transport,
 )
 
 # ---------------------------------------------------------------------------
@@ -55,8 +56,6 @@ def _factory(browser: FakeBrowser):
 def _request(**overrides):
     overrides.setdefault("query", "QA")
     overrides.setdefault("sources", ("hh_ru",))
-    overrides.setdefault("source_timeout_ms", 5000)
-    overrides.setdefault("total_timeout_ms", 8000)
     return SearchRequest(**overrides)
 
 
@@ -180,6 +179,15 @@ class HHRuParseTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIn("experience=between1And3", url)
 
+    async def test_search_url_uses_salary_and_freshness_params(self):
+        scraper = HHRuScraper()
+        url = scraper._build_search_url(
+            SearchParams(query="QA", salary_from=200000, freshness_days=7)
+        )
+        self.assertIn("salary=200000", url)
+        self.assertIn("only_with_salary=true", url)
+        self.assertIn("period=7", url)
+
     async def test_search_url_does_not_guess_experience_param_for_multi_level(self):
         scraper = HHRuScraper()
         url = scraper._build_search_url(
@@ -218,6 +226,8 @@ class HHFamilySubclassesTest(unittest.TestCase):
             self.assertEqual(cls.countries, (country,))
             self.assertIn(host, cls.BASE_URL)
             self.assertTrue(cls.declares_full_capabilities())
+            self.assertIn(SearchCriterion.SALARY_FROM, cls.server_criteria)
+            self.assertIn(SearchCriterion.FRESHNESS, cls.server_criteria)
 
 
 # ---------------------------------------------------------------------------
@@ -251,7 +261,7 @@ class EngineBrowserDispatchTest(unittest.IsolatedAsyncioTestCase):
             status = result.summary["source_statuses"][0]
             self.assertEqual(status["source"], "hh_ru")
             self.assertEqual(status["state"], SourceState.OK.value)
-            self.assertEqual(status["transport"], Transport.BROWSER.value)
+            self.assertEqual(status["group"], "aggregator")
         engine.http_runner.shutdown()
         await pool.shutdown()
 
@@ -275,7 +285,7 @@ class EngineBrowserDispatchTest(unittest.IsolatedAsyncioTestCase):
             status = result.summary["source_statuses"][0]
             self.assertEqual(status["state"], SourceState.BLOCKED.value)
             self.assertEqual(status["failure_mode"], FailureMode.ANTI_BOT_PAGE.value)
-            self.assertEqual(status["anti_bot_signal"], "Доступ ограничен")
+            self.assertIn("Доступ ограничен", status["error"])
         engine.http_runner.shutdown()
         await pool.shutdown()
 
@@ -290,11 +300,17 @@ class EngineBrowserDispatchTest(unittest.IsolatedAsyncioTestCase):
 
         browser = FakeBrowser(context_factory=context_factory)
         pool = BrowserPool(max_contexts=1, browser_factory=_factory(browser))
-        engine = SearchEngine(browser_pool=pool)
+        engine = SearchEngine(
+            browser_pool=pool,
+            runtime_config=SourceRuntimeConfig(
+                source_attempt_timeout_ms=200,
+                source_max_attempts=1,
+            ),
+        )
         with _RegistryContext({"hh_ru": HHRuScraper}), tempfile.TemporaryDirectory() as d:
             with RunJournalWriter(Path(d)) as journal:
                 result = await engine.execute(
-                    _request(country="RU", source_timeout_ms=200, total_timeout_ms=2000),
+                    _request(country="RU"),
                     journal=journal, run_id="r-x",
                 )
             status = result.summary["source_statuses"][0]

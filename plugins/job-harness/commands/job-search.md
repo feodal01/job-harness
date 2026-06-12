@@ -15,14 +15,16 @@ You are running a job search. Follow this workflow:
 
 4. **Search** — Run the MCP search loop:
 
-   1. `search_start(...)` with brief parameters. Pass `country` when the brief has target CIS countries so `sources=all` can select relevant sources. Use `cache=true`.
-   2. Poll `search_status(run_id)` until the run finishes or has enough listings. Check `retryable_sources` for failed sources.
+   1. Call `list_sources` when choosing sources. Use exact source ids with `sources` and semantic groups with `source_groups` (`aggregator`, `company_career`, `directory`, `other`). The response also lists server-supported criteria and per-source raw limits.
+   2. `search_start(...)` with search criteria (`query`, `country`, `remote_only`, `experience_levels`, `location`, `salary_from`, `freshness_days`), source selectors (`sources`, `source_groups`), and presentation `max_results`. Pass `country` when the brief has target CIS countries so `sources=all` can select relevant sources.
+   3. Poll `search_status(run_id)` until the run finishes or has enough listings. Check `retryable_sources` for failed sources.
       - Retry in the same run: `search_retry(run_id, sources="hh_ru,career:vk")` — exact source ids only; ok sources are skipped automatically.
       - Full re-search: new `search_start` (new `run_id`).
-   3. `search_results(run_id)` (default `format=file`) → returns `path` to the full on-disk export (`results.json`).
-   4. **Context safety:** `results.json` can be very large and will bloat the context if read whole. Do not paste or load the entire file into chat. Prefer `search_refine` first, then `search_results(..., format="inline", limit=N)` for previews; read the file in targeted slices (counts, top-N fields) when you need more.
-   5. Optional preview: `search_results(run_id, format="inline", limit=10)` — max 20 per call.
-   6. Optional re-filter: `search_refine(run_id, ...)` without re-scraping.
+   4. `raw_search_path` from `search_start`/`search_status` points to `raw_search.jsonl`: unfiltered, undeduped, unranked source evidence, not capped by `max_results`.
+   5. `search_results(run_id)` (default `format=file`) → returns `path` to the downstream on-disk export (`results.json`). This export applies grade assessment, filters, dedupe, ordering, and `max_results`.
+   6. **Context safety:** `results.json` can be very large and will bloat the context if read whole. Do not paste or load the entire file into chat. Prefer `search_refine` first, then `search_results(..., format="inline", limit=N)` for previews; read the file in targeted slices (counts, top-N fields) when you need more.
+   7. Optional preview: `search_results(run_id, format="inline", limit=10)` — max 20 per call.
+   8. Optional re-filter: `search_refine(run_id, ...)` without re-scraping.
 
    If aggregator results are sparse or the user wants employer-first discovery, use `search_company_jobs` or `search_start` with `sources=company_directory`. Use `company-live-search` CLI only for small targeted live checks.
 
@@ -41,6 +43,8 @@ You are running a job search. Follow this workflow:
 ## Key principles
 
 - Search across all available sources relevant to the target country. Always try to find the direct employer URL, not only the aggregator listing.
+- Treat `max_results` as a presentation limit only. Raw scraping depth is controlled by each source's `source_limit`.
+- Freshness and salary lower-bound are server-only search criteria. Unsupported sources still keep their raw listings and report the unsupported criterion in source summaries.
 - Use the bundled company directory as an employer-first expansion source. Treat `search_company_jobs` results as career entrypoints unless a specific vacancy URL was found separately. Treat `search_company_careers` results as live vacancy-link matches from checked company pages.
 - For a full-scale search across everything currently available, run all three phases:
   1. Aggregators: `search_start` with `sources=all`, `cache=true`, and `country` when the brief has target countries; poll `search_status`; export via `search_results(run_id)`.

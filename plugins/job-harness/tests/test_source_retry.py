@@ -16,9 +16,9 @@ from job_harness.source_retry import (
 from job_harness.types import (
     FailureMode,
     RunState,
+    SourceGroup,
     SourceState,
     SourceStatus,
-    Transport,
 )
 
 
@@ -44,11 +44,12 @@ def _status(source: str, state: SourceState, *, failure_mode: FailureMode | None
         failure_mode = FailureMode.PARSE_ERROR
     return SourceStatus(
         source=source,
-        display_name=source,
-        transport=Transport.HTTP,
+        group=SourceGroup.AGGREGATOR,
         state=state,
         failure_mode=failure_mode,
-        duration_ms=10,
+        source_limit=50,
+        deadline_ms=30_000,
+        elapsed_ms=10,
     )
 
 

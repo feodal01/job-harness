@@ -15,16 +15,19 @@ from pathlib import Path
 from typing import ClassVar
 
 from job_harness.base import BaseBrowserScraper, BaseScraper
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.registry import _SCRAPERS, register_scraper
 from job_harness.run_journal import RunJournalReader, RunJournalWriter
 from job_harness.search_engine import SearchEngine
+from job_harness.source_runtime import SourceRuntimeConfig
 from job_harness.types import (
     FailureMode,
     FilterSupport,
     RunState,
     ScraperCapabilities,
+    SearchCriterion,
     SearchRequest,
+    SourceGroup,
     SourceState,
 )
 
@@ -56,16 +59,26 @@ class _OkScraper(BaseScraper):
     requires_browser = False
     detail_requires_browser = False
     countries: tuple[str, ...] = ()
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 3
+    server_criteria = frozenset(
+        {
+            SearchCriterion.QUERY,
+            SearchCriterion.COUNTRY,
+            SearchCriterion.REMOTE_ONLY,
+            SearchCriterion.EXPERIENCE_LEVELS,
+        }
+    )
     capabilities: ClassVar[ScraperCapabilities] = _capabilities()
 
     @classmethod
     def supports_country(cls, country):
         return True
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         return [
-            JobListing(title="QA", url=f"https://x/{self.name}/1", company="Acme", source=self.name),
-            JobListing(title="QA Senior", url=f"https://x/{self.name}/2", company="Acme", source=self.name, remote=True),
+            RawListing(title="QA", url=f"https://x/{self.name}/1", company="Acme", source=self.name),
+            RawListing(title="QA Senior", url=f"https://x/{self.name}/2", company="Acme", source=self.name, remote=True),
         ]
 
     def fetch_detail(self, listing):
@@ -75,10 +88,10 @@ class _OkScraper(BaseScraper):
 class _SlowScraper(_OkScraper):
     SLEEP_S: ClassVar[float] = 1.0
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         time.sleep(self.SLEEP_S)
         # Vary title+company by source so dedupe does not collapse them.
-        return [JobListing(
+        return [RawListing(
             title=f"QA-{self.name}",
             url=f"https://x/{self.name}/1",
             company=f"Acme-{self.name}",
@@ -106,10 +119,10 @@ class _PartialBrowserScraper(BaseBrowserScraper):
     def supports_country(cls, country):
         return True
 
-    async def search_with_page(self, page, params: SearchParams) -> list[JobListing]:
+    async def search_with_page(self, page, params: SearchParams) -> list[RawListing]:
         self.mark_timed_out()
         return [
-            JobListing(
+            RawListing(
                 title="QA from partial browser",
                 url="https://x/browser/1",
                 company="Browser Co",
@@ -119,10 +132,24 @@ class _PartialBrowserScraper(BaseBrowserScraper):
 
 
 class _UnsupportedRemoteScraper(_OkScraper):
+    server_criteria = frozenset(
+        {
+            SearchCriterion.QUERY,
+            SearchCriterion.COUNTRY,
+            SearchCriterion.EXPERIENCE_LEVELS,
+        }
+    )
     capabilities: ClassVar[ScraperCapabilities] = _capabilities(remote_only=FilterSupport.UNSUPPORTED)
 
 
 class _UnsupportedExperienceScraper(_OkScraper):
+    server_criteria = frozenset(
+        {
+            SearchCriterion.QUERY,
+            SearchCriterion.COUNTRY,
+            SearchCriterion.REMOTE_ONLY,
+        }
+    )
     capabilities: ClassVar[ScraperCapabilities] = _capabilities(
         experience=FilterSupport.UNSUPPORTED
     )
@@ -164,8 +191,6 @@ class _RegistryContext:
 
 def _request(**overrides) -> SearchRequest:
     overrides.setdefault("query", "QA")
-    overrides.setdefault("source_timeout_ms", 5000)
-    overrides.setdefault("total_timeout_ms", 10000)
     return SearchRequest(**overrides)
 
 
@@ -185,7 +210,12 @@ class _InlineBrowserPool:
 
 class ValidationTest(unittest.IsolatedAsyncioTestCase):
     async def test_empty_query_rejected(self):
-        engine = SearchEngine()
+        engine = SearchEngine(
+            runtime_config=SourceRuntimeConfig(
+                source_attempt_timeout_ms=200,
+                source_max_attempts=1,
+            )
+        )
         with tempfile.TemporaryDirectory() as d:
             with RunJournalWriter(Path(d)) as journal, self.assertRaises(ValueError):
                 await engine.execute(_request(query="   "), journal=journal, run_id="r-x")
@@ -248,14 +278,19 @@ class ExecuteRetryTest(unittest.IsolatedAsyncioTestCase):
         class _FailOnceScraper(_OkScraper):
             _calls: ClassVar[dict[str, int]] = {}
 
-            def search(self, params: SearchParams) -> list[JobListing]:
+            def search(self, params: SearchParams) -> list[RawListing]:
                 calls = type(self)._calls.get(self.name, 0)
                 type(self)._calls[self.name] = calls + 1
                 if calls == 0:
                     raise RuntimeError("first attempt failed")
                 return super().search(params)
 
-        engine = SearchEngine()
+        engine = SearchEngine(
+            runtime_config=SourceRuntimeConfig(
+                source_attempt_timeout_ms=200,
+                source_max_attempts=1,
+            )
+        )
         with _RegistryContext({"good": _OkScraper, "flaky": _FailOnceScraper}), tempfile.TemporaryDirectory() as d:
             run_dir = Path(d)
             with RunJournalWriter(run_dir) as journal:
@@ -299,13 +334,18 @@ class FailureModeTest(unittest.IsolatedAsyncioTestCase):
     async def test_source_timeout_marks_http_timeout(self):
         class Slow(_SlowScraper):
             SLEEP_S = 2.0
-        engine = SearchEngine()
+        engine = SearchEngine(
+            runtime_config=SourceRuntimeConfig(
+                source_attempt_timeout_ms=200,
+                source_max_attempts=1,
+            )
+        )
         with _RegistryContext({"slow": Slow}), tempfile.TemporaryDirectory() as d:
             t0 = time.monotonic()
             with RunJournalWriter(Path(d)) as journal:
                 result = await _run(
                     engine,
-                    _request(sources=("slow",), source_timeout_ms=200, total_timeout_ms=2000),
+                    _request(sources=("slow",)),
                     journal,
                 )
             elapsed = time.monotonic() - t0
@@ -318,12 +358,18 @@ class FailureModeTest(unittest.IsolatedAsyncioTestCase):
     async def test_total_timeout_cancels_in_flight_sources(self):
         class Slow(_SlowScraper):
             SLEEP_S = 5.0
-        engine = SearchEngine()
+        engine = SearchEngine(
+            runtime_config=SourceRuntimeConfig(
+                source_attempt_timeout_ms=10_000,
+                total_run_timeout_ms=200,
+                source_max_attempts=1,
+            )
+        )
         with _RegistryContext({"a": Slow, "b": Slow}), tempfile.TemporaryDirectory() as d:
             with RunJournalWriter(Path(d)) as journal:
                 result = await _run(
                     engine,
-                    _request(sources=("a", "b"), source_timeout_ms=10_000, total_timeout_ms=200),
+                    _request(sources=("a", "b")),
                     journal,
                 )
             statuses = {s["source"]: s for s in result.summary["source_statuses"]}
@@ -343,7 +389,7 @@ class FailureModeTest(unittest.IsolatedAsyncioTestCase):
             status = result.summary["source_statuses"][0]
             self.assertEqual(status["state"], SourceState.PARTIAL.value)
             self.assertEqual(status["failure_mode"], FailureMode.SLOW_PAGINATION.value)
-            self.assertEqual(status["raw_count"], 1)
+            self.assertEqual(status["listings_written"], 1)
         engine.http_runner.shutdown()
 
 
@@ -359,8 +405,8 @@ class CountryRoutingTest(unittest.IsolatedAsyncioTestCase):
         engine.http_runner.shutdown()
 
 
-class StrictFlagPolicyTest(unittest.IsolatedAsyncioTestCase):
-    async def test_strict_flags_drops_unsupported_scrapers(self):
+class CriteriaSummaryTest(unittest.IsolatedAsyncioTestCase):
+    async def test_unsupported_remote_is_collected_and_reported(self):
         engine = SearchEngine()
         with _RegistryContext({"ok": _OkScraper, "noremote": _UnsupportedRemoteScraper}), tempfile.TemporaryDirectory() as d:
             with RunJournalWriter(Path(d)) as journal:
@@ -371,35 +417,21 @@ class StrictFlagPolicyTest(unittest.IsolatedAsyncioTestCase):
                 )
             statuses = {s["source"]: s for s in result.summary["source_statuses"]}
             self.assertEqual(statuses["ok"]["state"], SourceState.OK.value)
-            self.assertEqual(statuses["noremote"]["state"], SourceState.SKIPPED_UNSUPPORTED_FLAG.value)
-            self.assertEqual(statuses["noremote"]["failure_mode"], FailureMode.UNSUPPORTED_FLAG.value)
-        engine.http_runner.shutdown()
-
-    async def test_lenient_flags_keeps_unsupported_scrapers(self):
-        engine = SearchEngine()
-        with _RegistryContext({"noremote": _UnsupportedRemoteScraper}), tempfile.TemporaryDirectory() as d:
-            with RunJournalWriter(Path(d)) as journal:
-                result = await _run(
-                    engine,
-                    _request(sources=("noremote",), remote_only=True, strict_flags=False),
-                    journal,
-                )
-            statuses = {s["source"]: s for s in result.summary["source_statuses"]}
             self.assertEqual(statuses["noremote"]["state"], SourceState.OK.value)
+            self.assertIn(
+                SearchCriterion.REMOTE_ONLY.value,
+                statuses["noremote"]["unsupported_requested_criteria"],
+            )
         engine.http_runner.shutdown()
 
-    async def test_flag_enforcement_summary_built(self):
+    async def test_server_criteria_used_summary_built(self):
         engine = SearchEngine()
         with _RegistryContext({"ok": _OkScraper}), tempfile.TemporaryDirectory() as d:
             with RunJournalWriter(Path(d)) as journal:
                 result = await _run(engine, _request(sources=("ok",), remote_only=True), journal)
-            block = result.summary["flag_enforcement"]
-            self.assertEqual(block["remote_only"]["policy"], "strict")
-            self.assertEqual(
-                block["remote_only"]["by_source"]["ok"]["support"],
-                FilterSupport.SERVER.value,
-            )
-            self.assertTrue(block["remote_only"]["by_source"]["ok"]["applied"])
+            status = result.summary["source_statuses"][0]
+            self.assertIn(SearchCriterion.REMOTE_ONLY.value, status["server_criteria_used"])
+            self.assertEqual([], status["unsupported_requested_criteria"])
         engine.http_runner.shutdown()
 
     async def test_experience_filter_does_not_skip_unsupported_sources(self):
@@ -413,13 +445,9 @@ class StrictFlagPolicyTest(unittest.IsolatedAsyncioTestCase):
                 )
             statuses = {s["source"]: s for s in result.summary["source_statuses"]}
             self.assertEqual(statuses["src"]["state"], SourceState.OK.value)
-            self.assertEqual(
-                result.summary["flag_enforcement"]["experience"]["by_source"]["src"],
-                {
-                    "support": FilterSupport.UNSUPPORTED.value,
-                    "applied": True,
-                    "applied_by": "grade_engine",
-                },
+            self.assertIn(
+                SearchCriterion.EXPERIENCE_LEVELS.value,
+                statuses["src"]["unsupported_requested_criteria"],
             )
         engine.http_runner.shutdown()
 
@@ -467,9 +495,12 @@ class DedupeAndFilterTest(unittest.IsolatedAsyncioTestCase):
                     _request(sources=("a", "b"), max_results=1),
                     journal,
                 )
+            snap = RunJournalReader(Path(d)).snapshot()
             self.assertEqual(len(result.listings), 1)
+            self.assertEqual(snap.listings_count, 4)
             self.assertEqual(result.summary["max_results"]["requested"], 1)
             self.assertEqual(result.summary["max_results"]["returned"], 1)
+            self.assertFalse(result.summary["raw_search"]["global_truncation"])
         engine.http_runner.shutdown()
 
     async def test_exact_experience_filter_keeps_middle_and_unknown_only(self):
@@ -478,21 +509,21 @@ class DedupeAndFilterTest(unittest.IsolatedAsyncioTestCase):
                 experience=FilterSupport.UNSUPPORTED
             )
 
-            def search(self, params: SearchParams) -> list[JobListing]:
+            def search(self, params: SearchParams) -> list[RawListing]:
                 return [
-                    JobListing(
+                    RawListing(
                         title="Middle QA",
                         url="https://x/middle",
                         company="Acme",
                         source=self.name,
                     ),
-                    JobListing(
+                    RawListing(
                         title="Senior QA",
                         url="https://x/senior",
                         company="Acme",
                         source=self.name,
                     ),
-                    JobListing(
+                    RawListing(
                         title="QA Engineer",
                         url="https://x/unknown",
                         company="Acme",
@@ -502,12 +533,16 @@ class DedupeAndFilterTest(unittest.IsolatedAsyncioTestCase):
 
         engine = SearchEngine()
         with _RegistryContext({"src": GradeScraper}), tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d)
             with RunJournalWriter(Path(d)) as journal:
                 result = await _run(
                     engine,
                     _request(sources=("src",), experience_levels=("middle",)),
                     journal,
                 )
+            raw_lines = (run_dir / "raw_search.jsonl").read_text(encoding="utf-8").splitlines()
+            raw_records = [json.loads(line) for line in raw_lines]
+            self.assertNotIn("experience_levels", raw_records[1]["listing"])
             self.assertEqual(
                 ["Middle QA", "QA Engineer"],
                 [listing.title for listing in result.listings],
@@ -531,10 +566,12 @@ class CancellationTest(unittest.IsolatedAsyncioTestCase):
     async def test_cancel_writes_final_journal_state(self):
         class Slow(_SlowScraper):
             SLEEP_S = 5.0
-        engine = SearchEngine()
+        engine = SearchEngine(
+            runtime_config=SourceRuntimeConfig(total_run_timeout_ms=10_000)
+        )
         with _RegistryContext({"slow": Slow}), tempfile.TemporaryDirectory() as d:
             journal = RunJournalWriter(Path(d))
-            task = asyncio.create_task(_run(engine, _request(sources=("slow",), total_timeout_ms=10_000), journal))
+            task = asyncio.create_task(_run(engine, _request(sources=("slow",)), journal))
             # Let it start.
             await asyncio.sleep(0.05)
             task.cancel()

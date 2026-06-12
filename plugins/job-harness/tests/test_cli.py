@@ -17,7 +17,12 @@ class CliContractTest(unittest.TestCase):
 
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("--experience-levels", result.stdout)
+        self.assertIn("--source-groups", result.stdout)
+        self.assertIn("--salary-from", result.stdout)
+        self.assertIn("--freshness-days", result.stdout)
         self.assertNotIn("--experience ", result.stdout)
+        self.assertNotIn("--source-timeout-ms", result.stdout)
+        self.assertNotIn("--total-timeout-ms", result.stdout)
 
 
 if __name__ == "__main__":

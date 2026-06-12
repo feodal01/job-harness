@@ -13,9 +13,9 @@ import json
 from typing import ClassVar
 
 from job_harness.base import BaseBrowserScraper
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.registry import register_scraper
-from job_harness.types import FilterSupport, ScraperCapabilities
+from job_harness.types import FilterSupport, ScraperCapabilities, SearchCriterion, SourceGroup
 
 # VK's specialty IDs for common queries.
 _SPECIALTY_MAP = {
@@ -36,6 +36,15 @@ class VKCareerScraper(BaseBrowserScraper):
     display_name = "ВКонтакте (career)"
     BASE_URL = "https://team.vk.company/vacancy/"
     countries = ("RU",)
+    source_group = SourceGroup.COMPANY_CAREER
+    source_limit = 100
+    server_criteria = frozenset(
+        {
+            SearchCriterion.QUERY,
+            SearchCriterion.COUNTRY,
+            SearchCriterion.REMOTE_ONLY,
+        }
+    )
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.SERVER,            # remote=true URL param
         "country": FilterSupport.CLIENT,                # RU-only
@@ -45,7 +54,7 @@ class VKCareerScraper(BaseBrowserScraper):
         "query_match": FilterSupport.SERVER,            # specialty=
     }
 
-    async def search_with_page(self, page, params: SearchParams) -> list[JobListing]:
+    async def search_with_page(self, page, params: SearchParams) -> list[RawListing]:
         url = self._build_url(params)
         await page.goto(url, wait_until="domcontentloaded")
         await page.wait_for_timeout(1000)
@@ -55,7 +64,7 @@ class VKCareerScraper(BaseBrowserScraper):
         if not vacancies:
             vacancies = await self._read_dom(page)
 
-        listings: list[JobListing] = []
+        listings: list[RawListing] = []
         for v in vacancies[: self.max_results]:
             listings.append(self._to_listing(v))
         return listings
@@ -114,7 +123,7 @@ class VKCareerScraper(BaseBrowserScraper):
                 continue
         return out
 
-    def _to_listing(self, v: dict) -> JobListing:
+    def _to_listing(self, v: dict) -> RawListing:
         if "href" in v:
             href = v["href"]
             url = (
@@ -122,7 +131,7 @@ class VKCareerScraper(BaseBrowserScraper):
                 if href.startswith("/")
                 else href
             )
-            return JobListing(
+            return RawListing(
                 title=v.get("title", ""),
                 url=url,
                 company=self.display_name,
@@ -143,13 +152,13 @@ class VKCareerScraper(BaseBrowserScraper):
         if work_format:
             location = f"{town}, {work_format}"
 
-        return JobListing(
+        return RawListing(
             title=v.get("title", ""),
             url=url,
             company=group or self.display_name,
             country="RU",
             location=location,
             remote=remote,
-            skills=tags,
+            skills=tuple(tags),
             source=self.name,
         )

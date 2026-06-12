@@ -295,6 +295,23 @@ class CompanyCareerBatchTest(unittest.TestCase):
         self.assertEqual("https://www.linkedin.com/company/alpha/jobs/", record["alternate_url"])
         self.assertGreaterEqual(len(record["attempt_errors"]), 3)
 
+    def test_linkedin_fallback_budget_exhaustion_is_access_issue(self) -> None:
+        company = CompanyProfile(
+            name="Alpha",
+            careers_url="https://alpha.test/careers",
+            linkedin_jobs_url="https://www.linkedin.com/company/alpha/jobs/",
+        )
+
+        with patch(
+            "job_harness.company_career_batch._find_matching_links_http",
+            side_effect=TimeoutError("alternate_jobs_http budget exhausted after 15000ms"),
+        ):
+            record = asyncio.run(_check_company(_AsyncContext(_SlowEvaluatePage()), company, ["qa"], timeout_ms=10))
+
+        self.assertEqual("access_issue", record["status"])
+        self.assertEqual("network_restricted", record["reason"])
+        self.assertEqual("https://www.linkedin.com/company/alpha/jobs/", record["alternate_url"])
+
     def test_check_company_marks_known_no_open_positions_without_network(self) -> None:
         company = CompanyProfile(
             name="Alpha",

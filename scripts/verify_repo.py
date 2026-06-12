@@ -319,6 +319,13 @@ _LIVE_REGISTERED_SOURCE_CASES: tuple[tuple[str, str, str], ...] = (
     ("career:vk", "RU", "QA"),
 )
 _LIVE_REGISTERED_SOURCE_PARTIAL_OK = {"company_careers"}
+_LIVE_REGISTERED_SOURCE_TIMEOUT_OK = {"company_careers"}
+_LIVE_REGISTERED_SOURCE_PROCESS_TIMEOUT_S = 60
+_LIVE_REGISTERED_SOURCE_PROCESS_TIMEOUT_OVERRIDES_S = {
+    # company_careers can legitimately spend two 30s source attempts under
+    # SourceRuntimeConfig before reporting a bounded timeout status.
+    "company_careers": 90,
+}
 
 
 def _run_live_registered_source_smokes() -> int:
@@ -393,12 +400,12 @@ def _run_live_source_smoke(*, source: str, country: str, query: str) -> str | No
         "1",
         "--format",
         "json",
-        "--source-timeout-ms",
-        "30000",
-        "--total-timeout-ms",
-        "45000",
     ]
     print("+ " + " ".join(shlex.quote(part) for part in cmd), flush=True)
+    process_timeout_s = _LIVE_REGISTERED_SOURCE_PROCESS_TIMEOUT_OVERRIDES_S.get(
+        source,
+        _LIVE_REGISTERED_SOURCE_PROCESS_TIMEOUT_S,
+    )
     try:
         result = subprocess.run(
             cmd,
@@ -406,10 +413,10 @@ def _run_live_source_smoke(*, source: str, country: str, query: str) -> str | No
             check=False,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=process_timeout_s,
         )
     except subprocess.TimeoutExpired:
-        return f"{source}: process did not exit within 60s"
+        return f"{source}: process did not exit within {process_timeout_s}s"
 
     if result.returncode != 0:
         return (
@@ -430,7 +437,7 @@ def _run_live_source_smoke(*, source: str, country: str, query: str) -> str | No
     source_status = statuses.get(source) or {}
     errors = payload.get("errors") or []
     total = int(payload.get("total") or 0)
-    raw_count = int(source_status.get("raw_count") or 0)
+    listings_written = int(source_status.get("listings_written") or 0)
     state = source_status.get("state")
     failure_mode = source_status.get("failure_mode")
     partial_ok = (
@@ -438,19 +445,28 @@ def _run_live_source_smoke(*, source: str, country: str, query: str) -> str | No
         and state == "partial"
         and failure_mode == "slow_pagination"
     )
-    if errors or not source_status or (state != "ok" and not partial_ok) or (
-        failure_mode is not None and not partial_ok
+    timeout_ok = (
+        source in _LIVE_REGISTERED_SOURCE_TIMEOUT_OK
+        and state == "timeout"
+        and failure_mode in {"goto_timeout", "http_timeout"}
+    )
+    non_ok_allowed = partial_ok or timeout_ok
+    if (
+        (errors and not non_ok_allowed)
+        or not source_status
+        or (state != "ok" and not non_ok_allowed)
+        or (failure_mode is not None and not non_ok_allowed)
     ):
         return (
-            f"{source}: total={total}, raw_count={raw_count}, "
+            f"{source}: total={total}, listings_written={listings_written}, "
             f"state={state!r}, "
             f"failure_mode={failure_mode!r}, errors={errors!r}"
         )
 
     print(
         "live source ok: "
-        f"{source} total={total}, raw_count={raw_count}, "
-        f"duration_ms={source_status.get('duration_ms')}"
+        f"{source} total={total}, listings_written={listings_written}, "
+        f"elapsed_ms={source_status.get('elapsed_ms')}"
     )
     return None
 

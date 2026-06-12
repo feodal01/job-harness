@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from job_harness.models import JobListing
+from job_harness.models import RawListing
 from job_harness.run_journal import (
     EVENT_LISTING,
     EVENT_RUN_STARTED,
@@ -26,12 +26,12 @@ from job_harness.run_journal import (
 from job_harness.types import (
     FAILURE_MODE_TO_STATE,
     FailureMode,
-    FilterSupport,
     RunState,
+    SearchCriterion,
     SearchRequest,
+    SourceGroup,
     SourceState,
     SourceStatus,
-    Transport,
 )
 
 
@@ -43,29 +43,28 @@ def _make_request(**overrides):
 def _ok_status(source="hh_ru", raw_count=12):
     return SourceStatus(
         source=source,
-        display_name=source,
-        transport=Transport.BROWSER,
+        group=SourceGroup.AGGREGATOR,
         state=SourceState.OK,
         failure_mode=None,
-        duration_ms=8234,
-        raw_count=raw_count,
-        after_filter_count=raw_count,
-        after_dedupe_count=raw_count,
-        flag_enforcement={"remote_only": FilterSupport.SERVER},
+        source_limit=100,
+        deadline_ms=30_000,
+        elapsed_ms=8234,
+        supported_server_criteria=(SearchCriterion.QUERY,),
+        server_criteria_used=(SearchCriterion.QUERY,),
+        listings_written=raw_count,
     )
 
 
 def _blocked_status(source="hh_ru"):
     return SourceStatus(
         source=source,
-        display_name=source,
-        transport=Transport.BROWSER,
+        group=SourceGroup.AGGREGATOR,
         state=SourceState.BLOCKED,
         failure_mode=FailureMode.ANTI_BOT_PAGE,
-        duration_ms=2000,
-        anti_bot_signal="Доступ ограничен",
-        error_class="AntiBotBlocked",
-        error_message="anti-bot interstitial",
+        source_limit=100,
+        deadline_ms=30_000,
+        elapsed_ms=2000,
+        error="Доступ ограничен",
     )
 
 
@@ -85,26 +84,26 @@ class SourceStatusInvariantsTest(unittest.TestCase):
     def test_ok_requires_no_failure_mode(self):
         with self.assertRaises(ValueError):
             SourceStatus(
-                source="x", display_name="x", transport=Transport.HTTP,
+                source="x", group=SourceGroup.AGGREGATOR,
                 state=SourceState.OK, failure_mode=FailureMode.PARSE_ERROR,
-                duration_ms=1,
+                source_limit=1, deadline_ms=1,
             )
 
     def test_non_ok_requires_failure_mode(self):
         with self.assertRaises(ValueError):
             SourceStatus(
-                source="x", display_name="x", transport=Transport.HTTP,
+                source="x", group=SourceGroup.AGGREGATOR,
                 state=SourceState.ERROR, failure_mode=None,
-                duration_ms=1,
+                source_limit=1, deadline_ms=1,
             )
 
     def test_failure_mode_state_mismatch_rejected(self):
         # GOTO_TIMEOUT belongs under TIMEOUT, not ERROR.
         with self.assertRaises(ValueError):
             SourceStatus(
-                source="x", display_name="x", transport=Transport.BROWSER,
+                source="x", group=SourceGroup.AGGREGATOR,
                 state=SourceState.ERROR, failure_mode=FailureMode.GOTO_TIMEOUT,
-                duration_ms=1,
+                source_limit=1, deadline_ms=1,
             )
 
     def test_every_failure_mode_resolves_to_a_state(self):
@@ -115,8 +114,8 @@ class SourceStatusInvariantsTest(unittest.TestCase):
         # Every entry in the table must round-trip through SourceStatus.
         for mode, state in FAILURE_MODE_TO_STATE.items():
             status = SourceStatus(
-                source="x", display_name="x", transport=Transport.HTTP,
-                state=state, failure_mode=mode, duration_ms=1,
+                source="x", group=SourceGroup.AGGREGATOR,
+                state=state, failure_mode=mode, source_limit=1, deadline_ms=1,
             )
             self.assertEqual(status.failure_mode, mode)
 
@@ -177,7 +176,7 @@ class WriterBasicsTest(unittest.TestCase):
             w.write_source_status(_blocked_status())
         snap = RunJournalReader(self.run_dir).snapshot()
         self.assertEqual(snap.request["query"], "тестировщик")
-        self.assertEqual(snap.sources["hh_ru"].anti_bot_signal, "Доступ ограничен")
+        self.assertEqual(snap.sources["hh_ru"].error, "Доступ ограничен")
 
     def test_writer_close_is_idempotent(self):
         w = RunJournalWriter(self.run_dir)
@@ -234,12 +233,13 @@ class SummaryAtomicityTest(unittest.TestCase):
             w.write_source_status(
                 SourceStatus(
                     source="habr_career",
-                    display_name="Habr Career",
-                    transport=Transport.HTTP,
+                    group=SourceGroup.AGGREGATOR,
                     state=SourceState.OK,
                     failure_mode=None,
-                    duration_ms=200,
-                    raw_count=3,
+                    source_limit=100,
+                    deadline_ms=30_000,
+                    elapsed_ms=200,
+                    listings_written=3,
                 )
             )
             snap2 = RunJournalReader(run_dir).snapshot()
@@ -311,7 +311,7 @@ class ReaderTest(unittest.TestCase):
             status = snap.sources["hh_ru"]
             self.assertEqual(status.state, SourceState.BLOCKED)
             self.assertEqual(status.failure_mode, FailureMode.ANTI_BOT_PAGE)
-            self.assertEqual(status.anti_bot_signal, "Доступ ограничен")
+            self.assertEqual(status.error, "Доступ ограничен")
 
     def test_iter_run_dirs_orders_by_name(self):
         with tempfile.TemporaryDirectory() as d:
@@ -421,7 +421,7 @@ class RetryReplayTest(unittest.TestCase):
             self.assertEqual(snap2.state, RunState.COMPLETED)
 
     def test_materialize_listings_dedupes(self):
-        listing = JobListing(
+        listing = RawListing(
             title="QA",
             url="https://hh.ru/vacancy/123",
             company="Acme",

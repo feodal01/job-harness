@@ -101,7 +101,7 @@ class VKScraperTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(listings), 1)
         self.assertEqual(listings[0].title, "QA Engineer")
         self.assertTrue(listings[0].remote)
-        self.assertEqual(listings[0].skills, ["python"])
+        self.assertEqual(listings[0].skills, ("python",))
 
     async def test_falls_back_to_dom_when_next_data_missing(self):
         # No __NEXT_DATA__ → evaluate returns None.

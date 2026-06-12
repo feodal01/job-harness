@@ -18,9 +18,16 @@ from pathlib import Path
 from typing import ClassVar
 
 from job_harness.base import BaseScraper
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.registry import _SCRAPERS, register_scraper
-from job_harness.types import FilterSupport, RunState, ScraperCapabilities, SourceState
+from job_harness.types import (
+    FilterSupport,
+    RunState,
+    ScraperCapabilities,
+    SearchCriterion,
+    SourceGroup,
+    SourceState,
+)
 
 # ---------------------------------------------------------------------------
 # MCP server loader (mirrors tests/test_mcp_server.py)
@@ -57,6 +64,11 @@ class _OkScraper(BaseScraper):
     requires_browser = False
     detail_requires_browser = False
     countries: tuple[str, ...] = ()
+    source_group = SourceGroup.AGGREGATOR
+    source_limit = 50
+    server_criteria = frozenset(
+        {SearchCriterion.QUERY, SearchCriterion.EXPERIENCE_LEVELS}
+    )
     capabilities: ClassVar[ScraperCapabilities] = _caps()
 
     @classmethod
@@ -65,8 +77,8 @@ class _OkScraper(BaseScraper):
 
     def search(self, params: SearchParams):
         return [
-            JobListing(title="QA Senior", url=f"https://x/{self.name}/1", company="Acme", source=self.name, remote=True, experience="senior"),
-            JobListing(title="QA Junior", url=f"https://x/{self.name}/2", company="Acme", source=self.name, remote=False, experience="junior"),
+            RawListing(title="QA Senior", url=f"https://x/{self.name}/1", company="Acme", source=self.name, remote=True, experience="senior"),
+            RawListing(title="QA Junior", url=f"https://x/{self.name}/2", company="Acme", source=self.name, remote=False, experience="junior"),
         ]
 
     def fetch_detail(self, listing):
@@ -78,7 +90,7 @@ class _SlowScraper(_OkScraper):
 
     def search(self, params: SearchParams):
         time.sleep(type(self).SLEEP_S)
-        return [JobListing(title=f"slow-{self.name}", url=f"https://x/{self.name}/1", company=f"Co-{self.name}", source=self.name)]
+        return [RawListing(title=f"slow-{self.name}", url=f"https://x/{self.name}/1", company=f"Co-{self.name}", source=self.name)]
 
 
 class _FlakyScraper(_OkScraper):
@@ -89,7 +101,7 @@ class _FlakyScraper(_OkScraper):
             type(self)._fail_first = False
             raise RuntimeError("transient failure")
         return [
-            JobListing(
+            RawListing(
                 title="QA retry",
                 url="https://hh.ru/vacancy/999",
                 company="Acme",
@@ -236,7 +248,7 @@ class CancelTest(unittest.IsolatedAsyncioTestCase):
 
         server = _load_mcp_server()
         with _RegistryContext({"slow": VerySlow}), _RunsRootContext(server):
-            r = await server.search_start(query="QA", sources="slow", total_timeout_ms=10_000)
+            r = await server.search_start(query="QA", sources="slow")
             await asyncio.sleep(0.05)
             ack = await server.search_cancel(r["run_id"])
             self.assertEqual(ack["state"], "cancelling")
@@ -249,7 +261,7 @@ class CancelTest(unittest.IsolatedAsyncioTestCase):
 
         server = _load_mcp_server()
         with _RegistryContext({"slow": VerySlow}), _RunsRootContext(server):
-            r = await server.search_start(query="QA", sources="slow", total_timeout_ms=10_000)
+            r = await server.search_start(query="QA", sources="slow")
             await asyncio.sleep(0.05)
             await server.search_cancel(r["run_id"])
             second = await server.search_cancel(r["run_id"])
@@ -342,7 +354,7 @@ class SearchResultsFormatTest(unittest.IsolatedAsyncioTestCase):
 
         server = _load_mcp_server()
         with _RegistryContext({"slow": VerySlow}), _RunsRootContext(server):
-            r = await server.search_start(query="QA", sources="slow", total_timeout_ms=10_000)
+            r = await server.search_start(query="QA", sources="slow")
             await asyncio.sleep(0.05)
             out = await server.search_results(
                 r["run_id"], format="inline", include_partial=False
@@ -436,7 +448,7 @@ class SearchRetryTest(unittest.IsolatedAsyncioTestCase):
         class _DupOk(_OkScraper):
             def search(self, params: SearchParams):
                 return [
-                    JobListing(
+                    RawListing(
                         title="QA",
                         url="https://hh.ru/vacancy/42",
                         company="Acme",
@@ -450,7 +462,7 @@ class SearchRetryTest(unittest.IsolatedAsyncioTestCase):
                     type(self)._fail_first = False
                     raise RuntimeError("fail")
                 return [
-                    JobListing(
+                    RawListing(
                         title="QA duplicate",
                         url="https://hh.ru/vacancy/42",
                         company="Acme",
@@ -497,8 +509,8 @@ class MaxConcurrentRunsTest(unittest.IsolatedAsyncioTestCase):
                 engine_runner=runner,
                 max_concurrent_runs=1,
             )
-            first = await server.search_start(query="A", sources="slow", total_timeout_ms=10_000)
-            second = await server.search_start(query="B", sources="slow", total_timeout_ms=10_000)
+            first = await server.search_start(query="A", sources="slow")
+            second = await server.search_start(query="B", sources="slow")
             self.assertEqual(second.get("error"), "max_concurrent_runs_reached")
             self.assertEqual(len(second["active_runs"]), 1)
             self.assertEqual(second["active_runs"][0]["run_id"], first["run_id"])

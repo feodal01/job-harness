@@ -29,7 +29,7 @@ from job_harness.formatters import get_formatter
 from job_harness.registry import get_scraper_metadata
 from job_harness.run_journal import RunJournalWriter, generate_run_id
 from job_harness.search_engine import SearchEngine
-from job_harness.types import SearchRequest
+from job_harness.types import SearchRequest, SourceGroup
 
 # ---------------------------------------------------------------------------
 # search — full run end-to-end
@@ -46,6 +46,15 @@ def cmd_search(args: argparse.Namespace) -> None:
         sources_tuple = None
     else:
         sources_tuple = tuple(s.strip() for s in args.sources.split(",") if s.strip())
+    try:
+        source_groups = tuple(
+            SourceGroup(group.strip())
+            for group in (args.source_groups or "").split(",")
+            if group.strip()
+        )
+    except ValueError as exc:
+        print(f"Error: unknown source group: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     try:
         experience_levels = parse_experience_levels_csv(args.experience_levels)
@@ -59,8 +68,11 @@ def cmd_search(args: argparse.Namespace) -> None:
         remote_only=args.remote_only,
         experience_levels=experience_levels,
         location=args.location,
+        salary_from=args.salary_from,
+        freshness_days=args.freshness_days,
         max_results=args.max_results,
         sources=sources_tuple,
+        source_groups=source_groups,
         profile=args.profile,
         detail=args.detail,
         resolve=False,  # resolve phase is not yet implemented in the new engine
@@ -83,8 +95,6 @@ def cmd_search(args: argparse.Namespace) -> None:
         has_salary=args.has_salary,
         strict_flags=not args.lenient_flags,
         dedupe=args.dedupe,
-        source_timeout_ms=args.source_timeout_ms,
-        total_timeout_ms=args.total_timeout_ms,
     )
 
     async def _run() -> None:
@@ -133,8 +143,9 @@ def cmd_list_sources(args: argparse.Namespace) -> None:
     print("Available scrapers:")
     for name, metadata in info.items():
         countries = format_country_codes(metadata["countries"]) or "all"
-        transport = metadata.get("transport", "?")
-        print(f"  {name:18s} {metadata['display_name']:24s} [{countries}] ({transport})")
+        group = metadata["group"]
+        criteria = ",".join(metadata["server_criteria"])
+        print(f"  {name:18s} [{group:14s}] [{countries}] criteria={criteria}")
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +213,7 @@ def main() -> None:
     s = subparsers.add_parser("search", help="Search for job listings via the engine")
     s.add_argument("--query", "-q", required=True, help="Search query")
     s.add_argument("--sources", "-s", default="all", help='Comma-separated scraper names, or "all"')
+    s.add_argument("--source-groups", help="Comma-separated groups: aggregator,company_career,directory,other")
     s.add_argument("--profile", choices=["fast", "full"], help="Source profile")
     s.add_argument("--country", help="CIS country code or name (e.g. RU, KZ, Armenia)")
     s.add_argument("--remote-only", action="store_true", help="Only remote listings")
@@ -210,6 +222,8 @@ def main() -> None:
         help="Comma-separated exact levels: junior,middle,senior",
     )
     s.add_argument("--location", help="Location filter string")
+    s.add_argument("--salary-from", type=int, help="Server-side salary lower bound where supported")
+    s.add_argument("--freshness-days", type=int, help="Server-side posting freshness where supported")
     s.add_argument("--max-results", type=int, default=20)
     s.add_argument("--detail", action="store_true", help="Fetch full details for each listing")
     s.add_argument("--exclude-keywords", help="Comma-separated keywords to exclude")
@@ -218,8 +232,6 @@ def main() -> None:
     s.add_argument("--has-salary", action="store_true", help="Only listings with salary info")
     s.add_argument("--lenient-flags", action="store_true",
                    help="Disable strict-flag policy (include sources whose capability is UNSUPPORTED)")
-    s.add_argument("--source-timeout-ms", type=int, default=30_000)
-    s.add_argument("--total-timeout-ms", type=int, default=90_000)
     s.add_argument("--dedupe", dest="dedupe", action="store_true", default=True)
     s.add_argument("--no-dedupe", dest="dedupe", action="store_false")
     s.add_argument("--cache", action="store_true", help="(reserved) Cache employer career page results")

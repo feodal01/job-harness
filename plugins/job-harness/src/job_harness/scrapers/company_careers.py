@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from job_harness.base import BaseBrowserScraper
 from job_harness.company_directory import CompanyProfile
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import JsonValue, RawListing, SearchParams
 from job_harness.registry import register_scraper
-from job_harness.types import FilterSupport, ScraperCapabilities
+from job_harness.types import FilterSupport, ScraperCapabilities, SearchCriterion, SourceGroup
 
 _SOFT_DEADLINE_BUFFER_MS = 3_000
-_PER_COMPANY_TIMEOUT_MS = 5_000
 _COMPANY_CAREER_WORKERS = 12
 
 
@@ -44,6 +43,11 @@ class CompanyCareersScraper(BaseBrowserScraper):
     display_name = "Known Company Careers"
     requires_browser = True
     detail_requires_browser = True
+    source_group = SourceGroup.COMPANY_CAREER
+    source_limit = 200
+    server_criteria = frozenset(
+        {SearchCriterion.QUERY, SearchCriterion.COUNTRY, SearchCriterion.REMOTE_ONLY}
+    )
 
     capabilities: ClassVar[ScraperCapabilities] = {
         "remote_only": FilterSupport.BEST_EFFORT,
@@ -54,7 +58,7 @@ class CompanyCareersScraper(BaseBrowserScraper):
         "query_match": FilterSupport.BEST_EFFORT,
     }
 
-    async def search_with_page(self, page: Any, params: SearchParams) -> list[JobListing]:
+    async def search_with_page(self, page: Any, params: SearchParams) -> list[RawListing]:
         query_terms = _query_terms(params.query)
         companies = _load_company_targets(
             country=params.location or params.country,
@@ -66,11 +70,13 @@ class CompanyCareersScraper(BaseBrowserScraper):
         for company in companies:
             queue.put_nowait(company)
 
-        listings: list[JobListing] = []
+        listings: list[RawListing] = []
         worker_count = 1 if isinstance(context, _SinglePageContext) else _COMPANY_CAREER_WORKERS
 
         async def worker() -> None:
             while True:
+                if len(listings) >= self.max_results:
+                    return
                 try:
                     company = queue.get_nowait()
                 except asyncio.QueueEmpty:
@@ -92,9 +98,16 @@ class CompanyCareersScraper(BaseBrowserScraper):
             for index in range(min(worker_count, len(companies)))
         ]
         if workers:
-            await asyncio.gather(*workers)
+            try:
+                await asyncio.gather(*workers)
+            except asyncio.CancelledError:
+                for task in workers:
+                    task.cancel()
+                await asyncio.gather(*workers, return_exceptions=True)
+                self.mark_timed_out()
+                raise
 
-        if not queue.empty():
+        if len(listings) < self.max_results and not queue.empty():
             self.mark_timed_out()
 
         return listings
@@ -106,25 +119,22 @@ class CompanyCareersScraper(BaseBrowserScraper):
         company: CompanyProfile,
         query_terms: list[str],
         params: SearchParams,
-        listings: list[JobListing],
+        listings: list[RawListing],
     ) -> None:
         remaining_ms = self.remaining_timeout_ms()
         if remaining_ms <= _SOFT_DEADLINE_BUFFER_MS:
             self.mark_timed_out()
             return
         company_timeout_ms = min(
-            _PER_COMPANY_TIMEOUT_MS,
+            self.company_probe_timeout_ms,
             max(1, remaining_ms - _SOFT_DEADLINE_BUFFER_MS),
         )
         try:
-            record = await asyncio.wait_for(
-                _check_company(
-                    context,
-                    company,
-                    query_terms,
-                    timeout_ms=company_timeout_ms,
-                ),
-                timeout=max(0.001, company_timeout_ms / 1000),
+            record = await _check_company(
+                context,
+                company,
+                query_terms,
+                timeout_ms=company_timeout_ms,
             )
         except TimeoutError:
             self.mark_timed_out()
@@ -139,6 +149,8 @@ class CompanyCareersScraper(BaseBrowserScraper):
             if params.remote_only and hit.get("remote_match") is False:
                 continue
             listings.append(_listing_from_hit(hit, source=self.name, method=record.get("method")))
+            if len(listings) >= self.max_results:
+                break
             remaining_ms = self.remaining_timeout_ms()
             if remaining_ms <= _SOFT_DEADLINE_BUFFER_MS:
                 self.mark_timed_out()
@@ -159,14 +171,14 @@ class _SinglePageContext:
         return self._page
 
 
-def _listing_from_hit(hit: dict[str, Any], *, source: str, method: Any) -> JobListing:
+def _listing_from_hit(hit: dict[str, Any], *, source: str, method: Any) -> RawListing:
     countries = [str(country) for country in hit.get("countries") or [] if country]
     stack = [str(item) for item in hit.get("stack") or [] if item]
     job_types = [str(item) for item in hit.get("job_types") or [] if item]
     matched_text = str(hit.get("matched_text") or "")
     remote_match = hit.get("remote_match")
 
-    return JobListing(
+    return RawListing(
         title=str(hit.get("title") or hit.get("vacancy_url") or ""),
         url=str(hit.get("vacancy_url") or ""),
         company=str(hit.get("company") or ""),
@@ -174,15 +186,15 @@ def _listing_from_hit(hit: dict[str, Any], *, source: str, method: Any) -> JobLi
         remote=remote_match is True,
         location=", ".join(countries) or None,
         description=matched_text or None,
-        skills=stack,
+        skills=tuple(stack),
         source=source,
         raw={
             "careers_url": hit.get("careers_url"),
             "matched_text": matched_text,
             "score": hit.get("score"),
-            "countries": countries,
-            "stack": stack,
-            "job_types": job_types,
+            "countries": cast(list[JsonValue], countries),
+            "stack": cast(list[JsonValue], stack),
+            "job_types": cast(list[JsonValue], job_types),
             "remote_match": remote_match,
             "method": method,
         },

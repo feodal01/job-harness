@@ -7,7 +7,7 @@ import time
 import unittest
 
 from job_harness.http_runner import HttpRunner, SourceOutcome
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.scrapers.http_common import (
     AntiBotBlocked,
     HttpClientError,
@@ -19,9 +19,9 @@ from job_harness.scrapers.http_common import (
 )
 from job_harness.types import (
     FailureMode,
-    FilterSupport,
+    SearchCriterion,
+    SourceGroup,
     SourceState,
-    Transport,
 )
 
 
@@ -36,17 +36,18 @@ class _FakeScraper:
         raises: Exception | None = None,
         sleep_s: float = 0.0,
         timed_out: bool = False,
-        capabilities: dict | None = None,
     ):
         self.name = name
         self.display_name = name
+        self.source_group = SourceGroup.AGGREGATOR
+        self.source_limit = 50
+        self.server_criteria = frozenset({SearchCriterion.QUERY})
         self._ret = return_value or []
         self._raises = raises
         self._sleep_s = sleep_s
         self.timed_out = timed_out
-        self.capabilities = capabilities or {}
 
-    def search(self, params: SearchParams) -> list[JobListing]:
+    def search(self, params: SearchParams) -> list[RawListing]:
         if self._sleep_s:
             time.sleep(self._sleep_s)
         if self._raises is not None:
@@ -55,20 +56,19 @@ class _FakeScraper:
 
 
 class HappyPathTest(unittest.IsolatedAsyncioTestCase):
-    async def test_ok_outcome_reflects_listings_and_capabilities(self):
+    async def test_ok_outcome_reflects_listings_and_source_summary(self):
         runner = HttpRunner()
         s = _FakeScraper(
             "hh_ru",
-            return_value=[JobListing(title="QA", url="https://x", company="Acme")],
-            capabilities={"remote_only": FilterSupport.SERVER},
+            return_value=[RawListing(title="QA", url="https://x", company="Acme")],
         )
         outcome = await runner.run_source(s, SearchParams(query="QA"), deadline_ms=1000)
         self.assertIsInstance(outcome, SourceOutcome)
         self.assertEqual(outcome.status.state, SourceState.OK)
         self.assertIsNone(outcome.status.failure_mode)
-        self.assertEqual(outcome.status.raw_count, 1)
-        self.assertEqual(outcome.status.transport, Transport.HTTP)
-        self.assertEqual(outcome.status.flag_enforcement["remote_only"], FilterSupport.SERVER)
+        self.assertEqual(outcome.status.listings_written, 1)
+        self.assertEqual(outcome.status.group, SourceGroup.AGGREGATOR)
+        self.assertEqual(outcome.status.supported_server_criteria, (SearchCriterion.QUERY,))
 
 
 class ClassificationTest(unittest.IsolatedAsyncioTestCase):
@@ -81,13 +81,13 @@ class ClassificationTest(unittest.IsolatedAsyncioTestCase):
         o = await self._run_with(AntiBotBlocked("blocked", marker="cf-chl"))
         self.assertEqual(o.status.state, SourceState.BLOCKED)
         self.assertEqual(o.status.failure_mode, FailureMode.ANTI_BOT_PAGE)
-        self.assertEqual(o.status.anti_bot_signal, "cf-chl")
+        self.assertIn("cf-chl", o.status.error or "")
 
     async def test_login_required(self):
         o = await self._run_with(LoginRequired("login", final_url="https://x/login"))
         self.assertEqual(o.status.state, SourceState.BLOCKED)
         self.assertEqual(o.status.failure_mode, FailureMode.LOGIN_REDIRECT)
-        self.assertEqual(o.status.anti_bot_signal, "https://x/login")
+        self.assertIn("login", o.status.error or "")
 
     async def test_rate_limited_429(self):
         o = await self._run_with(RateLimited("limited", retry_after_s=60.0, status_code=429))
@@ -143,7 +143,7 @@ class TimeoutTest(unittest.IsolatedAsyncioTestCase):
         runner = HttpRunner()
         s = _FakeScraper(
             "legacy",
-            return_value=[JobListing(title="x", url="https://x", company="Acme")],
+            return_value=[RawListing(title="x", url="https://x", company="Acme")],
             timed_out=True,
         )
         outcome = await runner.run_source(s, SearchParams(query="x"), deadline_ms=2000)
@@ -207,8 +207,10 @@ class CancellationTest(unittest.IsolatedAsyncioTestCase):
         class _SlowScraper:
             name = "slow"
             display_name = "slow"
+            source_group = SourceGroup.AGGREGATOR
+            source_limit = 50
+            server_criteria = frozenset({SearchCriterion.QUERY})
             timed_out = False
-            capabilities: dict = {}
 
             def search(self, params):
                 started_evt.set()

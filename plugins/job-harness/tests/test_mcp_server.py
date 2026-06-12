@@ -32,10 +32,12 @@ class LookupToolsTest(unittest.TestCase):
         # of `import job_harness.scrapers`).
         self.assertIn("hh_ru", meta)
         self.assertIn("career:vk", meta)
-        # Metadata must include the new capability + transport fields.
+        # Metadata is the public source descriptor contract.
         for entry in meta.values():
-            self.assertIn("transport", entry)
-            self.assertIn("capabilities", entry)
+            self.assertEqual(
+                set(entry),
+                {"group", "countries", "server_criteria", "source_limit"},
+            )
 
     def test_search_company_jobs_uses_bundled_directory(self):
         server = _load_mcp_server()

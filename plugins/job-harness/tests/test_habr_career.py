@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from job_harness.models import JobListing, SearchParams
+from job_harness.models import RawListing, SearchParams
 from job_harness.scrapers.habr_career import HabrCareerScraper
 
 LIST_PAGE_1 = """
@@ -79,7 +79,7 @@ class HabrCareerScraperTest(unittest.TestCase):
         self.assertEqual("200 000 ₽", listing.salary)
         self.assertEqual("senior", listing.experience)
         self.assertTrue(listing.remote)
-        self.assertEqual(["TestRail", "SQL"], listing.skills)
+        self.assertEqual(("TestRail", "SQL"), listing.skills)
         self.assertEqual(
             "https://career.habr.com/vacancies?page=2&q=QA&type=all",
             next_url,
@@ -107,6 +107,11 @@ class HabrCareerScraperTest(unittest.TestCase):
         )
         self.assertIn("qualification=middle", url)
 
+    def test_search_url_uses_salary_param(self) -> None:
+        scraper = HabrCareerScraper(context=_ForbiddenBrowserContext())
+        url = scraper._build_search_url(SearchParams(query="QA", salary_from=200000))
+        self.assertIn("salary=200000", url)
+
     def test_search_url_does_not_guess_qualification_for_multi_level(self) -> None:
         scraper = HabrCareerScraper(context=_ForbiddenBrowserContext())
         url = scraper._build_search_url(
@@ -116,7 +121,7 @@ class HabrCareerScraperTest(unittest.TestCase):
 
     def test_fetch_detail_extracts_description_without_playwright(self) -> None:
         scraper = HabrCareerScraper(context=_ForbiddenBrowserContext(), max_results=1)
-        listing = JobListing(
+        listing = RawListing(
             title="Lead QA Engineer",
             url="https://career.habr.com/vacancies/1000166719",
             company="Ninsar",

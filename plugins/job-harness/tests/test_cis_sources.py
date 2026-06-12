@@ -225,6 +225,11 @@ class CisSourcesTest(unittest.TestCase):
         self.assertTrue(listings[0].remote)
         self.assertIsNone(listings[0].experience)
 
+    def test_hirify_search_url_uses_salary_from(self) -> None:
+        scraper = HirifyScraper(context=None, max_results=5)
+        url = scraper._build_search_url(SearchParams(query="QA", salary_from=4000))
+        self.assertIn("salary_from=4000", url)
+
     def test_hirify_reads_nested_company_and_marks_missing_company(self) -> None:
         scraper = HirifyScraper(context=None, max_results=5)
         payload = {
@@ -305,6 +310,12 @@ class CisSourcesTest(unittest.TestCase):
         self.assertTrue(listings[0].remote)
         self.assertEqual("https://hh.ru/vacancy/1", listings[0].raw["external_url"])
 
+    def test_finder_work_search_url_uses_salary_from(self) -> None:
+        scraper = FinderWorkScraper(context=None, max_results=5)
+        with patch("job_harness.scrapers.cis_sources.fetch_json", return_value={"items": []}) as fetch:
+            scraper.search(SearchParams(query="QA", country="RU", salary_from=200000))
+        self.assertIn("salary_from=200000", fetch.call_args.args[0])
+
     def test_it_jobs_uz_maps_api_response(self) -> None:
         scraper = ItJobsUzScraper(context=None, max_results=5)
 
@@ -333,6 +344,11 @@ class CisSourcesTest(unittest.TestCase):
         for query, expected in cases.items():
             with self.subTest(query=query):
                 self.assertIn(expected, scraper._build_search_url(SearchParams(query=query, country="UZ")))
+
+    def test_it_jobs_uz_search_url_uses_salary_min(self) -> None:
+        scraper = ItJobsUzScraper(context=None, max_results=5)
+        url = scraper._build_search_url(SearchParams(query="QA", salary_from=3000))
+        self.assertIn("salaryMin=3000", url)
 
     def test_jobturbo_extracts_json_ld_item_list(self) -> None:
         scraper = JobTurboScraper(context=None, max_results=5)
@@ -366,7 +382,7 @@ class CisSourcesTest(unittest.TestCase):
         self.assertEqual("от 365 000 ₽/мес до налогов", listings[0].salary)
         self.assertIsNone(listings[0].experience)
         self.assertTrue(listings[0].remote)
-        self.assertEqual(["PyTest", "Docker"], listings[0].skills)
+        self.assertEqual(("PyTest", "Docker"), listings[0].skills)
 
     def test_getmatch_matches_non_qa_it_specializations(self) -> None:
         scraper = GetmatchScraper(context=None, max_results=5)

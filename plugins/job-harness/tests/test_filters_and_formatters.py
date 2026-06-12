@@ -73,7 +73,12 @@ class FiltersAndFormattersTest(unittest.TestCase):
 
     def test_json_formatter_preserves_unicode_and_total(self) -> None:
         results = SearchResults(
-            params=SearchParams(query="ручной тестировщик", max_results=1),
+            params=SearchParams(
+                query="ручной тестировщик",
+                salary_from=200000,
+                freshness_days=7,
+                max_results=1,
+            ),
             listings=[_listing(company="Банк России")],
             timestamp="2026-06-02 13:00",
             errors=[],
@@ -82,24 +87,32 @@ class FiltersAndFormattersTest(unittest.TestCase):
         payload = json.loads(JsonFormatter().format(results))
 
         self.assertEqual("ручной тестировщик", payload["params"]["query"])
+        self.assertEqual(200000, payload["params"]["salary_from"])
+        self.assertEqual(7, payload["params"]["freshness_days"])
         self.assertEqual("Банк России", payload["listings"][0]["company"])
         self.assertEqual(1, payload["total"])
         self.assertEqual([], payload["errors"])
 
     def test_csv_formatter_writes_stable_header_and_skill_list(self) -> None:
         results = SearchResults(
-            params=SearchParams(query="QA", max_results=1),
+            params=SearchParams(
+                query="QA",
+                salary_from=200000,
+                freshness_days=14,
+                max_results=1,
+            ),
             listings=[_listing()],
             timestamp="2026-06-02 13:00",
             summary={
                 "source_statuses": [
                     {
                         "source": "habr_career",
-                        "status": "ok",
-                        "raw_count": 1,
-                        "after_filter_count": 1,
-                        "after_dedupe_count": 1,
-                        "duration_ms": 12,
+                        "state": "ok",
+                        "listings_written": 1,
+                        "attempts": 1,
+                        "retries": 0,
+                        "limit_reached": False,
+                        "elapsed_ms": 12,
                     }
                 ]
             },
@@ -133,18 +146,24 @@ class FiltersAndFormattersTest(unittest.TestCase):
 
     def test_markdown_formatter_includes_summary_and_listing(self) -> None:
         results = SearchResults(
-            params=SearchParams(query="QA", max_results=1),
+            params=SearchParams(
+                query="QA",
+                salary_from=200000,
+                freshness_days=14,
+                max_results=1,
+            ),
             listings=[_listing()],
             timestamp="2026-06-02 13:00",
             summary={
                 "source_statuses": [
                     {
                         "source": "habr_career",
-                        "status": "ok",
-                        "raw_count": 1,
-                        "after_filter_count": 1,
-                        "after_dedupe_count": 1,
-                        "duration_ms": 12,
+                        "state": "ok",
+                        "listings_written": 1,
+                        "attempts": 1,
+                        "retries": 0,
+                        "limit_reached": False,
+                        "elapsed_ms": 12,
                     }
                 ]
             },
@@ -153,9 +172,11 @@ class FiltersAndFormattersTest(unittest.TestCase):
         markdown = MarkdownFormatter().format(results)
 
         self.assertIn("# Job Search: QA", markdown)
+        self.assertIn("Salary from: 200000", markdown)
+        self.assertIn("Freshness: 14 days", markdown)
         self.assertIn("### 1. QA Engineer", markdown)
         self.assertIn("## Source Status", markdown)
-        self.assertIn("| habr_career | ok | 1 | 1 | 1 | 12 ms |", markdown)
+        self.assertIn("| habr_career | ok | 1 | 1 | 0 | False | 12 ms |", markdown)
         self.assertIn("## Summary", markdown)
         self.assertIn("| 1 | Example | not specified | 200 000 ₽ | remote | senior (native, high) |", markdown)
 
