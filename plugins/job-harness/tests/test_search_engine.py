@@ -14,13 +14,18 @@ import unittest
 from pathlib import Path
 from typing import ClassVar
 
+from tests._support.fake_browser import FakeBrowser
+
+import job_harness.browser_pool as browser_pool_module
 from job_harness.base import BaseBrowserScraper, BaseScraper
+from job_harness.browser_pool import BlockSignal, BrowserPool
 from job_harness.models import RawListing, SearchParams
 from job_harness.registry import _SCRAPERS, register_scraper
 from job_harness.run_journal import RunJournalReader, RunJournalWriter
 from job_harness.search_engine import SearchEngine
 from job_harness.source_runtime import SourceRuntimeConfig
 from job_harness.types import (
+    BlockReason,
     FailureMode,
     FilterSupport,
     RunState,
@@ -201,6 +206,13 @@ async def _run(engine: SearchEngine, request, journal, run_id="r-test-000000"):
 class _InlineBrowserPool:
     async def run_with_page(self, func, *, timeout_ms=None):
         return await func(object())
+
+
+def _browser_factory(browser: FakeBrowser):
+    async def factory():
+        return browser
+
+    return factory
 
 
 # ---------------------------------------------------------------------------
@@ -391,6 +403,147 @@ class FailureModeTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(status["failure_mode"], FailureMode.SLOW_PAGINATION.value)
             self.assertEqual(status["listings_written"], 1)
         engine.http_runner.shutdown()
+
+
+class BrowserPoolIntegrationTest(unittest.IsolatedAsyncioTestCase):
+    async def test_queued_browser_source_completes_without_pool_acquire_timeout(self):
+        entered: list[str] = []
+        first_two_started = asyncio.Event()
+        release_first_two = asyncio.Event()
+
+        class QueuedBrowserScraper(BaseBrowserScraper):
+            display_name = "Queued Browser"
+            source_group = SourceGroup.AGGREGATOR
+            source_limit = 1
+            server_criteria = frozenset({SearchCriterion.QUERY})
+            capabilities: ClassVar[ScraperCapabilities] = _capabilities()
+
+            @classmethod
+            def supports_country(cls, country):
+                return True
+
+            async def search_with_page(self, page, params: SearchParams) -> list[RawListing]:
+                entered.append(self.name)
+                if len(entered) == 2:
+                    first_two_started.set()
+                if len(entered) <= 2:
+                    await release_first_two.wait()
+                return [
+                    RawListing(
+                        title=f"QA {self.name}",
+                        url=f"https://x/{self.name}",
+                        company=f"Company {self.name}",
+                        source=self.name,
+                    )
+                ]
+
+        class A(QueuedBrowserScraper):
+            pass
+
+        class B(QueuedBrowserScraper):
+            pass
+
+        class C(QueuedBrowserScraper):
+            pass
+
+        pool = BrowserPool(
+            max_contexts=2,
+            acquire_timeout_ms=None,
+            browser_factory=_browser_factory(FakeBrowser()),
+        )
+        engine = SearchEngine(
+            browser_pool=pool,
+            runtime_config=SourceRuntimeConfig(
+                source_attempt_timeout_ms=1000,
+                source_max_attempts=1,
+            ),
+        )
+
+        with _RegistryContext({"a": A, "b": B, "c": C}), tempfile.TemporaryDirectory() as d:
+            with RunJournalWriter(Path(d)) as journal:
+                task = asyncio.create_task(
+                    _run(engine, _request(sources=("a", "b", "c")), journal)
+                )
+                await asyncio.wait_for(first_two_started.wait(), timeout=1.0)
+                await asyncio.sleep(0.05)
+                self.assertEqual(len(entered), 2)
+                release_first_two.set()
+                result = await task
+
+        statuses = {s["source"]: s for s in result.summary["source_statuses"]}
+        self.assertEqual(set(statuses), {"a", "b", "c"})
+        self.assertEqual(len(entered), 3)
+        for status in statuses.values():
+            self.assertEqual(status["state"], SourceState.OK.value)
+            self.assertNotEqual(
+                status.get("failure_mode"),
+                FailureMode.POOL_ACQUIRE_TIMEOUT.value,
+            )
+        await pool.shutdown()
+        engine.http_runner.shutdown()
+
+    async def test_blocked_browser_partial_listing_is_written_to_raw_artifacts(self):
+        class BlockedPartialScraper(BaseBrowserScraper):
+            display_name = "Blocked Partial"
+            source_group = SourceGroup.AGGREGATOR
+            source_limit = 1
+            server_criteria = frozenset({SearchCriterion.QUERY})
+            capabilities: ClassVar[ScraperCapabilities] = _capabilities()
+
+            @classmethod
+            def supports_country(cls, country):
+                return True
+
+            async def search_with_page(self, page, params: SearchParams) -> list[RawListing]:
+                return [
+                    RawListing(
+                        title="QA behind block",
+                        url="https://x/blocked",
+                        company="Blocked Co",
+                        source=self.name,
+                    )
+                ]
+
+        original_probe = browser_pool_module.is_blocked
+
+        async def blocked_probe(page):
+            return BlockSignal(reason=BlockReason.ANTI_BOT_PAGE, signal="test block")
+
+        browser_pool_module.is_blocked = blocked_probe
+        pool = BrowserPool(max_contexts=1, browser_factory=_browser_factory(FakeBrowser()))
+        engine = SearchEngine(
+            browser_pool=pool,
+            runtime_config=SourceRuntimeConfig(
+                source_attempt_timeout_ms=1000,
+                source_max_attempts=1,
+            ),
+        )
+
+        try:
+            with _RegistryContext({"blocked": BlockedPartialScraper}), tempfile.TemporaryDirectory() as d:
+                run_dir = Path(d)
+                with RunJournalWriter(run_dir) as journal:
+                    result = await _run(
+                        engine,
+                        _request(sources=("blocked",)),
+                        journal,
+                    )
+                status = result.summary["source_statuses"][0]
+                raw_lines = (run_dir / "raw_search.jsonl").read_text(
+                    encoding="utf-8"
+                ).splitlines()
+        finally:
+            browser_pool_module.is_blocked = original_probe
+            await pool.shutdown()
+            engine.http_runner.shutdown()
+
+        self.assertEqual(status["state"], SourceState.BLOCKED.value)
+        self.assertEqual(status["failure_mode"], FailureMode.ANTI_BOT_PAGE.value)
+        self.assertEqual(status["listings_written"], 1)
+        self.assertEqual(result.summary["raw_search"]["listings_written"], 1)
+        self.assertEqual(len(raw_lines), 1)
+        raw_record = json.loads(raw_lines[0])
+        self.assertEqual(raw_record["listing"]["title"], "QA behind block")
 
 
 class CountryRoutingTest(unittest.IsolatedAsyncioTestCase):
