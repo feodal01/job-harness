@@ -21,7 +21,7 @@ plugins/job-harness/
 ├── .mcp.json                   # MCP server config
 ├── commands/                   # Claude Code slash commands
 ├── agents/                     # Claude Code agent definitions
-├── skills/                     # Shared agent skills
+├── skills/                     # Runtime skills shipped with the plugin
 ├── scripts/                    # MCP server and artifact initialization helper
 ├── data/
 │   └── company-careers-public.json # bundled registry shipped with releases
@@ -50,10 +50,18 @@ plugins/job-harness/
 
 This repo has one real plugin root: `plugins/job-harness`. Do not duplicate plugin runtime files at the repository root.
 
+Development-only skills may live under `.agents/skills`. They are repository
+maintenance guidance and must not be treated as plugin runtime skills.
+When maintaining scraper code, source contracts, parser fixtures, or scraper
+tests, read `.agents/skills/job-harness-scraper-development/SKILL.md`; its
+references include the scraper testing policy and experience-level source
+policy.
+
 The plugin includes:
 
 - **Commands**: `/job-search`, `/job-resolve`
-- **Skills**: `user-briefing`, `employer-resolution`, `aggregator-scrapers`, `scraper-insights`
+- **Runtime skills**: `user-briefing`, `employer-resolution`
+- **Development skills**: `.agents/skills/job-harness-scraper-development`
 - **Agent**: `job-searcher` — full automated workflow
 - **MCP tools (search surface)**: `search_start`, `search_status`, `search_results`, `search_cancel`, `search_refine`, `list_active_runs`
 - **MCP tools (lookup)**: `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`

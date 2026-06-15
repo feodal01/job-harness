@@ -67,7 +67,7 @@ Format:
 
 **Pattern:** Some platforms detect automation and serve CAPTCHAs or block pages instead of results. The scraper doesn't crash — it just gets empty or wrong content.
 
-**Strategy:** Check page title or key elements for known block signals (e.g., "Доступ ограничен", "verify you are human"). Log a warning when detected. Do not silently treat blocked pages as "no results."
+**Strategy:** Check shared access signals such as final URL, status, title, body markers, and captcha iframes. Classify the source as blocked through the runner or shared detector. Do not silently treat blocked pages as `no_results` or parser success.
 
 **Origin:** hh.ru occasionally serves CAPTCHAs to automated browsers.
 

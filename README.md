@@ -36,7 +36,7 @@ Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
 
 ## Installation
 
-The repository has one installable plugin root: `plugins/job-harness`. Codex and Claude Code marketplace files both point to that directory, so commands, skills, MCP tools, scripts, and Python code are not duplicated at the repository root.
+The repository has one installable plugin root: `plugins/job-harness`. Codex and Claude Code marketplace files both point to that directory, so commands, runtime skills, MCP tools, scripts, and Python code are not duplicated at the repository root. Repository-local development skills may live under `.agents/skills`; they are not shipped as plugin runtime skills.
 
 ### As a Claude Code plugin from GitHub
 
@@ -47,7 +47,12 @@ claude plugin marketplace add feodal01/job-harness
 claude plugin install job-harness@job-harness
 ```
 
-The plugin provides MCP tools (`search_start`, `search_status`, `search_results`, `search_refine`, `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`, …), slash commands (`/job-search`, `/job-resolve`), skills (`user-briefing`, `employer-resolution`, `aggregator-scrapers`, `scraper-insights`), and CLI commands including `job-harness resolve`.
+The plugin provides MCP tools (`search_start`, `search_status`, `search_results`, `search_refine`, `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`, …), slash commands (`/job-search`, `/job-resolve`), runtime skills (`user-briefing`, `employer-resolution`), and CLI commands including `job-harness resolve`.
+
+Scraper implementation guidance is intentionally project-local, not shipped in
+the plugin. Use `.agents/skills/job-harness-scraper-development` when changing
+scraper code, fixtures, source contracts, or scraper tests. The scraper testing
+policy and experience-level source policy live inside that skill's references.
 
 ### As a Codex plugin from GitHub
 
