@@ -34,6 +34,7 @@ import asyncio
 import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from time import monotonic
 from typing import Any
 from urllib.parse import urlparse
 
@@ -203,7 +204,11 @@ class PoolHealth:
 
 
 class PoolAcquireTimeout(Exception):
-    """Raised by `run_with_page` when `acquire_timeout_ms` is exceeded."""
+    """Raised when no context slot is available before the acquire deadline."""
+
+
+class PoolShutdown(RuntimeError):
+    """Raised when browser pool acquisition loses a race with shutdown."""
 
 
 class BrowserDisconnected(Exception):
@@ -235,13 +240,15 @@ class BrowserPool:
 
     `run_with_page(func, timeout_ms)` is the only entry point. Internally:
 
-      1. Wait up to `acquire_timeout_ms` for a free context slot.
-      2. Reuse an idle context, or call `browser.new_context(...)` if
-         we are below `max_contexts` and the slot is fresh.
-      3. Open a page, set its default timeout to `page_timeout_ms`.
-      4. Run `await asyncio.wait_for(func(page), timeout_ms/1000)`.
-      5. Run `is_blocked(page)` afterwards. If a block is detected,
-         replace the value with `BlockedResult`.
+      1. Wait for a free context slot within the per-call deadline. An
+         explicit `acquire_timeout_ms` can cap this wait sooner.
+      2. Reuse an idle context, or create the browser/context within
+         the same per-call deadline.
+      3. Open a page and set its default timeout to the remaining budget.
+      4. Run `func(page)` within the remaining budget.
+      5. Run `is_blocked(page)` afterwards with remaining budget. If it
+         times out after `func` returned, keep the successful value. If
+         a block is detected, replace the value with `BlockedResult`.
       6. Close the page. Return the context to the pool — unless the
          page close itself failed, in which case discard the context
          and let the next acquire build a fresh one.
@@ -256,21 +263,28 @@ class BrowserPool:
         *,
         max_contexts: int = 2,
         page_timeout_ms: int = 30_000,
-        acquire_timeout_ms: int = 5_000,
+        acquire_timeout_ms: int | None = None,
         recycle_after_consecutive_hangs: int = 2,
         browser_factory: Callable[[], Awaitable[Any]] | None = None,
         context_kwargs: dict[str, Any] | None = None,
     ) -> None:
         if max_contexts < 1:
             raise ValueError("max_contexts must be >= 1")
+        if page_timeout_ms < 1:
+            raise ValueError("page_timeout_ms must be >= 1")
+        if acquire_timeout_ms is not None and acquire_timeout_ms < 1:
+            raise ValueError("acquire_timeout_ms must be >= 1 when provided")
         self._max_contexts = max_contexts
         self._page_timeout_ms = page_timeout_ms
         self._acquire_timeout_ms = acquire_timeout_ms
         self._recycle_threshold = max(1, recycle_after_consecutive_hangs)
         self._browser_factory = browser_factory or _default_browser_factory
         self._context_kwargs = context_kwargs or {"accept_downloads": False}
+        self._cleanup_timeout_s = 3.0
         self._sem = asyncio.Semaphore(max_contexts)
         self._lock = asyncio.Lock()
+        self._rebuild_lock = asyncio.Lock()
+        self._cleanup_tasks: set[asyncio.Task[bool]] = set()
         self._state = _PoolState()
 
     # --- properties ------------------------------------------------------
@@ -288,58 +302,178 @@ class BrowserPool:
         timeout_ms: int | None = None,
     ) -> T | BlockedResult[T]:
         """Run `func(page)` with a hard timeout and the anti-bot probe."""
-        timeout_s = (timeout_ms if timeout_ms is not None else self._page_timeout_ms) / 1000.0
+        timeout_budget_ms = timeout_ms if timeout_ms is not None else self._page_timeout_ms
+        deadline = monotonic() + (timeout_budget_ms / 1000.0)
 
-        # Acquire the semaphore with the acquire deadline.
-        try:
-            await asyncio.wait_for(self._sem.acquire(), timeout=self._acquire_timeout_ms / 1000.0)
-        except TimeoutError as exc:
-            raise PoolAcquireTimeout(
-                f"could not acquire a context within {self._acquire_timeout_ms} ms"
-            ) from exc
-
+        acquired = False
+        checked_out = False
         context = None
         page = None
+        poisoned = False
         try:
-            context = await self._acquire_context_locked()
-            page = await context.new_page()
-            try:
-                page.set_default_timeout(self._page_timeout_ms)
-            except Exception:
-                pass
+            await self._acquire_slot(deadline)
+            acquired = True
+        except TimeoutError as exc:
+            raise PoolAcquireTimeout(self._acquire_timeout_message(deadline)) from exc
 
+        try:
             try:
-                value = await asyncio.wait_for(func(page), timeout=timeout_s)
-            except BrowserBlocked as exc:
+                context = await self._wait_for_deadline(
+                    self._acquire_context(deadline),
+                    deadline=deadline,
+                )
+                checked_out = True
+
+                page = await self._wait_for_deadline(
+                    context.new_page(),
+                    deadline=deadline,
+                )
+                try:
+                    page.set_default_timeout(self._page_timeout_for_remaining(deadline))
+                except Exception:
+                    pass
+
+                try:
+                    value = await self._wait_for_deadline(func(page), deadline=deadline)
+                except BrowserBlocked as exc:
+                    async with self._lock:
+                        self._state.consecutive_hangs = 0
+                    return BlockedResult(block=exc.block)
+
                 async with self._lock:
                     self._state.consecutive_hangs = 0
-                return BlockedResult(block=exc.block)
+
+                remaining = self._remaining_timeout_s(deadline, raise_expired=False)
+                if remaining <= 0:
+                    return value
+                try:
+                    block = await asyncio.wait_for(is_blocked(page), timeout=remaining)
+                except TimeoutError:
+                    return value
+                if block is not None:
+                    return BlockedResult(block=block, partial=value)
+                return value
             except TimeoutError:
                 async with self._lock:
                     self._state.consecutive_hangs += 1
+                if checked_out and page is None:
+                    poisoned = True
                 raise
-
-            # Reset hang streak on a successful return.
-            async with self._lock:
-                self._state.consecutive_hangs = 0
-
-            block = await is_blocked(page)
-            if block is not None:
-                return BlockedResult(block=block, partial=value)
-            return value
+            except Exception:
+                if checked_out and page is None:
+                    poisoned = True
+                raise
         finally:
-            # Close page; on failure mark context as poisoned.
-            poisoned = False
+            cleanup_error: BaseException | None = None
             if page is not None:
                 try:
-                    await asyncio.wait_for(page.close(), timeout=3.0)
-                except Exception:
+                    closed = await self._close_batch((page,))
+                    poisoned = poisoned or not closed
+                except BaseException as exc:
                     poisoned = True
-            await self._release_context_locked(context, poisoned=poisoned)
-            self._sem.release()
-            # If too many consecutive hangs, rebuild the browser. The
-            # rebuild happens lazily on the next acquire — see
-            # `_acquire_context_locked`.
+                    cleanup_error = exc
+            try:
+                if checked_out:
+                    await self._release_context(context, poisoned=poisoned)
+            except BaseException as exc:
+                if cleanup_error is None:
+                    cleanup_error = exc
+            finally:
+                if acquired:
+                    self._sem.release()
+            if cleanup_error is not None:
+                raise cleanup_error
+
+    async def _acquire_slot(self, deadline: float) -> None:
+        remaining = self._remaining_timeout_s(deadline)
+        timeout = remaining
+        if self._acquire_timeout_ms is not None:
+            timeout = min(timeout, self._acquire_timeout_ms / 1000.0)
+        await asyncio.wait_for(self._sem.acquire(), timeout=timeout)
+
+    def _acquire_timeout_message(self, deadline: float) -> str:
+        remaining = self._remaining_timeout_s(deadline, raise_expired=False)
+        if (
+            self._acquire_timeout_ms is not None
+            and remaining > (self._acquire_timeout_ms / 1000.0)
+        ):
+            return f"could not acquire a context within {self._acquire_timeout_ms} ms"
+        return "could not acquire a context before the source deadline"
+
+    def _remaining_timeout_s(self, deadline: float, *, raise_expired: bool = True) -> float:
+        remaining = deadline - monotonic()
+        if remaining <= 0 and raise_expired:
+            raise TimeoutError("browser pool call deadline exceeded")
+        return max(0.0, remaining)
+
+    async def _wait_for_deadline[T](self, awaitable: Awaitable[T], *, deadline: float) -> T:
+        return await asyncio.wait_for(awaitable, timeout=self._remaining_timeout_s(deadline))
+
+    def _page_timeout_for_remaining(self, deadline: float) -> int:
+        remaining = self._remaining_timeout_s(deadline)
+        return max(1, min(self._page_timeout_ms, int(remaining * 1000)))
+
+    async def _close_batch(self, closeables: tuple[Any, ...]) -> bool:
+        items = tuple(item for item in closeables if item is not None)
+        if not items:
+            return True
+
+        async def close_one(item: Any) -> None:
+            await item.close()
+
+        tasks = [asyncio.create_task(close_one(item)) for item in items]
+        try:
+            done, pending = await asyncio.wait(tasks, timeout=self._cleanup_timeout_s)
+        except BaseException:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
+        for task in pending:
+            task.cancel()
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+
+        ok = not pending
+        for task in done:
+            if task.cancelled():
+                ok = False
+                continue
+            exc = task.exception()
+            if exc is not None:
+                ok = False
+        return ok
+
+    def _track_cleanup(self, *closeables: Any) -> None:
+        items = tuple(item for item in closeables if item is not None)
+        if not items:
+            return
+        task = asyncio.create_task(self._close_batch(items))
+        self._cleanup_tasks.add(task)
+
+        def done_callback(done_task: asyncio.Task[bool]) -> None:
+            self._cleanup_tasks.discard(done_task)
+            try:
+                done_task.result()
+            except BaseException:
+                pass
+
+        task.add_done_callback(done_callback)
+
+    async def _drain_cleanup_tasks(self, tasks: set[asyncio.Task[bool]]) -> None:
+        if not tasks:
+            return
+        done, pending = await asyncio.wait(tasks, timeout=self._cleanup_timeout_s)
+        for task in pending:
+            task.cancel()
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+        for task in done:
+            try:
+                task.result()
+            except BaseException:
+                pass
 
     async def health(self) -> PoolHealth:
         async with self._lock:
@@ -356,84 +490,111 @@ class BrowserPool:
         async with self._lock:
             self._state.shutting_down = True
             browser = self._state.browser
+            contexts = tuple(self._state.contexts)
             self._state.browser = None
-            for ctx in self._state.contexts:
-                try:
-                    await ctx.close()
-                except Exception:
-                    pass
             self._state.contexts.clear()
-        if browser is not None:
-            try:
-                await browser.close()
-            except Exception:
-                pass
+
+        async with self._rebuild_lock:
+            pass
+
+        async with self._lock:
+            cleanup_tasks = set(self._cleanup_tasks)
+        await self._close_batch((*contexts, browser))
+        await self._drain_cleanup_tasks(cleanup_tasks)
+        async with self._lock:
+            self._cleanup_tasks.clear()
 
     # --- internal --------------------------------------------------------
 
-    async def _acquire_context_locked(self) -> Any:
-        """Return a usable context. Lazily creates browser/context as needed.
+    async def _acquire_context(self, deadline: float) -> Any:
+        """Return an accepted context, creating/rebuilding browser as needed."""
+        while True:
+            async with self._lock:
+                if self._state.shutting_down:
+                    raise PoolShutdown("browser pool is shutting down")
+                needs_rebuild = self._needs_rebuild_locked()
+                if not needs_rebuild:
+                    if self._state.contexts:
+                        ctx = self._state.contexts.pop()
+                        self._state.in_use += 1
+                        return ctx
+                    browser = self._state.browser
+                    assert browser is not None
+                else:
+                    browser = None
 
-        Rebuilds the browser if:
-          • is_connected() is false
-          • consecutive_hangs >= recycle_after_consecutive_hangs
-        """
-        async with self._lock:
-            if self._state.shutting_down:
-                raise RuntimeError("pool is shutting down")
-
-            needs_rebuild = (
-                self._state.browser is None
-                or not self._is_connected_locked()
-                or self._state.consecutive_hangs >= self._recycle_threshold
-            )
             if needs_rebuild:
-                await self._rebuild_browser_locked()
+                await self._ensure_browser(deadline)
+                continue
 
-            # Reuse an idle context if available.
-            if self._state.contexts:
-                ctx = self._state.contexts.pop()
+            ctx = await self._wait_for_deadline(
+                browser.new_context(**self._context_kwargs),
+                deadline=deadline,
+            )
+            async with self._lock:
+                if self._state.shutting_down:
+                    self._track_cleanup(ctx)
+                    raise PoolShutdown("browser pool is shutting down")
+                if self._state.browser is not browser:
+                    self._track_cleanup(ctx)
+                    continue
                 self._state.in_use += 1
                 return ctx
 
-            # Create a new context.
-            assert self._state.browser is not None
-            ctx = await self._state.browser.new_context(**self._context_kwargs)
-            self._state.in_use += 1
-            return ctx
+    async def _ensure_browser(self, deadline: float) -> None:
+        async with self._rebuild_lock:
+            async with self._lock:
+                if self._state.shutting_down:
+                    raise PoolShutdown("browser pool is shutting down")
+                if not self._needs_rebuild_locked():
+                    return
+                old_contexts = tuple(self._state.contexts)
+                old_browser = self._state.browser
+                self._state.contexts.clear()
+                self._state.browser = None
+                if old_browser is not None:
+                    self._state.browser_rebuilds += 1
 
-    async def _release_context_locked(self, context: Any, *, poisoned: bool) -> None:
+            self._track_cleanup(*old_contexts, old_browser)
+
+            new_browser = await self._wait_for_deadline(
+                self._browser_factory(),
+                deadline=deadline,
+            )
+            committed = False
+            cleanup_scheduled = False
+            try:
+                async with self._lock:
+                    if self._state.shutting_down:
+                        self._track_cleanup(new_browser)
+                        cleanup_scheduled = True
+                        raise PoolShutdown("browser pool is shutting down")
+                    self._state.browser = new_browser
+                    self._state.consecutive_hangs = 0
+                    committed = True
+            finally:
+                if not committed and not cleanup_scheduled:
+                    self._track_cleanup(new_browser)
+
+    def _needs_rebuild_locked(self) -> bool:
+        return (
+            self._state.browser is None
+            or not self._is_connected_locked()
+            or self._state.consecutive_hangs >= self._recycle_threshold
+        )
+
+    async def _release_context(self, context: Any, *, poisoned: bool) -> None:
+        close_context = None
         async with self._lock:
-            if context is None:
-                self._state.in_use = max(0, self._state.in_use - 1)
-                return
-            self._state.in_use = max(0, self._state.in_use - 1)
+            if self._state.in_use <= 0:
+                raise RuntimeError("browser pool context release underflow")
+            self._state.in_use -= 1
             if poisoned or self._state.shutting_down:
-                try:
-                    await context.close()
-                except Exception:
-                    pass
-                return
-            self._state.contexts.append(context)
-
-    async def _rebuild_browser_locked(self) -> None:
-        """Tear down and recreate the Browser. Caller must hold the lock."""
-        for ctx in self._state.contexts:
-            try:
-                await ctx.close()
-            except Exception:
-                pass
-        self._state.contexts.clear()
-        if self._state.browser is not None:
-            try:
-                await self._state.browser.close()
-            except Exception:
-                pass
-            self._state.browser = None
-            self._state.browser_rebuilds += 1
-        # Build a fresh browser.
-        self._state.browser = await self._browser_factory()
-        self._state.consecutive_hangs = 0
+                close_context = context
+            else:
+                self._state.contexts.append(context)
+        if close_context is not None:
+            await self._close_batch((close_context,))
 
     def _is_connected_locked(self) -> bool:
         browser = self._state.browser

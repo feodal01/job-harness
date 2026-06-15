@@ -318,7 +318,7 @@ class SearchEngine:
         params: SearchParams,
         timeout_ms: int,
     ) -> SourceOutcome:
-        from job_harness.browser_pool import BlockedResult, PoolAcquireTimeout
+        from job_harness.browser_pool import BlockedResult, PoolAcquireTimeout, PoolShutdown
         from job_harness.types import BLOCK_REASON_TO_FAILURE_MODE
 
         scraper = self._scraper_factory(
@@ -349,6 +349,9 @@ class SearchEngine:
         except PoolAcquireTimeout as exc:
             state, failure_mode = SourceState.TIMEOUT, FailureMode.POOL_ACQUIRE_TIMEOUT
             error = str(exc)
+        except PoolShutdown:
+            state, failure_mode = SourceState.CANCELLED, FailureMode.USER_CANCELLED
+            error = "browser pool is shutting down"
         except Exception as exc:
             state, failure_mode = SourceState.ERROR, FailureMode.PARSE_ERROR
             error = str(exc)
@@ -357,6 +360,8 @@ class SearchEngine:
                 state = SourceState.BLOCKED
                 failure_mode = BLOCK_REASON_TO_FAILURE_MODE[result.block.reason]
                 error = f"page tripped {result.block.reason.value}: {result.block.signal}"
+                if isinstance(result.partial, list):
+                    listings = result.partial
             elif isinstance(result, list):
                 listings = result
                 if getattr(scraper, "timed_out", False):

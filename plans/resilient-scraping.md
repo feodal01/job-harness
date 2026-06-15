@@ -248,7 +248,7 @@ Per-call deadlines:
 | `source_timeout_ms` | 30 000 | One scraper call including retries |
 | `total_timeout_ms` | 90 000 | One non-blocking run end-to-end |
 | `BrowserPool.page_timeout_ms` | 30 000 | One `run_with_page` operation |
-| `BrowserPool.acquire_timeout_ms` | 5 000 | Waiting for a free context |
+| `BrowserPool.acquire_timeout_ms` | `None` | Optional explicit cap for waiting for a free context; `None` means the source attempt deadline is the cap |
 | `resolve_timeout_ms_per_company` | 8 000 | One resolve attempt |
 | `RUN_IDLE_TIMEOUT_S` | 600 | A run with no status poll for this long is self-cancelled |
 
@@ -267,7 +267,7 @@ class BrowserPool:
         *,
         max_contexts: int = 2,
         page_timeout_ms: int = 30_000,
-        acquire_timeout_ms: int = 5_000,
+        acquire_timeout_ms: int | None = None,
     ): ...
 
     async def run_with_page(
@@ -283,12 +283,12 @@ class BrowserPool:
 
 `run_with_page` flow:
 
-1. Acquire the context semaphore (with `acquire_timeout_ms` ceiling via `asyncio.wait_for`).
-2. Create a fresh `BrowserContext` if the pool is empty; otherwise reuse an existing context. Context construction sets `accept_downloads=False`, `record_video=False`, `record_har_path=None`, and the stealth init scripts already in `browser.py`.
-3. `page = await context.new_page()`; `page.set_default_timeout(page_timeout_ms)`.
-4. Run `result = await asyncio.wait_for(func(page), timeout=timeout_ms / 1000)`. On `asyncio.TimeoutError` or `CancelledError`, propagate.
-5. After `func` returns (or before raising), call `await is_blocked(page)` — see §8 — and replace the result with `BlockedResult(...)` if a block is detected.
-6. In `finally`, `await page.close()` (best-effort; if it raises, the context is discarded instead of returned to the pool).
+1. Acquire the context semaphore within the `timeout_ms` source attempt budget. An explicit `acquire_timeout_ms` can cap this sooner; BR-007 superseded the older fixed 5 second default.
+2. Create or rebuild the shared browser, then create a fresh `BrowserContext` if the pool is empty; otherwise reuse an existing context. Browser/context setup is also bounded by the same source attempt budget.
+3. `page = await context.new_page()` within the remaining budget; `page.set_default_timeout(...)` uses the smaller of `page_timeout_ms` and the remaining budget, clamped to at least 1 ms.
+4. Run `result = await asyncio.wait_for(func(page), timeout=remaining_budget)`. On `asyncio.TimeoutError` or `CancelledError`, propagate.
+5. After `func` returns, call `await is_blocked(page)` — see §8 — with only the remaining budget. If the probe times out after `func` returned, keep `result`; if a block is detected quickly, replace the result with `BlockedResult(block=..., partial=result)`.
+6. In `finally`, close page/context/browser cleanup resources outside the source result budget but under a bounded cleanup cap; poisoned contexts are discarded instead of returned to the pool.
 
 Health and restart:
 
@@ -654,6 +654,10 @@ Test files live under `plugins/job-harness/tests/`. The suite uses:
 9. `accept_downloads=False` is set on every context; a fixture page that triggers a download does not stall the pool.
 10. Anti-bot probe (§8) maps detection to `BlockedResult` with the matched signal.
 11. `shutdown()` closes all contexts and the browser cleanly.
+12. Explicit `acquire_timeout_ms` still caps saturated-pool waits, but the default waits behind other browser sources until the source attempt deadline.
+13. Browser rebuild is single-flight, cancellation-safe, shutdown-safe, and does not hold `self._lock` while closing old resources.
+14. Rejected or timed-out `new_context()` calls do not decrement `contexts_in_use` unless a context was actually checked out.
+15. Post-call anti-bot probe timeouts preserve the successful scraper value; fast block probes keep that value as `BlockedResult.partial`.
 
 ### 11.2 SearchEngine — `test_search_engine.py`
 
@@ -663,6 +667,8 @@ Test files live under `plugins/job-harness/tests/`. The suite uses:
 4. Cancellation mid-flight produces a partial `SearchResults` with `errors=["cancelled"]`.
 5. Strict-flag policy drops `unsupported` scrapers with `SKIPPED_UNSUPPORTED_FLAG`.
 6. Lenient-flag policy includes them; listings carry `filter_uncertain[F]=True`.
+7. Browser sources queued behind a full `BrowserPool` complete without false `pool_acquire_timeout` when the source attempt deadline has enough budget.
+8. Blocked browser calls that return partial raw listings write those listings to `raw_search.jsonl` and report `listings_written` in source summaries.
 7. Validation: empty query → `ValueError`; `max_results=0` → `ValueError`; unknown country → `ValueError`.
 8. Dedupe prefers the richer listing across `(hh-id, url, title+company)` keys.
 9. Zero results across all sources still returns a valid `SearchResults`.
