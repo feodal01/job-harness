@@ -19,9 +19,9 @@ plugins/job-harness/
 ├── .codex-plugin/plugin.json   # Codex plugin manifest
 ├── .claude-plugin/plugin.json  # Claude Code plugin manifest
 ├── .mcp.json                   # MCP server config
-├── commands/                   # Claude Code slash commands
-├── agents/                     # Claude Code agent definitions
-├── skills/                     # Runtime skills shipped with the plugin
+├── commands/                   # Claude Code slash command entrypoints
+├── agents/                     # Claude Code agent entrypoints
+├── skills/                     # Runtime skills and canonical workflows shipped with the plugin
 ├── scripts/                    # MCP server and artifact initialization helper
 ├── data/
 │   └── company-careers-public.json # bundled registry shipped with releases
@@ -60,11 +60,16 @@ policy.
 The plugin includes:
 
 - **Commands**: `/job-search`, `/job-resolve`
-- **Runtime skills**: `user-briefing`, `employer-resolution`
+- **Runtime skills**: `job-search-workflow`, `user-briefing`, `employer-resolution`
 - **Development skills**: `.agents/skills/job-harness-scraper-development`
-- **Agent**: `job-searcher` — full automated workflow
-- **MCP tools (search surface)**: `search_start`, `search_status`, `search_results`, `search_cancel`, `search_refine`, `list_active_runs`
+- **Agent**: `job-searcher` — Claude Code entrypoint for the full automated workflow
+- **MCP tools (search surface)**: `search_start`, `search_status`, `search_results`, `search_cancel`, `search_refine`, `search_retry`, `list_active_runs`
 - **MCP tools (lookup)**: `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`
+
+`plugins/job-harness/skills/job-search-workflow/SKILL.md` is the canonical
+search workflow. `plugins/job-harness/agents/job-searcher.md` and
+`plugins/job-harness/commands/job-search.md` must remain thin entrypoints and
+must not duplicate the skill workflow text.
 
 **Search workflow:** call `list_sources` first to inspect exact source ids, groups, server-supported criteria, and source limits. Then run `search_start` → poll `search_status` → `search_results(run_id)` (default writes downstream `results.json` and returns `{ path }`). Use `format=inline` for previews (max 20 listings per call). Raw search evidence is written separately to `raw_search.jsonl`; it is not filtered, ranked, deduped, grade-estimated, or globally capped by `max_results`.
 
