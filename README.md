@@ -30,7 +30,7 @@ Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
 - Server-only search criteria for `salary_from` and `freshness_days`; unsupported sources keep all raw listings and report unsupported criteria in source summaries
 - Source-level retry for transient zero-listing failures, with attempts/retries recorded per source
 - MCP server with async search tools (`search_start`, `search_status`, `search_results`, …) for Claude Code and Codex integration
-- Slash commands: `/job-search`, `/job-resolve`
+- Claude Code slash command entrypoints: `/job-search`, `/job-resolve`
 - Output in Markdown / JSON / CSV
 - Stealth browser via rebrowser-playwright
 
@@ -47,7 +47,13 @@ claude plugin marketplace add feodal01/job-harness
 claude plugin install job-harness@job-harness
 ```
 
-The plugin provides MCP tools (`search_start`, `search_status`, `search_results`, `search_refine`, `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`, …), slash commands (`/job-search`, `/job-resolve`), runtime skills (`user-briefing`, `employer-resolution`), and CLI commands including `job-harness resolve`.
+The plugin provides MCP tools (`search_start`, `search_status`, `search_results`, `search_refine`, `search_retry`, `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`, …), slash command entrypoints (`/job-search`, `/job-resolve`), runtime skills (`job-search-workflow`, `user-briefing`, `employer-resolution`), and CLI commands including `job-harness resolve`.
+
+`skills/job-search-workflow/SKILL.md` is the canonical full job-search workflow.
+The Claude Code `agents/job-searcher.md` file and `/job-search` command are
+thin entrypoints that delegate to that skill instead of copying the same
+workflow text. Keep workflow changes in the skill and keep host-specific
+entrypoint files small.
 
 Scraper implementation guidance is intentionally project-local, not shipped in
 the plugin. Use `.agents/skills/job-harness-scraper-development` when changing
@@ -63,7 +69,15 @@ codex plugin marketplace add https://github.com/feodal01/job-harness --ref main
 codex plugin add job-harness@job-harness
 ```
 
-Codex uses the MCP tools and skills. Claude Code slash commands and agents remain available through Claude Code.
+Codex uses the MCP tools and runtime skills, including `job-search-workflow`.
+Claude Code slash commands and agents remain available through Claude Code.
+
+Claude and Codex cache installed plugins in versioned directories. Do not edit
+files under `~/.claude/plugins/cache/...` or `~/.codex/plugins/cache/...`
+directly; update this repository, reinstall/update the plugin, and let the host
+refresh its cache. The Claude marketplace entry does not pin a version. The
+Codex plugin manifest still declares semver because Codex plugin validation
+requires it.
 
 ### Cursor
 
@@ -107,7 +121,7 @@ uv --directory plugins/job-harness run job-harness search --query "product manag
 
 ### Plugin commands
 
-- `/job-search` — Full workflow: brief → search → resolve → filter → present
+- `/job-search` — Thin entrypoint that delegates to the `job-searcher` agent and `job-search-workflow` skill
 - `/job-resolve` — Resolve aggregator listings to employer career pages
 
 ### CLI commands

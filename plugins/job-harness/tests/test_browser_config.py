@@ -31,9 +31,14 @@ class BrowserConfigTest(unittest.TestCase):
         config = json.loads(config_path.read_text(encoding="utf-8"))
         command = config["mcpServers"]["job-harness"]["args"][1]
 
+        self.assertIn("ROOT=\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"", command)
+        self.assertIn("[ -f \"$PWD/scripts/mcp-server.py\" ]", command)
+        self.assertIn("[ -f \"$PWD/plugins/job-harness/scripts/mcp-server.py\" ]", command)
+        self.assertIn("ROOT=\"$PWD/plugins/job-harness\"", command)
         self.assertIn("mkdir -p \"$JOB_HARNESS_TMP\"", command)
         self.assertIn("JOB_HARNESS_TMPDIR=\"$JOB_HARNESS_TMP\"", command)
         self.assertIn("TMPDIR=\"$JOB_HARNESS_TMP\"", command)
+        self.assertLess(command.index("ROOT="), command.index("JOB_HARNESS_TMP="))
         self.assertLess(command.index("export PYTHONUNBUFFERED"), command.index("exec uv"))
         self.assertLess(command.index("TMPDIR=\"$JOB_HARNESS_TMP\""), command.index("exec uv"))
 
