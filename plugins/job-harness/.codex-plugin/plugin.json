@@ -1,9 +1,11 @@
 {
   "name": "job-harness",
+  "version": "0.2.0",
   "description": "Agent-first job search runtime with MCP tools, skills, employer resolution, and bundled company directory.",
   "author": {
     "name": "Local developer"
   },
+  "homepage": "https://github.com/feodal01/job-harness",
   "repository": "https://github.com/feodal01/job-harness",
   "license": "MIT",
   "keywords": [
@@ -25,6 +27,10 @@
       "Write",
       "Interactive"
     ],
+    "websiteURL": "https://github.com/feodal01/job-harness",
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/job-harness.svg",
+    "logo": "./assets/job-harness.svg",
     "defaultPrompt": [
       "Find QA jobs matching my brief.",
       "Find employer career pages for Python backend roles in Armenia.",

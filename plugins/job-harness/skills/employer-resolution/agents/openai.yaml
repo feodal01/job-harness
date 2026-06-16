@@ -1,0 +1,7 @@
+interface:
+  display_name: Employer Resolution
+  short_description: Resolve listings to direct employer career pages
+  brand_color: "#0F766E"
+  default_prompt: Resolve these vacancies to employer career pages.
+policy:
+  allow_implicit_invocation: true
