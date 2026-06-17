@@ -1,6 +1,6 @@
 ---
 name: job-harness-scraper-development
-description: Project-local development skill for maintaining, fixing, or adding job-harness scrapers and scraper tests. Use inside this repository when Codex changes scraper code, source capabilities, parser fixtures, source outcome classification, live smoke checks, or scraper-related documentation.
+description: Project-local development skill for maintaining job-harness scrapers, plugin runtime surfaces, manifests, MCP/CLI entrypoints, agent-facing instructions, and tests. Use inside this repository when Codex changes scraper code, source capabilities, parser fixtures, source outcome classification, live smoke checks, plugin packaging, runtime skills, commands, agents, or scraper/plugin-related documentation.
 ---
 
 # Job Harness Scraper Development
@@ -21,6 +21,23 @@ Before changing scraper behavior or tests, read:
 
 ## Development Rules
 
+- Bump the plugin version for every installable plugin runtime change. Update
+  `plugins/job-harness/.codex-plugin/plugin.json`,
+  `plugins/job-harness/pyproject.toml`, and the local `job-harness` package
+  entry in `plugins/job-harness/uv.lock` together. Do not add version fields to
+  host manifests unless that host's schema is known to support them.
+- Develop the plugin for three agent surfaces: Claude Code, Codex, and Cursor.
+  Claude Code uses `.claude-plugin/`, `commands/`, `agents/`, runtime skills,
+  MCP config, and `CLAUDE_PLUGIN_ROOT`; Codex uses `.codex-plugin/`, runtime
+  skills, MCP config, and deferred tool discovery; Cursor uses the repository
+  root maintenance instructions (`AGENTS.md`) and CLI/repo workflows rather than
+  installing the plugin runtime directly.
+- For agent-facing interface or instruction changes, check every affected
+  surface. If a change is runtime-shared, keep wording host-neutral. If a
+  host-specific behavior is unavoidable, document the equivalent behavior or
+  limitation for Claude Code, Codex, and Cursor in the appropriate
+  host-specific file instead of putting a single-host assumption in a shared
+  runtime skill.
 - Treat live runs as debugging, smoke, or drift evidence, not merge proof.
 - Base source-specific parser fixtures on real captured source artifacts.
 - Do not invent captcha, VPN, geo, login, no-result, or malformed source pages

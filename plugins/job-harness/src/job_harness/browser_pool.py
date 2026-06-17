@@ -617,11 +617,14 @@ async def _default_browser_factory() -> Any:
     Tests never reach this path because they pass their own
     `browser_factory` constructor argument.
     """
-    from rebrowser_playwright.async_api import async_playwright
-
     from job_harness.browser import configure_playwright_tmpdir, create_browser_async
+    from job_harness.rebrowser_stderr import install_rebrowser_stderr_filter
 
     configure_playwright_tmpdir()
+    install_rebrowser_stderr_filter()
+
+    from rebrowser_playwright.async_api import async_playwright
+
     pw = await async_playwright().start()
     browser, _ctx = await create_browser_async(pw, headless=True)
     # The browser is what the pool needs; the throwaway ctx is discarded

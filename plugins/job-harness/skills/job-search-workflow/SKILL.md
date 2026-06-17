@@ -17,17 +17,22 @@ both aggregator and employer links so the user can apply through both channels.
 
 ## Workflow
 
-1. **Confirm artifact root** - Before creating files, tell the user the current
-   artifact path (`<current-directory>/.job-harness/`) and ask for approval. If
-   they choose another directory, use that directory's `.job-harness/` folder.
-   After approval, initialize it with `scripts/init-artifacts.sh` from the
-   plugin root when available; otherwise create `.job-harness/briefs/`,
+1. **Confirm artifact root** - Before creating files, inspect the current
+   artifact path (`<current-directory>/.job-harness/`). If it already exists,
+   ask whether the user wants to start a new search, continue from an existing
+   brief/run, or use another directory; summarize available briefs/runs when
+   they choose to continue. If it does not exist, tell the user where artifacts
+   will be saved and ask for approval. If they choose another directory, apply
+   the same existing-root check to that directory's `.job-harness/` folder. Only
+   after approval, initialize a missing root with `scripts/init-artifacts.sh`
+   from the plugin root when available; otherwise create `.job-harness/briefs/`,
    `.job-harness/companies/`, and `.job-harness/companies/careers.json`
    manually.
 
 2. **Brief** - Activate the `user-briefing` skill. Ask all questions, confirm
    before proceeding, or reuse an existing confirmed brief if the user asks for
-   another run. Save the brief to
+   another run. Prefer sequential questions and structured answer choices when
+   the host supports them. Save the brief to
    `.job-harness/briefs/YYYY-MM-DD_<slug>/brief.md` and create its `runs/`
    folder.
 
@@ -37,6 +42,13 @@ both aggregator and employer links so the user can apply through both channels.
    settings.
 
 4. **Search** - Run the MCP search loop:
+
+   If Job Harness MCP tools are not visible in a host that supports deferred or
+   lazy tool discovery, discover the installed plugin tools before falling back
+   to CLI. Use the host's native discovery mechanism to surface
+   `list_sources`, `search_start`, and related Job Harness tools, then call
+   `list_sources`. Use CLI only when discovery is unavailable or the MCP server
+   fails to start/respond.
 
    1. Call `list_sources` when choosing sources. Use exact ids from the
       response with `sources` and semantic groups with `source_groups`

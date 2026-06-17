@@ -36,6 +36,7 @@ from job_harness.company_directory import (
     normalize_company_key,
 )
 from job_harness.employer_cache import CompanyEntry
+from job_harness.rebrowser_stderr import install_rebrowser_stderr_filter
 
 DEFAULT_COMPANY_LIVE_WORKERS = 12
 RESOLVED_EMPLOYER_CACHE_SOURCE = "resolved-employer-cache"
@@ -109,6 +110,7 @@ async def run_company_career_batch(
     query_terms = _query_terms(query)
     write_lock = asyncio.Lock()
     configure_playwright_tmpdir()
+    install_rebrowser_stderr_filter()
 
     from rebrowser_playwright.async_api import async_playwright
 

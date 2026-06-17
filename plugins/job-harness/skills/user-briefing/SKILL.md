@@ -10,7 +10,14 @@ Every new job search workflow starts by choosing an artifact root and filling ou
 
 ## Artifact Root Confirmation
 
-Before creating any files or folders, tell the user where artifacts will be saved:
+Before creating any files or folders, inspect the chosen working directory. If
+`.job-harness/` already exists, do not reinitialize it automatically. Tell the
+user the existing artifact path and ask whether they want to start a new search,
+continue from an existing brief/run, or use a different directory. If they want
+to continue, inspect `.job-harness/briefs/` and summarize the available briefs
+or recent runs before asking which one to use.
+
+If `.job-harness/` does not exist, tell the user where artifacts will be saved:
 
 ```
 I will save job-harness working files in:
@@ -23,9 +30,10 @@ This will create:
 Is this directory OK? If not, tell me which directory to use.
 ```
 
-Do not create `.job-harness/` until the user confirms. If the user gives another directory, use `<chosen-directory>/.job-harness/` and confirm that path before continuing.
+Do not create `.job-harness/` until the user confirms. If the user gives another directory, apply the same existing-root check to `<chosen-directory>/.job-harness/` and confirm the path before continuing.
 
-After confirmation, initialize the artifact root with the helper script when available:
+After confirmation, initialize the artifact root only when it does not already
+exist. Use the helper script when available:
 
 ```
 sh "$PLUGIN_ROOT/scripts/init-artifacts.sh" "<chosen-directory>"
@@ -42,7 +50,16 @@ In Claude Code, use `CLAUDE_PLUGIN_ROOT` instead of `PLUGIN_ROOT` if that is the
 
 ## Brief Template
 
-Present these questions to the user. They can answer all at once or one by one — adapt to their style.
+Prefer collecting the brief sequentially instead of asking the user to answer
+the entire template at once. Ask one short group at a time, confirm ambiguous
+answers before moving on, and preserve momentum by using answer choices when
+the host interface supports structured options. If structured options are not
+available, present concise numbered choices in text for fields like level, work
+format, relocation, salary visibility, and remote scope. If the user volunteers
+many answers at once, accept them and only ask for the missing or ambiguous
+fields.
+
+Use this template as the full coverage checklist:
 
 ```
 ## Job Search Brief
