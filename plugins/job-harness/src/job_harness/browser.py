@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 os.environ.setdefault("REBROWSER_PATCHES_RUNTIME_FIX_MODE", "addBinding")
 
-from rebrowser_playwright.sync_api import Browser, BrowserContext
+from job_harness.rebrowser_stderr import install_rebrowser_stderr_filter
+
+if TYPE_CHECKING:
+    from rebrowser_playwright.sync_api import Browser, BrowserContext
 
 
 def configure_playwright_tmpdir(path: Path | None = None) -> Path:
@@ -29,6 +33,7 @@ def create_browser(
     pw,
     headless: bool = True,
 ) -> tuple[Browser, BrowserContext]:
+    install_rebrowser_stderr_filter()
     browser = pw.chromium.launch(
         headless=headless,
         args=[
@@ -60,6 +65,7 @@ def create_browser(
 
 
 async def create_browser_async(pw, headless: bool = True):
+    install_rebrowser_stderr_filter()
     browser = await pw.chromium.launch(
         headless=headless,
         args=[
