@@ -6,11 +6,11 @@ job-harness is a Job Search OS packaged as a Codex and Claude Code plugin. Curso
 
 It is NOT a tool for humans to use directly — it is the runtime environment in which an AI agent searches for jobs on behalf of a human.
 
-The agent receives a natural-language job search request, translates it into MCP tool calls, runs them, analyzes results, and presents findings.
+The agent receives a natural-language job search request, runs the v2 search CLI, analyzes results, and presents findings.
 
 ## Philosophy
 
-Search broadly across all available sources: job aggregators, employer career pages, and company-specific career scrapers. Aggregators are useful, but they create a search bubble: some companies and vacancies appear only on employer sites, and aggregator applications may be filtered or auto-rejected before a recruiter sees them. Direct career-site applications often enter a smaller, more manually reviewed recruiting flow, especially when the company does not use a heavy automated ATS. The agent should break out of the aggregator bubble by finding direct employer pages and, when appropriate, presenting both the aggregator link and the employer link so the user can apply through both channels.
+Search broadly across all available sources: job aggregators and employer career pages. Aggregators are useful, but they create a search bubble: some companies and vacancies appear only on employer sites. The v2 engine searches the full implemented catalog unless the user narrows sources explicitly.
 
 ## Architecture
 
@@ -18,32 +18,24 @@ Search broadly across all available sources: job aggregators, employer career pa
 plugins/job-harness/
 ├── .codex-plugin/plugin.json   # Codex plugin manifest
 ├── .claude-plugin/plugin.json  # Claude Code plugin manifest
-├── .mcp.json                   # MCP server config
+├── .mcp.json                   # MCP server config (v1 legacy)
 ├── commands/                   # Claude Code slash command entrypoints
 ├── agents/                     # Claude Code agent entrypoints
-├── skills/                     # Runtime skills and canonical workflows shipped with the plugin
-├── scripts/                    # MCP server and artifact initialization helper
-├── data/
-│   └── company-careers-public.json # bundled registry shipped with releases
+├── skills/                     # Runtime skills and canonical workflows
+├── scripts/                    # MCP server (v1) and artifact helpers
 └── src/job_harness/
-├── models.py            # SearchParams, RawListing, RawSearchRecord, JobListing, SearchResults
-├── base.py              # BaseScraper ABC (search + fetch_detail)
-├── registry.py          # @register_scraper decorator, strict source catalog
-├── browser.py           # Stealth browser factory (rebrowser-playwright)
-├── filters.py           # Callable-based filter system
-├── formatters.py        # Markdown, JSON, CSV output
-├── result_pipeline.py   # Downstream filtering/dedupe/ranking from raw listings
-├── source_runtime.py    # Engine-level source timeout/retry policy
-├── employer_resolver.py # Resolve aggregator listings to direct employer pages
-├── employer_cache.py    # JSON cache of company → career page mappings
-├── cli.py               # CLI entry point (search, resolve, list-sources)
-└── scrapers/
-    ├── hh_ru.py         # hh.ru scraper
-    ├── habr_career.py   # Habr Career scraper
-    └── career/          # Per-company career site scrapers
-        ├── base.py      # BaseCareerScraper ABC + registry
-        ├── vk.py        # ВКонтакте (team.vk.company)
-        └── ibs.py       # IBS (ibs.ru/career)
+    ├── v2/                     # Primary contract-first search engine
+    │   ├── application.py      # V2SearchApplication
+    │   ├── cli.py              # job-harness-v2 entrypoint
+    │   ├── contracts/          # SearchRequest, SourceScraper, records
+    │   ├── postprocessing/     # Filter, dedupe, criteria plan
+    │   ├── runtime/            # Orchestrator, HTTP fetcher, sources
+    │   └── source_catalog.sql  # Source metadata and criteria declarations
+    └── v1/                     # Legacy engine (MCP, browser, employer tools)
+        ├── cli.py              # job-harness entrypoint
+        ├── search_engine.py
+        ├── scrapers/
+        └── ...
 ```
 
 ## Plugin Components
@@ -53,39 +45,46 @@ This repo has one real plugin root: `plugins/job-harness`. Do not duplicate plug
 Development-only skills may live under `.agents/skills`. They are repository
 maintenance guidance and must not be treated as plugin runtime skills.
 When maintaining scraper code, source contracts, parser fixtures, or scraper
-tests, read `.agents/skills/job-harness-scraper-development/SKILL.md`; its
-references include the scraper testing policy and experience-level source
-policy.
+tests, read `.agents/skills/job-harness-scraper-development/SKILL.md`.
 
 The plugin includes:
 
-- **Commands**: `/job-search`, `/job-resolve`
-- **Runtime skills**: `job-search-workflow`, `user-briefing`, `employer-resolution`
+- **Commands**: `/job-search` (delegates to v2 workflow skill)
+- **Runtime skills**: `job-search-workflow` (v2 CLI), `user-briefing`
 - **Development skills**: `.agents/skills/job-harness-scraper-development`
 - **Agent**: `job-searcher` — Claude Code entrypoint for the full automated workflow
-- **MCP tools (search surface)**: `search_start`, `search_status`, `search_results`, `search_cancel`, `search_refine`, `search_retry`, `list_active_runs`
-- **MCP tools (lookup)**: `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`
+- **v2 CLI**: `job-harness-v2 list-sources`, `job-harness-v2 search`
+- **v1 MCP tools (legacy)**: `search_start`, `search_status`, `search_results`, … via `scripts/mcp-server.py`
 
 `plugins/job-harness/skills/job-search-workflow/SKILL.md` is the canonical
-search workflow. `plugins/job-harness/agents/job-searcher.md` and
+search workflow. It uses **`job-harness-v2` CLI**, not v1 MCP tools.
+`plugins/job-harness/agents/job-searcher.md` and
 `plugins/job-harness/commands/job-search.md` must remain thin entrypoints and
 must not duplicate the skill workflow text.
 
-**Search workflow:** call `list_sources` first to inspect exact source ids, groups, server-supported criteria, and source limits. Then run `search_start` → poll `search_status` → `search_results(run_id)` (default writes downstream `results.json` and returns `{ path }`). Use `format=inline` for previews (max 20 listings per call). Raw search evidence is written separately to `raw_search.jsonl`; it is not filtered, ranked, deduped, grade-estimated, or globally capped by `max_results`.
+**v2 search workflow:** call `job-harness-v2 list-sources`, then
+`job-harness-v2 search` with criteria flags. Artifacts land under
+`.job-harness/v2/runs/<run_id>/`. Use `--append-to-run-id` for additional query
+variants. Read `processed-results.json` for presentation; `raw-listings.jsonl`
+is unfiltered evidence.
 
-New search-layer features to preserve:
+**v2 search features to preserve:**
 
-- Exact source selection via `sources` and semantic source selection via `source_groups`.
-- Per-source raw collection limits from the source catalog; `max_results` only caps downstream presentation.
-- Server-only `salary_from` and `freshness_days`; unsupported sources still collect raw listings and report unsupported criteria in source summaries.
-- Source-level retry for transient zero-listing failures; source summaries record `attempts`, `retries`, `limit_reached`, `server_criteria_used`, and `unsupported_requested_criteria`.
+- Full catalog when `--source` is omitted; exact ids when repeated `--source` is used.
+- Per-source raw limits from `source_catalog.sql`; `max_results` only caps processed export.
+- Criteria capabilities per source (`native_request`, `structured_output`, `unsupported`).
+- Append mode with shared run corpus and advancing `append_sequence`.
 
-The Python CLI still works standalone from the plugin root: `uv --directory plugins/job-harness run job-harness search --query "QA" --resolve --cache`
+The v2 CLI entry point:
+
+`uv --directory plugins/job-harness run job-harness-v2 search --query "QA" --country RU --max-results 20`
+
+Legacy v1 CLI/MCP remains under `job_harness.v1` for maintenance.
 
 ## Verification
 
-Run the canonical repository gate from the repo root before handing off code changes:
+Run from the repo root:
 
-`python scripts/verify_repo.py full`
+`python scripts/verify_v2.py` — v2 lint, types, unit tests, and full-catalog live e2e
 
-The full profile runs Ruff linting, mypy type checking, detect-secrets baseline scanning, and the plugin unit test suite.
+`python scripts/verify_repo.py full` — repository-wide gate including v1 tests

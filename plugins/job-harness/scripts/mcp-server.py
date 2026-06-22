@@ -65,7 +65,7 @@ def _get_browser_pool():
     """Construct the BrowserPool on first browser-needing call."""
     global _browser_pool_singleton
     if _browser_pool_singleton is None:
-        from job_harness.browser_pool import BrowserPool
+        from job_harness.v1.browser_pool import BrowserPool
 
         _browser_pool_singleton = BrowserPool(max_contexts=2)
     return _browser_pool_singleton
@@ -74,7 +74,7 @@ def _get_browser_pool():
 def _get_engine():
     global _engine_singleton
     if _engine_singleton is None:
-        from job_harness.search_engine import SearchEngine
+        from job_harness.v1.search_engine import SearchEngine
 
         _engine_singleton = SearchEngine(
             browser_pool=_get_browser_pool(),
@@ -87,9 +87,9 @@ def _get_run_registry():
     global _run_registry_singleton
     if _run_registry_singleton is None:
         # Lazy import side-effect: register every scraper.
-        import job_harness.scrapers  # noqa: F401
-        import job_harness.scrapers.career  # noqa: F401
-        from job_harness.run_registry import RunRegistry
+        import job_harness.v1.scrapers  # noqa: F401
+        import job_harness.v1.scrapers.career  # noqa: F401
+        from job_harness.v1.run_registry import RunRegistry
 
         async def runner(request, journal, run_id, retry_sources=None):
             engine = _get_engine()
@@ -111,7 +111,7 @@ def _get_run_registry():
 
 
 def _get_cache():
-    from job_harness.employer_cache import EmployerCache
+    from job_harness.v1.employer_cache import EmployerCache
 
     return EmployerCache(path=_LOCAL_CACHE, public_path=_PUBLIC_CACHE)
 
@@ -124,9 +124,9 @@ def _get_cache():
 @mcp.tool
 def list_sources() -> dict[str, dict]:
     """List available job board scrapers and their honest capabilities."""
-    import job_harness.scrapers  # noqa: F401
-    import job_harness.scrapers.career  # noqa: F401
-    from job_harness.registry import get_scraper_metadata
+    import job_harness.v1.scrapers  # noqa: F401
+    import job_harness.v1.scrapers.career  # noqa: F401
+    from job_harness.v1.registry import get_scraper_metadata
 
     return get_scraper_metadata()
 
@@ -149,7 +149,7 @@ def cache_upsert(
     ignored: bool = False,
 ) -> dict:
     """Insert or update a local cache entry."""
-    from job_harness.employer_cache import CompanyEntry
+    from job_harness.v1.employer_cache import CompanyEntry
 
     cache = _get_cache()
     entry = CompanyEntry(
@@ -189,7 +189,7 @@ def search_company_jobs(
     max_results: int = 20,
 ) -> dict:
     """Search the bundled company directory for employer career entrypoints."""
-    from job_harness.company_directory import search_company_directory
+    from job_harness.v1.company_directory import search_company_directory
 
     companies = search_company_directory(
         query=query,
@@ -236,9 +236,9 @@ def _build_search_request(
     strict_flags: bool = True,
     dedupe: bool = True,
 ):
-    from job_harness.countries import normalize_country_code
-    from job_harness.experience_engine import parse_experience_levels
-    from job_harness.types import SearchRequest, SourceGroup
+    from job_harness.v1.countries import normalize_country_code
+    from job_harness.v1.experience_engine import parse_experience_levels
+    from job_harness.v1.types import SearchRequest, SourceGroup
 
     source_tuple: tuple[str, ...] | None
     if sources in (None, "", "all"):
@@ -297,7 +297,7 @@ _INLINE_LIMIT_HINT = (
 
 async def _read_snap_or_error(run_id: str):
     """Return (reader, snapshot) or an error dict for unknown runs."""
-    from job_harness.run_registry import UnknownRunId
+    from job_harness.v1.run_registry import UnknownRunId
 
     registry = _get_run_registry()
     try:
@@ -346,7 +346,7 @@ async def search_start(
     exports results.json (default) or an inline listings slice;
     search_cancel operates on the journal and never blocks.
     """
-    from job_harness.run_registry import MaxConcurrentRunsReached
+    from job_harness.v1.run_registry import MaxConcurrentRunsReached
 
     try:
         request = _build_search_request(
@@ -397,7 +397,7 @@ async def search_start(
 @mcp.tool
 async def search_status(run_id: str) -> dict:
     """Cheap (<50ms) poll. Reads the journal on disk."""
-    from job_harness.run_registry import UnknownRunId
+    from job_harness.v1.run_registry import UnknownRunId
 
     registry = _get_run_registry()
     try:
@@ -409,7 +409,7 @@ async def search_status(run_id: str) -> dict:
     except UnknownRunId:
         return {"error": "unknown_run_id", "run_id": run_id}
     snap = reader.snapshot()
-    from job_harness.source_retry import build_retryable_sources, build_sources_by_state
+    from job_harness.v1.source_retry import build_retryable_sources, build_sources_by_state
 
     return {
         "run_id": run_id,
@@ -443,8 +443,8 @@ async def search_results(
     format=inline: return a paginated listings slice (hard-capped at 20).
     Pass debug=true to include per-source diagnostics.
     """
-    from job_harness.run_journal import build_results_payload
-    from job_harness.types import RunState
+    from job_harness.v1.run_journal import build_results_payload
+    from job_harness.v1.types import RunState
 
     reader, snap, error = await _read_snap_or_error(run_id)
     if error is not None:
@@ -467,7 +467,7 @@ async def search_results(
             "allowed": ["file", "inline"],
         }
 
-    from job_harness.run_journal import materialize_listings
+    from job_harness.v1.run_journal import materialize_listings
 
     materialized = materialize_listings(snap)
     effective_limit = min(limit, INLINE_LIMIT_MAX)
@@ -496,20 +496,20 @@ async def search_retry(
     strict_flags: bool | None = None,
 ) -> dict:
     """Re-dispatch failed sources in the same run without re-scraping ok ones."""
-    import job_harness.registry as scraper_registry
-    import job_harness.scrapers  # noqa: F401
-    import job_harness.scrapers.career  # noqa: F401
-    from job_harness.run_registry import (
+    import job_harness.v1.registry as scraper_registry
+    import job_harness.v1.scrapers  # noqa: F401
+    import job_harness.v1.scrapers.career  # noqa: F401
+    from job_harness.v1.run_registry import (
         MaxConcurrentRunsReached,
         RunStillActive,
         UnknownRunId,
     )
-    from job_harness.source_retry import (
+    from job_harness.v1.source_retry import (
         build_retryable_sources,
         parse_sources_csv,
         validate_retry_sources,
     )
-    from job_harness.types import RunState
+    from job_harness.v1.types import RunState
 
     _RETRY_HINT = (
         "For a full re-search with a new run id, call search_start."
@@ -593,7 +593,7 @@ async def search_retry(
 async def search_cancel(run_id: str) -> dict:
     """Cancel an active run. Returns immediately; cleanup happens
     asynchronously. Idempotent."""
-    from job_harness.run_registry import UnknownRunId
+    from job_harness.v1.run_registry import UnknownRunId
 
     try:
         await _get_run_registry().cancel(run_id)
@@ -616,9 +616,9 @@ async def search_refine(
     strict_refine: bool = False,
 ) -> dict:
     """Re-filter the journal of a finished run without re-scraping."""
-    from job_harness.experience_engine import parse_experience_levels
-    from job_harness.result_pipeline import raw_listings_from_dicts, run_result_pipeline
-    from job_harness.run_registry import UnknownRunId
+    from job_harness.v1.experience_engine import parse_experience_levels
+    from job_harness.v1.result_pipeline import raw_listings_from_dicts, run_result_pipeline
+    from job_harness.v1.run_registry import UnknownRunId
 
     registry = _get_run_registry()
     try:

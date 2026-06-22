@@ -10,9 +10,9 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from job_harness.experience_engine import assess_listing_experience
-from job_harness.models import JobListing
-from job_harness.types import FilterSupport
+from job_harness.v1.experience_engine import assess_listing_experience
+from job_harness.v1.models import JobListing
+from job_harness.v1.types import FilterSupport
 
 
 def main() -> int:

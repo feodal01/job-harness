@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 sys.path.insert(0, str(SRC))
 
-from job_harness.company_directory import normalize_company_key  # noqa: E402
+from job_harness.v1.company_directory import normalize_company_key  # noqa: E402
 
 # Inline ATS classifier (previously in employer_resolver.py). Pure
 # function used only by this build script.
