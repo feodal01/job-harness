@@ -1,0 +1,39 @@
+{
+  "outcome": "success",
+  "expected_count": 5,
+  "sample_listings": [
+    {
+      "source_listing_id": "45336",
+      "title": "Инженер по тестированию",
+      "url": "https://team.vk.company/vacancy/45336/",
+      "company": "Сервисы продуктивности VK Tech",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Дистанционный",
+      "remote_in_country": true,
+      "skills": ["QA automation", "QA manual"]
+    },
+    {
+      "source_listing_id": "45562",
+      "title": "QA-инженер",
+      "url": "https://team.vk.company/vacancy/45562/",
+      "company": "VK ID",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "skills": ["QA manual"]
+    },
+    {
+      "source_listing_id": "45556",
+      "title": "AQA",
+      "url": "https://team.vk.company/vacancy/45556/",
+      "company": "MAX",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Дистанционный",
+      "remote_in_country": true,
+      "skills": ["QA automation"]
+    }
+  ]
+}

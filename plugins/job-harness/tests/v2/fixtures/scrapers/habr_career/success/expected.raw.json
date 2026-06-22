@@ -1,0 +1,75 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://career.habr.com/vacancies?q=QA&type=all&page=2",
+  "sample_listings": [
+    {
+      "source_listing_id": "1000165585",
+      "title": "Главный инженер по качеству (QA-инженер)",
+      "url": "https://career.habr.com/vacancies/1000165585",
+      "company": "Банк России",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-16T17:32:25+03:00",
+      "remote_in_country": false,
+      "native_grade": "senior",
+      "skills": [
+        "Функциональное тестирование",
+        "Контроль качества",
+        "Camunda",
+        "Microsoft Visio",
+        "Описание бизнес-процессов",
+        "Бизнес-моделирование",
+        "Aris"
+      ]
+    },
+    {
+      "source_listing_id": "1000166694",
+      "title": "QA Engineer",
+      "url": "https://career.habr.com/vacancies/1000166694",
+      "company": "Actimind",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": "от 2200 $",
+      "salary_min": 2200,
+      "salary_max": null,
+      "salary_currency": "USD",
+      "posted_at": "2026-06-16T17:47:35+03:00",
+      "remote_in_country": true,
+      "native_grade": "middle",
+      "skills": [
+        "Тестирование ПО",
+        "Разработка тест-кейсов",
+        "Нагрузочное тестирование",
+        "Регрессионное тестирование",
+        "Автоматизация тестирования",
+        "Python",
+        "Английский язык",
+        "Анализ требований"
+      ]
+    },
+    {
+      "source_listing_id": "1000166670",
+      "title": "AI/LLM Инженер",
+      "url": "https://career.habr.com/vacancies/1000166670",
+      "company": "Bell Integrator",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Санкт-Петербург",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-17T16:46:18+03:00",
+      "remote_in_country": false,
+      "native_grade": "senior",
+      "skills": ["Python", "LLM", "Langgraph"]
+    }
+  ]
+}

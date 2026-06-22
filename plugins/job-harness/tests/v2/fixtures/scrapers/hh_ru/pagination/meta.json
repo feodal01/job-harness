@@ -1,0 +1,11 @@
+{
+  "source_id": "hh_ru",
+  "captured_url": "https://hh.ru/search/vacancy?text=QA&area=113&search_field=name&page=1",
+  "capture_date": "2026-06-22",
+  "capture_method": "curl -L --compressed with desktop Chrome user-agent",
+  "fixture_kind": "pagination",
+  "redactions": [
+    "None; the committed artifact is the real public HTML response captured from hh.ru."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

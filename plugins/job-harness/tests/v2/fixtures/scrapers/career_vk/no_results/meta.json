@@ -1,0 +1,11 @@
+{
+  "source_id": "career:vk",
+  "captured_url": "https://team.vk.company/vacancy/?search=zzzzzz-no-such-job-20260622",
+  "capture_date": "2026-06-22",
+  "capture_method": "curl -L --compressed with desktop Chrome user-agent",
+  "fixture_kind": "no_results",
+  "redactions": [
+    "Minimized to the real Next.js __NEXT_DATA__ script with initialTotalCount=0."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

@@ -1,0 +1,11 @@
+{
+  "source_id": "career:jetbrains",
+  "captured_url": "https://boards-api.greenhouse.io/v1/boards/jetbrains/jobs?content=true",
+  "capture_date": "2026-06-22",
+  "capture_method": "urllib.request with job-harness-v2 fixture capture user-agent",
+  "fixture_kind": "success_non_empty",
+  "redactions": [
+    "Minimized to four real Greenhouse job records while preserving original JSON keys, nesting, URLs, and source text for parser coverage."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

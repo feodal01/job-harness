@@ -1,0 +1,11 @@
+{
+  "source_id": "habr_career",
+  "captured_url": "https://career.habr.com/vacancies?q=zzzzzz-no-such-job-20260622&type=all",
+  "capture_date": "2026-06-22",
+  "capture_method": "curl -L --compressed with desktop Chrome user-agent",
+  "fixture_kind": "no_results",
+  "redactions": [
+    "Minimized to the real source JSON script that contains vacancies.meta.totalResults=0."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}
