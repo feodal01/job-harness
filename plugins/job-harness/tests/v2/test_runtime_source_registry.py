@@ -24,6 +24,7 @@ class RuntimeSourceRegistryTest(unittest.TestCase):
                 "finder_work",
                 "getmatch",
                 "it_jobs_uz",
+                "hirify",
             ),
             implemented_source_ids(),
         )
