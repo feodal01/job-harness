@@ -96,7 +96,8 @@ VALUES
     (1, 'hh_ru', 'aggregator', 'http', 100),
     (2, 'talanto', 'aggregator', 'http', 50),
     (3, 'career:vk', 'company_career', 'http', 25),
-    (4, 'career:jetbrains', 'company_career', 'http', 120);
+    (4, 'career:jetbrains', 'company_career', 'http', 120),
+    (5, 'geekjob', 'aggregator', 'http', 50);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -154,7 +155,16 @@ VALUES
     ('career:jetbrains', 5, 'remote_in_country', 'structured_output'),
     ('career:jetbrains', 6, 'remote_global', 'structured_output'),
     ('career:jetbrains', 7, 'countries', 'structured_output'),
-    ('career:jetbrains', 8, 'cities', 'structured_output');
+    ('career:jetbrains', 8, 'cities', 'structured_output'),
+    ('geekjob', 0, 'query', 'structured_output'),
+    ('geekjob', 1, 'grades', 'unsupported'),
+    ('geekjob', 2, 'salary_from', 'structured_output'),
+    ('geekjob', 3, 'published_since', 'structured_output'),
+    ('geekjob', 4, 'relocation', 'unsupported'),
+    ('geekjob', 5, 'remote_in_country', 'structured_output'),
+    ('geekjob', 6, 'remote_global', 'structured_output'),
+    ('geekjob', 7, 'countries', 'structured_output'),
+    ('geekjob', 8, 'cities', 'unsupported');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -166,7 +176,8 @@ VALUES
     ('hh_ru', 'pagination'),
     ('hh_ru', 'optional_fields'),
     ('talanto', 'no_results'),
-    ('career:vk', 'no_results');
+    ('career:vk', 'no_results'),
+    ('geekjob', 'no_results');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -331,6 +342,28 @@ VALUES
         'tests/v2/fixtures/scrapers/career_jetbrains/success/response.json',
         'tests/v2/fixtures/scrapers/career_jetbrains/success/meta.json',
         'tests/v2/fixtures/scrapers/career_jetbrains/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'geekjob',
+        0,
+        'geekjob-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/geekjob/success/response.html',
+        'tests/v2/fixtures/scrapers/geekjob/success/meta.json',
+        'tests/v2/fixtures/scrapers/geekjob/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'geekjob',
+        1,
+        'geekjob-no_results',
+        'no_results',
+        'tests/v2/fixtures/scrapers/geekjob/no_results/response.html',
+        'tests/v2/fixtures/scrapers/geekjob/no_results/meta.json',
+        'tests/v2/fixtures/scrapers/geekjob/no_results/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );
