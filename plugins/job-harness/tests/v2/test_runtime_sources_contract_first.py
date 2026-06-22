@@ -27,6 +27,7 @@ from job_harness.v2.runtime.sources import (
     GetmatchSource,
     HabrCareerSource,
     HhRuSource,
+    ItJobsUzSource,
     JetBrainsCareerSource,
     TalantoSource,
     TalentoSource,
@@ -51,6 +52,7 @@ _GETMATCH_OFFERS_QA_MANUAL_URL = "https://getmatch.ru/api/offers?sa=any&p=1&offs
 _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL = (
     "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=load_performance"
 )
+_IT_JOBS_UZ_QA_URL = "https://www.it-jobs.uz/api/jobs?search=QA&limit=100&page=1&category=qa"
 _NO_RESULTS_QUERY = "zzzzzz-no-such-job-20260622"
 _GEEKJOB_NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
 _HABR_NO_RESULTS_URL = f"https://career.habr.com/vacancies?q={_NO_RESULTS_QUERY}&type=all"
@@ -805,6 +807,135 @@ class GetmatchSourceTest(unittest.TestCase):
         self.assertTrue(parsed.evidence.no_results)
 
 
+class ItJobsUzSourceTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=ItJobsUzSource(),
+            fixture_suite=source_fixture_suite("it_jobs_uz"),
+        )
+
+        # Assert
+        self.assertEqual("it_jobs_uz", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_uses_native_query_and_category(self) -> None:
+        # Arrange
+        source = ItJobsUzSource()
+
+        # Act
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+
+        # Assert
+        self.assertEqual("it_jobs_uz", fetch_request.source_id)
+        self.assertEqual("QA", fetch_request.query_variant)
+        self.assertEqual(_IT_JOBS_UZ_QA_URL, fetch_request.url)
+
+    def test_success_fixture_chains_next_page_when_api_reports_more_pages(self) -> None:
+        # Arrange
+        source = ItJobsUzSource()
+        payload = {
+            "data": [],
+            "total": 40,
+            "page": 1,
+            "limit": 100,
+            "totalPages": 2,
+        }
+
+        # Act
+        parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="it_jobs_uz",
+                url=_IT_JOBS_UZ_QA_URL,
+                media_type="application/json",
+                body=json.dumps(payload),
+            ),
+            SourceFetchRequest(
+                source_id="it_jobs_uz",
+                query_variant="QA",
+                url=_IT_JOBS_UZ_QA_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertIsNotNone(parsed.next_request)
+        assert parsed.next_request is not None
+        self.assertIn("page=2", parsed.next_request.url)
+        self.assertIn("limit=100", parsed.next_request.url)
+
+    def test_client_filter_rejects_page_without_chaining_more_pages(self) -> None:
+        # Arrange
+        source = ItJobsUzSource()
+        payload = {
+            "data": [{"id": 1, "title": "Backend Dev", "slug": "backend-dev"}],
+            "total": 331,
+            "page": 1,
+            "limit": 100,
+            "totalPages": 4,
+        }
+
+        # Act
+        parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="it_jobs_uz",
+                url="https://www.it-jobs.uz/api/jobs?search=zzzzzzzzzzzzzzzz&limit=100&page=1",
+                media_type="application/json",
+                body=json.dumps(payload),
+            ),
+            SourceFetchRequest(
+                source_id="it_jobs_uz",
+                query_variant="zzzzzzzzzzzzzzzz",
+                url="https://www.it-jobs.uz/api/jobs?search=zzzzzzzzzzzzzzzz&limit=100&page=1",
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
+        self.assertIsNone(parsed.next_request)
+        self.assertTrue(parsed.evidence.no_results)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = ItJobsUzSource()
+        expected = _expected("it_jobs_uz", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("it_jobs_uz", "success"),
+            SourceFetchRequest(
+                source_id="it_jobs_uz",
+                query_variant="QA",
+                url=_IT_JOBS_UZ_QA_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_no_results_fixture_is_explicit_no_results(self) -> None:
+        # Arrange
+        source = ItJobsUzSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("it_jobs_uz", "no_results"),
+            SourceFetchRequest(
+                source_id="it_jobs_uz",
+                query_variant="zzzzzzzzzzzzzzzz",
+                url="https://www.it-jobs.uz/api/jobs?search=zzzzzzzzzzzzzzzz&limit=100&page=1",
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertTrue(parsed.evidence.no_results)
+
+
 class JetBrainsCareerSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
@@ -870,6 +1001,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
         talento = TalentoSource()
         finder_work = FinderWorkSource()
         getmatch = GetmatchSource()
+        it_jobs_uz = ItJobsUzSource()
         fetcher = FixtureFetcher(
             {
                 _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
@@ -886,6 +1018,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                 _GETMATCH_OFFERS_QA_AUTO_URL: _FIXTURES / "getmatch" / "success" / "response.json",
                 _GETMATCH_OFFERS_QA_MANUAL_URL: _FIXTURES / "getmatch" / "success" / "response.json",
                 _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL: _FIXTURES / "getmatch" / "success" / "response.json",
+                _IT_JOBS_UZ_QA_URL: _FIXTURES / "it_jobs_uz" / "success" / "response.json",
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -917,6 +1050,10 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                                 scraper=getmatch,
                                 fixture_suite=source_fixture_suite("getmatch"),
                             ),
+                            SupportedSource(
+                                scraper=it_jobs_uz,
+                                fixture_suite=source_fixture_suite("it_jobs_uz"),
+                            ),
                         )
                     ),
                     fetcher=fetcher,
@@ -938,6 +1075,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["talento"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["finder_work"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["getmatch"].outcome)
+            self.assertEqual(SourceOutcome.SUCCESS, outcomes["it_jobs_uz"].outcome)
             self.assertEqual(2, outcomes["habr_career"].counts.pages_visited)
             self.assertEqual(2, outcomes["hh_ru"].counts.pages_visited)
             self.assertEqual(1, outcomes["talanto"].counts.pages_visited)
@@ -947,13 +1085,14 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(1, outcomes["talento"].counts.pages_visited)
             self.assertEqual(1, outcomes["finder_work"].counts.pages_visited)
             self.assertEqual(4, outcomes["getmatch"].counts.pages_visited)
-            self.assertEqual(260, result.raw_records_written)
+            self.assertEqual(1, outcomes["it_jobs_uz"].counts.pages_visited)
+            self.assertEqual(278, result.raw_records_written)
 
             raw_records = [
                 json.loads(line)
                 for line in (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(260, len(raw_records))
+            self.assertEqual(278, len(raw_records))
             self.assertEqual(
                 {
                     "habr_career",
@@ -964,6 +1103,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                     "talento",
                     "finder_work",
                     "getmatch",
+                    "it_jobs_uz",
                 },
                 {record["source"] for record in raw_records},
             )

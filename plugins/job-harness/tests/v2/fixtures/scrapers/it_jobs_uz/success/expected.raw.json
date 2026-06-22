@@ -1,0 +1,94 @@
+{
+  "outcome": "success",
+  "expected_count": 18,
+  "sample_listings": [
+    {
+      "source_listing_id": "cmq9caz82000ldce2h3nxr6db",
+      "title": "Middle QA Engineer",
+      "url": "https://www.it-jobs.uz/en/jobs/middle-qa-engineer-remote-unknown-8274",
+      "company": "it-bench.work",
+      "country": "UZ",
+      "city": null,
+      "location_text": null,
+      "salary_text": "1500 - 2500USD/month",
+      "salary_min": 1500,
+      "salary_max": 2500,
+      "salary_currency": "USD",
+      "posted_at": "2026-06-11T00:00:00.000Z",
+      "remote_in_country": true,
+      "remote_global": true,
+      "native_grade": "middle",
+      "skills": [
+        "qa",
+        "middle"
+      ],
+      "raw_keys": [
+        "apply_url",
+        "benefits",
+        "category",
+        "category_name",
+        "id",
+        "responsibilities",
+        "work_type"
+      ]
+    },
+    {
+      "source_listing_id": "cmq4jvqtc001te3ffmkaw0khe",
+      "title": "QA Engineer (Middle)",
+      "url": "https://www.it-jobs.uz/en/jobs/qa-engineer-middle-unknown-8221",
+      "company": "Unknown",
+      "country": "UZ",
+      "city": "Tashkent",
+      "location_text": "Tashkent",
+      "salary_text": "1500 - 2000USD/month",
+      "salary_min": 1500,
+      "salary_max": 2000,
+      "salary_currency": "USD",
+      "posted_at": "2026-05-04T08:57:27.000Z",
+      "remote_in_country": true,
+      "remote_global": true,
+      "native_grade": "middle",
+      "skills": [
+        "qa",
+        "tashkent",
+        "remote"
+      ],
+      "raw_keys": [
+        "apply_url",
+        "benefits",
+        "category",
+        "category_name",
+        "id",
+        "responsibilities",
+        "work_type"
+      ]
+    },
+    {
+      "source_listing_id": "cmnynkf8i0009d0p3rky80bdl",
+      "title": "Strong Junior QA Engineer",
+      "url": "https://www.it-jobs.uz/en/jobs/aoba-jamoasiga-strong-junior-qa-engineer-kerak-unknown-8168",
+      "company": "AOBA",
+      "country": "UZ",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": "USD",
+      "posted_at": "2026-03-26T00:00:00.000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": "junior",
+      "skills": [
+        "qa"
+      ],
+      "raw_keys": [
+        "apply_url",
+        "category",
+        "category_name",
+        "id",
+        "work_type"
+      ]
+    }
+  ]
+}
