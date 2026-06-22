@@ -22,6 +22,7 @@ from job_harness.v2.runtime import (
     SupportedSource,
 )
 from job_harness.v2.runtime.sources import (
+    FinderWorkSource,
     GeekJobSource,
     HabrCareerSource,
     HhRuSource,
@@ -42,6 +43,7 @@ _VK_QA_URL = "https://team.vk.company/vacancy/?specialty=284"
 _JETBRAINS_URL = "https://boards-api.greenhouse.io/v1/boards/jetbrains/jobs?content=true"
 _GEEKJOB_URL = "https://geekjob.ru/vacancies"
 _TALENTO_WORKS_QA_URL = "https://talento.works/?q=QA"
+_FINDER_WORK_QA_URL = "https://api.finder.work/api/v1/vacancies?search=QA"
 _NO_RESULTS_QUERY = "zzzzzz-no-such-job-20260622"
 _GEEKJOB_NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
 _HABR_NO_RESULTS_URL = f"https://career.habr.com/vacancies?q={_NO_RESULTS_QUERY}&type=all"
@@ -640,6 +642,70 @@ class TalentoSourceTest(unittest.TestCase):
         self.assertTrue(parsed.evidence.no_results)
 
 
+class FinderWorkSourceTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=FinderWorkSource(),
+            fixture_suite=source_fixture_suite("finder_work"),
+        )
+
+        # Assert
+        self.assertEqual("finder_work", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_uses_native_query(self) -> None:
+        # Arrange
+        source = FinderWorkSource()
+
+        # Act
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+
+        # Assert
+        self.assertEqual("finder_work", fetch_request.source_id)
+        self.assertEqual("QA", fetch_request.query_variant)
+        self.assertEqual(_FINDER_WORK_QA_URL, fetch_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = FinderWorkSource()
+        expected = _expected("finder_work", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("finder_work", "success"),
+            SourceFetchRequest(
+                source_id="finder_work",
+                query_variant="QA",
+                url=_FINDER_WORK_QA_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_no_results_fixture_is_explicit_no_results(self) -> None:
+        # Arrange
+        source = FinderWorkSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("finder_work", "no_results"),
+            SourceFetchRequest(
+                source_id="finder_work",
+                query_variant="zzzzzzzzzzzzzzzz",
+                url="https://api.finder.work/api/v1/vacancies?search=zzzzzzzzzzzzzzzz",
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertTrue(parsed.evidence.no_results)
+
+
 class JetBrainsCareerSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
@@ -703,6 +769,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
         jetbrains = JetBrainsCareerSource()
         geekjob = GeekJobSource()
         talento = TalentoSource()
+        finder_work = FinderWorkSource()
         fetcher = FixtureFetcher(
             {
                 _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
@@ -714,6 +781,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                 _JETBRAINS_URL: _FIXTURES / "career_jetbrains" / "success" / "response.json",
                 _GEEKJOB_URL: _FIXTURES / "geekjob" / "success" / "response.html",
                 _TALENTO_WORKS_QA_URL: _FIXTURES / "talento" / "success" / "response.html",
+                _FINDER_WORK_QA_URL: _FIXTURES / "finder_work" / "success" / "response.json",
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -737,6 +805,10 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                                 scraper=talento,
                                 fixture_suite=source_fixture_suite("talento"),
                             ),
+                            SupportedSource(
+                                scraper=finder_work,
+                                fixture_suite=source_fixture_suite("finder_work"),
+                            ),
                         )
                     ),
                     fetcher=fetcher,
@@ -756,6 +828,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["career:jetbrains"].outcome)
             self.assertEqual(SourceOutcome.NO_RESULTS, outcomes["geekjob"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["talento"].outcome)
+            self.assertEqual(SourceOutcome.SUCCESS, outcomes["finder_work"].outcome)
             self.assertEqual(2, outcomes["habr_career"].counts.pages_visited)
             self.assertEqual(2, outcomes["hh_ru"].counts.pages_visited)
             self.assertEqual(1, outcomes["talanto"].counts.pages_visited)
@@ -763,15 +836,16 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(1, outcomes["career:jetbrains"].counts.pages_visited)
             self.assertEqual(1, outcomes["geekjob"].counts.pages_visited)
             self.assertEqual(1, outcomes["talento"].counts.pages_visited)
-            self.assertEqual(199, result.raw_records_written)
+            self.assertEqual(1, outcomes["finder_work"].counts.pages_visited)
+            self.assertEqual(234, result.raw_records_written)
 
             raw_records = [
                 json.loads(line)
                 for line in (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(199, len(raw_records))
+            self.assertEqual(234, len(raw_records))
             self.assertEqual(
-                {"habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "talento"},
+                {"habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "talento", "finder_work"},
                 {record["source"] for record in raw_records},
             )
             self.assertIn(
