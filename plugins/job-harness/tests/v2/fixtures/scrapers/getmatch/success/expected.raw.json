@@ -1,0 +1,72 @@
+{
+  "outcome": "success",
+  "expected_count": 26,
+  "sample_listings": [
+    {
+      "source_listing_id": "34397",
+      "title": "SPRINT OFFER для инженеров по автоматизации тестирования (AQA Python)",
+      "url": "https://getmatch.ru/vacancies/34397-sprint-offer-dlia-inzhenerov-po-avtomatizatsii",
+      "company": "БЮРО 1440",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Россия, Москва",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-18T13:26:40.639374",
+      "remote_in_country": true,
+      "remote_global": true,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "34259",
+      "title": "Старший инженер по автоматизации тестирования C# (ERP и учётные системы)",
+      "url": "https://getmatch.ru/vacancies/34259-starshii-inzhener-po-avtomatizatsii-testirovaniia-c",
+      "company": "Ozon",
+      "country": "RU",
+      "city": "Весь мир",
+      "location_text": "Весь мир",
+      "salary_text": "от 365 000 ₽/‍мес до налогов, совокупно",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-18T15:16:49.588386",
+      "remote_in_country": true,
+      "remote_global": true,
+      "native_grade": null,
+      "skills": [
+        "SQL",
+        "C#"
+      ]
+    },
+    {
+      "source_listing_id": "33888",
+      "title": "Senior Fullstack QA Engineer (Python)",
+      "url": "https://getmatch.ru/vacancies/33888-senior-fullstack-qa-engineer-python",
+      "company": "Сбер",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва (Кутузовская)",
+      "salary_text": "250 000 —‍ 350 000 ₽/‍мес на руки",
+      "salary_min": 250000,
+      "salary_max": 350000,
+      "salary_currency": "RUB",
+      "posted_at": "2026-06-18T09:01:03.355154",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": [
+        "Python",
+        "Postman",
+        "SQL",
+        "PyTest",
+        "CI/CD",
+        "Jenkins",
+        "GitLab CI/CD",
+        "DevTools / Postman"
+      ]
+    }
+  ]
+}

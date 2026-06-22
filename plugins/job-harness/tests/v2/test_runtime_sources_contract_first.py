@@ -24,6 +24,7 @@ from job_harness.v2.runtime import (
 from job_harness.v2.runtime.sources import (
     FinderWorkSource,
     GeekJobSource,
+    GetmatchSource,
     HabrCareerSource,
     HhRuSource,
     JetBrainsCareerSource,
@@ -44,6 +45,12 @@ _JETBRAINS_URL = "https://boards-api.greenhouse.io/v1/boards/jetbrains/jobs?cont
 _GEEKJOB_URL = "https://geekjob.ru/vacancies"
 _TALENTO_WORKS_QA_URL = "https://talento.works/?q=QA"
 _FINDER_WORK_QA_URL = "https://api.finder.work/api/v1/vacancies?search=QA"
+_GETMATCH_SPECIALIZATIONS_URL = "https://getmatch.ru/api/specializations"
+_GETMATCH_OFFERS_QA_AUTO_URL = "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=qa_auto"
+_GETMATCH_OFFERS_QA_MANUAL_URL = "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=qa_manual"
+_GETMATCH_OFFERS_LOAD_PERFORMANCE_URL = (
+    "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=load_performance"
+)
 _NO_RESULTS_QUERY = "zzzzzz-no-such-job-20260622"
 _GEEKJOB_NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
 _HABR_NO_RESULTS_URL = f"https://career.habr.com/vacancies?q={_NO_RESULTS_QUERY}&type=all"
@@ -706,6 +713,98 @@ class FinderWorkSourceTest(unittest.TestCase):
         self.assertTrue(parsed.evidence.no_results)
 
 
+class GetmatchSourceTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=GetmatchSource(),
+            fixture_suite=source_fixture_suite("getmatch"),
+        )
+
+        # Assert
+        self.assertEqual("getmatch", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_starts_with_specializations(self) -> None:
+        # Arrange
+        source = GetmatchSource()
+
+        # Act
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+
+        # Assert
+        self.assertEqual("getmatch", fetch_request.source_id)
+        self.assertEqual("QA", fetch_request.query_variant)
+        self.assertEqual(_GETMATCH_SPECIALIZATIONS_URL, fetch_request.url)
+
+    def test_specializations_fixture_chains_qa_offer_requests(self) -> None:
+        # Arrange
+        source = GetmatchSource()
+        specializations_path = _FIXTURES / "getmatch" / "success" / "specializations.json"
+
+        # Act
+        parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="getmatch",
+                url=_GETMATCH_SPECIALIZATIONS_URL,
+                media_type="application/json",
+                body=specializations_path.read_text(encoding="utf-8"),
+            ),
+            SourceFetchRequest(
+                source_id="getmatch",
+                query_variant="QA",
+                url=_GETMATCH_SPECIALIZATIONS_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertIsNotNone(parsed.next_request)
+        assert parsed.next_request is not None
+        self.assertEqual(_GETMATCH_OFFERS_QA_AUTO_URL, parsed.next_request.url)
+        self.assertEqual("qa_manual,load_performance", parsed.next_request.headers["x-getmatch-pending-slugs"])
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = GetmatchSource()
+        expected = _expected("getmatch", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("getmatch", "success"),
+            SourceFetchRequest(
+                source_id="getmatch",
+                query_variant="QA",
+                url=_GETMATCH_OFFERS_QA_AUTO_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_no_results_fixture_is_explicit_no_results(self) -> None:
+        # Arrange
+        source = GetmatchSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("getmatch", "no_results"),
+            SourceFetchRequest(
+                source_id="getmatch",
+                query_variant="zzzzzzzzzzzzzzzz",
+                url=_GETMATCH_OFFERS_QA_AUTO_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertTrue(parsed.evidence.no_results)
+
+
 class JetBrainsCareerSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
@@ -770,6 +869,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
         geekjob = GeekJobSource()
         talento = TalentoSource()
         finder_work = FinderWorkSource()
+        getmatch = GetmatchSource()
         fetcher = FixtureFetcher(
             {
                 _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
@@ -782,6 +882,10 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                 _GEEKJOB_URL: _FIXTURES / "geekjob" / "success" / "response.html",
                 _TALENTO_WORKS_QA_URL: _FIXTURES / "talento" / "success" / "response.html",
                 _FINDER_WORK_QA_URL: _FIXTURES / "finder_work" / "success" / "response.json",
+                _GETMATCH_SPECIALIZATIONS_URL: _FIXTURES / "getmatch" / "success" / "specializations.json",
+                _GETMATCH_OFFERS_QA_AUTO_URL: _FIXTURES / "getmatch" / "success" / "response.json",
+                _GETMATCH_OFFERS_QA_MANUAL_URL: _FIXTURES / "getmatch" / "success" / "response.json",
+                _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL: _FIXTURES / "getmatch" / "success" / "response.json",
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -809,6 +913,10 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                                 scraper=finder_work,
                                 fixture_suite=source_fixture_suite("finder_work"),
                             ),
+                            SupportedSource(
+                                scraper=getmatch,
+                                fixture_suite=source_fixture_suite("getmatch"),
+                            ),
                         )
                     ),
                     fetcher=fetcher,
@@ -829,6 +937,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.NO_RESULTS, outcomes["geekjob"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["talento"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["finder_work"].outcome)
+            self.assertEqual(SourceOutcome.SUCCESS, outcomes["getmatch"].outcome)
             self.assertEqual(2, outcomes["habr_career"].counts.pages_visited)
             self.assertEqual(2, outcomes["hh_ru"].counts.pages_visited)
             self.assertEqual(1, outcomes["talanto"].counts.pages_visited)
@@ -837,15 +946,25 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(1, outcomes["geekjob"].counts.pages_visited)
             self.assertEqual(1, outcomes["talento"].counts.pages_visited)
             self.assertEqual(1, outcomes["finder_work"].counts.pages_visited)
-            self.assertEqual(234, result.raw_records_written)
+            self.assertEqual(4, outcomes["getmatch"].counts.pages_visited)
+            self.assertEqual(260, result.raw_records_written)
 
             raw_records = [
                 json.loads(line)
                 for line in (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(234, len(raw_records))
+            self.assertEqual(260, len(raw_records))
             self.assertEqual(
-                {"habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "talento", "finder_work"},
+                {
+                    "habr_career",
+                    "hh_ru",
+                    "talanto",
+                    "career:vk",
+                    "career:jetbrains",
+                    "talento",
+                    "finder_work",
+                    "getmatch",
+                },
                 {record["source"] for record in raw_records},
             )
             self.assertIn(

@@ -99,7 +99,8 @@ VALUES
     (4, 'career:jetbrains', 'company_career', 'http', 120),
     (5, 'geekjob', 'aggregator', 'http', 50),
     (6, 'talento', 'aggregator', 'http', 50),
-    (7, 'finder_work', 'aggregator', 'http', 100);
+    (7, 'finder_work', 'aggregator', 'http', 100),
+    (8, 'getmatch', 'aggregator', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -184,7 +185,16 @@ VALUES
     ('finder_work', 5, 'remote_in_country', 'structured_output'),
     ('finder_work', 6, 'remote_global', 'unsupported'),
     ('finder_work', 7, 'countries', 'structured_output'),
-    ('finder_work', 8, 'cities', 'structured_output');
+    ('finder_work', 8, 'cities', 'structured_output'),
+    ('getmatch', 0, 'query', 'native_request'),
+    ('getmatch', 1, 'grades', 'unsupported'),
+    ('getmatch', 2, 'salary_from', 'unsupported'),
+    ('getmatch', 3, 'published_since', 'structured_output'),
+    ('getmatch', 4, 'relocation', 'unsupported'),
+    ('getmatch', 5, 'remote_in_country', 'structured_output'),
+    ('getmatch', 6, 'remote_global', 'structured_output'),
+    ('getmatch', 7, 'countries', 'structured_output'),
+    ('getmatch', 8, 'cities', 'structured_output');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -199,7 +209,8 @@ VALUES
     ('career:vk', 'no_results'),
     ('geekjob', 'no_results'),
     ('talento', 'no_results'),
-    ('finder_work', 'no_results');
+    ('finder_work', 'no_results'),
+    ('getmatch', 'no_results');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -430,6 +441,28 @@ VALUES
         'tests/v2/fixtures/scrapers/finder_work/no_results/response.json',
         'tests/v2/fixtures/scrapers/finder_work/no_results/meta.json',
         'tests/v2/fixtures/scrapers/finder_work/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'getmatch',
+        0,
+        'getmatch-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/getmatch/success/response.json',
+        'tests/v2/fixtures/scrapers/getmatch/success/meta.json',
+        'tests/v2/fixtures/scrapers/getmatch/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'getmatch',
+        1,
+        'getmatch-no_results',
+        'no_results',
+        'tests/v2/fixtures/scrapers/getmatch/no_results/response.json',
+        'tests/v2/fixtures/scrapers/getmatch/no_results/meta.json',
+        'tests/v2/fixtures/scrapers/getmatch/no_results/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

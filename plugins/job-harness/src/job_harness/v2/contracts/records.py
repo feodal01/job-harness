@@ -132,6 +132,7 @@ class RetryInfo:
 @dataclass(frozen=True)
 class AttemptEvidence:
     no_results: bool = False
+    multi_step_terminal: bool = False
     block_signal: str | None = None
     error: str | None = None
 

@@ -13,7 +13,17 @@ class RuntimeSourceRegistryTest(unittest.TestCase):
 
         # Act / Assert
         self.assertEqual(
-            ("habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "geekjob", "talento", "finder_work"),
+            (
+                "habr_career",
+                "hh_ru",
+                "talanto",
+                "career:vk",
+                "career:jetbrains",
+                "geekjob",
+                "talento",
+                "finder_work",
+                "getmatch",
+            ),
             implemented_source_ids(),
         )
         self.assertTrue(set(implemented_source_ids()) <= catalog_ids)
