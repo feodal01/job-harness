@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins" / "job-harness"
 PLUGIN_ARG = PLUGIN_DIR.relative_to(ROOT).as_posix()
+V2_LIVE_E2E_SCRIPT = ROOT / "scripts" / "v2_live_e2e.py"
 V2_RUFF_RULES = "E,F,W,I,B,UP,C4,SIM,RET,ARG,PLC,PLE,PLR"
 V2_RUFF_IGNORES = "PLR0911,PLR0913"
 V2_MYPY_STRICT_FLAGS = (
@@ -47,6 +48,7 @@ CANONICAL_OUTCOMES = {
     "invalid_source_output",
     "resource_failure",
 }
+LIVE_HEALTHY_OUTCOMES = frozenset({"success", "no_results", "partial_success"})
 
 
 def main() -> int:
@@ -54,7 +56,7 @@ def main() -> int:
     parser.add_argument(
         "--skip-live",
         action="store_true",
-        help="Run only deterministic v2 checks. The default includes live e2e smoke.",
+        help="Run only deterministic v2 checks. The default includes a full-catalog live e2e run.",
     )
     args = parser.parse_args()
 
@@ -98,6 +100,7 @@ def _run_v2_lint() -> int:
             "src/job_harness/v2",
             "tests/v2",
             "../../scripts/verify_v2.py",
+            "../../scripts/v2_live_e2e.py",
         ]
     )
 
@@ -113,6 +116,7 @@ def _run_v2_types() -> int:
             "src/job_harness/v2",
             "tests/v2",
             "../../scripts/verify_v2.py",
+            "../../scripts/v2_live_e2e.py",
             *V2_MYPY_STRICT_FLAGS,
         ]
     )
@@ -201,83 +205,58 @@ def _run_v2_application_cli_tests() -> int:
 
 
 def _run_v2_live_e2e() -> int:
-    print("+ v2 live e2e smoke", flush=True)
+    print("+ v2 live e2e (V2SearchApplication, full catalog)", flush=True)
     with tempfile.TemporaryDirectory(prefix="job-harness-v2-live-") as tmp:
-        first = _run_cli_search(
-            runs_dir=Path(tmp),
-            args=(
-                "--query",
-                "QA",
-                "--source",
-                "habr_career",
-                "--source",
-                "hh_ru",
-                "--source",
-                "talanto",
-                "--source",
-                "career:vk",
-                "--source",
-                "career:jetbrains",
-                "--max-results",
-                "5",
-            ),
+        report = _run_live_e2e_report(runs_dir=Path(tmp))
+        if report is None:
+            return 1
+        expected_source_ids = _report_expected_source_ids(report)
+        if expected_source_ids is None:
+            return 1
+        print(
+            f"v2 live e2e catalog: {len(expected_source_ids)} implemented sources",
+            flush=True,
         )
+
+        first = _report_execution(report, key="first")
         if first is None:
             return 1
-        if not _validate_live_execution(first, expected_append_sequence=0):
+        if not _validate_live_execution(
+            first,
+            expected_append_sequence=0,
+            expected_source_ids=expected_source_ids,
+        ):
             return 1
+        _print_live_execution_summary(first, label="live run 1 (QA, grade=middle, salary_from=150000, RU+AM)")
 
-        run_id = _required_text(first, "run_id")
-        second = _run_cli_search(
-            runs_dir=Path(tmp),
-            args=(
-                "--query",
-                "тестировщик",
-                "--source",
-                "habr_career",
-                "--source",
-                "hh_ru",
-                "--source",
-                "talanto",
-                "--source",
-                "career:vk",
-                "--source",
-                "career:jetbrains",
-                "--max-results",
-                "5",
-                "--append-to-run-id",
-                run_id,
-            ),
-        )
+        second = _report_execution(report, key="second")
         if second is None:
             return 1
-        if not _validate_live_execution(second, expected_append_sequence=1):
+        if not _validate_live_execution(
+            second,
+            expected_append_sequence=1,
+            expected_source_ids=expected_source_ids,
+        ):
             return 1
+        _print_live_execution_summary(
+            second,
+            label="live run 2 (append тестировщик, RU+AM, exclude_text)",
+        )
         return _validate_append_artifacts(first, second)
 
 
-def _run_cli_search(*, runs_dir: Path, args: tuple[str, ...]) -> dict[str, object] | None:
-    cmd = (
-        "uv",
-        "--directory",
-        PLUGIN_ARG,
-        "run",
-        "job-harness-v2",
-        "search",
-        "--runs-dir",
-        str(runs_dir),
-        "--retry-attempts",
-        "1",
-        "--source-attempt-timeout",
-        "25",
-        "--run-timeout",
-        "60",
-        "--fetch-timeout",
-        "20",
-        *args,
-    )
+def _run_live_e2e_report(*, runs_dir: Path) -> dict[str, object] | None:
     completed = subprocess.run(
-        cmd,
+        [
+            "uv",
+            "--directory",
+            PLUGIN_ARG,
+            "run",
+            "python",
+            str(V2_LIVE_E2E_SCRIPT),
+            "--runs-dir",
+            str(runs_dir),
+        ],
         cwd=ROOT,
         text=True,
         capture_output=True,
@@ -290,16 +269,54 @@ def _run_cli_search(*, runs_dir: Path, args: tuple[str, ...]) -> dict[str, objec
     try:
         value = json.loads(completed.stdout)
     except json.JSONDecodeError as exc:
-        print(f"v2 live e2e failed: CLI stdout is not JSON: {exc}", file=sys.stderr)
+        print(f"v2 live e2e failed: live_e2e stdout is not JSON: {exc}", file=sys.stderr)
         print(completed.stdout, file=sys.stderr)
         return None
     if not isinstance(value, dict):
-        print("v2 live e2e failed: CLI returned non-object JSON", file=sys.stderr)
+        print("v2 live e2e failed: live_e2e returned non-object JSON", file=sys.stderr)
+        return None
+    if value.get("record_type") != "v2_live_e2e_report":
+        print("v2 live e2e failed: unexpected live_e2e record_type", file=sys.stderr)
         return None
     return value
 
 
-def _validate_live_execution(payload: dict[str, object], *, expected_append_sequence: int) -> bool:
+def _report_expected_source_ids(report: dict[str, object]) -> tuple[str, ...] | None:
+    raw_ids = report.get("expected_source_ids")
+    if not isinstance(raw_ids, list) or not raw_ids:
+        print("v2 live e2e failed: missing expected_source_ids", file=sys.stderr)
+        return None
+    source_ids = tuple(item for item in raw_ids if isinstance(item, str) and item)
+    if len(source_ids) != len(raw_ids):
+        print("v2 live e2e failed: invalid expected_source_ids entries", file=sys.stderr)
+        return None
+    catalog_source_count = report.get("catalog_source_count")
+    if catalog_source_count != len(source_ids):
+        print(
+            "v2 live e2e failed: catalog source count does not match implemented sources",
+            file=sys.stderr,
+        )
+        return None
+    return source_ids
+
+
+def _report_execution(report: dict[str, object], *, key: str) -> dict[str, object] | None:
+    execution = report.get(key)
+    if not isinstance(execution, dict):
+        print(f"v2 live e2e failed: missing {key} execution", file=sys.stderr)
+        return None
+    if execution.get("record_type") != "v2_search_execution":
+        print(f"v2 live e2e failed: unexpected {key} record_type", file=sys.stderr)
+        return None
+    return execution
+
+
+def _validate_live_execution(
+    payload: dict[str, object],
+    *,
+    expected_append_sequence: int,
+    expected_source_ids: tuple[str, ...],
+) -> bool:
     if payload.get("record_type") != "v2_search_execution":
         print("v2 live e2e failed: unexpected record_type", file=sys.stderr)
         return False
@@ -315,6 +332,23 @@ def _validate_live_execution(payload: dict[str, object], *, expected_append_sequ
     if not isinstance(attempts, list) or not attempts:
         print("v2 live e2e failed: missing attempts", file=sys.stderr)
         return False
+    if not _validate_live_attempt_outcomes(
+        attempts,
+        expected_source_ids=expected_source_ids,
+        artifacts=artifacts,
+    ):
+        return False
+    if not _validate_live_processed_artifact(payload, artifacts=artifacts):
+        return False
+    return _validate_live_engine_outputs(payload, artifacts=artifacts, attempts=attempts)
+
+
+def _validate_live_attempt_outcomes(
+    attempts: list[object],
+    *,
+    expected_source_ids: tuple[str, ...],
+    artifacts: dict[str, object],
+) -> bool:
     outcomes = [_required_text(attempt, "outcome") for attempt in attempts if isinstance(attempt, dict)]
     if any(outcome not in CANONICAL_OUTCOMES for outcome in outcomes):
         print(f"v2 live e2e failed: non-canonical outcome: {outcomes}", file=sys.stderr)
@@ -322,12 +356,23 @@ def _validate_live_execution(payload: dict[str, object], *, expected_append_sequ
     if "success" not in outcomes:
         print(f"v2 live e2e failed: no source succeeded: {outcomes}", file=sys.stderr)
         return False
-    if not _validate_vk_live_attempt(attempts, artifacts):
+    if not _validate_all_live_sources_attempted(attempts, expected_source_ids=expected_source_ids):
         return False
-    for source_id in ("hh_ru", "talanto", "career:jetbrains"):
-        if not _validate_required_success_live_attempt(attempts, source_id=source_id):
+    for source_id in expected_source_ids:
+        if source_id == "career:vk":
+            if not _validate_vk_live_attempt(attempts, artifacts):
+                return False
+            continue
+        if not _validate_healthy_live_attempt(attempts, source_id=source_id):
             return False
+    return True
 
+
+def _validate_live_processed_artifact(
+    payload: dict[str, object],
+    *,
+    artifacts: dict[str, object],
+) -> bool:
     processed = json.loads(Path(_required_text(artifacts, "processed_results")).read_text(encoding="utf-8"))
     if processed.get("record_type") != "processed_results":
         print("v2 live e2e failed: processed artifact has wrong record_type", file=sys.stderr)
@@ -335,7 +380,115 @@ def _validate_live_execution(payload: dict[str, object], *, expected_append_sequ
     if not isinstance(processed.get("results"), list):
         print("v2 live e2e failed: processed results is not a list", file=sys.stderr)
         return False
+    processed_count = payload.get("processed_result_count")
+    if not isinstance(processed_count, int) or processed_count != processed.get("result_count"):
+        print("v2 live e2e failed: processed_result_count mismatch", file=sys.stderr)
+        return False
     return True
+
+
+def _validate_live_engine_outputs(
+    payload: dict[str, object],
+    *,
+    artifacts: dict[str, object],
+    attempts: list[object],
+) -> bool:
+    append_sequence = payload.get("append_sequence")
+    raw_written = payload.get("raw_records_written_this_call")
+    if not isinstance(raw_written, int) or raw_written < 0:
+        print("v2 live e2e failed: invalid raw_records_written_this_call", file=sys.stderr)
+        return False
+    if append_sequence == 0 and raw_written <= 0:
+        print("v2 live e2e failed: expected raw_records_written_this_call > 0", file=sys.stderr)
+        return False
+
+    raw_path = Path(_required_text(artifacts, "raw_listings"))
+    raw_lines = [line for line in raw_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    if append_sequence == 0 and len(raw_lines) < raw_written:
+        print("v2 live e2e failed: raw_listings artifact shorter than reported writes", file=sys.stderr)
+        return False
+
+    source_attempt_lines = [
+        line
+        for line in Path(_required_text(artifacts, "source_attempts")).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    if not source_attempt_lines:
+        print("v2 live e2e failed: source_attempts artifact is empty", file=sys.stderr)
+        return False
+
+    if append_sequence == 0:
+        processed_count = payload.get("processed_result_count")
+        if not isinstance(processed_count, int) or processed_count <= 0:
+            print("v2 live e2e failed: expected processed results on initial live run", file=sys.stderr)
+            return False
+
+        success_with_raw = any(
+            isinstance(attempt, dict)
+            and attempt.get("outcome") == "success"
+            and isinstance(attempt.get("raw_listings_written"), int)
+            and attempt.get("raw_listings_written", 0) > 0
+            for attempt in attempts
+        )
+        if not success_with_raw:
+            print("v2 live e2e failed: no successful source wrote raw listings", file=sys.stderr)
+            return False
+    return True
+
+
+def _validate_all_live_sources_attempted(
+    attempts: list[object],
+    *,
+    expected_source_ids: tuple[str, ...],
+) -> bool:
+    observed = {
+        attempt.get("source")
+        for attempt in attempts
+        if isinstance(attempt, dict) and isinstance(attempt.get("source"), str)
+    }
+    missing = [source_id for source_id in expected_source_ids if source_id not in observed]
+    if missing:
+        print(f"v2 live e2e failed: missing live attempts for sources: {missing}", file=sys.stderr)
+        return False
+    return True
+
+
+def _validate_healthy_live_attempt(attempts: list[object], *, source_id: str) -> bool:
+    source_attempts = [
+        attempt
+        for attempt in attempts
+        if isinstance(attempt, dict) and attempt.get("source") == source_id
+    ]
+    if not source_attempts:
+        print(f"v2 live e2e failed: {source_id} attempt is missing", file=sys.stderr)
+        return False
+    for attempt in source_attempts:
+        outcome = _required_text(attempt, "outcome")
+        if outcome in LIVE_HEALTHY_OUTCOMES:
+            continue
+        print(f"v2 live e2e failed: unhealthy {source_id} live outcome: {attempt}", file=sys.stderr)
+        return False
+    return True
+
+
+def _print_live_execution_summary(payload: dict[str, object], *, label: str) -> None:
+    attempts = payload.get("attempts")
+    if not isinstance(attempts, list):
+        return
+    print(f"v2 live e2e summary ({label}):", flush=True)
+    for attempt in sorted(
+        (item for item in attempts if isinstance(item, dict)),
+        key=lambda item: str(item.get("source", "")),
+    ):
+        source = attempt.get("source", "?")
+        outcome = attempt.get("outcome", "?")
+        raw = attempt.get("raw_listings_written", 0)
+        pages = attempt.get("pages_visited", 0)
+        elapsed_ms = attempt.get("elapsed_ms", 0)
+        print(
+            f"  {source:<20} {outcome:<15} raw={raw:<4} pages={pages:<2} ms={elapsed_ms}",
+            flush=True,
+        )
 
 
 def _validated_live_artifacts(payload: dict[str, object]) -> dict[str, object] | None:
@@ -349,22 +502,6 @@ def _validated_live_artifacts(payload: dict[str, object]) -> dict[str, object] |
             print(f"v2 live e2e failed: missing artifact {name}: {path}", file=sys.stderr)
             return None
     return artifacts
-
-
-def _validate_required_success_live_attempt(attempts: list[object], *, source_id: str) -> bool:
-    source_attempts = [
-        attempt
-        for attempt in attempts
-        if isinstance(attempt, dict) and attempt.get("source") == source_id
-    ]
-    if not source_attempts:
-        print(f"v2 live e2e failed: {source_id} attempt is missing", file=sys.stderr)
-        return False
-    for attempt in source_attempts:
-        if _required_text(attempt, "outcome") != "success":
-            print(f"v2 live e2e failed: unexpected {source_id} live outcome: {attempt}", file=sys.stderr)
-            return False
-    return True
 
 
 def _validate_vk_live_attempt(attempts: list[object], artifacts: dict[str, object]) -> bool:
