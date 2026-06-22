@@ -83,7 +83,7 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
         payload = json.loads(stdout.getvalue())
         self.assertEqual(0, code)
         self.assertEqual("source_catalog", payload["record_type"])
-        self.assertEqual(["RU"], [country["country_code"] for country in payload["countries"]])
+        self.assertEqual(["AM", "RU"], [country["country_code"] for country in payload["countries"]])
         self.assertEqual(
             [
                 "habr_career",
@@ -99,6 +99,7 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                 "hirify",
                 "jobturbo",
                 "hirehi",
+                "staff_am",
             ],
             [source["source_id"] for source in payload["sources"]],
         )

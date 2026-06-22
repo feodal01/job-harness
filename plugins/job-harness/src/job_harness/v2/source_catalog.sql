@@ -104,18 +104,21 @@ VALUES
     (9, 'it_jobs_uz', 'aggregator', 'http', 100),
     (10, 'hirify', 'aggregator', 'http', 100),
     (11, 'jobturbo', 'aggregator', 'http', 50),
-    (12, 'hirehi', 'aggregator', 'http', 50);
+    (12, 'hirehi', 'aggregator', 'http', 50),
+    (13, 'staff_am', 'aggregator', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
-    ('RU', 'Russia', 1);
+    ('RU', 'Russia', 1),
+    ('AM', 'Armenia', 1);
 
 INSERT INTO source_countries (source_id, country_order, country)
 VALUES
     ('habr_career', 0, 'RU'),
     ('hh_ru', 0, 'RU'),
     ('career:vk', 0, 'RU'),
-    ('hirehi', 0, 'RU');
+    ('hirehi', 0, 'RU'),
+    ('staff_am', 0, 'AM');
 
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 VALUES
@@ -235,7 +238,16 @@ VALUES
     ('hirehi', 5, 'remote_in_country', 'structured_output'),
     ('hirehi', 6, 'remote_global', 'structured_output'),
     ('hirehi', 7, 'countries', 'structured_output'),
-    ('hirehi', 8, 'cities', 'structured_output');
+    ('hirehi', 8, 'cities', 'structured_output'),
+    ('staff_am', 0, 'query', 'native_request'),
+    ('staff_am', 1, 'grades', 'structured_output'),
+    ('staff_am', 2, 'salary_from', 'unsupported'),
+    ('staff_am', 3, 'published_since', 'structured_output'),
+    ('staff_am', 4, 'relocation', 'structured_output'),
+    ('staff_am', 5, 'remote_in_country', 'structured_output'),
+    ('staff_am', 6, 'remote_global', 'structured_output'),
+    ('staff_am', 7, 'countries', 'structured_output'),
+    ('staff_am', 8, 'cities', 'structured_output');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -255,7 +267,8 @@ VALUES
     ('it_jobs_uz', 'no_results'),
     ('hirify', 'no_results'),
     ('jobturbo', 'no_results'),
-    ('hirehi', 'no_results');
+    ('hirehi', 'no_results'),
+    ('staff_am', 'no_results');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -596,6 +609,28 @@ VALUES
         'tests/v2/fixtures/scrapers/hirehi/no_results/response.html',
         'tests/v2/fixtures/scrapers/hirehi/no_results/meta.json',
         'tests/v2/fixtures/scrapers/hirehi/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'staff_am',
+        0,
+        'staff_am-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/staff_am/success/response.html',
+        'tests/v2/fixtures/scrapers/staff_am/success/meta.json',
+        'tests/v2/fixtures/scrapers/staff_am/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'staff_am',
+        1,
+        'staff_am-no_results',
+        'no_results',
+        'tests/v2/fixtures/scrapers/staff_am/no_results/response.html',
+        'tests/v2/fixtures/scrapers/staff_am/no_results/meta.json',
+        'tests/v2/fixtures/scrapers/staff_am/no_results/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );
