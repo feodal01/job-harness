@@ -32,6 +32,7 @@ from job_harness.v2.runtime.sources import (
     ItJobsUzSource,
     JetBrainsCareerSource,
     JobTurboSource,
+    StaffAmSource,
     TalantoSource,
     TalentoSource,
     VKCareerSource,
@@ -58,6 +59,7 @@ _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL = (
 _IT_JOBS_UZ_QA_URL = "https://www.it-jobs.uz/api/jobs?search=QA&limit=100&page=1&category=qa"
 _HIRIFY_QA_URL = "https://api.hirify.me/api/vacancies?search=QA&page=1"
 _HIREHI_QA_URL = "https://hirehi.ru/jobs_new?query=QA"
+_STAFF_AM_QA_URL = "https://staff.am/en/jobs/quality-assurance"
 _JOBTURBO_URL = "https://jobturbo.ru/vakansii/remote"
 _NO_RESULTS_QUERY = "zzzzzz-no-such-job-20260622"
 _GEEKJOB_NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
@@ -1144,6 +1146,48 @@ class HireHiSourceTest(unittest.TestCase):
         self.assertTrue(parsed.evidence.no_results)
 
 
+class StaffAmSourceTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        source = SupportedSource(
+            scraper=StaffAmSource(),
+            fixture_suite=source_fixture_suite("staff_am"),
+        )
+        self.assertEqual("staff_am", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_routes_qa_to_quality_assurance(self) -> None:
+        source = StaffAmSource()
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+        self.assertEqual("staff_am", fetch_request.source_id)
+        self.assertEqual("QA", fetch_request.query_variant)
+        self.assertEqual(_STAFF_AM_QA_URL, fetch_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        source = StaffAmSource()
+        expected = _expected("staff_am", "success")
+        parsed = source.parse_search_response(
+            _fixture_response("staff_am", "success"),
+            SourceFetchRequest(source_id="staff_am", query_variant="QA", url=_STAFF_AM_QA_URL),
+        )
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_no_results_fixture_is_explicit_no_results(self) -> None:
+        source = StaffAmSource()
+        parsed = source.parse_search_response(
+            _fixture_response("staff_am", "no_results"),
+            SourceFetchRequest(
+                source_id="staff_am",
+                query_variant="zzzzzzzzzzzzzzzz",
+                url=_STAFF_AM_QA_URL,
+            ),
+        )
+        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertTrue(parsed.evidence.no_results)
+
+
 class JetBrainsCareerSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
@@ -1197,97 +1241,106 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
                     self.assertIn(phrase, listing.description or "")
 
 
+def _e2e_success_fixture_mapping() -> dict[str, Path]:
+    return {
+        _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
+        _HABR_QA_PAGE_2_URL: _FIXTURES / "habr_career" / "pagination" / "response.html",
+        _HH_QA_URL: _FIXTURES / "hh_ru" / "success" / "response.html",
+        _HH_QA_PAGE_1_URL: _FIXTURES / "hh_ru" / "pagination" / "response.html",
+        _TALANTO_QA_URL: _FIXTURES / "talanto" / "success" / "response.html",
+        _VK_QA_URL: _FIXTURES / "career_vk" / "success" / "response.html",
+        _JETBRAINS_URL: _FIXTURES / "career_jetbrains" / "success" / "response.json",
+        _GEEKJOB_URL: _FIXTURES / "geekjob" / "success" / "response.html",
+        _TALENTO_WORKS_QA_URL: _FIXTURES / "talento" / "success" / "response.html",
+        _FINDER_WORK_QA_URL: _FIXTURES / "finder_work" / "success" / "response.json",
+        _GETMATCH_SPECIALIZATIONS_URL: _FIXTURES / "getmatch" / "success" / "specializations.json",
+        _GETMATCH_OFFERS_QA_AUTO_URL: _FIXTURES / "getmatch" / "success" / "response.json",
+        _GETMATCH_OFFERS_QA_MANUAL_URL: _FIXTURES / "getmatch" / "success" / "response.json",
+        _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL: _FIXTURES / "getmatch" / "success" / "response.json",
+        _IT_JOBS_UZ_QA_URL: _FIXTURES / "it_jobs_uz" / "success" / "response.json",
+        **{
+            f"https://api.hirify.me/api/vacancies?search=QA&page={page}": _FIXTURES
+            / "hirify"
+            / "success"
+            / "response.json"
+            for page in range(1, 8)
+        },
+        _JOBTURBO_URL: _FIXTURES / "jobturbo" / "success" / "response.html",
+        _HIREHI_QA_URL: _FIXTURES / "hirehi" / "success" / "response.html",
+        _STAFF_AM_QA_URL: _FIXTURES / "staff_am" / "success" / "response.html",
+    }
+
+
+def _e2e_success_catalog() -> SourceCatalog:
+    scrapers = (
+        ("habr_career", HabrCareerSource()),
+        ("hh_ru", HhRuSource()),
+        ("talanto", TalantoSource()),
+        ("career:vk", VKCareerSource()),
+        ("career:jetbrains", JetBrainsCareerSource()),
+        ("geekjob", GeekJobSource()),
+        ("talento", TalentoSource()),
+        ("finder_work", FinderWorkSource()),
+        ("getmatch", GetmatchSource()),
+        ("it_jobs_uz", ItJobsUzSource()),
+        ("hirify", HirifySource()),
+        ("jobturbo", JobTurboSource()),
+        ("hirehi", HireHiSource()),
+        ("staff_am", StaffAmSource()),
+    )
+    return SourceCatalog(
+        tuple(
+            SupportedSource(scraper=scraper, fixture_suite=source_fixture_suite(suite_id))
+            for suite_id, scraper in scrapers
+        )
+    )
+
+
+_E2E_SUCCESS_OUTCOMES: dict[str, SourceOutcome] = {
+    "habr_career": SourceOutcome.SUCCESS,
+    "hh_ru": SourceOutcome.SUCCESS,
+    "talanto": SourceOutcome.SUCCESS,
+    "career:vk": SourceOutcome.SUCCESS,
+    "career:jetbrains": SourceOutcome.SUCCESS,
+    "geekjob": SourceOutcome.NO_RESULTS,
+    "talento": SourceOutcome.SUCCESS,
+    "finder_work": SourceOutcome.SUCCESS,
+    "getmatch": SourceOutcome.SUCCESS,
+    "it_jobs_uz": SourceOutcome.SUCCESS,
+    "hirify": SourceOutcome.SUCCESS,
+    "jobturbo": SourceOutcome.SUCCESS,
+    "hirehi": SourceOutcome.SUCCESS,
+    "staff_am": SourceOutcome.SUCCESS,
+}
+
+_E2E_SUCCESS_PAGES: dict[str, int] = {
+    "habr_career": 2,
+    "hh_ru": 2,
+    "talanto": 1,
+    "career:vk": 1,
+    "career:jetbrains": 1,
+    "geekjob": 1,
+    "talento": 1,
+    "finder_work": 1,
+    "getmatch": 4,
+    "it_jobs_uz": 1,
+    "hirify": 7,
+    "jobturbo": 1,
+    "hirehi": 1,
+    "staff_am": 1,
+}
+
+_E2E_SUCCESS_RAW_COUNT = 390
+
+
 class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
     async def test_new_runtime_runs_real_parser_fixtures(self) -> None:
         # Arrange
-        habr = HabrCareerSource()
-        hh = HhRuSource()
-        talanto = TalantoSource()
-        vk = VKCareerSource()
-        jetbrains = JetBrainsCareerSource()
-        geekjob = GeekJobSource()
-        talento = TalentoSource()
-        finder_work = FinderWorkSource()
-        getmatch = GetmatchSource()
-        it_jobs_uz = ItJobsUzSource()
-        hirify = HirifySource()
-        jobturbo = JobTurboSource()
-        hirehi = HireHiSource()
-        fetcher = FixtureFetcher(
-            {
-                _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
-                _HABR_QA_PAGE_2_URL: _FIXTURES / "habr_career" / "pagination" / "response.html",
-                _HH_QA_URL: _FIXTURES / "hh_ru" / "success" / "response.html",
-                _HH_QA_PAGE_1_URL: _FIXTURES / "hh_ru" / "pagination" / "response.html",
-                _TALANTO_QA_URL: _FIXTURES / "talanto" / "success" / "response.html",
-                _VK_QA_URL: _FIXTURES / "career_vk" / "success" / "response.html",
-                _JETBRAINS_URL: _FIXTURES / "career_jetbrains" / "success" / "response.json",
-                _GEEKJOB_URL: _FIXTURES / "geekjob" / "success" / "response.html",
-                _TALENTO_WORKS_QA_URL: _FIXTURES / "talento" / "success" / "response.html",
-                _FINDER_WORK_QA_URL: _FIXTURES / "finder_work" / "success" / "response.json",
-                _GETMATCH_SPECIALIZATIONS_URL: _FIXTURES / "getmatch" / "success" / "specializations.json",
-                _GETMATCH_OFFERS_QA_AUTO_URL: _FIXTURES / "getmatch" / "success" / "response.json",
-                _GETMATCH_OFFERS_QA_MANUAL_URL: _FIXTURES / "getmatch" / "success" / "response.json",
-                _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL: _FIXTURES / "getmatch" / "success" / "response.json",
-                _IT_JOBS_UZ_QA_URL: _FIXTURES / "it_jobs_uz" / "success" / "response.json",
-                **{
-                    f"https://api.hirify.me/api/vacancies?search=QA&page={page}": _FIXTURES
-                    / "hirify"
-                    / "success"
-                    / "response.json"
-                    for page in range(1, 8)
-                },
-                _JOBTURBO_URL: _FIXTURES / "jobturbo" / "success" / "response.html",
-                _HIREHI_QA_URL: _FIXTURES / "hirehi" / "success" / "response.html",
-            }
-        )
+        fetcher = FixtureFetcher(_e2e_success_fixture_mapping())
         with tempfile.TemporaryDirectory() as tmp:
             with RawCorpusWriter(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
-                    catalog=SourceCatalog(
-                        (
-                            SupportedSource(scraper=habr, fixture_suite=source_fixture_suite("habr_career")),
-                            SupportedSource(scraper=hh, fixture_suite=source_fixture_suite("hh_ru")),
-                            SupportedSource(scraper=talanto, fixture_suite=source_fixture_suite("talanto")),
-                            SupportedSource(scraper=vk, fixture_suite=source_fixture_suite("career:vk")),
-                            SupportedSource(
-                                scraper=jetbrains,
-                                fixture_suite=source_fixture_suite("career:jetbrains"),
-                            ),
-                            SupportedSource(
-                                scraper=geekjob,
-                                fixture_suite=source_fixture_suite("geekjob"),
-                            ),
-                            SupportedSource(
-                                scraper=talento,
-                                fixture_suite=source_fixture_suite("talento"),
-                            ),
-                            SupportedSource(
-                                scraper=finder_work,
-                                fixture_suite=source_fixture_suite("finder_work"),
-                            ),
-                            SupportedSource(
-                                scraper=getmatch,
-                                fixture_suite=source_fixture_suite("getmatch"),
-                            ),
-                            SupportedSource(
-                                scraper=it_jobs_uz,
-                                fixture_suite=source_fixture_suite("it_jobs_uz"),
-                            ),
-                            SupportedSource(
-                                scraper=hirify,
-                                fixture_suite=source_fixture_suite("hirify"),
-                            ),
-                            SupportedSource(
-                                scraper=jobturbo,
-                                fixture_suite=source_fixture_suite("jobturbo"),
-                            ),
-                            SupportedSource(
-                                scraper=hirehi,
-                                fixture_suite=source_fixture_suite("hirehi"),
-                            ),
-                        )
-                    ),
+                    catalog=_e2e_success_catalog(),
                     fetcher=fetcher,
                     writer=writer,
                     config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
@@ -1298,54 +1351,19 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
 
             # Assert
             outcomes = {attempt.source: attempt for attempt in result.attempts}
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["habr_career"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["hh_ru"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["talanto"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["career:vk"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["career:jetbrains"].outcome)
-            self.assertEqual(SourceOutcome.NO_RESULTS, outcomes["geekjob"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["talento"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["finder_work"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["getmatch"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["it_jobs_uz"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["hirify"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["jobturbo"].outcome)
-            self.assertEqual(SourceOutcome.SUCCESS, outcomes["hirehi"].outcome)
-            self.assertEqual(2, outcomes["habr_career"].counts.pages_visited)
-            self.assertEqual(2, outcomes["hh_ru"].counts.pages_visited)
-            self.assertEqual(1, outcomes["talanto"].counts.pages_visited)
-            self.assertEqual(1, outcomes["career:vk"].counts.pages_visited)
-            self.assertEqual(1, outcomes["career:jetbrains"].counts.pages_visited)
-            self.assertEqual(1, outcomes["geekjob"].counts.pages_visited)
-            self.assertEqual(1, outcomes["talento"].counts.pages_visited)
-            self.assertEqual(1, outcomes["finder_work"].counts.pages_visited)
-            self.assertEqual(4, outcomes["getmatch"].counts.pages_visited)
-            self.assertEqual(1, outcomes["it_jobs_uz"].counts.pages_visited)
-            self.assertEqual(7, outcomes["hirify"].counts.pages_visited)
-            self.assertEqual(1, outcomes["jobturbo"].counts.pages_visited)
-            self.assertEqual(1, outcomes["hirehi"].counts.pages_visited)
-            self.assertEqual(381, result.raw_records_written)
+            for source_id, expected_outcome in _E2E_SUCCESS_OUTCOMES.items():
+                self.assertEqual(expected_outcome, outcomes[source_id].outcome, source_id)
+            for source_id, expected_pages in _E2E_SUCCESS_PAGES.items():
+                self.assertEqual(expected_pages, outcomes[source_id].counts.pages_visited, source_id)
+            self.assertEqual(_E2E_SUCCESS_RAW_COUNT, result.raw_records_written)
 
             raw_records = [
                 json.loads(line)
                 for line in (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(381, len(raw_records))
+            self.assertEqual(_E2E_SUCCESS_RAW_COUNT, len(raw_records))
             self.assertEqual(
-                {
-                    "habr_career",
-                    "hh_ru",
-                    "talanto",
-                    "career:vk",
-                    "career:jetbrains",
-                    "talento",
-                    "finder_work",
-                    "getmatch",
-                    "it_jobs_uz",
-                    "hirify",
-                    "jobturbo",
-                    "hirehi",
-                },
+                {source_id for source_id, outcome in _E2E_SUCCESS_OUTCOMES.items() if outcome is SourceOutcome.SUCCESS},
                 {record["source"] for record in raw_records},
             )
             self.assertIn(

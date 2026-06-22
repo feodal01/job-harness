@@ -17,6 +17,7 @@ from job_harness.v2.runtime.sources import (
     ItJobsUzSource,
     JetBrainsCareerSource,
     JobTurboSource,
+    StaffAmSource,
     TalantoSource,
     TalentoSource,
     VKCareerSource,
@@ -37,6 +38,7 @@ _SOURCE_FACTORIES: dict[str, Callable[[], SourceScraper]] = {
     "hirify": HirifySource,
     "jobturbo": JobTurboSource,
     "hirehi": HireHiSource,
+    "staff_am": StaffAmSource,
 }
 
 

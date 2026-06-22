@@ -1,0 +1,72 @@
+{
+  "outcome": "success",
+  "expected_count": 9,
+  "sample_listings": [
+    {
+      "source_listing_id": "159745",
+      "title": "QA Engineer",
+      "url": "https://staff.am/en/jobs/quality-assurance/qa-engineer-1717",
+      "company": "Telcell",
+      "country": "AM",
+      "city": "Yerevan",
+      "location_text": "Yerevan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-22 17:34:53",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": [],
+      "raw_keys": [
+        "category",
+        "id"
+      ]
+    },
+    {
+      "source_listing_id": "159354",
+      "title": "QA Engineer/Senior",
+      "url": "https://staff.am/en/jobs/quality-assurance/qa-engineersenior-13",
+      "company": "Ardshinbank OJSC",
+      "country": "AM",
+      "city": "Yerevan",
+      "location_text": "Yerevan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-15 15:11:14",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": "senior",
+      "skills": [],
+      "raw_keys": [
+        "category",
+        "id"
+      ]
+    },
+    {
+      "source_listing_id": "159351",
+      "title": "QA Engineer/Middle",
+      "url": "https://staff.am/en/jobs/quality-assurance/qa-engineermiddle-9",
+      "company": "Ardshinbank OJSC",
+      "country": "AM",
+      "city": "Yerevan",
+      "location_text": "Yerevan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-15 15:08:46",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": "middle",
+      "skills": [],
+      "raw_keys": [
+        "category",
+        "id"
+      ]
+    }
+  ]
+}
