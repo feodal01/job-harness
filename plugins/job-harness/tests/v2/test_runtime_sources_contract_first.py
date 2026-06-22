@@ -22,6 +22,7 @@ from job_harness.v2.runtime import (
     SupportedSource,
 )
 from job_harness.v2.runtime.sources import (
+    GeekJobSource,
     HabrCareerSource,
     HhRuSource,
     JetBrainsCareerSource,
@@ -38,7 +39,9 @@ _HH_QA_PAGE_1_URL = "https://hh.ru/search/vacancy?text=QA&area=113&search_field=
 _TALANTO_QA_URL = "https://talanto.work/?q=QA"
 _VK_QA_URL = "https://team.vk.company/vacancy/?specialty=284"
 _JETBRAINS_URL = "https://boards-api.greenhouse.io/v1/boards/jetbrains/jobs?content=true"
+_GEEKJOB_URL = "https://geekjob.ru/vacancies"
 _NO_RESULTS_QUERY = "zzzzzz-no-such-job-20260622"
+_GEEKJOB_NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
 _HABR_NO_RESULTS_URL = f"https://career.habr.com/vacancies?q={_NO_RESULTS_QUERY}&type=all"
 _HH_NO_RESULTS_URL = f"https://hh.ru/search/vacancy?text={_NO_RESULTS_QUERY}&area=113&search_field=name"
 _TALANTO_NO_RESULTS_URL = f"https://talanto.work/?q={_NO_RESULTS_QUERY}"
@@ -507,6 +510,70 @@ class TalantoSourceTest(unittest.TestCase):
         self.assertTrue(parsed.evidence.no_results)
 
 
+class GeekJobSourceTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=GeekJobSource(),
+            fixture_suite=source_fixture_suite("geekjob"),
+        )
+
+        # Assert
+        self.assertEqual("geekjob", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_fetches_the_public_vacancies_page(self) -> None:
+        # Arrange
+        source = GeekJobSource()
+
+        # Act
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("Cloud",)))[0]
+
+        # Assert
+        self.assertEqual("geekjob", fetch_request.source_id)
+        self.assertEqual("Cloud", fetch_request.query_variant)
+        self.assertEqual(_GEEKJOB_URL, fetch_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = GeekJobSource()
+        expected = _expected("geekjob", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("geekjob", "success"),
+            SourceFetchRequest(
+                source_id="geekjob",
+                query_variant="Cloud",
+                url=_GEEKJOB_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_no_results_fixture_is_explicit_no_results(self) -> None:
+        # Arrange
+        source = GeekJobSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("geekjob", "no_results"),
+            SourceFetchRequest(
+                source_id="geekjob",
+                query_variant=_GEEKJOB_NO_RESULTS_QUERY,
+                url=_GEEKJOB_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertTrue(parsed.evidence.no_results)
+
+
 class JetBrainsCareerSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
@@ -568,6 +635,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
         talanto = TalantoSource()
         vk = VKCareerSource()
         jetbrains = JetBrainsCareerSource()
+        geekjob = GeekJobSource()
         fetcher = FixtureFetcher(
             {
                 _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
@@ -577,6 +645,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                 _TALANTO_QA_URL: _FIXTURES / "talanto" / "success" / "response.html",
                 _VK_QA_URL: _FIXTURES / "career_vk" / "success" / "response.html",
                 _JETBRAINS_URL: _FIXTURES / "career_jetbrains" / "success" / "response.json",
+                _GEEKJOB_URL: _FIXTURES / "geekjob" / "success" / "response.html",
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -591,6 +660,10 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                             SupportedSource(
                                 scraper=jetbrains,
                                 fixture_suite=source_fixture_suite("career:jetbrains"),
+                            ),
+                            SupportedSource(
+                                scraper=geekjob,
+                                fixture_suite=source_fixture_suite("geekjob"),
                             ),
                         )
                     ),
@@ -609,11 +682,13 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["talanto"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["career:vk"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["career:jetbrains"].outcome)
+            self.assertEqual(SourceOutcome.NO_RESULTS, outcomes["geekjob"].outcome)
             self.assertEqual(2, outcomes["habr_career"].counts.pages_visited)
             self.assertEqual(2, outcomes["hh_ru"].counts.pages_visited)
             self.assertEqual(1, outcomes["talanto"].counts.pages_visited)
             self.assertEqual(1, outcomes["career:vk"].counts.pages_visited)
             self.assertEqual(1, outcomes["career:jetbrains"].counts.pages_visited)
+            self.assertEqual(1, outcomes["geekjob"].counts.pages_visited)
             self.assertEqual(179, result.raw_records_written)
 
             raw_records = [

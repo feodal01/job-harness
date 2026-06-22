@@ -1,0 +1,42 @@
+{
+  "outcome": "success",
+  "expected_count": 2,
+  "sample_listings": [
+    {
+      "source_listing_id": "6a395c834507443691036050",
+      "title": "Head of Marketing",
+      "url": "https://geekjob.ru/vacancy/6a395c834507443691036050",
+      "company": "Cloud Retail",
+      "country": "RS",
+      "city": null,
+      "location_text": "Сербия 300 — 450 ₽",
+      "salary_text": "300",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6a394fd1db6698031e0a1084",
+      "title": "Client Hunter / Business Development Specialist",
+      "url": "https://geekjob.ru/vacancy/6a394fd1db6698031e0a1084",
+      "company": "Cloud Retail",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": "180K",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ]
+}

@@ -12,7 +12,10 @@ class RuntimeSourceRegistryTest(unittest.TestCase):
         catalog_ids = {entry.source_id for entry in source_catalog_entries()}
 
         # Act / Assert
-        self.assertEqual(("habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains"), implemented_source_ids())
+        self.assertEqual(
+            ("habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "geekjob"),
+            implemented_source_ids(),
+        )
         self.assertTrue(set(implemented_source_ids()) <= catalog_ids)
 
     def test_builds_catalog_for_explicit_source_subset(self) -> None:

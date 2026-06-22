@@ -1,0 +1,11 @@
+{
+  "source_id": "geekjob",
+  "captured_url": "https://geekjob.ru/vacancies",
+  "capture_date": "2026-06-22",
+  "capture_method": "curl -k -L --compressed with desktop Chrome user-agent",
+  "fixture_kind": "success_non_empty",
+  "redactions": [
+    "None; the committed artifact is the real public HTML response captured from GeekJob."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}
