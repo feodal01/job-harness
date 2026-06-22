@@ -16,6 +16,7 @@ from job_harness.v2.runtime.sources import (
     HhRuSource,
     JetBrainsCareerSource,
     TalantoSource,
+    TalentoSource,
     VKCareerSource,
 )
 from job_harness.v2.source_catalog import (
@@ -37,7 +38,7 @@ class SourceCatalogTableTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(
-            ("habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "geekjob"),
+            ("habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "geekjob", "talento"),
             tuple(entry.source_id for entry in entries),
         )
         self.assertEqual(len(entries), len({entry.source_id for entry in entries}))
@@ -222,6 +223,29 @@ class SourceCatalogTableTest(unittest.TestCase):
             tuple(case.kind for case in fixture_suite.cases),
         )
 
+    def test_talento_catalog_row_declares_source_contract(self) -> None:
+        # Arrange / Act
+        descriptor = source_descriptor("talento")
+        required_fixture_kinds = source_required_fixture_kinds("talento")
+        fixture_suite = source_fixture_suite("talento")
+
+        # Assert
+        self.assertEqual(SourceType.AGGREGATOR, descriptor.source_type)
+        self.assertEqual(Transport.HTTP, descriptor.transport)
+        self.assertEqual((), descriptor.countries)
+        self.assertEqual(50, descriptor.source_limit)
+        self.assertEqual(frozenset({SearchCriterion.QUERY}), descriptor.native_request_criteria)
+        self.assertEqual(frozenset(), descriptor.structured_output_criteria)
+        self.assertTrue(required_fixture_kinds.no_results)
+        self.assertFalse(required_fixture_kinds.pagination)
+        self.assertEqual(
+            (
+                ParserFixtureKind.SUCCESS_NON_EMPTY,
+                ParserFixtureKind.NO_RESULTS,
+            ),
+            tuple(case.kind for case in fixture_suite.cases),
+        )
+
     def test_jetbrains_catalog_row_declares_source_contract(self) -> None:
         # Arrange / Act
         descriptor = source_descriptor("career:jetbrains")
@@ -288,6 +312,7 @@ class SourceCatalogTableTest(unittest.TestCase):
             (HhRuSource(), "hh_ru"),
             (TalantoSource(), "talanto"),
             (GeekJobSource(), "geekjob"),
+            (TalentoSource(), "talento"),
             (VKCareerSource(), "career:vk"),
             (JetBrainsCareerSource(), "career:jetbrains"),
         )
