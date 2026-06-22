@@ -101,7 +101,8 @@ VALUES
     (6, 'talento', 'aggregator', 'http', 50),
     (7, 'finder_work', 'aggregator', 'http', 100),
     (8, 'getmatch', 'aggregator', 'http', 100),
-    (9, 'it_jobs_uz', 'aggregator', 'http', 100);
+    (9, 'it_jobs_uz', 'aggregator', 'http', 100),
+    (10, 'hirify', 'aggregator', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -204,7 +205,16 @@ VALUES
     ('it_jobs_uz', 5, 'remote_in_country', 'structured_output'),
     ('it_jobs_uz', 6, 'remote_global', 'structured_output'),
     ('it_jobs_uz', 7, 'countries', 'structured_output'),
-    ('it_jobs_uz', 8, 'cities', 'structured_output');
+    ('it_jobs_uz', 8, 'cities', 'structured_output'),
+    ('hirify', 0, 'query', 'native_request'),
+    ('hirify', 1, 'grades', 'structured_output'),
+    ('hirify', 2, 'salary_from', 'native_request'),
+    ('hirify', 3, 'published_since', 'structured_output'),
+    ('hirify', 4, 'relocation', 'unsupported'),
+    ('hirify', 5, 'remote_in_country', 'structured_output'),
+    ('hirify', 6, 'remote_global', 'structured_output'),
+    ('hirify', 7, 'countries', 'structured_output'),
+    ('hirify', 8, 'cities', 'structured_output');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -221,7 +231,8 @@ VALUES
     ('talento', 'no_results'),
     ('finder_work', 'no_results'),
     ('getmatch', 'no_results'),
-    ('it_jobs_uz', 'no_results');
+    ('it_jobs_uz', 'no_results'),
+    ('hirify', 'no_results');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -496,6 +507,28 @@ VALUES
         'tests/v2/fixtures/scrapers/it_jobs_uz/no_results/response.json',
         'tests/v2/fixtures/scrapers/it_jobs_uz/no_results/meta.json',
         'tests/v2/fixtures/scrapers/it_jobs_uz/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'hirify',
+        0,
+        'hirify-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/hirify/success/response.json',
+        'tests/v2/fixtures/scrapers/hirify/success/meta.json',
+        'tests/v2/fixtures/scrapers/hirify/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'hirify',
+        1,
+        'hirify-no_results',
+        'no_results',
+        'tests/v2/fixtures/scrapers/hirify/no_results/response.json',
+        'tests/v2/fixtures/scrapers/hirify/no_results/meta.json',
+        'tests/v2/fixtures/scrapers/hirify/no_results/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

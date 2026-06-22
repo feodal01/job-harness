@@ -27,6 +27,7 @@ from job_harness.v2.runtime.sources import (
     GetmatchSource,
     HabrCareerSource,
     HhRuSource,
+    HirifySource,
     ItJobsUzSource,
     JetBrainsCareerSource,
     TalantoSource,
@@ -53,6 +54,7 @@ _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL = (
     "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=load_performance"
 )
 _IT_JOBS_UZ_QA_URL = "https://www.it-jobs.uz/api/jobs?search=QA&limit=100&page=1&category=qa"
+_HIRIFY_QA_URL = "https://api.hirify.me/api/vacancies?search=QA&page=1"
 _NO_RESULTS_QUERY = "zzzzzz-no-such-job-20260622"
 _GEEKJOB_NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
 _HABR_NO_RESULTS_URL = f"https://career.habr.com/vacancies?q={_NO_RESULTS_QUERY}&type=all"
@@ -936,6 +938,102 @@ class ItJobsUzSourceTest(unittest.TestCase):
         self.assertTrue(parsed.evidence.no_results)
 
 
+class HirifySourceTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=HirifySource(),
+            fixture_suite=source_fixture_suite("hirify"),
+        )
+
+        # Assert
+        self.assertEqual("hirify", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_uses_native_query_and_page(self) -> None:
+        # Arrange
+        source = HirifySource()
+
+        # Act
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+
+        # Assert
+        self.assertEqual("hirify", fetch_request.source_id)
+        self.assertEqual("QA", fetch_request.query_variant)
+        self.assertEqual(_HIRIFY_QA_URL, fetch_request.url)
+
+    def test_success_fixture_chains_next_page_when_api_reports_more_pages(self) -> None:
+        # Arrange
+        source = HirifySource()
+        payload = {
+            "data": [],
+            "total": 40,
+            "current_page": 1,
+            "last_page": 3,
+        }
+
+        # Act
+        parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="hirify",
+                url=_HIRIFY_QA_URL,
+                media_type="application/json",
+                body=json.dumps(payload),
+            ),
+            SourceFetchRequest(
+                source_id="hirify",
+                query_variant="QA",
+                url=_HIRIFY_QA_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertIsNotNone(parsed.next_request)
+        assert parsed.next_request is not None
+        self.assertIn("page=2", parsed.next_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = HirifySource()
+        expected = _expected("hirify", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("hirify", "success"),
+            SourceFetchRequest(
+                source_id="hirify",
+                query_variant="QA",
+                url=_HIRIFY_QA_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_no_results_fixture_is_explicit_no_results(self) -> None:
+        # Arrange
+        source = HirifySource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("hirify", "no_results"),
+            SourceFetchRequest(
+                source_id="hirify",
+                query_variant="zzzzzzzzzzzzzzzz",
+                url="https://api.hirify.me/api/vacancies?search=zzzzzzzzzzzzzzzz&page=1",
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertTrue(parsed.evidence.no_results)
+
+
 class JetBrainsCareerSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
@@ -1002,6 +1100,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
         finder_work = FinderWorkSource()
         getmatch = GetmatchSource()
         it_jobs_uz = ItJobsUzSource()
+        hirify = HirifySource()
         fetcher = FixtureFetcher(
             {
                 _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
@@ -1019,6 +1118,13 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                 _GETMATCH_OFFERS_QA_MANUAL_URL: _FIXTURES / "getmatch" / "success" / "response.json",
                 _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL: _FIXTURES / "getmatch" / "success" / "response.json",
                 _IT_JOBS_UZ_QA_URL: _FIXTURES / "it_jobs_uz" / "success" / "response.json",
+                **{
+                    f"https://api.hirify.me/api/vacancies?search=QA&page={page}": _FIXTURES
+                    / "hirify"
+                    / "success"
+                    / "response.json"
+                    for page in range(1, 8)
+                },
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1054,6 +1160,10 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                                 scraper=it_jobs_uz,
                                 fixture_suite=source_fixture_suite("it_jobs_uz"),
                             ),
+                            SupportedSource(
+                                scraper=hirify,
+                                fixture_suite=source_fixture_suite("hirify"),
+                            ),
                         )
                     ),
                     fetcher=fetcher,
@@ -1076,6 +1186,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["finder_work"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["getmatch"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["it_jobs_uz"].outcome)
+            self.assertEqual(SourceOutcome.SUCCESS, outcomes["hirify"].outcome)
             self.assertEqual(2, outcomes["habr_career"].counts.pages_visited)
             self.assertEqual(2, outcomes["hh_ru"].counts.pages_visited)
             self.assertEqual(1, outcomes["talanto"].counts.pages_visited)
@@ -1086,13 +1197,14 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(1, outcomes["finder_work"].counts.pages_visited)
             self.assertEqual(4, outcomes["getmatch"].counts.pages_visited)
             self.assertEqual(1, outcomes["it_jobs_uz"].counts.pages_visited)
-            self.assertEqual(278, result.raw_records_written)
+            self.assertEqual(7, outcomes["hirify"].counts.pages_visited)
+            self.assertEqual(378, result.raw_records_written)
 
             raw_records = [
                 json.loads(line)
                 for line in (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(278, len(raw_records))
+            self.assertEqual(378, len(raw_records))
             self.assertEqual(
                 {
                     "habr_career",
@@ -1104,6 +1216,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                     "finder_work",
                     "getmatch",
                     "it_jobs_uz",
+                    "hirify",
                 },
                 {record["source"] for record in raw_records},
             )

@@ -1,0 +1,11 @@
+{
+  "source_id": "hirify",
+  "captured_url": "https://api.hirify.me/api/vacancies?search=zzzzzzzzzzzzzzzz&page=1",
+  "capture_date": "2026-06-22",
+  "capture_method": "curl -L against the public Hirify vacancies API",
+  "fixture_kind": "no_results",
+  "redactions": [
+    "None; the committed artifact is the real public JSON response captured from Hirify."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}
