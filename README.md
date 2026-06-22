@@ -6,7 +6,7 @@ A scalpel, not a shotgun. Precision vacancy search tailored to your request, not
 
 ## Why
 
-Job aggregators are useful, but they create a search bubble: you only see the companies and vacancies that made it into that aggregator. Many companies also maintain their own career pages, and some roles never appear on job boards at all. Job-harness searches across available sources — aggregators, employer career pages, and company-specific career scrapers — so the agent can find companies and vacancies outside the aggregator bubble. Applying through both the aggregator and the employer site can also improve the chance that a recruiter sees you: aggregator applications are often filtered automatically, while career-site applications may enter a smaller, more manually reviewed flow when the company does not use a heavy automated ATS.
+Job aggregators are useful, but they create a search bubble: you only see the companies and vacancies that made it into that aggregator. Many companies also maintain their own career pages, and some roles never appear on job boards at all. Job-harness searches across available sources — aggregators and employer career pages — so the agent can find companies and vacancies outside the aggregator bubble.
 
 ## Who is this for
 
@@ -14,160 +14,165 @@ This repo is not designed for manual use. It's an OS where an AI agent works —
 
 Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
 
-## Features
+## Features (v2)
 
-- Job search on hh.ru and Habr Career
-- Detailed parsing of descriptions and skills
-- Exact grade filtering by `experience_levels`, with native/estimated/unknown grade assessment
-- Employer resolution: aggregator listings → direct employer career pages
-- Known company career-page probing through the normal search pipeline
-- Per-company career scrapers (VK, IBS)
-- Bundled employer career page registry, updated with plugin releases
-- Strict source catalog via `list_sources`: exact source ids, source groups (`aggregator`, `company_career`, `directory`, `other`), server-supported criteria, and per-source raw limits
-- Named source selection with `sources=hh_ru,career:vk` and group selection with `source_groups=["aggregator"]` / `--source-groups aggregator`
-- Raw exhaustive search artifact: `raw_search.jsonl` stores unranked, undeduped, unfiltered source facts before downstream analysis
-- Presentation export separation: `results.json` is the downstream filtered/deduped/ranked export, capped by `max_results`; raw scraping is capped by each source's `source_limit`, not by `max_results`
-- Server-only search criteria for `salary_from` and `freshness_days`; unsupported sources keep all raw listings and report unsupported criteria in source summaries
-- Source-level retry for transient zero-listing failures, with attempts/retries recorded per source
-- MCP server with async search tools (`search_start`, `search_status`, `search_results`, …) for Claude Code and Codex integration
-- Claude Code slash command entrypoints: `/job-search`, `/job-resolve`
-- Output in Markdown / JSON / CSV
-- Stealth browser via rebrowser-playwright
+- Contract-first search engine under `src/job_harness/v2/`
+- **14 implemented sources** — Russian/CIS aggregators plus VK and JetBrains career pages
+- Strict source catalog via `job-harness-v2 list-sources` with per-source limits and criteria capabilities
+- Raw corpus + processed export separation: `raw-listings.jsonl` vs `processed-results.json`
+- Search criteria: query variants, grades, salary floor, freshness, remote/relocation, countries, cities, text exclusions
+- Append mode to accumulate multiple query variants in one run
+- Live verification gate: `python scripts/verify_v2.py` (full catalog e2e through `V2SearchApplication`)
+- Runtime skill `job-search-workflow` documents the canonical v2 agent workflow
+
+Legacy v1 (MCP async search, browser pool, employer resolution, company-live-batch) remains available under `src/job_harness/v1/` for maintenance but is not the primary search path.
 
 ## Installation
 
-The repository has one installable plugin root: `plugins/job-harness`. Codex and Claude Code marketplace files both point to that directory, so commands, runtime skills, MCP tools, scripts, and Python code are not duplicated at the repository root. Repository-local development skills may live under `.agents/skills`; they are not shipped as plugin runtime skills.
+The repository has one installable plugin root: `plugins/job-harness`. Codex and Claude Code marketplace files both point to that directory.
 
-### As a Claude Code plugin from GitHub
-
-Install the marketplace from GitHub, then install the plugin:
+### Local development
 
 ```bash
-claude plugin marketplace add feodal01/job-harness
-claude plugin install job-harness@job-harness
+git clone https://github.com/feodal01/job-harness.git
+cd job-harness
+uv --directory plugins/job-harness sync
 ```
 
-The plugin provides MCP tools (`search_start`, `search_status`, `search_results`, `search_refine`, `search_retry`, `list_sources`, `search_company_jobs`, `cache_get`, `cache_upsert`, `cache_stats`, …), slash command entrypoints (`/job-search`, `/job-resolve`), runtime skills (`job-search-workflow`, `user-briefing`, `employer-resolution`), and CLI commands including `job-harness resolve`.
+### As a Claude Code / Codex plugin
 
-`skills/job-search-workflow/SKILL.md` is the canonical full job-search workflow.
-The Claude Code `agents/job-searcher.md` file and `/job-search` command are
-thin entrypoints that delegate to that skill instead of copying the same
-workflow text. Keep workflow changes in the skill and keep host-specific
-entrypoint files small.
-
-Scraper implementation guidance is intentionally project-local, not shipped in
-the plugin. Use `.agents/skills/job-harness-scraper-development` when changing
-scraper code, fixtures, source contracts, or scraper tests. The scraper testing
-policy and experience-level source policy live inside that skill's references.
-
-### As a Codex plugin from GitHub
-
-Install the marketplace from GitHub, then install the plugin:
-
-```bash
-codex plugin marketplace add https://github.com/feodal01/job-harness --ref main
-codex plugin add job-harness@job-harness
-```
-
-Codex uses the MCP tools and runtime skills, including `job-search-workflow`.
-Claude Code slash commands and agents remain available through Claude Code.
-
-Claude and Codex cache installed plugins in versioned directories. Do not edit
-files under `~/.claude/plugins/cache/...` or `~/.codex/plugins/cache/...`
-directly; update this repository, reinstall/update the plugin, and let the host
-refresh its cache. The Claude marketplace entry does not pin a version. The
-Codex plugin manifest still declares semver because Codex plugin validation
-requires it.
+See marketplace install instructions in prior releases. The plugin ships runtime skills, commands, and (for v1) an MCP server config.
 
 ### Cursor
 
-Cursor does not install this plugin runtime directly. For repository maintenance, Cursor can use the shared `AGENTS.md` instructions at the repository root.
+Cursor can use repository-level `AGENTS.md` for maintenance. The installable runtime is `plugins/job-harness`.
 
-### Local development install
+## Usage (v2 CLI)
 
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/feodal01/job-harness.git
-   cd job-harness
-   ```
-
-2. Install dependencies and Playwright browser:
-   ```bash
-   uv --directory plugins/job-harness sync
-   uv --directory plugins/job-harness run python -m rebrowser_playwright install chromium
-   ```
-
-3. Use the local marketplace while developing:
-   ```bash
-   claude plugin marketplace add /path/to/job-harness
-   claude plugin install job-harness@job-harness
-   ```
-
-   Or install the local marketplace in Codex:
-   ```bash
-   codex plugin marketplace add /path/to/job-harness
-   codex plugin add job-harness@job-harness
-   ```
-
-### As a standalone CLI
+All v2 commands run from the plugin directory:
 
 ```bash
-uv --directory plugins/job-harness sync
-uv --directory plugins/job-harness run python -m rebrowser_playwright install chromium
-uv --directory plugins/job-harness run job-harness search --query "product manager" --remote-only --format json
+uv --directory plugins/job-harness run job-harness-v2 list-sources
 ```
 
-## Usage
-
-### Plugin commands
-
-- `/job-search` — Thin entrypoint that delegates to the `job-searcher` agent and `job-search-workflow` skill
-- `/job-resolve` — Resolve aggregator listings to employer career pages
-
-### CLI commands
+### Search
 
 ```bash
-# Search with employer resolution
-uv --directory plugins/job-harness run job-harness search --query "QA engineer" --detail --resolve --cache --format json -o results.json
-
-# Resolve from saved results
-uv --directory plugins/job-harness run job-harness resolve --input-file results.json --query "QA engineer" --cache
-
-# List available scrapers
-uv --directory plugins/job-harness run job-harness list-sources
+uv --directory plugins/job-harness run job-harness-v2 search \
+  --query "QA" \
+  --grade middle \
+  --salary-from 150000 \
+  --country RU \
+  --max-results 20
 ```
 
-### Search layer artifacts
+Stdout is a single JSON object (`record_type: v2_search_execution`) with `run_id`, artifact paths, per-source `attempts`, and `processed_result_count`.
 
-Every MCP/CLI search now has two artifact layers:
+Default artifact root: `.job-harness/v2/runs/<run_id>/`
 
-- `raw_search.jsonl` — raw search evidence, one `RawSearchRecord` per line. It is not globally truncated, ranked, deduped, grade-estimated, or filtered.
-- `results.json` — downstream export for presentation. It applies grade assessment, filters, dedupe, ordering, and `max_results`.
+### Append another query to the same run
 
-Use `list_sources` before a run to inspect exact source ids, groups, supported server criteria, and source limits. Use exact ids with `sources` or semantic groups with `source_groups`; if both are provided, the selected set is their union in registry order.
+```bash
+uv --directory plugins/job-harness run job-harness-v2 search \
+  --query "тестировщик" \
+  --append-to-run-id "<run_id>" \
+  --max-results 20
+```
 
-## Employer Resolution
+## v2 search parameters
 
-The resolver finds direct employer career pages for aggregator listings:
+| Flag | Description |
+|------|-------------|
+| `--query` | Search text; **repeatable** for multiple variants |
+| `--grade` | `intern`, `junior`, `middle`, `senior`, `lead`; repeatable |
+| `--salary-from` | Minimum salary (integer) |
+| `--published-since` | ISO date `YYYY-MM-DD` |
+| `--exclude-company` | Company name substring to exclude; repeatable |
+| `--exclude-text` | Substring exclusion applied in post-processing; repeatable |
+| `--exclude-regex` | Regex exclusion; repeatable |
+| `--relocation` | `true` or `false` |
+| `--remote-in-country` | `true` or `false` |
+| `--remote-global` | `true` or `false` |
+| `--country` | ISO country code (`RU`, `AM`); repeatable; filters catalog-eligible sources |
+| `--city` | City name; repeatable |
+| `--max-results` | Cap on **processed** export (default 20); does not cap raw scraping |
+| `--source` | Exact source id; repeatable; omit to search all implemented sources |
+| `--source-type` | `aggregator` or `company_career`; repeatable |
+| `--append-to-run-id` | Append to an existing run corpus |
+| `--run-id` | Optional explicit run id |
+| `--runs-dir` | Artifact directory (default `.job-harness/v2/runs`) |
+| `--source-attempt-timeout` | Per-source timeout in seconds (default 30) |
+| `--run-timeout` | Orchestrator timeout in seconds (default 120) |
+| `--fetch-timeout` | HTTP fetch timeout in seconds (default 15) |
+| `--retry-attempts` | Source retry count (default 1) |
 
-1. Check the bundled registry and local cache (7-day freshness)
-2. Search for `[Company] вакансии` / `[Company] careers`
-3. Probe common career page paths on company domain
-4. Match vacancy on career page using query synonyms
-5. Save to cache for future searches
+Run `list-sources` to see which criteria each source supports natively vs in post-processing.
 
-Resolution outcomes:
-- **Direct vacancy found** → use employer's URL, tag source as `+direct`
-- **Career page found** → link to career page, keep aggregator as primary
-- **No career page** → keep aggregator URL (normal for small companies)
+## Supported v2 sources
 
-## What makes it different
+| source_id | type | raw limit | countries |
+|-----------|------|-----------|-----------|
+| `habr_career` | aggregator | 50 | RU |
+| `hh_ru` | aggregator | 100 | RU |
+| `talanto` | aggregator | 50 | — |
+| `career:vk` | company_career | 25 | RU |
+| `career:jetbrains` | company_career | 120 | — |
+| `geekjob` | aggregator | 50 | — |
+| `talento` | aggregator | 50 | — |
+| `finder_work` | aggregator | 100 | — |
+| `getmatch` | aggregator | 100 | — |
+| `it_jobs_uz` | aggregator | 100 | — |
+| `hirify` | aggregator | 100 | — |
+| `jobturbo` | aggregator | 50 | — |
+| `hirehi` | aggregator | 50 | RU |
+| `staff_am` | aggregator | 100 | AM |
 
-- **Agent-first workflow** — the user describes the job search; the agent asks the right questions, runs the tools, filters results, and produces a concise report.
-- **Aggregator bubble escape** — job-harness looks for direct employer career pages instead of stopping at job-board listings.
-- **Russian-market focus** — built around hh.ru, Habr Career, and employer career sites relevant to this market.
-- **Codex and Claude Code support** — usable as a plugin in both agent environments, with a standalone CLI for development and debugging.
+## Artifact layout
+
+Each run under `.job-harness/v2/runs/<run_id>/`:
+
+| File | Purpose |
+|------|---------|
+| `raw-listings.jsonl` | Unfiltered raw listings from all sources |
+| `source-attempts.jsonl` | Per-source outcomes, timings, diagnostics |
+| `run-manifest.json` | Run metadata and append sequence |
+| `processed-results.json` | Filtered, deduped, capped export for presentation |
+
+## Verification
+
+```bash
+# v2 gate (deterministic + optional live full-catalog e2e)
+python scripts/verify_v2.py
+python scripts/verify_v2.py --skip-live
+
+# Repository gate (lint, types, v1+v2 unit tests, optional v1 live smokes)
+python scripts/verify_repo.py full
+```
+
+## Agent workflow
+
+The canonical workflow for AI agents is `plugins/job-harness/skills/job-search-workflow/SKILL.md`. It describes briefing, `list-sources`, `search`, append, artifact handling, and presentation — all through **`job-harness-v2`**.
+
+Claude Code `/job-search` and `agents/job-searcher.md` are thin entrypoints that delegate to that skill.
+
+Scraper development guidance lives in `.agents/skills/job-harness-scraper-development` (repository maintenance only).
+
+## Repository layout
+
+```
+plugins/job-harness/
+├── src/job_harness/
+│   ├── v2/          # Contract-first search engine (primary)
+│   └── v1/          # Legacy MCP/browser/employer tooling
+├── skills/          # Runtime agent skills (v2 workflow)
+├── commands/        # Claude Code slash commands
+├── agents/          # Claude Code agent entrypoints
+├── scripts/         # MCP server (v1), helpers
+└── tests/
+    ├── v1/          # Legacy engine tests
+    └── v2/          # Contract-first engine tests
+```
 
 ## Status
 
-job-harness currently focuses on search, filtering, employer resolution, and reusable search artifacts. Future releases can add more company-native scrapers, better ranking, deduplication across runs, and application tracking.
+v2 is the primary search surface for new work: 14 contract-first sources, fixture-backed parsers, and a full-catalog live e2e gate. v1 remains for MCP compatibility and legacy tooling under `src/job_harness/v1/`.

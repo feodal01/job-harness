@@ -33,20 +33,9 @@ Is this directory OK? If not, tell me which directory to use.
 Do not create `.job-harness/` until the user confirms. If the user gives another directory, apply the same existing-root check to `<chosen-directory>/.job-harness/` and confirm the path before continuing.
 
 After confirmation, initialize the artifact root only when it does not already
-exist. Use the helper script when available:
-
-```
-sh "$PLUGIN_ROOT/scripts/init-artifacts.sh" "<chosen-directory>"
-```
-
-In Claude Code, use `CLAUDE_PLUGIN_ROOT` instead of `PLUGIN_ROOT` if that is the available plugin root environment variable. If neither environment variable is available, create the same base structure manually:
-
-```
-.job-harness/
-  briefs/
-  companies/
-    careers.json
-```
+exist. v2 search runs write artifacts under `.job-harness/v2/runs/` by default.
+Briefs may still live under `.job-harness/briefs/` when the user wants reusable
+search history.
 
 ## Brief Template
 

@@ -233,7 +233,7 @@ def card_dom(*cards: dict[str, Any]) -> dict[str, list[FakeElement]]:
     The cards are exposed under the hh.ru data-qa card selector, with
     per-card children keyed by the selectors hh_ru.py uses.
     """
-    from job_harness.scrapers.hh_ru import (
+    from job_harness.v1.scrapers.hh_ru import (
         _CARD_SELECTOR,
         _COMPANY_PRIMARY,
         _EXPERIENCE_SELECTOR,

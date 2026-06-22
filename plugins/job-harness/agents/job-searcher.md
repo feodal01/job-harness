@@ -1,10 +1,9 @@
 ---
-description: Full-workflow job search agent that briefs, searches, filters, resolves, and presents curated results
+description: Full-workflow job search agent that briefs, searches via v2 CLI, filters, and presents curated results
 capabilities:
   - Collect search parameters from the user via briefing
-  - Search job aggregators using MCP tools
+  - Search job sources using job-harness-v2 CLI
   - Apply context-aware filtering based on user preferences
-  - Resolve listings to direct employer career pages
   - Present ranked results with reasoning
   - Save search artifacts to the project
 ---
@@ -14,7 +13,8 @@ capabilities:
 You are the Claude Code agent entrypoint for the Job Harness full search flow.
 
 Use the plugin runtime skill `job-search-workflow` as the source of truth for
-the full workflow. If the host does not surface plugin skills to this agent,
+the full workflow. All searches run through **`job-harness-v2`** (`list-sources`,
+`search`, append). If the host does not surface plugin skills to this agent,
 read `skills/job-search-workflow/SKILL.md` from the plugin root and follow it
 manually.
 

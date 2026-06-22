@@ -1,179 +1,178 @@
 ---
 name: job-search-workflow
-description: Full Job Harness workflow for AI agents running job searches. Use when Codex needs to brief a user, search job aggregators and employer career pages, resolve listings to direct employer URLs, filter and rank results, save .job-harness artifacts, or run a broad/full-scale job search with Job Harness MCP or CLI tools.
+description: Full Job Harness v2 workflow for AI agents running job searches. Use when Codex needs to brief a user, search job aggregators and employer career pages via job-harness-v2 CLI, filter and rank results, save .job-harness/v2 artifacts, or run a broad job search.
 ---
 
-# Job Search Workflow
+# Job Search Workflow (v2)
 
 This is the canonical full job-search workflow for the Job Harness plugin.
 Host-specific entrypoints such as Claude Code `agents/job-searcher.md` and
 `commands/job-search.md` must stay thin and defer here instead of duplicating
 workflow text.
 
-You are a job search specialist. Find the best job matches across aggregators,
-employer career pages, and company-specific career scrapers. Break out of the
-aggregator bubble by finding direct employer pages and, when useful, presenting
-both aggregator and employer links so the user can apply through both channels.
+You are a job search specialist. Find the best job matches across aggregators
+and employer career pages using the **v2 contract-first engine** (`job-harness-v2`).
+Search broadly, save artifacts under `.job-harness/v2/`, and present curated
+results from processed exports — not from raw scrape dumps.
 
 ## Workflow
 
-1. **Confirm artifact root** - Before creating files, inspect the current
-   artifact path (`<current-directory>/.job-harness/`). If it already exists,
-   ask whether the user wants to start a new search, continue from an existing
-   brief/run, or use another directory; summarize available briefs/runs when
-   they choose to continue. If it does not exist, tell the user where artifacts
-   will be saved and ask for approval. If they choose another directory, apply
-   the same existing-root check to that directory's `.job-harness/` folder. Only
-   after approval, initialize a missing root with `scripts/init-artifacts.sh`
-   from the plugin root when available; otherwise create `.job-harness/briefs/`,
-   `.job-harness/companies/`, and `.job-harness/companies/careers.json`
-   manually.
+1. **Confirm artifact root** — Before creating files, inspect
+   `<working-directory>/.job-harness/v2/runs/`. If the user already has runs,
+   ask whether to start fresh, append to an existing run, or use another
+   directory. Default run artifacts live under
+   `.job-harness/v2/runs/<run_id>/`.
 
-2. **Brief** - Activate the `user-briefing` skill. Ask all questions, confirm
-   before proceeding, or reuse an existing confirmed brief if the user asks for
-   another run. Prefer sequential questions and structured answer choices when
-   the host supports them. Save the brief to
-   `.job-harness/briefs/YYYY-MM-DD_<slug>/brief.md` and create its `runs/`
-   folder.
+2. **Brief** — Activate the `user-briefing` skill. Ask all questions, confirm
+   before proceeding, or reuse an existing confirmed brief. Save the brief to
+   `.job-harness/briefs/YYYY-MM-DD_<slug>/brief.md` when the user wants
+   project-local brief history.
 
-3. **Create run** - For each search attempt, create
-   `.job-harness/briefs/YYYY-MM-DD_<slug>/runs/YYYY-MM-DD_HHMM_<run-name>/`
-   and save `run.md` with sources, query variants, filters, and resolve
-   settings.
+3. **Inspect catalog** — Always start with the v2 source catalog:
 
-4. **Search** - Run the MCP search loop:
+   ```bash
+   uv --directory plugins/job-harness run job-harness-v2 list-sources
+   ```
 
-   If Job Harness MCP tools are not visible in a host that supports deferred or
-   lazy tool discovery, discover the installed plugin tools before falling back
-   to CLI. Use the host's native discovery mechanism to surface
-   `list_sources`, `search_start`, and related Job Harness tools, then call
-   `list_sources`. Use CLI only when discovery is unavailable or the MCP server
-   fails to start/respond.
+   Use exact `source_id` values from the JSON (`habr_career`, `hh_ru`,
+   `career:vk`, …). Omit `--source` to search the full implemented catalog.
+   Use `--source` / repeat `--source` to narrow the set. Use `--source-type
+   aggregator` or `--source-type company_career` for semantic narrowing.
 
-   1. Call `list_sources` when choosing sources. Use exact ids from the
-      response with `sources` and semantic groups with `source_groups`
-      (`aggregator`, `company_career`, `directory`, `other`). `list_sources`
-      also shows server-supported criteria and each source's raw
-      `source_limit`.
-   2. Call `search_start(...)` with search criteria (`query`, `country`,
-      `remote_only`, `experience_levels`, `location`, `salary_from`,
-      `freshness_days`), source selectors (`sources`, `source_groups`), and
-      presentation `max_results`. It returns `run_id`, `raw_search_path`, and
-      `results_path`.
-   3. Poll `search_status(run_id)` until `state` is `completed`, `failed`, or
-      `cancelled`. Cancel early with `search_cancel(run_id)` when
-      `listings_count` is enough.
-   4. Inspect `retryable_sources` and `sources[*].state` for failed or partial
-      sources. To retry failed sources in the same `run_id`, call
-      `search_retry(run_id, sources="headhunter_kg,career:vk")` with exact ids
-      from `search_status.sources` or `list_sources`. Successful requested
-      sources are skipped and reported in `skipped_sources`. Then poll
-      `search_status` again.
-   5. For a full re-search of all sources, call `search_start` again to create
-      a new `run_id`. `unknown_run_id` or `invalid_sources` errors include
-      `hint` and `retryable_sources`; fix ids before retrying.
-   6. Export raw evidence from `raw_search_path`. It points to
-      `raw_search.jsonl`, which is unfiltered, undeduped, unranked source
-      evidence and is not capped by `max_results`.
-   7. Export the full presentation dataset with `search_results(run_id)`. The
-      default file export returns a path to
-      `data/.runs/<run_id>/results.json`. This downstream export applies grade
-      assessment, filters, dedupe, ordering, and `max_results`.
-   8. Keep context safe: `results.json` can be large. Do not load or paste the
-      whole file into chat. Prefer `search_status(run_id)` for counts and
-      diagnostics, `search_refine(run_id, ...)` to narrow the journal, and
-      `search_results(run_id, format="inline", limit=N, offset=M)` for small
-      previews. Inline results are hard-capped at 20 per call. Read
-      `results.json` only in targeted slices when needed.
-   9. Pass `debug=true` to `search_results` only when per-source diagnostics
-      are needed.
+4. **Search** — Run the v2 CLI from the plugin root (or repo root with
+   `--directory plugins/job-harness`):
 
-5. **Full-scale search** - For broad coverage, run all three phases:
+   ```bash
+   uv --directory plugins/job-harness run job-harness-v2 search \
+     --query "QA" \
+     --query "quality assurance" \
+     --grade middle \
+     --salary-from 150000 \
+     --country RU \
+     --country AM \
+     --max-results 20 \
+     --runs-dir .job-harness/v2/runs
+   ```
 
-   1. Aggregators, registered job boards, per-company scrapers, and the known
-      company career source: `search_start` with `sources=all`, `cache=true`,
-      and `country` when the brief has target countries. Then call
-      `search_results(run_id)` for the export file. If `company_careers`
-      reports `partial`, the configured source timeout was not enough to finish
-      every known company target.
-   2. Exhaustive employer career-page audit: run
-      `job-harness company-live-batch` for the same role query and save
-      `--output-jsonl` to `<run>/raw/company-live-results.jsonl` and
-      `--summary-json` to `<run>/raw/company-live-summary.json`; include
-      `--progress`. This searches the full bundled company directory plus
-      resolved employer career pages from the local employer cache when
-      present.
-   3. Deep research: run ordinary web search queries outside Job Harness tools
-      for role + country/city/remote keywords, direct employer career pages,
-      hiring posts, community posts, and new job boards not yet implemented as
-      scrapers. Save the query list, searched URLs, and useful findings under
-      `<run>/raw/deep-research.*`.
+   The command prints one JSON object (`record_type: v2_search_execution`) to
+   stdout. Parse it; do not paste the whole payload into chat.
 
-   If `company-live-summary.json` contains `access_issues`, tell the user which
-   companies could not be checked because LinkedIn, Telegram, or similar URLs
-   were not reachable from the current network. Ask whether they can enable VPN
-   or retry from another network before treating those companies as having no
-   matching vacancies.
+   **Key response fields:**
+   - `run_id` — reuse for append
+   - `run_dir` — directory with all artifacts
+   - `artifacts.raw_listings` — `raw-listings.jsonl` (unfiltered source evidence)
+   - `artifacts.processed_results` — `processed-results.json` (filtered/deduped export)
+   - `artifacts.source_attempts` — per-source diagnostics
+   - `attempts[*].outcome` — `success`, `no_results`, or failure classes
+   - `processed_result_count` — downstream listing count after post-processing
 
-   Do not pass `--workers` for normal full-scale runs; the plugin default is
-   the operational concurrency setting. Use `search_company_careers` or
-   `company-live-search` only for narrow targeted checks, not for the
-   bundled/cache-backed company pass.
+5. **Append** — To add another query variant into the same run corpus:
 
-6. **Resolve** - After filtering exported listings, run
-   `uv --directory plugins/job-harness run job-harness resolve` on the results
-   file, or follow the `employer-resolution` skill. Use `cache_get` and
-   `cache_upsert` to record findings.
+   ```bash
+   uv --directory plugins/job-harness run job-harness-v2 search \
+     --query "тестировщик" \
+     --append-to-run-id "<run_id>" \
+     --max-results 20 \
+     --runs-dir .job-harness/v2/runs
+   ```
 
-7. **Filter** - Apply the brief's exclusion criteria on the exported dataset.
-   Prefer `search_refine` for coarse flags (`experience_levels`, `remote_only`,
-   `exclude_keywords`, `exclude_companies`) before opening `results.json`.
-   `experience_levels` is exact-list filtering (`["middle"]` means middle, not
-   middle+); unknown-grade listings remain marked as
-   `experience_origin=unknown`. Use `exclude_keywords` with
-   `exclude_keywords_context` in `search_start` or `search_refine` for
-   context-aware filtering, for example when a keyword is acceptable in a
-   "nice to have" section.
+6. **Read results safely** — Raw and processed artifacts can be large.
+   - Use stdout summary fields and `attempts` for diagnostics first.
+   - Read `processed-results.json` in small slices when needed.
+   - Treat `raw-listings.jsonl` as audit evidence, not the presentation layer.
+   - Never dump full artifact files into the conversation.
 
-8. **Rank** - Prioritize listings with direct employer vacancy URLs first,
-   employer career page URLs second, and aggregator-only URLs last.
+7. **Filter & rank** — Apply the brief's exclusion criteria on processed
+   results. Use `--exclude-text`, `--exclude-regex`, and `--exclude-company`
+   on subsequent searches when criteria are known upfront. Prefer substring
+   exclusions for "nice to have" keywords that should not auto-reject a role
+   when mentioned only in passing.
 
-9. **Present** - Show top matches in a structured format with the best link
-   available (direct > career page > aggregator), company, title, salary,
-   format, location, and one-line reasoning for why each listing matches the
-   brief.
+8. **Present** — Show top matches with company, title, salary, location,
+   remote/relocation when available, source id, and the listing URL. Note which
+   sources returned `no_results` vs `success`.
 
-10. **Save** - Copy the MCP export (`data/.runs/<run_id>/results.json`) into
-    the project run folder as `results.json`, write the human-readable report
-    to `report.md`, and keep intermediate outputs under `raw/` when useful for
-    audit.
+9. **Save** — Copy `processed-results.json` and the execution JSON into the
+   project run folder when the user wants a durable audit trail. Write a human
+   report to `report.md`.
 
-11. **Iterate** - If results are insufficient, suggest adjustments. Re-search
-    only with user approval, reusing the same brief and creating a new run
-    folder.
+10. **Iterate** — If results are insufficient, suggest query variants, source
+    subsets, or criteria adjustments. Re-search only with user approval.
 
-## Key Principles
+## v2 search parameters
 
-- Search across all available sources. Always try to find the direct employer
-  URL, not only the aggregator listing.
-- Treat `max_results` as a presentation limit only. Raw scraping depth is
-  controlled by each source's `source_limit`.
-- Freshness and salary lower-bound are server-only search criteria. When a
-  source cannot apply `freshness_days` or `salary_from` natively, keep its raw
-  listings and report that criterion as unsupported.
-- Full-scale search means aggregators/job boards plus the bundled/cache-backed
-  employer live batch plus ordinary deep web research. Do not treat
-  `sources=all` alone as full coverage, because employer career pages and
-  uncataloged web sources are separate phases.
-- Built-in tools do not replace normal web research. If the user asks for broad
-  coverage, market mapping, new sources, or "find everything", include
-  deep-research queries in addition to MCP/CLI searches.
-- Not finding a career page is normal for small companies. Do not present it as
-  failure.
-- Context-aware filtering: "nice to have" keywords should not exclude a
-  listing.
-- Always save artifacts. The brief is the reusable source of truth; each run
-  records one execution of that brief.
-- Treat `results.json` as a large on-disk artifact: save it, but read and
-  reason over it in small chunks. Never dump the full file into the
-  conversation.
+| CLI flag | Maps to | Notes |
+|----------|---------|-------|
+| `--query` | `query_variants` | Repeatable; each variant runs against selected sources |
+| `--grade` | `grades` | `intern`, `junior`, `middle`, `senior`, `lead`; repeatable |
+| `--salary-from` | `salary_from` | Integer lower bound; native on some sources, post-filter elsewhere |
+| `--published-since` | `published_since` | ISO date `YYYY-MM-DD` |
+| `--exclude-company` | `exclude_companies` | Repeatable company name substrings |
+| `--exclude-text` | `exclude_text` | Repeatable substring exclusions |
+| `--exclude-regex` | `exclude_regex` | Repeatable regex exclusions |
+| `--relocation` | `relocation` | `true` / `false` |
+| `--remote-in-country` | `remote_in_country` | `true` / `false` |
+| `--remote-global` | `remote_global` | `true` / `false` |
+| `--country` | `countries` | Repeatable ISO codes (`RU`, `AM`); filters catalog-eligible sources |
+| `--city` | `cities` | Repeatable city names |
+| `--max-results` | `max_results` | Caps **processed** export only; raw limits come from catalog `source_limit` |
+| `--source` | `sources` | Repeatable exact source ids; omit for full catalog |
+| `--source-type` | `source_types` | `aggregator` or `company_career` |
+| `--append-to-run-id` | append mode | Adds to existing run corpus |
+| `--run-id` | explicit run id | Optional; auto-generated when omitted |
+| `--runs-dir` | artifact root | Default `.job-harness/v2/runs` |
+| `--source-attempt-timeout` | per-source timeout | Seconds (default 30) |
+| `--run-timeout` | orchestrator timeout | Seconds (default 120) |
+| `--fetch-timeout` | HTTP fetch timeout | Seconds (default 15) |
+| `--retry-attempts` | source retries | Default 1 |
+
+Call `list-sources` to see per-source `native_request_criteria` vs
+`structured_output_criteria` — unsupported criteria are still collected raw and
+handled in post-processing.
+
+## Supported v2 sources (14)
+
+| source_id | type | source_limit | countries |
+|-----------|------|-------------|-----------|
+| `habr_career` | aggregator | 50 | RU |
+| `hh_ru` | aggregator | 100 | RU |
+| `talanto` | aggregator | 50 | — |
+| `career:vk` | company_career | 25 | RU |
+| `career:jetbrains` | company_career | 120 | — |
+| `geekjob` | aggregator | 50 | — |
+| `talento` | aggregator | 50 | — |
+| `finder_work` | aggregator | 100 | — |
+| `getmatch` | aggregator | 100 | — |
+| `it_jobs_uz` | aggregator | 100 | — |
+| `hirify` | aggregator | 100 | — |
+| `jobturbo` | aggregator | 50 | — |
+| `hirehi` | aggregator | 50 | RU |
+| `staff_am` | aggregator | 100 | AM |
+
+## Artifact layout
+
+Each run directory contains:
+
+- `raw-listings.jsonl` — one raw listing per line; not deduped or globally capped
+- `source-attempts.jsonl` — per-source attempt records with outcomes and evidence
+- `run-manifest.json` — run id, append sequence, source summary
+- `processed-results.json` — filtered, deduped, capped export for presentation
+
+## Key principles
+
+- Use **`job-harness-v2`**, not legacy `job-harness` (v1), for new searches.
+- Treat `max_results` as a presentation limit only. Raw depth is controlled by
+  each source's `source_limit` in the catalog.
+- `no_results` is a valid healthy outcome — distinguish it from transport failures
+  (`network_error`, `rate_limited`, `source_timeout`, …).
+- Always call `list-sources` before the first search on a new host/session.
+- Save artifacts; keep stdout JSON as the execution receipt, not the only copy
+  of listings.
+- Context-aware filtering: "nice to have" keywords should not exclude a listing
+  when they appear only in optional sections.
+
+## Legacy v1 note
+
+The legacy v1 engine (`job-harness`, MCP async search tools, employer resolution)
+lives under `src/job_harness/v1/` and is not part of this workflow. Do not mix
+v1 MCP tools with v2 CLI artifacts in the same run.

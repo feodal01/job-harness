@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-job-harness = "job_harness.cli:main"
+job-harness = "job_harness.v1.cli:main"
 job-harness-v2 = "job_harness.v2.cli:main"
 
 [tool.hatch.build.targets.wheel]

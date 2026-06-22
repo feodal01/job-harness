@@ -1,0 +1,185 @@
+from __future__ import annotations
+
+import csv
+import io
+import json
+import unittest
+from typing import Any
+
+from job_harness.v1.filters import (
+    apply_filters,
+    experience_in,
+    has_salary,
+    no_keywords,
+    remote_only,
+)
+from job_harness.v1.formatters import CsvFormatter, JsonFormatter, MarkdownFormatter
+from job_harness.v1.models import JobListing, SearchParams, SearchResults
+
+
+def _listing(**overrides: Any) -> JobListing:
+    data: dict[str, Any] = {
+        "title": "QA Engineer",
+        "url": "https://example.test/jobs/1",
+        "company": "Example",
+        "salary": "200 000 ₽",
+        "experience": "senior",
+        "experience_levels": ["senior"],
+        "experience_origin": "native",
+        "experience_confidence": "high",
+        "experience_evidence": ["habr_career: native senior"],
+        "remote": True,
+        "description": "Manual testing and API checks.",
+        "requirements": "Python будет плюсом.",
+        "skills": ["Python", "SQL"],
+        "source": "habr_career",
+    }
+    data.update(overrides)
+    return JobListing(**data)
+
+
+class FiltersAndFormattersTest(unittest.TestCase):
+    def test_apply_filters_keeps_only_matching_listings(self) -> None:
+        listings = [
+            _listing(title="Remote Senior QA"),
+            _listing(
+                title="Office Junior QA",
+                remote=False,
+                experience="junior",
+                experience_levels=["junior"],
+            ),
+            _listing(title="Remote Without Salary", salary=None),
+            _listing(
+                title="Remote Unknown Grade",
+                experience=None,
+                experience_levels=[],
+                experience_origin="unknown",
+                experience_confidence="none",
+                salary="180 000 ₽",
+            ),
+        ]
+
+        filtered = apply_filters(
+            listings, [remote_only, experience_in(("middle",)), has_salary]
+        )
+
+        self.assertEqual(["Remote Unknown Grade"], [listing.title for listing in filtered])
+
+    def test_no_keywords_honors_ignore_context(self) -> None:
+        listing = _listing(requirements="Java обязателен. Python будет плюсом.")
+
+        self.assertTrue(no_keywords("Python", ignore_context=["будет плюсом"])(listing))
+        self.assertFalse(no_keywords("Java", ignore_context=["будет плюсом"])(listing))
+
+    def test_json_formatter_preserves_unicode_and_total(self) -> None:
+        results = SearchResults(
+            params=SearchParams(
+                query="ручной тестировщик",
+                salary_from=200000,
+                freshness_days=7,
+                max_results=1,
+            ),
+            listings=[_listing(company="Банк России")],
+            timestamp="2026-06-02 13:00",
+            errors=[],
+        )
+
+        payload = json.loads(JsonFormatter().format(results))
+
+        self.assertEqual("ручной тестировщик", payload["params"]["query"])
+        self.assertEqual(200000, payload["params"]["salary_from"])
+        self.assertEqual(7, payload["params"]["freshness_days"])
+        self.assertEqual("Банк России", payload["listings"][0]["company"])
+        self.assertEqual(1, payload["total"])
+        self.assertEqual([], payload["errors"])
+
+    def test_csv_formatter_writes_stable_header_and_skill_list(self) -> None:
+        results = SearchResults(
+            params=SearchParams(
+                query="QA",
+                salary_from=200000,
+                freshness_days=14,
+                max_results=1,
+            ),
+            listings=[_listing()],
+            timestamp="2026-06-02 13:00",
+            summary={
+                "source_statuses": [
+                    {
+                        "source": "habr_career",
+                        "state": "ok",
+                        "listings_written": 1,
+                        "attempts": 1,
+                        "retries": 0,
+                        "limit_reached": False,
+                        "elapsed_ms": 12,
+                    }
+                ]
+            },
+        )
+
+        rows = list(csv.reader(io.StringIO(CsvFormatter().format(results))))
+
+        self.assertEqual(
+            [
+                "title",
+                "url",
+                "company",
+                "country",
+                "salary",
+                "experience_levels",
+                "experience_origin",
+                "experience_confidence",
+                "experience_evidence",
+                "remote",
+                "location",
+                "skills",
+                "source",
+                "posted_date",
+            ],
+            rows[0],
+        )
+        self.assertEqual("senior", rows[1][5])
+        self.assertEqual("native", rows[1][6])
+        self.assertEqual("Python; SQL", rows[1][11])
+        self.assertEqual("habr_career", rows[1][12])
+
+    def test_markdown_formatter_includes_summary_and_listing(self) -> None:
+        results = SearchResults(
+            params=SearchParams(
+                query="QA",
+                salary_from=200000,
+                freshness_days=14,
+                max_results=1,
+            ),
+            listings=[_listing()],
+            timestamp="2026-06-02 13:00",
+            summary={
+                "source_statuses": [
+                    {
+                        "source": "habr_career",
+                        "state": "ok",
+                        "listings_written": 1,
+                        "attempts": 1,
+                        "retries": 0,
+                        "limit_reached": False,
+                        "elapsed_ms": 12,
+                    }
+                ]
+            },
+        )
+
+        markdown = MarkdownFormatter().format(results)
+
+        self.assertIn("# Job Search: QA", markdown)
+        self.assertIn("Salary from: 200000", markdown)
+        self.assertIn("Freshness: 14 days", markdown)
+        self.assertIn("### 1. QA Engineer", markdown)
+        self.assertIn("## Source Status", markdown)
+        self.assertIn("| habr_career | ok | 1 | 1 | 0 | False | 12 ms |", markdown)
+        self.assertIn("## Summary", markdown)
+        self.assertIn("| 1 | Example | not specified | 200 000 ₽ | remote | senior (native, high) |", markdown)
+
+
+if __name__ == "__main__":
+    unittest.main()
