@@ -1,0 +1,60 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "f8f67364-d103-4564-8549-c6f8baca96ff",
+      "title": "QA",
+      "url": "https://talento.works/jobs/f8f67364-d103-4564-8549-c6f8baca96ff",
+      "company": "Цифровые привычки",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "fa8debea-d1f7-464d-9e3a-50408efbc8b6",
+      "title": "QA Engineer (Middle/Senior), ( работа в офисе, Ташкент)",
+      "url": "https://talento.works/jobs/fa8debea-d1f7-464d-9e3a-50408efbc8b6",
+      "company": "MEDION LABZAK",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "ca0005e0-f616-4264-8eb5-302ac2c585e5",
+      "title": "QA Engineer Back Office",
+      "url": "https://talento.works/jobs/ca0005e0-f616-4264-8eb5-302ac2c585e5",
+      "company": "Salmon Group",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ]
+}

@@ -12,6 +12,7 @@ from job_harness.v2.runtime.sources import (
     HhRuSource,
     JetBrainsCareerSource,
     TalantoSource,
+    TalentoSource,
     VKCareerSource,
 )
 from job_harness.v2.source_catalog import source_catalog_entries, source_fixture_suite
@@ -23,6 +24,7 @@ _SOURCE_FACTORIES: dict[str, Callable[[], SourceScraper]] = {
     "career:jetbrains": JetBrainsCareerSource,
     "talanto": TalantoSource,
     "geekjob": GeekJobSource,
+    "talento": TalentoSource,
 }
 
 

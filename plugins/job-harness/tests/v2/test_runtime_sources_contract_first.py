@@ -27,6 +27,7 @@ from job_harness.v2.runtime.sources import (
     HhRuSource,
     JetBrainsCareerSource,
     TalantoSource,
+    TalentoSource,
     VKCareerSource,
 )
 from job_harness.v2.source_catalog import source_fixture_suite
@@ -40,6 +41,7 @@ _TALANTO_QA_URL = "https://talanto.work/?q=QA"
 _VK_QA_URL = "https://team.vk.company/vacancy/?specialty=284"
 _JETBRAINS_URL = "https://boards-api.greenhouse.io/v1/boards/jetbrains/jobs?content=true"
 _GEEKJOB_URL = "https://geekjob.ru/vacancies"
+_TALENTO_WORKS_QA_URL = "https://talento.works/?q=QA"
 _NO_RESULTS_QUERY = "zzzzzz-no-such-job-20260622"
 _GEEKJOB_NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
 _HABR_NO_RESULTS_URL = f"https://career.habr.com/vacancies?q={_NO_RESULTS_QUERY}&type=all"
@@ -574,6 +576,70 @@ class GeekJobSourceTest(unittest.TestCase):
         self.assertTrue(parsed.evidence.no_results)
 
 
+class TalentoSourceTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=TalentoSource(),
+            fixture_suite=source_fixture_suite("talento"),
+        )
+
+        # Assert
+        self.assertEqual("talento", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_uses_native_query(self) -> None:
+        # Arrange
+        source = TalentoSource()
+
+        # Act
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+
+        # Assert
+        self.assertEqual("talento", fetch_request.source_id)
+        self.assertEqual("QA", fetch_request.query_variant)
+        self.assertEqual(_TALENTO_WORKS_QA_URL, fetch_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = TalentoSource()
+        expected = _expected("talento", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("talento", "success"),
+            SourceFetchRequest(
+                source_id="talento",
+                query_variant="QA",
+                url=_TALENTO_WORKS_QA_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_no_results_fixture_is_explicit_no_results(self) -> None:
+        # Arrange
+        source = TalentoSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("talento", "no_results"),
+            SourceFetchRequest(
+                source_id="talento",
+                query_variant="zzzzzzzzzzzzzzzz",
+                url="https://talento.works/?q=zzzzzzzzzzzzzzzz",
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertTrue(parsed.evidence.no_results)
+
+
 class JetBrainsCareerSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
@@ -636,6 +702,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
         vk = VKCareerSource()
         jetbrains = JetBrainsCareerSource()
         geekjob = GeekJobSource()
+        talento = TalentoSource()
         fetcher = FixtureFetcher(
             {
                 _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
@@ -646,6 +713,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                 _VK_QA_URL: _FIXTURES / "career_vk" / "success" / "response.html",
                 _JETBRAINS_URL: _FIXTURES / "career_jetbrains" / "success" / "response.json",
                 _GEEKJOB_URL: _FIXTURES / "geekjob" / "success" / "response.html",
+                _TALENTO_WORKS_QA_URL: _FIXTURES / "talento" / "success" / "response.html",
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -665,6 +733,10 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                                 scraper=geekjob,
                                 fixture_suite=source_fixture_suite("geekjob"),
                             ),
+                            SupportedSource(
+                                scraper=talento,
+                                fixture_suite=source_fixture_suite("talento"),
+                            ),
                         )
                     ),
                     fetcher=fetcher,
@@ -683,21 +755,23 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["career:vk"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["career:jetbrains"].outcome)
             self.assertEqual(SourceOutcome.NO_RESULTS, outcomes["geekjob"].outcome)
+            self.assertEqual(SourceOutcome.SUCCESS, outcomes["talento"].outcome)
             self.assertEqual(2, outcomes["habr_career"].counts.pages_visited)
             self.assertEqual(2, outcomes["hh_ru"].counts.pages_visited)
             self.assertEqual(1, outcomes["talanto"].counts.pages_visited)
             self.assertEqual(1, outcomes["career:vk"].counts.pages_visited)
             self.assertEqual(1, outcomes["career:jetbrains"].counts.pages_visited)
             self.assertEqual(1, outcomes["geekjob"].counts.pages_visited)
-            self.assertEqual(179, result.raw_records_written)
+            self.assertEqual(1, outcomes["talento"].counts.pages_visited)
+            self.assertEqual(199, result.raw_records_written)
 
             raw_records = [
                 json.loads(line)
                 for line in (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(179, len(raw_records))
+            self.assertEqual(199, len(raw_records))
             self.assertEqual(
-                {"habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains"},
+                {"habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "talento"},
                 {record["source"] for record in raw_records},
             )
             self.assertIn(

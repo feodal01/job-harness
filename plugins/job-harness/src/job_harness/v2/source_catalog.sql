@@ -97,7 +97,8 @@ VALUES
     (2, 'talanto', 'aggregator', 'http', 50),
     (3, 'career:vk', 'company_career', 'http', 25),
     (4, 'career:jetbrains', 'company_career', 'http', 120),
-    (5, 'geekjob', 'aggregator', 'http', 50);
+    (5, 'geekjob', 'aggregator', 'http', 50),
+    (6, 'talento', 'aggregator', 'http', 50);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -164,7 +165,16 @@ VALUES
     ('geekjob', 5, 'remote_in_country', 'structured_output'),
     ('geekjob', 6, 'remote_global', 'structured_output'),
     ('geekjob', 7, 'countries', 'structured_output'),
-    ('geekjob', 8, 'cities', 'unsupported');
+    ('geekjob', 8, 'cities', 'unsupported'),
+    ('talento', 0, 'query', 'native_request'),
+    ('talento', 1, 'grades', 'unsupported'),
+    ('talento', 2, 'salary_from', 'unsupported'),
+    ('talento', 3, 'published_since', 'unsupported'),
+    ('talento', 4, 'relocation', 'unsupported'),
+    ('talento', 5, 'remote_in_country', 'unsupported'),
+    ('talento', 6, 'remote_global', 'unsupported'),
+    ('talento', 7, 'countries', 'unsupported'),
+    ('talento', 8, 'cities', 'unsupported');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -177,7 +187,8 @@ VALUES
     ('hh_ru', 'optional_fields'),
     ('talanto', 'no_results'),
     ('career:vk', 'no_results'),
-    ('geekjob', 'no_results');
+    ('geekjob', 'no_results'),
+    ('talento', 'no_results');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -364,6 +375,28 @@ VALUES
         'tests/v2/fixtures/scrapers/geekjob/no_results/response.html',
         'tests/v2/fixtures/scrapers/geekjob/no_results/meta.json',
         'tests/v2/fixtures/scrapers/geekjob/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'talento',
+        0,
+        'talento-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/talento/success/response.html',
+        'tests/v2/fixtures/scrapers/talento/success/meta.json',
+        'tests/v2/fixtures/scrapers/talento/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'talento',
+        1,
+        'talento-no_results',
+        'no_results',
+        'tests/v2/fixtures/scrapers/talento/no_results/response.html',
+        'tests/v2/fixtures/scrapers/talento/no_results/meta.json',
+        'tests/v2/fixtures/scrapers/talento/no_results/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );
