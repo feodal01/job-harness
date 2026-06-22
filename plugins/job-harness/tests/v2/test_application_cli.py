@@ -95,6 +95,7 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                 "talento",
                 "finder_work",
                 "getmatch",
+                "it_jobs_uz",
             ],
             [source["source_id"] for source in payload["sources"]],
         )

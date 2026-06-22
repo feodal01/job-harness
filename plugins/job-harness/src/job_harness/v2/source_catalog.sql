@@ -100,7 +100,8 @@ VALUES
     (5, 'geekjob', 'aggregator', 'http', 50),
     (6, 'talento', 'aggregator', 'http', 50),
     (7, 'finder_work', 'aggregator', 'http', 100),
-    (8, 'getmatch', 'aggregator', 'http', 100);
+    (8, 'getmatch', 'aggregator', 'http', 100),
+    (9, 'it_jobs_uz', 'aggregator', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -194,7 +195,16 @@ VALUES
     ('getmatch', 5, 'remote_in_country', 'structured_output'),
     ('getmatch', 6, 'remote_global', 'structured_output'),
     ('getmatch', 7, 'countries', 'structured_output'),
-    ('getmatch', 8, 'cities', 'structured_output');
+    ('getmatch', 8, 'cities', 'structured_output'),
+    ('it_jobs_uz', 0, 'query', 'native_request'),
+    ('it_jobs_uz', 1, 'grades', 'structured_output'),
+    ('it_jobs_uz', 2, 'salary_from', 'native_request'),
+    ('it_jobs_uz', 3, 'published_since', 'structured_output'),
+    ('it_jobs_uz', 4, 'relocation', 'unsupported'),
+    ('it_jobs_uz', 5, 'remote_in_country', 'structured_output'),
+    ('it_jobs_uz', 6, 'remote_global', 'structured_output'),
+    ('it_jobs_uz', 7, 'countries', 'structured_output'),
+    ('it_jobs_uz', 8, 'cities', 'structured_output');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -210,7 +220,8 @@ VALUES
     ('geekjob', 'no_results'),
     ('talento', 'no_results'),
     ('finder_work', 'no_results'),
-    ('getmatch', 'no_results');
+    ('getmatch', 'no_results'),
+    ('it_jobs_uz', 'no_results');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -463,6 +474,28 @@ VALUES
         'tests/v2/fixtures/scrapers/getmatch/no_results/response.json',
         'tests/v2/fixtures/scrapers/getmatch/no_results/meta.json',
         'tests/v2/fixtures/scrapers/getmatch/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'it_jobs_uz',
+        0,
+        'it_jobs_uz-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/it_jobs_uz/success/response.json',
+        'tests/v2/fixtures/scrapers/it_jobs_uz/success/meta.json',
+        'tests/v2/fixtures/scrapers/it_jobs_uz/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'it_jobs_uz',
+        1,
+        'it_jobs_uz-no_results',
+        'no_results',
+        'tests/v2/fixtures/scrapers/it_jobs_uz/no_results/response.json',
+        'tests/v2/fixtures/scrapers/it_jobs_uz/no_results/meta.json',
+        'tests/v2/fixtures/scrapers/it_jobs_uz/no_results/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

@@ -16,6 +16,7 @@ from job_harness.v2.runtime.sources import (
     GetmatchSource,
     HabrCareerSource,
     HhRuSource,
+    ItJobsUzSource,
     JetBrainsCareerSource,
     TalantoSource,
     TalentoSource,
@@ -50,6 +51,7 @@ class SourceCatalogTableTest(unittest.TestCase):
                 "talento",
                 "finder_work",
                 "getmatch",
+                "it_jobs_uz",
             ),
             tuple(entry.source_id for entry in entries),
         )
@@ -329,6 +331,44 @@ class SourceCatalogTableTest(unittest.TestCase):
             tuple(case.kind for case in fixture_suite.cases),
         )
 
+    def test_it_jobs_uz_catalog_row_declares_source_contract(self) -> None:
+        # Arrange / Act
+        descriptor = source_descriptor("it_jobs_uz")
+        required_fixture_kinds = source_required_fixture_kinds("it_jobs_uz")
+        fixture_suite = source_fixture_suite("it_jobs_uz")
+
+        # Assert
+        self.assertEqual(SourceType.AGGREGATOR, descriptor.source_type)
+        self.assertEqual(Transport.HTTP, descriptor.transport)
+        self.assertEqual((), descriptor.countries)
+        self.assertEqual(100, descriptor.source_limit)
+        self.assertEqual(
+            frozenset({SearchCriterion.QUERY, SearchCriterion.SALARY_FROM}),
+            descriptor.native_request_criteria,
+        )
+        self.assertEqual(
+            frozenset(
+                {
+                    SearchCriterion.GRADES,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_IN_COUNTRY,
+                    SearchCriterion.REMOTE_GLOBAL,
+                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.CITIES,
+                }
+            ),
+            descriptor.structured_output_criteria,
+        )
+        self.assertTrue(required_fixture_kinds.no_results)
+        self.assertFalse(required_fixture_kinds.pagination)
+        self.assertEqual(
+            (
+                ParserFixtureKind.SUCCESS_NON_EMPTY,
+                ParserFixtureKind.NO_RESULTS,
+            ),
+            tuple(case.kind for case in fixture_suite.cases),
+        )
+
     def test_jetbrains_catalog_row_declares_source_contract(self) -> None:
         # Arrange / Act
         descriptor = source_descriptor("career:jetbrains")
@@ -398,6 +438,7 @@ class SourceCatalogTableTest(unittest.TestCase):
             (TalentoSource(), "talento"),
             (FinderWorkSource(), "finder_work"),
             (GetmatchSource(), "getmatch"),
+            (ItJobsUzSource(), "it_jobs_uz"),
             (VKCareerSource(), "career:vk"),
             (JetBrainsCareerSource(), "career:jetbrains"),
         )

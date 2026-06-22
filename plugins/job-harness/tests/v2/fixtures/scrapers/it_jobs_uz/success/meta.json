@@ -1,0 +1,11 @@
+{
+  "source_id": "it_jobs_uz",
+  "captured_url": "https://www.it-jobs.uz/api/jobs?search=QA&limit=100&page=1&category=qa",
+  "capture_date": "2026-06-22",
+  "capture_method": "curl -L against the public IT-Jobs.uz jobs API",
+  "fixture_kind": "success_non_empty",
+  "redactions": [
+    "None; the committed artifact is the real public JSON response captured from IT-Jobs.uz."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}
