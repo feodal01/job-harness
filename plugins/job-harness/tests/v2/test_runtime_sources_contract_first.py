@@ -30,6 +30,7 @@ from job_harness.v2.runtime.sources import (
     HirifySource,
     ItJobsUzSource,
     JetBrainsCareerSource,
+    JobTurboSource,
     TalantoSource,
     TalentoSource,
     VKCareerSource,
@@ -55,6 +56,7 @@ _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL = (
 )
 _IT_JOBS_UZ_QA_URL = "https://www.it-jobs.uz/api/jobs?search=QA&limit=100&page=1&category=qa"
 _HIRIFY_QA_URL = "https://api.hirify.me/api/vacancies?search=QA&page=1"
+_JOBTURBO_URL = "https://jobturbo.ru/vakansii/remote"
 _NO_RESULTS_QUERY = "zzzzzz-no-such-job-20260622"
 _GEEKJOB_NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
 _HABR_NO_RESULTS_URL = f"https://career.habr.com/vacancies?q={_NO_RESULTS_QUERY}&type=all"
@@ -1034,6 +1036,70 @@ class HirifySourceTest(unittest.TestCase):
         self.assertTrue(parsed.evidence.no_results)
 
 
+class JobTurboSourceTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=JobTurboSource(),
+            fixture_suite=source_fixture_suite("jobturbo"),
+        )
+
+        # Assert
+        self.assertEqual("jobturbo", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_fetches_the_remote_listings_page(self) -> None:
+        # Arrange
+        source = JobTurboSource()
+
+        # Act
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+
+        # Assert
+        self.assertEqual("jobturbo", fetch_request.source_id)
+        self.assertEqual("QA", fetch_request.query_variant)
+        self.assertEqual(_JOBTURBO_URL, fetch_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = JobTurboSource()
+        expected = _expected("jobturbo", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("jobturbo", "success"),
+            SourceFetchRequest(
+                source_id="jobturbo",
+                query_variant="QA",
+                url=_JOBTURBO_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_no_results_fixture_is_explicit_no_results(self) -> None:
+        # Arrange
+        source = JobTurboSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("jobturbo", "no_results"),
+            SourceFetchRequest(
+                source_id="jobturbo",
+                query_variant="zzzzzzzzzzzzzzzz",
+                url=_JOBTURBO_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertTrue(parsed.evidence.no_results)
+
+
 class JetBrainsCareerSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
@@ -1101,6 +1167,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
         getmatch = GetmatchSource()
         it_jobs_uz = ItJobsUzSource()
         hirify = HirifySource()
+        jobturbo = JobTurboSource()
         fetcher = FixtureFetcher(
             {
                 _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
@@ -1125,6 +1192,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                     / "response.json"
                     for page in range(1, 8)
                 },
+                _JOBTURBO_URL: _FIXTURES / "jobturbo" / "success" / "response.html",
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1164,6 +1232,10 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                                 scraper=hirify,
                                 fixture_suite=source_fixture_suite("hirify"),
                             ),
+                            SupportedSource(
+                                scraper=jobturbo,
+                                fixture_suite=source_fixture_suite("jobturbo"),
+                            ),
                         )
                     ),
                     fetcher=fetcher,
@@ -1187,6 +1259,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["getmatch"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["it_jobs_uz"].outcome)
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["hirify"].outcome)
+            self.assertEqual(SourceOutcome.SUCCESS, outcomes["jobturbo"].outcome)
             self.assertEqual(2, outcomes["habr_career"].counts.pages_visited)
             self.assertEqual(2, outcomes["hh_ru"].counts.pages_visited)
             self.assertEqual(1, outcomes["talanto"].counts.pages_visited)
@@ -1198,13 +1271,14 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(4, outcomes["getmatch"].counts.pages_visited)
             self.assertEqual(1, outcomes["it_jobs_uz"].counts.pages_visited)
             self.assertEqual(7, outcomes["hirify"].counts.pages_visited)
-            self.assertEqual(378, result.raw_records_written)
+            self.assertEqual(1, outcomes["jobturbo"].counts.pages_visited)
+            self.assertEqual(380, result.raw_records_written)
 
             raw_records = [
                 json.loads(line)
                 for line in (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(378, len(raw_records))
+            self.assertEqual(380, len(raw_records))
             self.assertEqual(
                 {
                     "habr_career",
@@ -1217,6 +1291,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                     "getmatch",
                     "it_jobs_uz",
                     "hirify",
+                    "jobturbo",
                 },
                 {record["source"] for record in raw_records},
             )

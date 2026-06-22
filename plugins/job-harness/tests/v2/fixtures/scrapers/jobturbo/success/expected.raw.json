@@ -1,0 +1,50 @@
+{
+  "outcome": "success",
+  "expected_count": 2,
+  "sample_listings": [
+    {
+      "source_listing_id": "64502",
+      "title": "Senior QA Automation Engineer",
+      "url": "https://jobturbo.ru/vakansiya/64502",
+      "company": null,
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": true,
+      "native_grade": "senior",
+      "skills": [],
+      "raw_keys": [
+        "href",
+        "position"
+      ]
+    },
+    {
+      "source_listing_id": "64487",
+      "title": "Lead QA",
+      "url": "https://jobturbo.ru/vakansiya/64487",
+      "company": null,
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": true,
+      "native_grade": "lead",
+      "skills": [],
+      "raw_keys": [
+        "href",
+        "position"
+      ]
+    }
+  ]
+}

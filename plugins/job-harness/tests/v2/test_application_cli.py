@@ -97,6 +97,7 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                 "getmatch",
                 "it_jobs_uz",
                 "hirify",
+                "jobturbo",
             ],
             [source["source_id"] for source in payload["sources"]],
         )
