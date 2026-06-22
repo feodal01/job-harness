@@ -1,0 +1,11 @@
+{
+  "source_id": "hirehi",
+  "captured_url": "https://hirehi.ru/jobs_new?query=QA",
+  "capture_date": "2026-06-22",
+  "capture_method": "curl -L against the public HireHi search page",
+  "fixture_kind": "success_non_empty",
+  "redactions": [
+    "None; the committed artifact is the real public HTML response captured from HireHi."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

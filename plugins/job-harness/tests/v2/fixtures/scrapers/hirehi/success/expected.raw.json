@@ -1,0 +1,28 @@
+{
+  "outcome": "success",
+  "expected_count": 1,
+  "sample_listings": [
+    {
+      "source_listing_id": "testirovshchik-auto-54755",
+      "title": "Тестировщик (auto)",
+      "url": "https://hirehi.ru/qa/testirovshchik-auto-54755",
+      "company": "Яндекс MBA",
+      "country": "RU",
+      "city": null,
+      "location_text": "гибрид",
+      "salary_text": "270 041 ₽",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": "senior",
+      "skills": [],
+      "raw_keys": [
+        "href",
+        "work_format"
+      ]
+    }
+  ]
+}

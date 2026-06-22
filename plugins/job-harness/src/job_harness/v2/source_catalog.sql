@@ -103,7 +103,8 @@ VALUES
     (8, 'getmatch', 'aggregator', 'http', 100),
     (9, 'it_jobs_uz', 'aggregator', 'http', 100),
     (10, 'hirify', 'aggregator', 'http', 100),
-    (11, 'jobturbo', 'aggregator', 'http', 50);
+    (11, 'jobturbo', 'aggregator', 'http', 50),
+    (12, 'hirehi', 'aggregator', 'http', 50);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -113,7 +114,8 @@ INSERT INTO source_countries (source_id, country_order, country)
 VALUES
     ('habr_career', 0, 'RU'),
     ('hh_ru', 0, 'RU'),
-    ('career:vk', 0, 'RU');
+    ('career:vk', 0, 'RU'),
+    ('hirehi', 0, 'RU');
 
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 VALUES
@@ -224,7 +226,16 @@ VALUES
     ('jobturbo', 5, 'remote_in_country', 'structured_output'),
     ('jobturbo', 6, 'remote_global', 'structured_output'),
     ('jobturbo', 7, 'countries', 'unsupported'),
-    ('jobturbo', 8, 'cities', 'unsupported');
+    ('jobturbo', 8, 'cities', 'unsupported'),
+    ('hirehi', 0, 'query', 'native_request'),
+    ('hirehi', 1, 'grades', 'structured_output'),
+    ('hirehi', 2, 'salary_from', 'structured_output'),
+    ('hirehi', 3, 'published_since', 'unsupported'),
+    ('hirehi', 4, 'relocation', 'unsupported'),
+    ('hirehi', 5, 'remote_in_country', 'structured_output'),
+    ('hirehi', 6, 'remote_global', 'structured_output'),
+    ('hirehi', 7, 'countries', 'structured_output'),
+    ('hirehi', 8, 'cities', 'structured_output');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -243,7 +254,8 @@ VALUES
     ('getmatch', 'no_results'),
     ('it_jobs_uz', 'no_results'),
     ('hirify', 'no_results'),
-    ('jobturbo', 'no_results');
+    ('jobturbo', 'no_results'),
+    ('hirehi', 'no_results');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -562,6 +574,28 @@ VALUES
         'tests/v2/fixtures/scrapers/jobturbo/no_results/response.html',
         'tests/v2/fixtures/scrapers/jobturbo/no_results/meta.json',
         'tests/v2/fixtures/scrapers/jobturbo/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'hirehi',
+        0,
+        'hirehi-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/hirehi/success/response.html',
+        'tests/v2/fixtures/scrapers/hirehi/success/meta.json',
+        'tests/v2/fixtures/scrapers/hirehi/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'hirehi',
+        1,
+        'hirehi-no_results',
+        'no_results',
+        'tests/v2/fixtures/scrapers/hirehi/no_results/response.html',
+        'tests/v2/fixtures/scrapers/hirehi/no_results/meta.json',
+        'tests/v2/fixtures/scrapers/hirehi/no_results/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );
