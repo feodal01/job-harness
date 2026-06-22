@@ -102,7 +102,8 @@ VALUES
     (7, 'finder_work', 'aggregator', 'http', 100),
     (8, 'getmatch', 'aggregator', 'http', 100),
     (9, 'it_jobs_uz', 'aggregator', 'http', 100),
-    (10, 'hirify', 'aggregator', 'http', 100);
+    (10, 'hirify', 'aggregator', 'http', 100),
+    (11, 'jobturbo', 'aggregator', 'http', 50);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -214,7 +215,16 @@ VALUES
     ('hirify', 5, 'remote_in_country', 'structured_output'),
     ('hirify', 6, 'remote_global', 'structured_output'),
     ('hirify', 7, 'countries', 'structured_output'),
-    ('hirify', 8, 'cities', 'structured_output');
+    ('hirify', 8, 'cities', 'structured_output'),
+    ('jobturbo', 0, 'query', 'structured_output'),
+    ('jobturbo', 1, 'grades', 'structured_output'),
+    ('jobturbo', 2, 'salary_from', 'structured_output'),
+    ('jobturbo', 3, 'published_since', 'unsupported'),
+    ('jobturbo', 4, 'relocation', 'unsupported'),
+    ('jobturbo', 5, 'remote_in_country', 'structured_output'),
+    ('jobturbo', 6, 'remote_global', 'structured_output'),
+    ('jobturbo', 7, 'countries', 'unsupported'),
+    ('jobturbo', 8, 'cities', 'unsupported');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -232,7 +242,8 @@ VALUES
     ('finder_work', 'no_results'),
     ('getmatch', 'no_results'),
     ('it_jobs_uz', 'no_results'),
-    ('hirify', 'no_results');
+    ('hirify', 'no_results'),
+    ('jobturbo', 'no_results');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -529,6 +540,28 @@ VALUES
         'tests/v2/fixtures/scrapers/hirify/no_results/response.json',
         'tests/v2/fixtures/scrapers/hirify/no_results/meta.json',
         'tests/v2/fixtures/scrapers/hirify/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'jobturbo',
+        0,
+        'jobturbo-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/jobturbo/success/response.html',
+        'tests/v2/fixtures/scrapers/jobturbo/success/meta.json',
+        'tests/v2/fixtures/scrapers/jobturbo/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'jobturbo',
+        1,
+        'jobturbo-no_results',
+        'no_results',
+        'tests/v2/fixtures/scrapers/jobturbo/no_results/response.html',
+        'tests/v2/fixtures/scrapers/jobturbo/no_results/meta.json',
+        'tests/v2/fixtures/scrapers/jobturbo/no_results/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

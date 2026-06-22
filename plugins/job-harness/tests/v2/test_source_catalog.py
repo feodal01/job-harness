@@ -19,6 +19,7 @@ from job_harness.v2.runtime.sources import (
     HirifySource,
     ItJobsUzSource,
     JetBrainsCareerSource,
+    JobTurboSource,
     TalantoSource,
     TalentoSource,
     VKCareerSource,
@@ -54,6 +55,7 @@ class SourceCatalogTableTest(unittest.TestCase):
                 "getmatch",
                 "it_jobs_uz",
                 "hirify",
+                "jobturbo",
             ),
             tuple(entry.source_id for entry in entries),
         )
@@ -409,6 +411,40 @@ class SourceCatalogTableTest(unittest.TestCase):
             tuple(case.kind for case in fixture_suite.cases),
         )
 
+    def test_jobturbo_catalog_row_declares_source_contract(self) -> None:
+        # Arrange / Act
+        descriptor = source_descriptor("jobturbo")
+        required_fixture_kinds = source_required_fixture_kinds("jobturbo")
+        fixture_suite = source_fixture_suite("jobturbo")
+
+        # Assert
+        self.assertEqual(SourceType.AGGREGATOR, descriptor.source_type)
+        self.assertEqual(Transport.HTTP, descriptor.transport)
+        self.assertEqual((), descriptor.countries)
+        self.assertEqual(50, descriptor.source_limit)
+        self.assertEqual(frozenset(), descriptor.native_request_criteria)
+        self.assertEqual(
+            frozenset(
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.GRADES,
+                    SearchCriterion.SALARY_FROM,
+                    SearchCriterion.REMOTE_IN_COUNTRY,
+                    SearchCriterion.REMOTE_GLOBAL,
+                }
+            ),
+            descriptor.structured_output_criteria,
+        )
+        self.assertTrue(required_fixture_kinds.no_results)
+        self.assertFalse(required_fixture_kinds.pagination)
+        self.assertEqual(
+            (
+                ParserFixtureKind.SUCCESS_NON_EMPTY,
+                ParserFixtureKind.NO_RESULTS,
+            ),
+            tuple(case.kind for case in fixture_suite.cases),
+        )
+
     def test_jetbrains_catalog_row_declares_source_contract(self) -> None:
         # Arrange / Act
         descriptor = source_descriptor("career:jetbrains")
@@ -480,6 +516,7 @@ class SourceCatalogTableTest(unittest.TestCase):
             (GetmatchSource(), "getmatch"),
             (ItJobsUzSource(), "it_jobs_uz"),
             (HirifySource(), "hirify"),
+            (JobTurboSource(), "jobturbo"),
             (VKCareerSource(), "career:vk"),
             (JetBrainsCareerSource(), "career:jetbrains"),
         )
