@@ -1,5 +1,6 @@
 """Contract-first source scrapers."""
 
+from job_harness.v2.runtime.sources.aggregators.finder_work import FinderWorkSource
 from job_harness.v2.runtime.sources.aggregators.geekjob import GeekJobSource
 from job_harness.v2.runtime.sources.aggregators.habr_career import HabrCareerSource
 from job_harness.v2.runtime.sources.aggregators.hh_ru import HhRuSource
@@ -9,6 +10,7 @@ from job_harness.v2.runtime.sources.companies.jetbrains import JetBrainsCareerSo
 from job_harness.v2.runtime.sources.companies.vk import VKCareerSource
 
 __all__ = [
+    "FinderWorkSource",
     "GeekJobSource",
     "HabrCareerSource",
     "HhRuSource",

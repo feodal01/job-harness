@@ -85,7 +85,7 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("source_catalog", payload["record_type"])
         self.assertEqual(["RU"], [country["country_code"] for country in payload["countries"]])
         self.assertEqual(
-            ["habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "geekjob", "talento"],
+            ["habr_career", "hh_ru", "talanto", "career:vk", "career:jetbrains", "geekjob", "talento", "finder_work"],
             [source["source_id"] for source in payload["sources"]],
         )
 
