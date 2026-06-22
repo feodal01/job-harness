@@ -1,0 +1,11 @@
+{
+  "source_id": "habr_career",
+  "captured_url": "https://career.habr.com/vacancies?q=QA&type=all",
+  "capture_date": "2026-06-22",
+  "capture_method": "curl -L --compressed with desktop Chrome user-agent",
+  "fixture_kind": "success_non_empty",
+  "redactions": [
+    "Minimized to the real source JSON script that contains vacancies; analytics, csrf, and unrelated page chrome were removed."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

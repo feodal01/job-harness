@@ -42,7 +42,6 @@ SECRET_SCAN_PREFIX_EXCLUDES = (
     "plugins/job-harness/.venv/",
 )
 
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(

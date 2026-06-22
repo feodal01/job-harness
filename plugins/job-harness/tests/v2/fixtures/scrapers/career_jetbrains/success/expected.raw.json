@@ -1,0 +1,70 @@
+{
+  "outcome": "success",
+  "expected_count": 4,
+  "sample_listings": [
+    {
+      "source_listing_id": "4881348101",
+      "title": "Account Manager (China)",
+      "url": "https://job-boards.eu.greenhouse.io/jetbrains/jobs/4881348101",
+      "company": "JetBrains",
+      "country": "CN",
+      "city": "Shanghai",
+      "location_text": "Shanghai, China",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-22T05:47:19-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4826258101",
+      "title": "QA Engineer (AI Assistant Features)",
+      "url": "https://job-boards.eu.greenhouse.io/jetbrains/jobs/4826258101",
+      "company": "JetBrains",
+      "country": "RS",
+      "city": "Belgrade",
+      "location_text": "Belgrade, Serbia; Berlin, Germany; Limassol, Cyprus; Madrid, Spain; Munich, Germany; Paphos, Cyprus; Prague, Czech Republic; Warsaw, Poland; Yerevan, Armenia",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-20T10:38:47-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4884023101",
+      "title": "QA Engineer (Kotlin Compiler Frontend)",
+      "url": "https://job-boards.eu.greenhouse.io/jetbrains/jobs/4884023101",
+      "company": "JetBrains",
+      "country": "RS",
+      "city": "Belgrade",
+      "location_text": "Belgrade, Serbia; Berlin, Germany; Limassol, Cyprus; Madrid, Spain; Munich, Germany; Paphos, Cyprus; Prague, Czech Republic; Warsaw, Poland; Yerevan, Armenia",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-05T06:55:49-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "description_contains": {
+    "4826258101": [
+      "AI Assistant plugin for JetBrains IDEs",
+      "Perform functional, exploratory, and regression testing"
+    ],
+    "4867022101": [
+      "Toolbox QA",
+      "QA Engineer"
+    ]
+  }
+}

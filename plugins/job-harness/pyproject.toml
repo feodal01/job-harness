@@ -1,6 +1,6 @@
 [project]
 name = "job-harness"
-version = "0.2.1"
+version = "0.2.11"
 description = "Universal job search and application harness"
 requires-python = ">=3.12"
 dependencies = [
@@ -10,9 +10,13 @@ dependencies = [
 
 [project.scripts]
 job-harness = "job_harness.cli:main"
+job-harness-v2 = "job_harness.v2.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/job_harness"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/job_harness/v2/source_catalog.sql" = "job_harness/v2/source_catalog.sql"
 
 [build-system]
 requires = ["hatchling"]
@@ -34,7 +38,7 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP"]
+select = ["E", "F", "W", "I", "B", "UP"]
 ignore = [
     "E501",
     "UP047",
