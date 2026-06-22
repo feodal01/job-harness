@@ -1,0 +1,11 @@
+{
+  "source_id": "getmatch",
+  "captured_url": "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=qa_auto",
+  "capture_date": "2026-06-22",
+  "capture_method": "Synthetic empty offers payload using the real getmatch API response shape",
+  "fixture_kind": "no_results",
+  "redactions": [
+    "None; the committed artifact uses the public getmatch offers schema with zero active items."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

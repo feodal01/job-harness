@@ -54,7 +54,12 @@ class SourceSearchParseResult:
     next_request: SourceFetchRequest | None = None
 
     def __post_init__(self) -> None:
-        if self.outcome == SourceOutcome.SUCCESS and not self.listings:
+        if (
+            self.outcome == SourceOutcome.SUCCESS
+            and not self.listings
+            and self.next_request is None
+            and not self.evidence.multi_step_terminal
+        ):
             raise ValueError("success parse result requires at least one listing")
         if self.outcome == SourceOutcome.NO_RESULTS:
             if self.listings:

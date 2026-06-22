@@ -1,0 +1,11 @@
+{
+  "source_id": "getmatch",
+  "captured_url": "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=qa_auto",
+  "capture_date": "2026-06-22",
+  "capture_method": "curl -L against the public getmatch offers API after resolving QA specializations",
+  "fixture_kind": "success_non_empty",
+  "redactions": [
+    "None; the committed artifact is the real public JSON response captured from getmatch.ru."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}
