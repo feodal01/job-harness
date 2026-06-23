@@ -1,0 +1,11 @@
+{
+  "source_id": "career:vk",
+  "captured_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=200",
+  "capture_date": "2026-06-24",
+  "capture_method": "curl -L --compressed with desktop Chrome user-agent and Accept: application/json",
+  "fixture_kind": "pagination",
+  "redactions": [
+    "Captured from the public career vacancies JSON endpoint."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

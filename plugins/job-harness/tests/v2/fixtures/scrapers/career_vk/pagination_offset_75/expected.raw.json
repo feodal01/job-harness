@@ -1,0 +1,50 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=100",
+  "sample_listings": [
+    {
+      "source_listing_id": "45686",
+      "title": "Младший менеджер проектов",
+      "url": "https://team.vk.company/vacancy/45686/",
+      "company": "VK",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "project management"
+      ]
+    },
+    {
+      "source_listing_id": "51909",
+      "title": "Менеджер проектов",
+      "url": "https://team.vk.company/vacancy/51909/",
+      "company": "Поиск",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Офисный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "project management"
+      ]
+    },
+    {
+      "source_listing_id": "45474",
+      "title": "Менеджер по развитию бизнес-комьюнити",
+      "url": "https://team.vk.company/vacancy/45474/",
+      "company": "VK",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Офисный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "marketing",
+        "management"
+      ]
+    }
+  ]
+}

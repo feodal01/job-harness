@@ -607,17 +607,24 @@ class VKCareerSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("career:vk", source.scraper.descriptor.source_id)
 
-    def test_request_mapping_uses_specialty_for_qa_and_search_for_unknown_query(self) -> None:
+    def test_request_mapping_fetches_general_vacancy_page_for_all_queries(self) -> None:
         # Arrange
         source = VKCareerSource()
 
         # Act
         qa_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
-        unknown_request = source.build_search_requests(SearchRequest(query_variants=("exotic role",)))[0]
+        developer_request = source.build_search_requests(SearchRequest(query_variants=("backend developer",)))[0]
+        remote_request = source.build_search_requests(
+            SearchRequest(query_variants=("backend developer",), remote_in_country=True)
+        )[0]
 
         # Assert
-        self.assertEqual("https://team.vk.company/vacancy/?specialty=284", qa_request.url)
-        self.assertEqual("https://team.vk.company/vacancy/?search=exotic+role", unknown_request.url)
+        self.assertEqual("https://team.vk.company/career/api/v2/vacancies/?limit=25", qa_request.url)
+        self.assertEqual("https://team.vk.company/career/api/v2/vacancies/?limit=25", developer_request.url)
+        self.assertEqual(
+            "https://team.vk.company/career/api/v2/vacancies/?limit=25&remote=true",
+            remote_request.url,
+        )
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
@@ -630,34 +637,38 @@ class VKCareerSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="career:vk",
                 query_variant="QA",
-                url="https://team.vk.company/vacancy/?specialty=284",
+                url="https://team.vk.company/career/api/v2/vacancies/?limit=25",
             ),
         )
 
         # Assert
         self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
         self.assertEqual(expected["expected_count"], len(parsed.listings))
+        self.assertEqual(expected["next_url"], parsed.next_request.url if parsed.next_request else None)
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
 
-    def test_no_results_fixture_is_explicit_no_results(self) -> None:
+    def test_pagination_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
         source = VKCareerSource()
+        expected = _expected("career_vk", "pagination")
 
         # Act
         parsed = source.parse_search_response(
-            _fixture_response("career_vk", "no_results"),
+            _fixture_response("career_vk", "pagination"),
             SourceFetchRequest(
                 source_id="career:vk",
-                query_variant="zzzzzz-no-such-job-20260622",
-                url="https://team.vk.company/vacancy/?search=zzzzzz-no-such-job-20260622",
+                query_variant="QA",
+                url="https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=25",
             ),
         )
 
         # Assert
-        self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
-        self.assertEqual((), parsed.listings)
-        self.assertTrue(parsed.evidence.no_results)
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        self.assertEqual(expected["next_url"], parsed.next_request.url if parsed.next_request else None)
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
 
     def test_detail_fixture_extracts_full_description_text(self) -> None:
         # Arrange
@@ -717,13 +728,36 @@ class IBSCareerSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="career:ibs",
                 query_variant="QA",
-                url="https://ibs.ru/career/vacancies/filter/napravlenie-is-testirovanie/apply/",
+                url="https://ibs.ru/career/vacancies/",
             ),
         )
 
         # Assert
         self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
         self.assertEqual(expected["expected_count"], len(parsed.listings))
+        self.assertEqual(expected["next_url"], parsed.next_request.url if parsed.next_request else None)
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_pagination_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = IBSCareerSource()
+        expected = _expected("career_ibs", "pagination")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("career_ibs", "pagination"),
+            SourceFetchRequest(
+                source_id="career:ibs",
+                query_variant="QA",
+                url="https://ibs.ru/career/vacancies/?PAGEN_1=2",
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        self.assertEqual(expected["next_url"], parsed.next_request.url if parsed.next_request else None)
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
 

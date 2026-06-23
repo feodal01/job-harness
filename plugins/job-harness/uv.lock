@@ -660,7 +660,7 @@ wheels = [
 
 [[package]]
 name = "job-harness"
-version = "0.2.22"
+version = "0.2.24"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },

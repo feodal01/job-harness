@@ -1,31 +1,11 @@
 {
-  "expected_count": 5,
+  "expected_count": 6,
+  "next_url": "https://ibs.ru/career/vacancies/?PAGEN_1=2",
   "sample_listings": [
     {
-      "source_listing_id": "82616",
-      "title": "Тимлид инженер-тестировщик (Manual, WEB)",
-      "url": "https://ibs.ru/career/vacancies/timlid-inzhener-testirovshchik-manual-web-lyuboy-region-rf-udalennaya-rabota/",
-      "company": "IBS",
-      "country": "RU",
-      "city": null,
-      "location_text": null,
-      "salary_text": null,
-      "salary_min": null,
-      "salary_max": null,
-      "salary_currency": null,
-      "posted_at": null,
-      "remote_in_country": true,
-      "remote_global": false,
-      "native_grade": null,
-      "skills": [
-        "Тестирование",
-        "SQL"
-      ]
-    },
-    {
-      "source_listing_id": "82881",
-      "title": "Инженер автоматизированного тестирования (backend)",
-      "url": "https://ibs.ru/career/vacancies/inzhener-avtomatizirovannogo-testirovaniya-backend-tyumen/",
+      "source_listing_id": "84616",
+      "title": "Старший разработчик 1С",
+      "url": "https://ibs.ru/career/vacancies/starshiy-razrabotchik-1s-perm-080626/",
       "company": "IBS",
       "country": "RU",
       "city": null,
@@ -39,14 +19,14 @@
       "remote_global": null,
       "native_grade": null,
       "skills": [
-        "Тестирование",
-        "Python"
+        "Разработка",
+        "1C"
       ]
     },
     {
-      "source_listing_id": "76579",
-      "title": "Инженер по нагрузочному тестированию",
-      "url": "https://ibs.ru/career/vacancies/inzhener-po-nagruzochnomu-testirovaniyu-lyuboy-region-rf-udalennaya-rabota-300625/",
+      "source_listing_id": "84615",
+      "title": "Старший разработчик 1С Битрикс",
+      "url": "https://ibs.ru/career/vacancies/starshiy-razrabotchik-1s-bitriks-perm/",
       "company": "IBS",
       "country": "RU",
       "city": null,
@@ -56,13 +36,32 @@
       "salary_max": null,
       "salary_currency": null,
       "posted_at": null,
-      "remote_in_country": true,
-      "remote_global": false,
+      "remote_in_country": false,
+      "remote_global": null,
       "native_grade": null,
       "skills": [
-        "Тестирование",
-        "Java",
-        "Python"
+        "Разработка",
+        "1C"
+      ]
+    },
+    {
+      "source_listing_id": "84614",
+      "title": "Администратор офиса",
+      "url": "https://ibs.ru/career/vacancies/administrator-ofisa-perm-080626/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": false,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": [
+        "Бэк офис"
       ]
     }
   ]

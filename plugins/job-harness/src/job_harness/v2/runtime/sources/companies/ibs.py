@@ -73,7 +73,11 @@ class IBSCareerSource(DetailEnrichmentScraper):
                 evidence=AttemptEvidence(no_results=True),
             )
         listings = tuple(_listing(item) for item in parser.items)
-        return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+        return SourceSearchParseResult(
+            outcome=SourceOutcome.SUCCESS,
+            listings=listings,
+            next_request=_next_page_request(response.body, request),
+        )
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
         return SourceFetchRequest(
@@ -124,6 +128,18 @@ def _next_filter_request(body: str, request: SourceFetchRequest) -> SourceFetchR
         source_id=request.source_id,
         query_variant=request.query_variant,
         url=url,
+    )
+
+
+def _next_page_request(body: str, request: SourceFetchRequest) -> SourceFetchRequest | None:
+    parser = _IBSPaginationParser()
+    parser.feed(body)
+    if not parser.next_url:
+        return None
+    return SourceFetchRequest(
+        source_id=request.source_id,
+        query_variant=request.query_variant,
+        url=parser.next_url,
     )
 
 
@@ -378,6 +394,22 @@ class _IBSListParser(HTMLParser):
             self._item = None
             self._field = None
             self._field_depth = None
+
+
+class _IBSPaginationParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.next_url: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self.next_url is not None or tag != "a":
+            return
+        values = {key: value or "" for key, value in attrs}
+        if "next" not in values.get("class", "").split():
+            return
+        href = values.get("href", "").strip()
+        if href:
+            self.next_url = urljoin(_BASE_URL, href)
 
 
 class _IBSDetailParser(HTMLParser):

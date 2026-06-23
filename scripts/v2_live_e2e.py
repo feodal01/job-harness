@@ -24,8 +24,8 @@ from job_harness.v2.runtime import RetryPolicy, implemented_source_ids
 from job_harness.v2.runtime.serialization import to_jsonable
 from job_harness.v2.source_catalog import source_catalog_entries
 
-LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 90.0
-LIVE_RUN_TIMEOUT_SECONDS = 180.0
+LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 240.0
+LIVE_RUN_TIMEOUT_SECONDS = 480.0
 LIVE_FETCH_TIMEOUT_SECONDS = 30.0
 
 

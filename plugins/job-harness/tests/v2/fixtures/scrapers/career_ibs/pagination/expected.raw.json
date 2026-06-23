@@ -1,0 +1,67 @@
+{
+  "expected_count": 6,
+  "next_url": "https://ibs.ru/career/vacancies/?PAGEN_1=3",
+  "sample_listings": [
+    {
+      "source_listing_id": "83747",
+      "title": "Функциональный архитектор 1С",
+      "url": "https://ibs.ru/career/vacancies/funktsionalnyy-arkhitektor-1s-lyuboy-region-rf-udalennaya-rabota-280426/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": [
+        "Архитектура"
+      ]
+    },
+    {
+      "source_listing_id": "83372",
+      "title": "Младший консультант 1С ТОиР",
+      "url": "https://ibs.ru/career/vacancies/mladshiy-konsultant-1s-toir-perm/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": false,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": [
+        "Аналитика и консалтинг"
+      ]
+    },
+    {
+      "source_listing_id": "83371",
+      "title": "Консультант 1С ТОиР",
+      "url": "https://ibs.ru/career/vacancies/konsultant-1s-toir-sankt-peterburg-150426/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": false,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": [
+        "Аналитика и консалтинг",
+        "1C"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=75",
+  "sample_listings": [
+    {
+      "source_listing_id": "45225",
+      "title": "Руководитель направления продуктового роста",
+      "url": "https://team.vk.company/vacancy/45225/",
+      "company": "Сервисы продуктивности VK Tech",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Дистанционный",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "product management"
+      ]
+    },
+    {
+      "source_listing_id": "45736",
+      "title": "Менеджер продукта",
+      "url": "https://team.vk.company/vacancy/45736/",
+      "company": "VK Pay",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Комбинированный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "product management"
+      ]
+    },
+    {
+      "source_listing_id": "45681",
+      "title": "ML Product Manager",
+      "url": "https://team.vk.company/vacancy/45681/",
+      "company": "ВКонтакте",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "product management"
+      ]
+    }
+  ]
+}
