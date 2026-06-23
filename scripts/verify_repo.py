@@ -657,17 +657,16 @@ def _run_secrets() -> int:
 
     print(f"# secrets baseline: {SECRETS_BASELINE.relative_to(ROOT)}")
     print(f"# secret scan files: {len(files)}")
-    absolute_files = [str(ROOT / path) for path in files]
     return _run(
         [
             "uv",
-            "--directory",
-            PLUGIN_ARG,
             "run",
+            "--project",
+            PLUGIN_ARG,
             "detect-secrets-hook",
             "--baseline",
             str(SECRETS_BASELINE),
-            *absolute_files,
+            *files,
         ]
     )
 

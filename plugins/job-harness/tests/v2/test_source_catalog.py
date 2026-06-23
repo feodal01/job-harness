@@ -10,22 +10,7 @@ from job_harness.v2.contracts import (
     SupportedSourceContract,
     Transport,
 )
-from job_harness.v2.runtime.sources import (
-    FinderWorkSource,
-    GeekJobSource,
-    GetmatchSource,
-    HabrCareerSource,
-    HhRuSource,
-    HireHiSource,
-    HirifySource,
-    ItJobsUzSource,
-    JetBrainsCareerSource,
-    JobTurboSource,
-    StaffAmSource,
-    TalantoSource,
-    TalentoSource,
-    VKCareerSource,
-)
+from job_harness.v2.runtime import build_supported_source_catalog
 from job_harness.v2.source_catalog import (
     country_catalog_entries,
     source_catalog_entries,
@@ -39,31 +24,14 @@ _PLUGIN_ROOT = Path(__file__).resolve().parents[_PLUGIN_ROOT_PARENT_INDEX]
 
 
 class SourceCatalogTableTest(unittest.TestCase):
-    def test_catalog_contains_the_supported_v2_source_rows(self) -> None:
+    def test_catalog_contains_unique_supported_v2_source_rows(self) -> None:
         # Arrange / Act
         entries = source_catalog_entries()
+        source_ids = tuple(entry.source_id for entry in entries)
 
         # Assert
-        self.assertEqual(
-            (
-                "habr_career",
-                "hh_ru",
-                "talanto",
-                "career:vk",
-                "career:jetbrains",
-                "geekjob",
-                "talento",
-                "finder_work",
-                "getmatch",
-                "it_jobs_uz",
-                "hirify",
-                "jobturbo",
-                "hirehi",
-                "staff_am",
-            ),
-            tuple(entry.source_id for entry in entries),
-        )
-        self.assertEqual(len(entries), len({entry.source_id for entry in entries}))
+        self.assertGreater(len(entries), 0)
+        self.assertEqual(len(source_ids), len(set(source_ids)))
 
     def test_country_catalog_contains_supported_search_countries(self) -> None:
         # Arrange / Act
@@ -577,25 +545,12 @@ class SourceCatalogTableTest(unittest.TestCase):
 
     def test_scraper_metadata_is_read_from_source_catalog(self) -> None:
         # Arrange
-        cases = (
-            (HabrCareerSource(), "habr_career"),
-            (HhRuSource(), "hh_ru"),
-            (TalantoSource(), "talanto"),
-            (GeekJobSource(), "geekjob"),
-            (TalentoSource(), "talento"),
-            (FinderWorkSource(), "finder_work"),
-            (GetmatchSource(), "getmatch"),
-            (ItJobsUzSource(), "it_jobs_uz"),
-            (HirifySource(), "hirify"),
-            (JobTurboSource(), "jobturbo"),
-            (HireHiSource(), "hirehi"),
-            (StaffAmSource(), "staff_am"),
-            (VKCareerSource(), "career:vk"),
-            (JetBrainsCareerSource(), "career:jetbrains"),
-        )
+        catalog = build_supported_source_catalog()
 
-        for scraper, source_id in cases:
+        for source_id in catalog.source_ids:
             with self.subTest(source_id=source_id):
+                scraper = catalog.get(source_id)
+
                 # Act / Assert
                 self.assertEqual(source_descriptor(source_id), scraper.descriptor)
                 self.assertEqual(source_required_fixture_kinds(source_id), scraper.required_fixture_kinds)

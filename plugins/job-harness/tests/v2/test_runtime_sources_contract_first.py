@@ -3,15 +3,20 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
+from urllib.parse import urlparse
 
 from job_harness.v2.contracts import (
     Grade,
+    ParserFixtureCase,
+    ParserFixtureKind,
     SearchRequest,
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
+    SourceScraper,
 )
 from job_harness.v2.runtime import (
     OrchestratorConfig,
@@ -20,6 +25,7 @@ from job_harness.v2.runtime import (
     SearchOrchestrator,
     SourceCatalog,
     SupportedSource,
+    build_supported_source_catalog,
 )
 from job_harness.v2.runtime.sources import (
     FinderWorkSource,
@@ -39,34 +45,10 @@ from job_harness.v2.runtime.sources import (
 )
 from job_harness.v2.source_catalog import source_fixture_suite
 
+_PLUGIN_ROOT_PARENT_INDEX = 2
+_PLUGIN_ROOT = Path(__file__).resolve().parents[_PLUGIN_ROOT_PARENT_INDEX]
 _FIXTURES = Path(__file__).parent / "fixtures" / "scrapers"
-_HABR_QA_URL = "https://career.habr.com/vacancies?q=QA&type=all"
-_HABR_QA_PAGE_2_URL = "https://career.habr.com/vacancies?q=QA&type=all&page=2"
-_HH_QA_URL = "https://hh.ru/search/vacancy?text=QA&area=113&search_field=name"
-_HH_QA_PAGE_1_URL = "https://hh.ru/search/vacancy?text=QA&area=113&search_field=name&page=1"
-_TALANTO_QA_URL = "https://talanto.work/?q=QA"
-_VK_QA_URL = "https://team.vk.company/vacancy/?specialty=284"
-_JETBRAINS_URL = "https://boards-api.greenhouse.io/v1/boards/jetbrains/jobs?content=true"
-_GEEKJOB_URL = "https://geekjob.ru/vacancies"
-_TALENTO_WORKS_QA_URL = "https://talento.works/?q=QA"
-_FINDER_WORK_QA_URL = "https://api.finder.work/api/v1/vacancies?search=QA"
-_GETMATCH_SPECIALIZATIONS_URL = "https://getmatch.ru/api/specializations"
-_GETMATCH_OFFERS_QA_AUTO_URL = "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=qa_auto"
-_GETMATCH_OFFERS_QA_MANUAL_URL = "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=qa_manual"
-_GETMATCH_OFFERS_LOAD_PERFORMANCE_URL = (
-    "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=load_performance"
-)
-_IT_JOBS_UZ_QA_URL = "https://www.it-jobs.uz/api/jobs?search=QA&limit=100&page=1&category=qa"
-_HIRIFY_QA_URL = "https://api.hirify.me/api/vacancies?search=QA&page=1"
-_HIREHI_QA_URL = "https://hirehi.ru/jobs_new?query=QA"
-_STAFF_AM_QA_URL = "https://staff.am/en/jobs/quality-assurance"
-_JOBTURBO_URL = "https://jobturbo.ru/vakansii/remote"
-_NO_RESULTS_QUERY = "zzzzzz-no-such-job-20260622"
-_GEEKJOB_NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
-_HABR_NO_RESULTS_URL = f"https://career.habr.com/vacancies?q={_NO_RESULTS_QUERY}&type=all"
-_HH_NO_RESULTS_URL = f"https://hh.ru/search/vacancy?text={_NO_RESULTS_QUERY}&area=113&search_field=name"
-_TALANTO_NO_RESULTS_URL = f"https://talanto.work/?q={_NO_RESULTS_QUERY}"
-_VK_NO_RESULTS_URL = f"https://team.vk.company/vacancy/?search={_NO_RESULTS_QUERY}"
+_E2E_SUCCESS_QUERY = "QA"
 
 
 class FixtureFetcher:
@@ -86,6 +68,14 @@ class FixtureFetcher:
             media_type="text/html",
             body=path.read_text(encoding="utf-8"),
         )
+
+
+@dataclass(frozen=True)
+class _RuntimeNoResultsFixtureCase:
+    source_id: str
+    query_variant: str
+    url: str
+    response_path: Path
 
 
 def _fixture_response(source: str, case: str) -> SourceResponseArtifact:
@@ -120,6 +110,119 @@ def _expected(source: str, case: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise TypeError("expected.raw.json must contain a JSON object")
     return cast(dict[str, Any], value)
+
+
+def _fixture_case(source_id: str, kind: ParserFixtureKind) -> ParserFixtureCase | None:
+    for case in source_fixture_suite(source_id).cases:
+        if case.kind == kind:
+            return case
+    return None
+
+
+def _fixture_cases(source_id: str, kind: ParserFixtureKind) -> tuple[ParserFixtureCase, ...]:
+    return tuple(case for case in source_fixture_suite(source_id).cases if case.kind == kind)
+
+
+def _required_fixture_case(source_id: str, kind: ParserFixtureKind) -> ParserFixtureCase:
+    case = _fixture_case(source_id, kind)
+    if case is None:
+        raise AssertionError(f"{source_id} fixture suite does not include {kind.value}")
+    return case
+
+
+def _fixture_response_path_from_case(case: ParserFixtureCase) -> Path:
+    return _PLUGIN_ROOT / case.captured_artifact_path
+
+
+def _fixture_input_query_variant(case: ParserFixtureCase) -> str:
+    input_path = _fixture_response_path_from_case(case).parent / "input.json"
+    payload = json.loads(input_path.read_text(encoding="utf-8"))
+    query_variants = payload.get("query_variants")
+    if not isinstance(query_variants, list) or len(query_variants) != 1 or not isinstance(query_variants[0], str):
+        raise ValueError(f"fixture input must declare exactly one query variant: {input_path}")
+    return query_variants[0]
+
+
+def _fixture_captured_url(case: ParserFixtureCase) -> str:
+    payload = json.loads((_PLUGIN_ROOT / case.metadata_path).read_text(encoding="utf-8"))
+    captured_url = payload.get("captured_url")
+    if not isinstance(captured_url, str) or not captured_url:
+        raise ValueError(f"fixture metadata must declare captured_url: {case.metadata_path}")
+    return captured_url
+
+
+def _fixture_response_artifact(
+    *,
+    source_id: str,
+    request: SourceFetchRequest,
+    path: Path,
+) -> SourceResponseArtifact:
+    return SourceResponseArtifact(
+        source_id=source_id,
+        url=request.url,
+        media_type="application/json" if path.suffix == ".json" else "text/html",
+        body=path.read_text(encoding="utf-8"),
+    )
+
+
+def _extra_fixture_payload_paths(fixture_dir: Path) -> tuple[Path, ...]:
+    reserved_names = {
+        "expected.raw.json",
+        "input.json",
+        "meta.json",
+        "response.html",
+        "response.json",
+    }
+    return tuple(
+        path
+        for path in sorted(fixture_dir.iterdir())
+        if path.is_file()
+        and path.suffix in {".html", ".json"}
+        and path.name not in reserved_names
+    )
+
+
+def _same_url_without_query(left: str, right: str) -> bool:
+    left_parts = urlparse(left)
+    right_parts = urlparse(right)
+    return (
+        left_parts.scheme,
+        left_parts.netloc,
+        left_parts.path,
+    ) == (
+        right_parts.scheme,
+        right_parts.netloc,
+        right_parts.path,
+    )
+
+
+def _runtime_no_results_fixture_cases() -> tuple[_RuntimeNoResultsFixtureCase, ...]:
+    catalog = build_supported_source_catalog()
+    cases: list[_RuntimeNoResultsFixtureCase] = []
+    for source_id in catalog.source_ids:
+        fixture_case = _fixture_case(source_id, ParserFixtureKind.NO_RESULTS)
+        if fixture_case is None:
+            continue
+
+        query_variant = _fixture_input_query_variant(fixture_case)
+        request = SearchRequest(query_variants=(query_variant,))
+        fetch_requests = catalog.get(source_id).build_search_requests(request)
+        if len(fetch_requests) != 1:
+            continue
+
+        fetch_request = fetch_requests[0]
+        if fetch_request.url != _fixture_captured_url(fixture_case):
+            continue
+
+        cases.append(
+            _RuntimeNoResultsFixtureCase(
+                source_id=source_id,
+                query_variant=query_variant,
+                url=fetch_request.url,
+                response_path=_PLUGIN_ROOT / fixture_case.captured_artifact_path,
+            )
+        )
+    return tuple(cases)
 
 
 def _listing_by_id(listings: tuple[Any, ...], source_listing_id: str) -> Any:
@@ -532,6 +635,9 @@ class TalantoSourceTest(unittest.TestCase):
 
 
 class GeekJobSourceTest(unittest.TestCase):
+    VACANCIES_URL = "https://geekjob.ru/vacancies"
+    NO_RESULTS_QUERY = "zzzzzzzzzzzzzzzz"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
@@ -552,7 +658,7 @@ class GeekJobSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("geekjob", fetch_request.source_id)
         self.assertEqual("Cloud", fetch_request.query_variant)
-        self.assertEqual(_GEEKJOB_URL, fetch_request.url)
+        self.assertEqual(self.VACANCIES_URL, fetch_request.url)
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
@@ -565,7 +671,7 @@ class GeekJobSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="geekjob",
                 query_variant="Cloud",
-                url=_GEEKJOB_URL,
+                url=self.VACANCIES_URL,
             ),
         )
 
@@ -584,8 +690,8 @@ class GeekJobSourceTest(unittest.TestCase):
             _fixture_response("geekjob", "no_results"),
             SourceFetchRequest(
                 source_id="geekjob",
-                query_variant=_GEEKJOB_NO_RESULTS_QUERY,
-                url=_GEEKJOB_URL,
+                query_variant=self.NO_RESULTS_QUERY,
+                url=self.VACANCIES_URL,
             ),
         )
 
@@ -596,6 +702,8 @@ class GeekJobSourceTest(unittest.TestCase):
 
 
 class TalentoSourceTest(unittest.TestCase):
+    QA_URL = "https://talento.works/?q=QA"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
@@ -616,7 +724,7 @@ class TalentoSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("talento", fetch_request.source_id)
         self.assertEqual("QA", fetch_request.query_variant)
-        self.assertEqual(_TALENTO_WORKS_QA_URL, fetch_request.url)
+        self.assertEqual(self.QA_URL, fetch_request.url)
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
@@ -629,7 +737,7 @@ class TalentoSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="talento",
                 query_variant="QA",
-                url=_TALENTO_WORKS_QA_URL,
+                url=self.QA_URL,
             ),
         )
 
@@ -660,6 +768,8 @@ class TalentoSourceTest(unittest.TestCase):
 
 
 class FinderWorkSourceTest(unittest.TestCase):
+    QA_URL = "https://api.finder.work/api/v1/vacancies?search=QA"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
@@ -680,7 +790,7 @@ class FinderWorkSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("finder_work", fetch_request.source_id)
         self.assertEqual("QA", fetch_request.query_variant)
-        self.assertEqual(_FINDER_WORK_QA_URL, fetch_request.url)
+        self.assertEqual(self.QA_URL, fetch_request.url)
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
@@ -693,7 +803,7 @@ class FinderWorkSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="finder_work",
                 query_variant="QA",
-                url=_FINDER_WORK_QA_URL,
+                url=self.QA_URL,
             ),
         )
 
@@ -724,6 +834,9 @@ class FinderWorkSourceTest(unittest.TestCase):
 
 
 class GetmatchSourceTest(unittest.TestCase):
+    SPECIALIZATIONS_URL = "https://getmatch.ru/api/specializations"
+    QA_AUTO_OFFERS_URL = "https://getmatch.ru/api/offers?sa=any&p=1&offset=0&limit=100&pa=all&sp=qa_auto"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
@@ -744,7 +857,7 @@ class GetmatchSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("getmatch", fetch_request.source_id)
         self.assertEqual("QA", fetch_request.query_variant)
-        self.assertEqual(_GETMATCH_SPECIALIZATIONS_URL, fetch_request.url)
+        self.assertEqual(self.SPECIALIZATIONS_URL, fetch_request.url)
 
     def test_specializations_fixture_chains_qa_offer_requests(self) -> None:
         # Arrange
@@ -755,14 +868,14 @@ class GetmatchSourceTest(unittest.TestCase):
         parsed = source.parse_search_response(
             SourceResponseArtifact(
                 source_id="getmatch",
-                url=_GETMATCH_SPECIALIZATIONS_URL,
+                url=self.SPECIALIZATIONS_URL,
                 media_type="application/json",
                 body=specializations_path.read_text(encoding="utf-8"),
             ),
             SourceFetchRequest(
                 source_id="getmatch",
                 query_variant="QA",
-                url=_GETMATCH_SPECIALIZATIONS_URL,
+                url=self.SPECIALIZATIONS_URL,
             ),
         )
 
@@ -771,7 +884,7 @@ class GetmatchSourceTest(unittest.TestCase):
         self.assertEqual((), parsed.listings)
         self.assertIsNotNone(parsed.next_request)
         assert parsed.next_request is not None
-        self.assertEqual(_GETMATCH_OFFERS_QA_AUTO_URL, parsed.next_request.url)
+        self.assertEqual(self.QA_AUTO_OFFERS_URL, parsed.next_request.url)
         self.assertEqual("qa_manual,load_performance", parsed.next_request.headers["x-getmatch-pending-slugs"])
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
@@ -785,7 +898,7 @@ class GetmatchSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="getmatch",
                 query_variant="QA",
-                url=_GETMATCH_OFFERS_QA_AUTO_URL,
+                url=self.QA_AUTO_OFFERS_URL,
             ),
         )
 
@@ -805,7 +918,7 @@ class GetmatchSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="getmatch",
                 query_variant="zzzzzzzzzzzzzzzz",
-                url=_GETMATCH_OFFERS_QA_AUTO_URL,
+                url=self.QA_AUTO_OFFERS_URL,
             ),
         )
 
@@ -816,6 +929,8 @@ class GetmatchSourceTest(unittest.TestCase):
 
 
 class ItJobsUzSourceTest(unittest.TestCase):
+    QA_URL = "https://www.it-jobs.uz/api/jobs?search=QA&limit=100&page=1&category=qa"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
@@ -836,7 +951,7 @@ class ItJobsUzSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("it_jobs_uz", fetch_request.source_id)
         self.assertEqual("QA", fetch_request.query_variant)
-        self.assertEqual(_IT_JOBS_UZ_QA_URL, fetch_request.url)
+        self.assertEqual(self.QA_URL, fetch_request.url)
 
     def test_success_fixture_chains_next_page_when_api_reports_more_pages(self) -> None:
         # Arrange
@@ -853,14 +968,14 @@ class ItJobsUzSourceTest(unittest.TestCase):
         parsed = source.parse_search_response(
             SourceResponseArtifact(
                 source_id="it_jobs_uz",
-                url=_IT_JOBS_UZ_QA_URL,
+                url=self.QA_URL,
                 media_type="application/json",
                 body=json.dumps(payload),
             ),
             SourceFetchRequest(
                 source_id="it_jobs_uz",
                 query_variant="QA",
-                url=_IT_JOBS_UZ_QA_URL,
+                url=self.QA_URL,
             ),
         )
 
@@ -914,7 +1029,7 @@ class ItJobsUzSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="it_jobs_uz",
                 query_variant="QA",
-                url=_IT_JOBS_UZ_QA_URL,
+                url=self.QA_URL,
             ),
         )
 
@@ -945,6 +1060,8 @@ class ItJobsUzSourceTest(unittest.TestCase):
 
 
 class HirifySourceTest(unittest.TestCase):
+    QA_URL = "https://api.hirify.me/api/vacancies?search=QA&page=1"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
@@ -965,7 +1082,7 @@ class HirifySourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("hirify", fetch_request.source_id)
         self.assertEqual("QA", fetch_request.query_variant)
-        self.assertEqual(_HIRIFY_QA_URL, fetch_request.url)
+        self.assertEqual(self.QA_URL, fetch_request.url)
 
     def test_success_fixture_chains_next_page_when_api_reports_more_pages(self) -> None:
         # Arrange
@@ -981,14 +1098,14 @@ class HirifySourceTest(unittest.TestCase):
         parsed = source.parse_search_response(
             SourceResponseArtifact(
                 source_id="hirify",
-                url=_HIRIFY_QA_URL,
+                url=self.QA_URL,
                 media_type="application/json",
                 body=json.dumps(payload),
             ),
             SourceFetchRequest(
                 source_id="hirify",
                 query_variant="QA",
-                url=_HIRIFY_QA_URL,
+                url=self.QA_URL,
             ),
         )
 
@@ -1010,7 +1127,7 @@ class HirifySourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="hirify",
                 query_variant="QA",
-                url=_HIRIFY_QA_URL,
+                url=self.QA_URL,
             ),
         )
 
@@ -1041,6 +1158,8 @@ class HirifySourceTest(unittest.TestCase):
 
 
 class JobTurboSourceTest(unittest.TestCase):
+    REMOTE_LISTINGS_URL = "https://jobturbo.ru/vakansii/remote"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
@@ -1061,7 +1180,7 @@ class JobTurboSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("jobturbo", fetch_request.source_id)
         self.assertEqual("QA", fetch_request.query_variant)
-        self.assertEqual(_JOBTURBO_URL, fetch_request.url)
+        self.assertEqual(self.REMOTE_LISTINGS_URL, fetch_request.url)
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
@@ -1074,7 +1193,7 @@ class JobTurboSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="jobturbo",
                 query_variant="QA",
-                url=_JOBTURBO_URL,
+                url=self.REMOTE_LISTINGS_URL,
             ),
         )
 
@@ -1094,7 +1213,7 @@ class JobTurboSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="jobturbo",
                 query_variant="zzzzzzzzzzzzzzzz",
-                url=_JOBTURBO_URL,
+                url=self.REMOTE_LISTINGS_URL,
             ),
         )
 
@@ -1105,6 +1224,8 @@ class JobTurboSourceTest(unittest.TestCase):
 
 
 class HireHiSourceTest(unittest.TestCase):
+    QA_URL = "https://hirehi.ru/jobs_new?query=QA"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         source = SupportedSource(
             scraper=HireHiSource(),
@@ -1117,14 +1238,14 @@ class HireHiSourceTest(unittest.TestCase):
         fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
         self.assertEqual("hirehi", fetch_request.source_id)
         self.assertEqual("QA", fetch_request.query_variant)
-        self.assertEqual(_HIREHI_QA_URL, fetch_request.url)
+        self.assertEqual(self.QA_URL, fetch_request.url)
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         source = HireHiSource()
         expected = _expected("hirehi", "success")
         parsed = source.parse_search_response(
             _fixture_response("hirehi", "success"),
-            SourceFetchRequest(source_id="hirehi", query_variant="QA", url=_HIREHI_QA_URL),
+            SourceFetchRequest(source_id="hirehi", query_variant="QA", url=self.QA_URL),
         )
         self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
         self.assertEqual(expected["expected_count"], len(parsed.listings))
@@ -1147,6 +1268,8 @@ class HireHiSourceTest(unittest.TestCase):
 
 
 class StaffAmSourceTest(unittest.TestCase):
+    QA_URL = "https://staff.am/en/jobs/quality-assurance"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         source = SupportedSource(
             scraper=StaffAmSource(),
@@ -1159,14 +1282,14 @@ class StaffAmSourceTest(unittest.TestCase):
         fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
         self.assertEqual("staff_am", fetch_request.source_id)
         self.assertEqual("QA", fetch_request.query_variant)
-        self.assertEqual(_STAFF_AM_QA_URL, fetch_request.url)
+        self.assertEqual(self.QA_URL, fetch_request.url)
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         source = StaffAmSource()
         expected = _expected("staff_am", "success")
         parsed = source.parse_search_response(
             _fixture_response("staff_am", "success"),
-            SourceFetchRequest(source_id="staff_am", query_variant="QA", url=_STAFF_AM_QA_URL),
+            SourceFetchRequest(source_id="staff_am", query_variant="QA", url=self.QA_URL),
         )
         self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
         self.assertEqual(expected["expected_count"], len(parsed.listings))
@@ -1180,7 +1303,7 @@ class StaffAmSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="staff_am",
                 query_variant="zzzzzzzzzzzzzzzz",
-                url=_STAFF_AM_QA_URL,
+                url=self.QA_URL,
             ),
         )
         self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
@@ -1189,6 +1312,8 @@ class StaffAmSourceTest(unittest.TestCase):
 
 
 class JetBrainsCareerSourceTest(unittest.TestCase):
+    GREENHOUSE_BOARD_URL = "https://boards-api.greenhouse.io/v1/boards/jetbrains/jobs?content=true"
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
@@ -1209,7 +1334,7 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("career:jetbrains", fetch_request.source_id)
         self.assertEqual("QA", fetch_request.query_variant)
-        self.assertEqual(_JETBRAINS_URL, fetch_request.url)
+        self.assertEqual(self.GREENHOUSE_BOARD_URL, fetch_request.url)
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
@@ -1222,7 +1347,7 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
             SourceFetchRequest(
                 source_id="career:jetbrains",
                 query_variant="QA",
-                url=_JETBRAINS_URL,
+                url=self.GREENHOUSE_BOARD_URL,
             ),
         )
 
@@ -1241,129 +1366,160 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
                     self.assertIn(phrase, listing.description or "")
 
 
-def _e2e_success_fixture_mapping() -> dict[str, Path]:
-    return {
-        _HABR_QA_URL: _FIXTURES / "habr_career" / "success" / "response.html",
-        _HABR_QA_PAGE_2_URL: _FIXTURES / "habr_career" / "pagination" / "response.html",
-        _HH_QA_URL: _FIXTURES / "hh_ru" / "success" / "response.html",
-        _HH_QA_PAGE_1_URL: _FIXTURES / "hh_ru" / "pagination" / "response.html",
-        _TALANTO_QA_URL: _FIXTURES / "talanto" / "success" / "response.html",
-        _VK_QA_URL: _FIXTURES / "career_vk" / "success" / "response.html",
-        _JETBRAINS_URL: _FIXTURES / "career_jetbrains" / "success" / "response.json",
-        _GEEKJOB_URL: _FIXTURES / "geekjob" / "success" / "response.html",
-        _TALENTO_WORKS_QA_URL: _FIXTURES / "talento" / "success" / "response.html",
-        _FINDER_WORK_QA_URL: _FIXTURES / "finder_work" / "success" / "response.json",
-        _GETMATCH_SPECIALIZATIONS_URL: _FIXTURES / "getmatch" / "success" / "specializations.json",
-        _GETMATCH_OFFERS_QA_AUTO_URL: _FIXTURES / "getmatch" / "success" / "response.json",
-        _GETMATCH_OFFERS_QA_MANUAL_URL: _FIXTURES / "getmatch" / "success" / "response.json",
-        _GETMATCH_OFFERS_LOAD_PERFORMANCE_URL: _FIXTURES / "getmatch" / "success" / "response.json",
-        _IT_JOBS_UZ_QA_URL: _FIXTURES / "it_jobs_uz" / "success" / "response.json",
-        **{
-            f"https://api.hirify.me/api/vacancies?search=QA&page={page}": _FIXTURES
-            / "hirify"
-            / "success"
-            / "response.json"
-            for page in range(1, 8)
-        },
-        _JOBTURBO_URL: _FIXTURES / "jobturbo" / "success" / "response.html",
-        _HIREHI_QA_URL: _FIXTURES / "hirehi" / "success" / "response.html",
-        _STAFF_AM_QA_URL: _FIXTURES / "staff_am" / "success" / "response.html",
+def _e2e_success_fixture_mapping(catalog: SourceCatalog, request: SearchRequest) -> dict[str, Path]:
+    mapping: dict[str, Path] = {}
+    for source_id in catalog.source_ids:
+        source_mapping = _e2e_success_source_fixture_mapping(catalog.get(source_id), request)
+        for url, path in source_mapping.items():
+            existing = mapping.get(url)
+            if existing is not None and existing != path:
+                raise AssertionError(f"fixture URL maps to multiple payloads: {url}")
+            mapping[url] = path
+    return mapping
+
+
+def _e2e_success_source_fixture_mapping(
+    scraper: SourceScraper,
+    request: SearchRequest,
+) -> dict[str, Path]:
+    source_id = scraper.descriptor.source_id
+    success_case = _required_fixture_case(source_id, ParserFixtureKind.SUCCESS_NON_EMPTY)
+    fixture_cases = (success_case, *_fixture_cases(source_id, ParserFixtureKind.PAGINATION))
+    mapping = {
+        _fixture_captured_url(case): _fixture_response_path_from_case(case)
+        for case in fixture_cases
     }
 
-
-def _e2e_success_catalog() -> SourceCatalog:
-    scrapers = (
-        ("habr_career", HabrCareerSource()),
-        ("hh_ru", HhRuSource()),
-        ("talanto", TalantoSource()),
-        ("career:vk", VKCareerSource()),
-        ("career:jetbrains", JetBrainsCareerSource()),
-        ("geekjob", GeekJobSource()),
-        ("talento", TalentoSource()),
-        ("finder_work", FinderWorkSource()),
-        ("getmatch", GetmatchSource()),
-        ("it_jobs_uz", ItJobsUzSource()),
-        ("hirify", HirifySource()),
-        ("jobturbo", JobTurboSource()),
-        ("hirehi", HireHiSource()),
-        ("staff_am", StaffAmSource()),
+    fetch_requests = scraper.build_search_requests(request)
+    for fetch_request in fetch_requests:
+        _map_initial_request_if_needed(mapping, fetch_request, success_case)
+    _discover_next_request_fixture_mappings(
+        scraper=scraper,
+        mapping=mapping,
+        initial_requests=fetch_requests,
     )
-    return SourceCatalog(
-        tuple(
-            SupportedSource(scraper=scraper, fixture_suite=source_fixture_suite(suite_id))
-            for suite_id, scraper in scrapers
+    return mapping
+
+
+def _map_initial_request_if_needed(
+    mapping: dict[str, Path],
+    request: SourceFetchRequest,
+    success_case: ParserFixtureCase,
+) -> None:
+    if request.url in mapping:
+        return
+
+    extra_paths = _extra_fixture_payload_paths(_fixture_response_path_from_case(success_case).parent)
+    if len(extra_paths) != 1:
+        raise AssertionError(
+            f"no captured fixture payload for initial request URL: {request.source_id} {request.url}"
         )
-    )
+    mapping[request.url] = extra_paths[0]
 
 
-_E2E_SUCCESS_OUTCOMES: dict[str, SourceOutcome] = {
-    "habr_career": SourceOutcome.SUCCESS,
-    "hh_ru": SourceOutcome.SUCCESS,
-    "talanto": SourceOutcome.SUCCESS,
-    "career:vk": SourceOutcome.SUCCESS,
-    "career:jetbrains": SourceOutcome.SUCCESS,
-    "geekjob": SourceOutcome.NO_RESULTS,
-    "talento": SourceOutcome.SUCCESS,
-    "finder_work": SourceOutcome.SUCCESS,
-    "getmatch": SourceOutcome.SUCCESS,
-    "it_jobs_uz": SourceOutcome.SUCCESS,
-    "hirify": SourceOutcome.SUCCESS,
-    "jobturbo": SourceOutcome.SUCCESS,
-    "hirehi": SourceOutcome.SUCCESS,
-    "staff_am": SourceOutcome.SUCCESS,
-}
+def _discover_next_request_fixture_mappings(
+    *,
+    scraper: SourceScraper,
+    mapping: dict[str, Path],
+    initial_requests: tuple[SourceFetchRequest, ...],
+) -> None:
+    queued = list(initial_requests)
+    visited: set[str] = set()
+    collected_listings = 0
+    while queued:
+        request = queued.pop(0)
+        if request.url in visited:
+            continue
+        visited.add(request.url)
 
-_E2E_SUCCESS_PAGES: dict[str, int] = {
-    "habr_career": 2,
-    "hh_ru": 2,
-    "talanto": 1,
-    "career:vk": 1,
-    "career:jetbrains": 1,
-    "geekjob": 1,
-    "talento": 1,
-    "finder_work": 1,
-    "getmatch": 4,
-    "it_jobs_uz": 1,
-    "hirify": 7,
-    "jobturbo": 1,
-    "hirehi": 1,
-    "staff_am": 1,
-}
+        response_path = mapping[request.url]
+        parsed = scraper.parse_search_response(
+            _fixture_response_artifact(
+                source_id=scraper.descriptor.source_id,
+                request=request,
+                path=response_path,
+            ),
+            request,
+        )
+        remaining = scraper.descriptor.source_limit - collected_listings
+        if remaining <= 0:
+            continue
+        collected_listings += min(len(parsed.listings), remaining)
+        if collected_listings >= scraper.descriptor.source_limit:
+            continue
 
-_E2E_SUCCESS_RAW_COUNT = 390
+        next_request = parsed.next_request
+        if next_request is None:
+            continue
+
+        if next_request.url not in mapping:
+            mapping[next_request.url] = _replay_payload_for_next_request(
+                scraper=scraper,
+                current_request=request,
+                current_response_path=response_path,
+                next_request=next_request,
+            )
+        queued.append(next_request)
+
+
+def _replay_payload_for_next_request(
+    *,
+    scraper: SourceScraper,
+    current_request: SourceFetchRequest,
+    current_response_path: Path,
+    next_request: SourceFetchRequest,
+) -> Path:
+    if scraper.required_fixture_kinds.pagination:
+        raise AssertionError(
+            f"{scraper.descriptor.source_id} emitted uncaptured pagination URL: {next_request.url}"
+        )
+    if not _same_url_without_query(current_request.url, next_request.url):
+        raise AssertionError(
+            f"{scraper.descriptor.source_id} emitted uncaptured next_request URL: {next_request.url}"
+        )
+    return current_response_path
 
 
 class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
     async def test_new_runtime_runs_real_parser_fixtures(self) -> None:
         # Arrange
-        fetcher = FixtureFetcher(_e2e_success_fixture_mapping())
+        catalog = build_supported_source_catalog()
+        request = SearchRequest(query_variants=(_E2E_SUCCESS_QUERY,))
+        fetcher = FixtureFetcher(_e2e_success_fixture_mapping(catalog, request))
         with tempfile.TemporaryDirectory() as tmp:
             with RawCorpusWriter(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
-                    catalog=_e2e_success_catalog(),
+                    catalog=catalog,
                     fetcher=fetcher,
                     writer=writer,
                     config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
                 )
 
                 # Act
-                result = await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+                result = await orchestrator.run(request, run_id="r-test")
 
             # Assert
             outcomes = {attempt.source: attempt for attempt in result.attempts}
-            for source_id, expected_outcome in _E2E_SUCCESS_OUTCOMES.items():
-                self.assertEqual(expected_outcome, outcomes[source_id].outcome, source_id)
-            for source_id, expected_pages in _E2E_SUCCESS_PAGES.items():
-                self.assertEqual(expected_pages, outcomes[source_id].counts.pages_visited, source_id)
-            self.assertEqual(_E2E_SUCCESS_RAW_COUNT, result.raw_records_written)
+            self.assertEqual(set(catalog.source_ids), set(outcomes))
+            for source_id, attempt in outcomes.items():
+                self.assertIn(attempt.outcome, {SourceOutcome.SUCCESS, SourceOutcome.NO_RESULTS}, source_id)
+                self.assertGreater(attempt.counts.pages_visited, 0, source_id)
+                if attempt.outcome == SourceOutcome.SUCCESS:
+                    self.assertGreater(attempt.counts.raw_listings_written, 0, source_id)
+                else:
+                    self.assertEqual(0, attempt.counts.raw_listings_written, source_id)
 
             raw_records = [
                 json.loads(line)
                 for line in (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(_E2E_SUCCESS_RAW_COUNT, len(raw_records))
+            self.assertEqual(result.raw_records_written, len(raw_records))
             self.assertEqual(
-                {source_id for source_id, outcome in _E2E_SUCCESS_OUTCOMES.items() if outcome is SourceOutcome.SUCCESS},
+                {
+                    source_id
+                    for source_id, attempt in outcomes.items()
+                    if attempt.outcome is SourceOutcome.SUCCESS
+                },
                 {record["source"] for record in raw_records},
             )
             self.assertIn(
@@ -1373,49 +1529,35 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
 
     async def test_new_runtime_records_explicit_no_results_without_raw_records(self) -> None:
         # Arrange
-        habr = HabrCareerSource()
-        hh = HhRuSource()
-        talanto = TalantoSource()
-        vk = VKCareerSource()
-        fetcher = FixtureFetcher(
-            {
-                _HABR_NO_RESULTS_URL: _FIXTURES / "habr_career" / "no_results" / "response.html",
-                _HH_NO_RESULTS_URL: _FIXTURES / "hh_ru" / "no_results" / "response.html",
-                _TALANTO_NO_RESULTS_URL: _FIXTURES / "talanto" / "no_results" / "response.html",
-                _VK_NO_RESULTS_URL: _FIXTURES / "career_vk" / "no_results" / "response.html",
-            }
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
-                orchestrator = SearchOrchestrator(
-                    catalog=SourceCatalog(
-                        (
-                            SupportedSource(scraper=habr, fixture_suite=source_fixture_suite("habr_career")),
-                            SupportedSource(scraper=hh, fixture_suite=source_fixture_suite("hh_ru")),
-                            SupportedSource(scraper=talanto, fixture_suite=source_fixture_suite("talanto")),
-                            SupportedSource(scraper=vk, fixture_suite=source_fixture_suite("career:vk")),
+        cases = _runtime_no_results_fixture_cases()
+
+        # Assert
+        self.assertGreater(len(cases), 0)
+        for case in cases:
+            with self.subTest(source_id=case.source_id):
+                fetcher = FixtureFetcher({case.url: case.response_path})
+                with tempfile.TemporaryDirectory() as tmp:
+                    with RawCorpusWriter(Path(tmp)) as writer:
+                        orchestrator = SearchOrchestrator(
+                            catalog=build_supported_source_catalog((case.source_id,)),
+                            fetcher=fetcher,
+                            writer=writer,
+                            config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
                         )
-                    ),
-                    fetcher=fetcher,
-                    writer=writer,
-                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
-                )
 
-                # Act
-                result = await orchestrator.run(SearchRequest(query_variants=(_NO_RESULTS_QUERY,)), run_id="r-test")
+                        # Act
+                        result = await orchestrator.run(
+                            SearchRequest(query_variants=(case.query_variant,)),
+                            run_id="r-test",
+                        )
 
-            # Assert
-            self.assertEqual(0, result.raw_records_written)
-            self.assertEqual(
-                {
-                    "habr_career": SourceOutcome.NO_RESULTS,
-                    "hh_ru": SourceOutcome.NO_RESULTS,
-                    "talanto": SourceOutcome.NO_RESULTS,
-                    "career:vk": SourceOutcome.NO_RESULTS,
-                },
-                {attempt.source: attempt.outcome for attempt in result.attempts},
-            )
-            self.assertEqual("", (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8"))
+                    # Assert
+                    self.assertEqual(0, result.raw_records_written)
+                    self.assertEqual(
+                        {case.source_id: SourceOutcome.NO_RESULTS},
+                        {attempt.source: attempt.outcome for attempt in result.attempts},
+                    )
+                    self.assertEqual("", (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

@@ -17,6 +17,8 @@ from job_harness.v2.contracts import (
 )
 from job_harness.v2.contracts.enums import ALL_SEARCH_CRITERIA
 
+_CONTRACT_TEST_SOURCE_ID = "contract_test_source"
+
 
 def _criteria(
     capability: CriterionCapability = CriterionCapability.UNSUPPORTED,
@@ -29,7 +31,7 @@ def _criteria(
 
 def _descriptor() -> SourceDescriptor:
     return SourceDescriptor(
-        source_id="hh_ru",
+        source_id=_CONTRACT_TEST_SOURCE_ID,
         source_type=SourceType.AGGREGATOR,
         transport=Transport.HTTP,
         countries=("ru",),
@@ -42,9 +44,9 @@ def _fixture_case(kind: ParserFixtureKind = ParserFixtureKind.SUCCESS_NON_EMPTY)
     return ParserFixtureCase(
         name=f"{kind.value}-case",
         kind=kind,
-        captured_artifact_path=f"tests/v2/fixtures/scrapers/hh_ru/{kind.value}/response.html",
-        metadata_path=f"tests/v2/fixtures/scrapers/hh_ru/{kind.value}/meta.json",
-        golden_path=f"tests/v2/fixtures/scrapers/hh_ru/{kind.value}/expected.raw.json",
+        captured_artifact_path=f"tests/v2/fixtures/scrapers/{_CONTRACT_TEST_SOURCE_ID}/{kind.value}/response.html",
+        metadata_path=f"tests/v2/fixtures/scrapers/{_CONTRACT_TEST_SOURCE_ID}/{kind.value}/meta.json",
+        golden_path=f"tests/v2/fixtures/scrapers/{_CONTRACT_TEST_SOURCE_ID}/{kind.value}/expected.raw.json",
         real_capture=True,
         golden_reviewed_by="maintainer",
     )
@@ -155,7 +157,7 @@ class ParserFixtureContractTest(unittest.TestCase):
             detail=True,
         )
         incomplete_suite = ParserFixtureSuite(
-            source_id="hh_ru",
+            source_id=_CONTRACT_TEST_SOURCE_ID,
             cases=(_fixture_case(ParserFixtureKind.SUCCESS_NON_EMPTY),),
         )
 
@@ -171,7 +173,7 @@ class ParserFixtureContractTest(unittest.TestCase):
         # Arrange
         requirements = RequiredParserFixtures(no_results=True, detail=True)
         suite = ParserFixtureSuite(
-            source_id="hh_ru",
+            source_id=_CONTRACT_TEST_SOURCE_ID,
             cases=(
                 _fixture_case(ParserFixtureKind.SUCCESS_NON_EMPTY),
                 _fixture_case(ParserFixtureKind.NO_RESULTS),
@@ -187,7 +189,7 @@ class ParserFixtureContractTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual("hh_ru", contract.descriptor.source_id)
+        self.assertEqual(_CONTRACT_TEST_SOURCE_ID, contract.descriptor.source_id)
 
 
 if __name__ == "__main__":
