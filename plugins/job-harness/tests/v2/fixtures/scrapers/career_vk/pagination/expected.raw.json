@@ -1,0 +1,40 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=50",
+  "sample_listings": [
+    {
+      "source_listing_id": "44870",
+      "title": "Менеджер по кадрам",
+      "url": "https://team.vk.company/vacancy/44870/",
+      "company": "Департамент персонала",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Офисный",
+      "remote_in_country": false,
+      "skills": ["HR", "SAP"]
+    },
+    {
+      "source_listing_id": "45607",
+      "title": "Старший финансовый менеджер",
+      "url": "https://team.vk.company/vacancy/45607/",
+      "company": "Финансовый департамент",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Дистанционный",
+      "remote_in_country": true,
+      "skills": ["finance", "1C"]
+    },
+    {
+      "source_listing_id": "41854",
+      "title": "Ведущий методолог",
+      "url": "https://team.vk.company/vacancy/41854/",
+      "company": "VK",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Дистанционный",
+      "remote_in_country": true,
+      "skills": ["finance"]
+    }
+  ]
+}

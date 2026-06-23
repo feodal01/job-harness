@@ -1,0 +1,49 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=200",
+  "sample_listings": [
+    {
+      "source_listing_id": "45547",
+      "title": "Руководитель команды",
+      "url": "https://team.vk.company/vacancy/45547/",
+      "company": "VK",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Дистанционный",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "backend"
+      ]
+    },
+    {
+      "source_listing_id": "45531",
+      "title": "Java-разработчик",
+      "url": "https://team.vk.company/vacancy/45531/",
+      "company": "Дзен",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "java"
+      ]
+    },
+    {
+      "source_listing_id": "46346",
+      "title": "Старший Go-разработчик",
+      "url": "https://team.vk.company/vacancy/46346/",
+      "company": "VK",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "go"
+      ]
+    }
+  ]
+}

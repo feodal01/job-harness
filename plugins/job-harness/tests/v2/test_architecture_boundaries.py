@@ -11,6 +11,7 @@ _CONTRACTS_PREFIX = "job_harness.v2.contracts"
 _POSTPROCESSING_PREFIX = "job_harness.v2.postprocessing"
 _APPLICATION_MODULE = "job_harness.v2.application"
 _CLI_MODULE = "job_harness.v2.cli"
+_MATCHING_MODULE = "job_harness.v2.matching"
 _SOURCE_CATALOG_MODULE = "job_harness.v2.source_catalog"
 
 _ALLOWED_RUNTIME_IMPORTS = {
@@ -87,11 +88,14 @@ def _allowed_prefixes(module: str) -> tuple[str, ...]:
         )
     if module == _SOURCE_CATALOG_MODULE:
         return (_CONTRACTS_PREFIX,)
+    if module == _MATCHING_MODULE:
+        return ()
     if module.startswith(f"{_CONTRACTS_PREFIX}."):
         return (_CONTRACTS_PREFIX,)
     if module.startswith(f"{_POSTPROCESSING_PREFIX}."):
         return (
             _CONTRACTS_PREFIX,
+            _MATCHING_MODULE,
             _POSTPROCESSING_PREFIX,
             "job_harness.v2.runtime.serialization",
         )

@@ -1,0 +1,50 @@
+{
+  "expected_count": 6,
+  "next_url": "https://ibs.ru/career/vacancies/?PAGEN_1=4",
+  "sample_listings": [
+    {
+      "source_listing_id": "82301",
+      "title": "Руководитель комплексных проектов",
+      "url": "https://ibs.ru/career/vacancies/rukovoditel-kompleksnykh-proektov-moskva-100326/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "Управление проектами"
+      ]
+    },
+    {
+      "source_listing_id": "82881",
+      "title": "Инженер автоматизированного тестирования (backend)",
+      "url": "https://ibs.ru/career/vacancies/inzhener-avtomatizirovannogo-testirovaniya-backend-tyumen/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "Тестирование",
+        "Python"
+      ]
+    },
+    {
+      "source_listing_id": "82880",
+      "title": "Cтарший инженер автоматизированного тестирования (Java)",
+      "url": "https://ibs.ru/career/vacancies/ctarshiy-inzhener-avtomatizirovannogo-testirovaniya-java-moskva/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "Тестирование",
+        "Java"
+      ]
+    }
+  ]
+}

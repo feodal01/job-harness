@@ -1,39 +1,40 @@
 {
   "outcome": "success",
-  "expected_count": 5,
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=25",
   "sample_listings": [
     {
-      "source_listing_id": "45336",
-      "title": "Инженер по тестированию",
-      "url": "https://team.vk.company/vacancy/45336/",
-      "company": "Сервисы продуктивности VK Tech",
+      "source_listing_id": "45587",
+      "title": "Операционный менеджер",
+      "url": "https://team.vk.company/vacancy/45587/",
+      "company": "VK Знакомства",
       "country": "RU",
       "city": "Москва",
       "location_text": "Москва, Дистанционный",
       "remote_in_country": true,
-      "skills": ["QA automation", "QA manual"]
+      "skills": ["project management"]
     },
     {
-      "source_listing_id": "45562",
-      "title": "QA-инженер",
-      "url": "https://team.vk.company/vacancy/45562/",
-      "company": "VK ID",
+      "source_listing_id": "45627",
+      "title": "Администратор",
+      "url": "https://team.vk.company/vacancy/45627/",
+      "company": "Административный департамент",
       "country": "RU",
       "city": "Москва",
-      "location_text": "Москва, гибкий",
-      "remote_in_country": true,
-      "skills": ["QA manual"]
+      "location_text": "Москва, Офисный",
+      "remote_in_country": false,
+      "skills": ["administrative department"]
     },
     {
-      "source_listing_id": "45556",
-      "title": "AQA",
-      "url": "https://team.vk.company/vacancy/45556/",
-      "company": "MAX",
+      "source_listing_id": "45678",
+      "title": "Инженер технических систем безопасности",
+      "url": "https://team.vk.company/vacancy/45678/",
+      "company": "Корпоративный центр",
       "country": "RU",
       "city": "Москва",
-      "location_text": "Москва, Дистанционный",
-      "remote_in_country": true,
-      "skills": ["QA automation"]
+      "location_text": "Москва, Офисный",
+      "remote_in_country": false,
+      "skills": ["engineer", "security"]
     }
   ]
 }

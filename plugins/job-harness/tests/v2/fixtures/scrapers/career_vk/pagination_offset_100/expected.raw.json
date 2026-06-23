@@ -1,0 +1,51 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=125",
+  "sample_listings": [
+    {
+      "source_listing_id": "51885",
+      "title": "Бизнес-аналитик",
+      "url": "https://team.vk.company/vacancy/51885/",
+      "company": "Департамент персонала",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Комбинированный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "analytics",
+        "1C",
+        "system analyst"
+      ]
+    },
+    {
+      "source_listing_id": "45595",
+      "title": "Руководитель направления аналитики медиасервисов",
+      "url": "https://team.vk.company/vacancy/45595/",
+      "company": "VK",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Офисный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "analytics"
+      ]
+    },
+    {
+      "source_listing_id": "45407",
+      "title": "Ведущий Бизнес-аналитик",
+      "url": "https://team.vk.company/vacancy/45407/",
+      "company": "VK",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Офисный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "analytics"
+      ]
+    }
+  ]
+}

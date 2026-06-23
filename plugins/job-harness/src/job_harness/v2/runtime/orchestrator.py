@@ -36,8 +36,8 @@ _MAX_DETAIL_ERRORS_IN_SUMMARY = 3
 
 @dataclass(frozen=True)
 class OrchestratorConfig:
-    source_attempt_timeout_seconds: float = 30.0
-    run_timeout_seconds: float = 120.0
+    source_attempt_timeout_seconds: float = 180.0
+    run_timeout_seconds: float = 360.0
     retry_policy: RetryPolicy = field(default_factory=RetryPolicy)
 
     def __post_init__(self) -> None:

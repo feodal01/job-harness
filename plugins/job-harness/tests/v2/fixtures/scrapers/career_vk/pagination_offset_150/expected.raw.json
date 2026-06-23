@@ -1,0 +1,51 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=175",
+  "sample_listings": [
+    {
+      "source_listing_id": "45367",
+      "title": "Старший инженер SRE",
+      "url": "https://team.vk.company/vacancy/45367/",
+      "company": "Сервисы продуктивности VK Tech",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "SRE"
+      ]
+    },
+    {
+      "source_listing_id": "51916",
+      "title": "Системный администратор",
+      "url": "https://team.vk.company/vacancy/51916/",
+      "company": "Облачная платформа VK Tech",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "linux",
+        "SRE"
+      ]
+    },
+    {
+      "source_listing_id": "46065",
+      "title": "Инженер доступности",
+      "url": "https://team.vk.company/vacancy/46065/",
+      "company": "Сервисы продуктивности VK Tech",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Комбинированный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "linux",
+        "kubernetes"
+      ]
+    }
+  ]
+}

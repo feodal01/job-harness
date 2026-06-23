@@ -1,0 +1,51 @@
+{
+  "outcome": "success",
+  "expected_count": 24,
+  "next_url": null,
+  "sample_listings": [
+    {
+      "source_listing_id": "45719",
+      "title": "Разработчик мобильных приложений",
+      "url": "https://team.vk.company/vacancy/45719/",
+      "company": "ОК",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "ios",
+        "swift"
+      ]
+    },
+    {
+      "source_listing_id": "45757",
+      "title": "Старший Android-разработчик ленты клипов",
+      "url": "https://team.vk.company/vacancy/45757/",
+      "company": "ВКонтакте",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Офисный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "android"
+      ]
+    },
+    {
+      "source_listing_id": "45738",
+      "title": "Android-разработчик в VK Видео",
+      "url": "https://team.vk.company/vacancy/45738/",
+      "company": "VK Видео",
+      "country": "RU",
+      "city": "Санкт-Петербург",
+      "location_text": "Санкт-Петербург, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "android",
+        "mobile"
+      ]
+    }
+  ]
+}
