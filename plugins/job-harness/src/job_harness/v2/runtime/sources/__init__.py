@@ -12,6 +12,7 @@ from job_harness.v2.runtime.sources.aggregators.jobturbo import JobTurboSource
 from job_harness.v2.runtime.sources.aggregators.staff_am import StaffAmSource
 from job_harness.v2.runtime.sources.aggregators.talanto import TalantoSource
 from job_harness.v2.runtime.sources.aggregators.talento import TalentoSource
+from job_harness.v2.runtime.sources.companies.ibs import IBSCareerSource
 from job_harness.v2.runtime.sources.companies.jetbrains import JetBrainsCareerSource
 from job_harness.v2.runtime.sources.companies.vk import VKCareerSource
 
@@ -26,6 +27,7 @@ __all__ = [
     "GetmatchSource",
     "HabrCareerSource",
     "HhRuSource",
+    "IBSCareerSource",
     "JetBrainsCareerSource",
     "TalantoSource",
     "TalentoSource",

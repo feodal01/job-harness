@@ -101,6 +101,38 @@ class SourceCatalogTableTest(unittest.TestCase):
             tuple(case.kind for case in fixture_suite.cases),
         )
 
+    def test_ibs_catalog_row_declares_source_contract(self) -> None:
+        # Arrange / Act
+        descriptor = source_descriptor("career:ibs")
+        required_fixture_kinds = source_required_fixture_kinds("career:ibs")
+        fixture_suite = source_fixture_suite("career:ibs")
+
+        # Assert
+        self.assertEqual(SourceType.COMPANY_CAREER, descriptor.source_type)
+        self.assertEqual(Transport.HTTP, descriptor.transport)
+        self.assertEqual(("RU",), descriptor.countries)
+        self.assertEqual(100, descriptor.source_limit)
+        self.assertEqual(frozenset({SearchCriterion.REMOTE_IN_COUNTRY}), descriptor.native_request_criteria)
+        self.assertEqual(
+            frozenset(
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.COUNTRIES,
+                }
+            ),
+            descriptor.structured_output_criteria,
+        )
+        self.assertFalse(required_fixture_kinds.no_results)
+        self.assertFalse(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.detail)
+        self.assertEqual(
+            (
+                ParserFixtureKind.SUCCESS_NON_EMPTY,
+                ParserFixtureKind.DETAIL,
+            ),
+            tuple(case.kind for case in fixture_suite.cases),
+        )
+
     def test_hh_ru_catalog_row_declares_source_contract(self) -> None:
         # Arrange / Act
         descriptor = source_descriptor("hh_ru")

@@ -1,0 +1,69 @@
+{
+  "expected_count": 5,
+  "sample_listings": [
+    {
+      "source_listing_id": "82616",
+      "title": "Тимлид инженер-тестировщик (Manual, WEB)",
+      "url": "https://ibs.ru/career/vacancies/timlid-inzhener-testirovshchik-manual-web-lyuboy-region-rf-udalennaya-rabota/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": [
+        "Тестирование",
+        "SQL"
+      ]
+    },
+    {
+      "source_listing_id": "82881",
+      "title": "Инженер автоматизированного тестирования (backend)",
+      "url": "https://ibs.ru/career/vacancies/inzhener-avtomatizirovannogo-testirovaniya-backend-tyumen/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": false,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": [
+        "Тестирование",
+        "Python"
+      ]
+    },
+    {
+      "source_listing_id": "76579",
+      "title": "Инженер по нагрузочному тестированию",
+      "url": "https://ibs.ru/career/vacancies/inzhener-po-nagruzochnomu-testirovaniyu-lyuboy-region-rf-udalennaya-rabota-300625/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": [
+        "Тестирование",
+        "Java",
+        "Python"
+      ]
+    }
+  ]
+}

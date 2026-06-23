@@ -105,7 +105,8 @@ VALUES
     (10, 'hirify', 'aggregator', 'http', 100),
     (11, 'jobturbo', 'aggregator', 'http', 50),
     (12, 'hirehi', 'aggregator', 'http', 50),
-    (13, 'staff_am', 'aggregator', 'http', 100);
+    (13, 'staff_am', 'aggregator', 'http', 100),
+    (14, 'career:ibs', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -117,6 +118,7 @@ VALUES
     ('habr_career', 0, 'RU'),
     ('hh_ru', 0, 'RU'),
     ('career:vk', 0, 'RU'),
+    ('career:ibs', 0, 'RU'),
     ('hirehi', 0, 'RU'),
     ('staff_am', 0, 'AM');
 
@@ -167,6 +169,15 @@ VALUES
     ('career:jetbrains', 6, 'remote_global', 'structured_output'),
     ('career:jetbrains', 7, 'countries', 'structured_output'),
     ('career:jetbrains', 8, 'cities', 'structured_output'),
+    ('career:ibs', 0, 'query', 'structured_output'),
+    ('career:ibs', 1, 'grades', 'unsupported'),
+    ('career:ibs', 2, 'salary_from', 'unsupported'),
+    ('career:ibs', 3, 'published_since', 'unsupported'),
+    ('career:ibs', 4, 'relocation', 'unsupported'),
+    ('career:ibs', 5, 'remote_in_country', 'native_request'),
+    ('career:ibs', 6, 'remote_global', 'unsupported'),
+    ('career:ibs', 7, 'countries', 'structured_output'),
+    ('career:ibs', 8, 'cities', 'unsupported'),
     ('geekjob', 0, 'query', 'structured_output'),
     ('geekjob', 1, 'grades', 'unsupported'),
     ('geekjob', 2, 'salary_from', 'structured_output'),
@@ -277,7 +288,8 @@ VALUES
     ('hirehi', 'no_results'),
     ('hirehi', 'detail'),
     ('staff_am', 'no_results'),
-    ('staff_am', 'detail');
+    ('staff_am', 'detail'),
+    ('career:ibs', 'detail');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -750,6 +762,28 @@ VALUES
         'tests/v2/fixtures/scrapers/staff_am/detail/response.html',
         'tests/v2/fixtures/scrapers/staff_am/detail/meta.json',
         'tests/v2/fixtures/scrapers/staff_am/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:ibs',
+        0,
+        'career:ibs-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/career_ibs/success/response.html',
+        'tests/v2/fixtures/scrapers/career_ibs/success/meta.json',
+        'tests/v2/fixtures/scrapers/career_ibs/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:ibs',
+        1,
+        'career:ibs-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_ibs/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_ibs/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_ibs/detail/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

@@ -1,0 +1,11 @@
+{
+  "source": "career:ibs",
+  "captured_url": "https://ibs.ru/career/vacancies/timlid-inzhener-testirovshchik-manual-web-lyuboy-region-rf-udalennaya-rabota/",
+  "capture_date": "2026-06-23",
+  "capture_method": "curl -L with browser User-Agent",
+  "country": "RU",
+  "fixture_kind": "detail",
+  "real_capture": true,
+  "redactions": [],
+  "notes": "Real IBS vacancy detail page for the first testing fixture listing."
+}

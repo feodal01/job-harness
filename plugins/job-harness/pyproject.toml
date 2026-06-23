@@ -1,6 +1,6 @@
 [project]
 name = "job-harness"
-version = "0.2.21"
+version = "0.2.22"
 description = "Universal job search and application harness"
 requires-python = ">=3.12"
 dependencies = [

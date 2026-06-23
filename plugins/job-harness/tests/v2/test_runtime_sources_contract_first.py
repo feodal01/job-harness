@@ -38,6 +38,7 @@ from job_harness.v2.runtime.sources import (
     HhRuSource,
     HireHiSource,
     HirifySource,
+    IBSCareerSource,
     ItJobsUzSource,
     JetBrainsCareerSource,
     JobTurboSource,
@@ -105,6 +106,8 @@ def _source_id(source: str) -> str:
         return "career:vk"
     if source == "career_jetbrains":
         return "career:jetbrains"
+    if source == "career_ibs":
+        return "career:ibs"
     return source
 
 
@@ -667,6 +670,77 @@ class VKCareerSourceTest(unittest.TestCase):
 
         # Assert
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
+
+class IBSCareerSourceTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=IBSCareerSource(),
+            fixture_suite=source_fixture_suite("career:ibs"),
+        )
+
+        # Assert
+        self.assertEqual("career:ibs", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_discovers_explicit_remote_filter_from_real_html(self) -> None:
+        # Arrange
+        source = IBSCareerSource()
+
+        # Act
+        qa_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+        remote_request = source.build_search_requests(
+            SearchRequest(query_variants=("QA",), remote_in_country=True)
+        )[0]
+        parsed_remote = source.parse_search_response(_fixture_response("career_ibs", "success"), remote_request)
+
+        # Assert
+        self.assertEqual("https://ibs.ru/career/vacancies/", qa_request.url)
+        self.assertEqual(
+            "https://ibs.ru/career/vacancies/#job-harness-remote-in-country",
+            remote_request.url,
+        )
+        self.assertEqual(
+            "https://ibs.ru/career/vacancies/filter/format-is-online/apply/",
+            parsed_remote.next_request.url if parsed_remote.next_request else None,
+        )
+        self.assertEqual((), parsed_remote.listings)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = IBSCareerSource()
+        expected = _expected("career_ibs", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("career_ibs", "success"),
+            SourceFetchRequest(
+                source_id="career:ibs",
+                query_variant="QA",
+                url="https://ibs.ru/career/vacancies/filter/napravlenie-is-testirovanie/apply/",
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_detail_fixture_extracts_full_description_text(self) -> None:
+        # Arrange
+        source = IBSCareerSource()
+        listing = _detail_listing_from_input("career_ibs")
+        expected = _expected("career_ibs", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("career_ibs", "detail"), listing)
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+        self.assertEqual(set(expected["additional_sections"]), set(detailed.additional_sections))
+        for text in expected["requirements_contains"]:
+            self.assertIn(text, detailed.requirements or "")
 
 
 class TalantoSourceTest(unittest.TestCase):
