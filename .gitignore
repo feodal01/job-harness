@@ -11,3 +11,4 @@ data/company-careers.json
 plugins/job-harness/data/company-careers.json
 plugins/job-harness/data/.runs/
 plugins/job-harness/data/.tmp/
+.tmp-verify/

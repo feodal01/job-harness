@@ -1,0 +1,11 @@
+{
+  "source": "career:ibs",
+  "captured_url": "https://ibs.ru/career/vacancies/filter/napravlenie-is-testirovanie/apply/",
+  "capture_date": "2026-06-23",
+  "capture_method": "curl -L with browser User-Agent",
+  "country": "RU",
+  "fixture_kind": "success_non_empty",
+  "real_capture": true,
+  "redactions": [],
+  "notes": "Real IBS Bitrix SEF filtered vacancy page for testing direction."
+}
