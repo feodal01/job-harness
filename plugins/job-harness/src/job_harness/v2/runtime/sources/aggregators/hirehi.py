@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from html.parser import HTMLParser
 from typing import ClassVar
 from urllib.parse import urlencode
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    DetailEnrichmentScraper,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -17,9 +18,9 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
-    SourceScraper,
     SourceSearchParseResult,
 )
+from job_harness.v2.runtime.sources._detail_html import json_ld_job_posting_description
 from job_harness.v2.runtime.sources._url import absolute_url
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
@@ -32,7 +33,7 @@ _SALARY_RE = re.compile(r"(?:от\s*)?(?:~\s*)?\d[\d\s.,]*(?:K|к)?(?:\s*(?:₽|
 _GRADE_PREFIXES = ("senior", "middle", "junior", "lead")
 
 
-class HireHiSource(SourceScraper):
+class HireHiSource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
         return source_descriptor("hirehi")
@@ -68,6 +69,27 @@ class HireHiSource(SourceScraper):
                 evidence=AttemptEvidence(no_results=True),
             )
         return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=listing.url,
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        description = json_ld_job_posting_description(response.body)
+        if description is None:
+            raise ValueError("HireHi detail page does not contain vacancy description")
+        return replace(
+            listing,
+            description=description,
+            raw_text=_join_text(listing.raw_text, description),
+        )
 
 
 @dataclass(frozen=True)
@@ -269,3 +291,8 @@ def _salary_from_text(text: str) -> str | None:
 
 def _normalize_text(value: str) -> str:
     return " ".join(value.split())
+
+
+def _join_text(*parts: str | None) -> str | None:
+    text = " ".join(part.strip() for part in parts if part and part.strip())
+    return text or None

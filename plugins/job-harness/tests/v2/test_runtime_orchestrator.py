@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,14 @@ from tests.v2._support.contract_runtime import (
     supported,
 )
 
-from job_harness.v2.contracts import SearchRequest, SourceOutcome
+from job_harness.v2.contracts import (
+    DetailEnrichmentScraper,
+    RawListing,
+    SearchRequest,
+    SourceFetchRequest,
+    SourceOutcome,
+    SourceResponseArtifact,
+)
 from job_harness.v2.runtime import (
     ClassifiedSourceError,
     OrchestratorConfig,
@@ -26,7 +34,28 @@ from job_harness.v2.runtime import (
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+
+
+class FakeDetailScraper(FakeScraper, DetailEnrichmentScraper):
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=f"https://example.test/{self.descriptor.source_id}/detail/{listing.source_listing_id}",
+        )
+
+    def parse_detail_response(
+        self,
+        _response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        return replace(
+            listing,
+            description=f"Full detail description for {listing.title}",
+            requirements="Full detail requirements",
+            raw_text=f"{listing.raw_text or listing.title} Full detail description Full detail requirements",
+        )
 
 
 class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
@@ -232,6 +261,177 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             # Assert
             self.assertEqual(SourceOutcome.RUN_TIMEOUT, result.attempts[0].outcome)
             self.assertEqual(0, result.raw_records_written)
+
+    async def test_detail_enrichment_scraper_writes_full_description_before_raw_record(self) -> None:
+        # Arrange
+        base_listing = replace(
+            listing("detail_jobs"),
+            description=None,
+            requirements=None,
+            raw_text="QA Engineer 1",
+        )
+        scraper = FakeDetailScraper(
+            source_descriptor=descriptor("detail_jobs"),
+            raw_listings=(base_listing,),
+        )
+        fetcher = FakeFetcher()
+        with tempfile.TemporaryDirectory() as tmp:
+            with RawCorpusWriter(Path(tmp)) as writer:
+                orchestrator = SearchOrchestrator(
+                    catalog=SourceCatalog((supported(scraper),)),
+                    fetcher=fetcher,
+                    writer=writer,
+                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+                )
+
+                # Act
+                result = await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+
+            # Assert
+            self.assertEqual(SourceOutcome.SUCCESS, result.attempts[0].outcome)
+            self.assertEqual(
+                [
+                    "https://example.test/detail_jobs/search?q=QA",
+                    "https://example.test/detail_jobs/detail/1",
+                ],
+                [call.url for call in fetcher.calls],
+            )
+            raw_records = _read_jsonl(Path(tmp) / "raw-listings.jsonl")
+            self.assertEqual(1, len(raw_records))
+            self.assertEqual("present", raw_records[0]["description_availability"])
+            self.assertTrue(raw_records[0]["detail_fetched"])
+            self.assertEqual("https://example.test/detail_jobs/jobs/1", raw_records[0]["listing"]["url"])
+            self.assertEqual(
+                "Full detail description for QA Engineer 1",
+                raw_records[0]["listing"]["description"],
+            )
+            self.assertEqual("Full detail requirements", raw_records[0]["listing"]["requirements"])
+
+    async def test_detail_enrichment_failure_preserves_search_listings_as_partial_success(self) -> None:
+        # Arrange
+        listings = (
+            replace(listing("detail_jobs", "1"), description=None, raw_text="QA Engineer 1"),
+            replace(listing("detail_jobs", "2"), description=None, raw_text="QA Engineer 2"),
+        )
+        scraper = FakeDetailScraper(
+            source_descriptor=descriptor("detail_jobs"),
+            raw_listings=listings,
+        )
+        fetcher = FakeFetcher(
+            failures={
+                ("detail_jobs", "QA Engineer 1"): [
+                    ClassifiedSourceError(SourceOutcome.NETWORK_ERROR, "detail connection reset")
+                ],
+            }
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with RawCorpusWriter(Path(tmp)) as writer:
+                orchestrator = SearchOrchestrator(
+                    catalog=SourceCatalog((supported(scraper),)),
+                    fetcher=fetcher,
+                    writer=writer,
+                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+                )
+
+                # Act
+                result = await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+
+            # Assert
+            self.assertEqual(SourceOutcome.PARTIAL_SUCCESS, result.attempts[0].outcome)
+            self.assertEqual("detail connection reset", result.attempts[0].evidence.error)
+            self.assertEqual(2, result.raw_records_written)
+            raw_records = _read_jsonl(Path(tmp) / "raw-listings.jsonl")
+            self.assertEqual(
+                [
+                    "https://example.test/detail_jobs/jobs/1",
+                    "https://example.test/detail_jobs/jobs/2",
+                ],
+                [record["listing"]["url"] for record in raw_records],
+            )
+            self.assertEqual(
+                [None, "Full detail description for QA Engineer 2"],
+                [record["listing"]["description"] for record in raw_records],
+            )
+
+    async def test_detail_blocked_preserves_listing_and_marks_detail_blocked(self) -> None:
+        # Arrange
+        listings = (
+            replace(listing("detail_jobs", "1"), description=None, raw_text="QA Engineer 1"),
+        )
+        scraper = FakeDetailScraper(
+            source_descriptor=descriptor("detail_jobs"),
+            raw_listings=listings,
+        )
+        fetcher = FakeFetcher(
+            failures={
+                ("detail_jobs", "QA Engineer 1"): [
+                    ClassifiedSourceError(
+                        SourceOutcome.BLOCKED,
+                        "hh.ru account captcha on vacancy detail",
+                    )
+                ],
+            }
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with RawCorpusWriter(Path(tmp)) as writer:
+                orchestrator = SearchOrchestrator(
+                    catalog=SourceCatalog((supported(scraper),)),
+                    fetcher=fetcher,
+                    writer=writer,
+                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+                )
+
+                # Act
+                result = await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+
+            # Assert
+            self.assertEqual(SourceOutcome.PARTIAL_SUCCESS, result.attempts[0].outcome)
+            self.assertEqual("hh.ru account captcha on vacancy detail", result.attempts[0].evidence.error)
+            raw_records = _read_jsonl(Path(tmp) / "raw-listings.jsonl")
+            self.assertEqual("detail_blocked", raw_records[0]["description_availability"])
+            self.assertTrue(raw_records[0]["detail_fetched"])
+            self.assertEqual(
+                "hh.ru account captcha on vacancy detail",
+                raw_records[0]["detail_parse_error"],
+            )
+            self.assertIsNone(raw_records[0]["listing"]["description"])
+
+    async def test_detail_rate_limited_preserves_listing_and_status(self) -> None:
+        # Arrange
+        listings = (
+            replace(listing("detail_jobs", "1"), description=None, raw_text="QA Engineer 1"),
+        )
+        scraper = FakeDetailScraper(
+            source_descriptor=descriptor("detail_jobs"),
+            raw_listings=listings,
+        )
+        fetcher = FakeFetcher(
+            failures={
+                ("detail_jobs", "QA Engineer 1"): [
+                    ClassifiedSourceError(
+                        SourceOutcome.RATE_LIMITED,
+                        "HTTP Error 429: Too Many Requests",
+                    )
+                ],
+            }
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with RawCorpusWriter(Path(tmp)) as writer:
+                orchestrator = SearchOrchestrator(
+                    catalog=SourceCatalog((supported(scraper),)),
+                    fetcher=fetcher,
+                    writer=writer,
+                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+                )
+
+                # Act
+                result = await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+
+            # Assert
+            self.assertEqual(SourceOutcome.PARTIAL_SUCCESS, result.attempts[0].outcome)
+            raw_records = _read_jsonl(Path(tmp) / "raw-listings.jsonl")
+            self.assertEqual("detail_rate_limited", raw_records[0]["description_availability"])
+            self.assertEqual("HTTP Error 429: Too Many Requests", raw_records[0]["detail_parse_error"])
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from html.parser import HTMLParser
 from typing import Any
 
@@ -22,6 +23,10 @@ from job_harness.v2.contracts import (
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
 _BOARD_URL = "https://boards-api.greenhouse.io/v1/boards/jetbrains/jobs?content=true"
+_SECTION_LABEL_RE = re.compile(
+    r"<(?P<tag>h[1-6]|strong)[^>]*>(?P<label>.*?)</(?P=tag)>",
+    re.I | re.S,
+)
 
 _COUNTRIES = {
     "Armenia": "AM",
@@ -89,7 +94,9 @@ def _listing(job: dict[str, Any]) -> RawListing:
     title = _text(job.get("title")).strip()
     location_text = _nested_text(job, "location", "name")
     locations = _locations(location_text)
-    description = _html_to_text(_text(job.get("content")))
+    content = _text(job.get("content"))
+    description = _html_to_text(content)
+    additional_sections = _html_sections(content)
     departments = _names(job.get("departments"))
     offices = _names(job.get("offices"))
     metadata = _metadata(job.get("metadata"))
@@ -117,6 +124,7 @@ def _listing(job: dict[str, Any]) -> RawListing:
         native_grade=None,
         description=description,
         requirements=None,
+        additional_sections=additional_sections,
         skills=(),
         raw_text=_join_text(title, location_text, " ".join(departments), " ".join(metadata), description),
         raw={
@@ -169,6 +177,32 @@ def _html_to_text(value: str) -> str | None:
     collector = _TextCollector()
     collector.feed(html.unescape(value))
     return collector.text()
+
+
+def _html_sections(value: str) -> dict[str, str]:
+    raw_html = html.unescape(value)
+    labels = tuple(match for match in _SECTION_LABEL_RE.finditer(raw_html) if _section_label(match))
+    sections: dict[str, str] = {}
+    for index, match in enumerate(labels):
+        label = _section_label(match)
+        if label is None:
+            continue
+        body_start = match.end()
+        body_end = labels[index + 1].start() if index + 1 < len(labels) else len(raw_html)
+        body = _html_to_text(raw_html[body_start:body_end])
+        if body:
+            sections[label] = body
+    return sections
+
+
+def _section_label(match: re.Match[str]) -> str | None:
+    tag = match.group("tag").casefold()
+    label = (_html_to_text(match.group("label")) or "").rstrip(":").strip()
+    if not label:
+        return None
+    if tag == "strong" and not match.group("label").strip().endswith(":"):
+        return None
+    return label
 
 
 def _locations(location_text: str) -> tuple[_Location, ...]:

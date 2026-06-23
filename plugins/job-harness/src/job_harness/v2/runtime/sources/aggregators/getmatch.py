@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 import re
 from collections.abc import Sequence
@@ -243,7 +244,9 @@ def _listing_from_offer(offer: dict[str, Any]) -> RawListing | None:
     remote = _is_remote(location_requirements)
     city = _city(location_requirements, location_items)
     skills = _skills(offer.get("skills_objects"))
-    description = _plain_text(offer.get("offer_description"))
+    offer_description = offer.get("offer_description")
+    description = _plain_text(offer_description)
+    additional_sections = _html_sections(offer_description)
     salary_text = _text(offer.get("salary_description")).strip() or _format_salary(offer)
 
     return RawListing(
@@ -266,6 +269,7 @@ def _listing_from_offer(offer: dict[str, Any]) -> RawListing | None:
         native_grade=None,
         description=description,
         requirements=None,
+        additional_sections=additional_sections,
         skills=skills,
         raw_text=_join_text(title, company, location_text, salary_text, description),
         raw={"id": offer_id, "analytics_id": offer.get("analytics_id")},
@@ -365,9 +369,28 @@ def _country_from_text(text: str) -> str | None:
 
 
 def _plain_text(value: object) -> str | None:
-    text = _HTML_TAG_RE.sub(" ", _text(value))
+    text = _HTML_TAG_RE.sub(" ", html.unescape(_text(value)))
     normalized = " ".join(text.split())
     return normalized or None
+
+
+def _html_sections(value: object) -> dict[str, str]:
+    raw = html.unescape(_text(value))
+    labels = tuple(re.finditer(r"<b>(.*?)</b>", raw, flags=re.I | re.S))
+    sections: dict[str, str] = {}
+    for index, label_match in enumerate(labels):
+        raw_label = label_match.group(1).strip()
+        if not raw_label.endswith(":"):
+            continue
+        label = (_plain_text(raw_label) or "").rstrip(":").strip()
+        if not label:
+            continue
+        body_start = label_match.end()
+        body_end = labels[index + 1].start() if index + 1 < len(labels) else len(raw)
+        body = _plain_text(raw[body_start:body_end])
+        if body:
+            sections[label] = body
+    return sections
 
 
 def _format_salary(offer: dict[str, Any]) -> str | None:

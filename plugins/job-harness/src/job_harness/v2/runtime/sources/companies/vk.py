@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import html
 import json
+from dataclasses import replace
 from typing import Any
 from urllib.parse import urlencode
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    DetailEnrichmentScraper,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -16,10 +18,9 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
-    SourceScraper,
     SourceSearchParseResult,
 )
-from job_harness.v2.runtime.sources._html import ScriptCollector
+from job_harness.v2.runtime.sources._html import ClassTextCollector, ScriptCollector
 from job_harness.v2.runtime.sources._url import absolute_url
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
@@ -31,7 +32,7 @@ _SPECIALTIES = {
 }
 
 
-class VKCareerSource(SourceScraper):
+class VKCareerSource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
         return source_descriptor("career:vk")
@@ -73,6 +74,29 @@ class VKCareerSource(SourceScraper):
         return SourceSearchParseResult(
             outcome=SourceOutcome.SUCCESS,
             listings=tuple(_vk_listing(item) for item in items if isinstance(item, dict)),
+        )
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=listing.url,
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        collector = ClassTextCollector(tag_name="div", class_name="article")
+        collector.feed(response.body)
+        description = collector.text()
+        if description is None:
+            raise ValueError("VK detail page does not contain vacancy description")
+        return replace(
+            listing,
+            description=description,
+            raw_text=_join_text(listing.raw_text, description),
         )
 
 

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from job_harness.v2.contracts import SearchRequest, SourceAttemptRecord
 from job_harness.v2.postprocessing import ProcessedResults, ResultTablePostProcessor
+from job_harness.v2.postprocessing.formatters import render_processed_results_markdown_file
 from job_harness.v2.runtime import (
     ArtifactFetcher,
     HttpArtifactFetcher,
@@ -20,6 +21,14 @@ from job_harness.v2.runtime import (
     SearchOrchestrator,
     build_supported_source_catalog,
 )
+
+__all__ = [
+    "V2SearchApplication",
+    "V2SearchConfig",
+    "V2SearchExecution",
+    "new_run_id",
+    "render_processed_results_markdown_file",
+]
 
 
 @dataclass(frozen=True)

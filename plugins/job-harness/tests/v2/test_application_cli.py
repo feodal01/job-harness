@@ -102,9 +102,9 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
             )
 
             # Act
-            first = await app.search(SearchRequest(query_variants=(query_variant,), max_results=1), run_id="r-test")
+            first = await app.search(SearchRequest(query_variants=(query_variant,)), run_id="r-test")
             second = await app.search(
-                SearchRequest(query_variants=(query_variant,), max_results=1, append_to_run_id="r-test")
+                SearchRequest(query_variants=(query_variant,), append_to_run_id="r-test")
             )
 
             # Assert
@@ -122,7 +122,10 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
             self.assertGreater(first.raw_records_written, 0)
             self.assertEqual(first.raw_records_written + second.raw_records_written, len(raw_lines))
             self.assertEqual(1, manifest["latest_append_sequence"])
-            self.assertEqual(1, processed["result_count"])
+            self.assertEqual(len(raw_lines), processed["raw_records_read"])
+            self.assertGreater(processed["result_count"], 1)
+            self.assertLessEqual(processed["result_count"], len(raw_lines))
+            self.assertNotIn("truncated", processed)
 
     async def test_cli_lists_v2_sources_without_touching_v1_cli(self) -> None:
         # Arrange

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    DetailEnrichmentScraper,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -15,9 +17,9 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
-    SourceScraper,
     SourceSearchParseResult,
 )
+from job_harness.v2.runtime.sources._html import html_to_text
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
 _API_URL = "https://api.hirify.me/api/vacancies"
@@ -66,7 +68,7 @@ _COUNTRY_BY_TEXT = {
 }
 
 
-class HirifySource(SourceScraper):
+class HirifySource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
         return source_descriptor("hirify")
@@ -149,6 +151,31 @@ class HirifySource(SourceScraper):
             outcome=SourceOutcome.SUCCESS,
             listings=listings,
             next_request=next_request,
+        )
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        listing_id = listing.source_listing_id
+        if not listing_id:
+            raise ValueError("Hirify detail request requires source_listing_id")
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=f"{_API_URL}/{listing_id}",
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        payload = _json_object(response.body)
+        description = _detail_description(payload)
+        if description is None:
+            raise ValueError("Hirify detail payload does not contain vacancy description")
+        return replace(
+            listing,
+            description=description,
+            raw_text=_join_text(listing.raw_text, description),
         )
 
 
@@ -250,6 +277,14 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         raw_text=_join_text(title, company, location_text, description, work_format_text, " ".join(skills)),
         raw=raw,
     )
+
+
+def _detail_description(payload: dict[str, Any]) -> str | None:
+    text = _text(payload.get("text")).strip()
+    if text:
+        return html_to_text(text) or text
+    tldr = _text(payload.get("tldr")).strip()
+    return tldr or None
 
 
 def _company_from_item(item: dict[str, Any]) -> str:

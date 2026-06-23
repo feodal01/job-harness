@@ -13,7 +13,7 @@ from job_harness.v2.contracts import SearchRequest, TextExclusion, TextExclusion
 from job_harness.v2.postprocessing.criteria_plan import CriteriaProcessingPlanner
 from job_harness.v2.runtime.serialization import to_jsonable
 
-_TEXT_FIELDS = ("title", "description", "requirements", "skills", "raw_text")
+_TEXT_FIELDS = ("title", "description", "requirements", "additional_sections", "skills", "raw_text")
 _SHORT_QUERY_TOKEN_LENGTH = 2
 
 
@@ -57,11 +57,6 @@ class ResultTablePostProcessor:
                 continue
             kept_rows.append({**row, "decision": "kept", "decision_reasons": ("matches_requested_filters",)})
 
-        truncated = False
-        if request.max_results > 0 and len(kept_rows) > request.max_results:
-            kept_rows = kept_rows[: request.max_results]
-            truncated = True
-
         payload = {
             "schema_version": 1,
             "record_type": "processed_results",
@@ -69,7 +64,6 @@ class ResultTablePostProcessor:
             "append_sequence": append_sequence,
             "raw_records_read": len(raw_records),
             "result_count": len(kept_rows),
-            "truncated": truncated,
             "removed_counts": removed_counts,
             "source_criteria_plan": source_criteria_plan,
             "results": kept_rows,
@@ -88,7 +82,7 @@ def _read_jsonl_objects(path: Path) -> tuple[dict[str, object], ...]:
     if not path.exists():
         return ()
     records: list[dict[str, object]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8").split("\n"):
         if not line.strip():
             continue
         value = json.loads(line)
@@ -132,8 +126,12 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
             "native_grade": _optional_text(listing.get("native_grade")),
             "description": _optional_text(listing.get("description")),
             "requirements": _optional_text(listing.get("requirements")),
+            "additional_sections": _text_mapping(listing.get("additional_sections")),
             "skills": _text_tuple(listing.get("skills")),
             "raw_text": _optional_text(listing.get("raw_text")),
+            "description_availability": _optional_text(record.get("description_availability")),
+            "detail_fetched": bool(record.get("detail_fetched")),
+            "detail_parse_error": _optional_text(record.get("detail_parse_error")),
         }
         rows.append(row)
     return tuple(rows)
@@ -260,6 +258,8 @@ def _field_text(row: dict[str, object], field: str) -> str:
     value = row.get(field)
     if isinstance(value, tuple):
         return " ".join(_text(item) for item in value)
+    if isinstance(value, dict):
+        return " ".join(_text(item) for item in value.values())
     return _text(value)
 
 
@@ -342,3 +342,15 @@ def _text_tuple(value: object) -> tuple[str, ...]:
     if not isinstance(value, list):
         raise ValueError("expected skills list")
     return tuple(_text(item) for item in value if _text(item))
+
+
+def _text_mapping(value: object) -> dict[str, str]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("expected additional_sections object")
+    return {
+        _text(key): _text(item)
+        for key, item in value.items()
+        if _text(key).strip() and _text(item).strip()
+    }

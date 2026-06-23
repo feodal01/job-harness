@@ -9,9 +9,11 @@ from typing import Any, cast
 from urllib.parse import urlparse
 
 from job_harness.v2.contracts import (
+    DetailEnrichmentScraper,
     Grade,
     ParserFixtureCase,
     ParserFixtureKind,
+    RawListing,
     SearchRequest,
     SourceFetchRequest,
     SourceOutcome,
@@ -19,6 +21,7 @@ from job_harness.v2.contracts import (
     SourceScraper,
 )
 from job_harness.v2.runtime import (
+    ClassifiedSourceError,
     OrchestratorConfig,
     RawCorpusWriter,
     RetryPolicy,
@@ -110,6 +113,31 @@ def _expected(source: str, case: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise TypeError("expected.raw.json must contain a JSON object")
     return cast(dict[str, Any], value)
+
+
+def _detail_listing_from_input(source_folder: str, *, case: str = "detail") -> RawListing:
+    payload = json.loads((_FIXTURES / source_folder / case / "input.json").read_text(encoding="utf-8"))
+    source_id = _source_id(source_folder)
+    return RawListing(
+        source_listing_id=str(payload["source_listing_id"]),
+        title=str(payload["title"]),
+        url=str(payload["url"]),
+        source=source_id,
+    )
+
+
+def _assert_detail_description_matches_expected(
+    test: unittest.TestCase,
+    *,
+    detailed: RawListing,
+    expected: dict[str, Any],
+) -> None:
+    test.assertIsNotNone(detailed.description)
+    min_length = expected.get("min_description_length")
+    if isinstance(min_length, int):
+        test.assertGreaterEqual(len(detailed.description or ""), min_length)
+    for text in expected.get("description_contains", []):
+        test.assertIn(text, detailed.description or "")
 
 
 def _fixture_case(source_id: str, kind: ParserFixtureKind) -> ParserFixtureCase | None:
@@ -370,6 +398,21 @@ class HabrCareerSourceTest(unittest.TestCase):
         for text in expected["description_contains"]:
             self.assertIn(text, detailed.description or "")
 
+    def test_detail_sectioned_fixture_extracts_banner_and_image_urls(self) -> None:
+        # Arrange
+        source = HabrCareerSource()
+        listing = _detail_listing_from_input("habr_career", case="detail_sectioned")
+        expected = _expected("habr_career", "detail_sectioned")
+
+        # Act
+        detailed = source.parse_detail_response(
+            _fixture_response("habr_career", "detail_sectioned"),
+            listing,
+        )
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
     def test_optional_fields_are_preserved_as_source_facts(self) -> None:
         # Arrange
         source = HabrCareerSource()
@@ -479,6 +522,50 @@ class HhRuSourceTest(unittest.TestCase):
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
 
+    def test_detail_fixture_extracts_real_description_sections(self) -> None:
+        # Arrange
+        source = HhRuSource()
+        listing = _listing_by_id(
+            source.parse_search_response(
+                _fixture_response("hh_ru", "success"),
+                SourceFetchRequest(
+                    source_id="hh_ru",
+                    query_variant="QA",
+                    url="https://hh.ru/search/vacancy?text=QA&area=113&search_field=name",
+                ),
+            ).listings,
+            "134371846",
+        )
+        expected = _expected("hh_ru", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("hh_ru", "detail"), listing)
+
+        # Assert
+        self.assertIsNotNone(detailed.description)
+        for text in expected["description_contains"]:
+            self.assertIn(text, detailed.description or "")
+        self.assertEqual(set(expected["additional_sections"]), set(detailed.additional_sections))
+        self.assertIn("Опыт работы QA от 2 лет.", detailed.requirements or "")
+
+    def test_blocked_detail_fixture_classifies_account_captcha(self) -> None:
+        # Arrange
+        source = HhRuSource()
+        listing = RawListing(
+            source_listing_id="134362377",
+            title="QA Engineer Java/Инженер-тестировщик Java (ученик)",
+            url="https://hh.ru/vacancy/134362377",
+            source="hh_ru",
+        )
+        expected = _expected("hh_ru", "blocked")
+
+        # Act / Assert
+        with self.assertRaises(ClassifiedSourceError) as caught:
+            source.parse_detail_response(_fixture_response("hh_ru", "blocked"), listing)
+        self.assertEqual(SourceOutcome.BLOCKED, caught.exception.outcome)
+        for text in expected["error_contains"]:
+            self.assertIn(text, caught.exception.evidence.error or str(caught.exception))
+
     def test_optional_fields_are_preserved_as_source_facts(self) -> None:
         # Arrange
         source = HhRuSource()
@@ -569,6 +656,18 @@ class VKCareerSourceTest(unittest.TestCase):
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
 
+    def test_detail_fixture_extracts_full_description_text(self) -> None:
+        # Arrange
+        source = VKCareerSource()
+        listing = _detail_listing_from_input("career_vk")
+        expected = _expected("career_vk", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("career_vk", "detail"), listing)
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
 
 class TalantoSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
@@ -632,6 +731,25 @@ class TalantoSourceTest(unittest.TestCase):
         self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
+
+    def test_detail_fixture_extracts_full_description_text(self) -> None:
+        # Arrange
+        source = TalantoSource()
+        listing = RawListing(
+            source_listing_id="41519f55-efc3-4bec-aa54-3adf5e235fef",
+            title="Стажер QA Manual [Archops]",
+            url="https://talanto.work/jobs/41519f55-efc3-4bec-aa54-3adf5e235fef",
+            source="talanto",
+        )
+        expected = _expected("talanto", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("talanto", "detail"), listing)
+
+        # Assert
+        self.assertIsNotNone(detailed.description)
+        for text in expected["description_contains"]:
+            self.assertIn(text, detailed.description or "")
 
 
 class GeekJobSourceTest(unittest.TestCase):
@@ -766,6 +884,18 @@ class TalentoSourceTest(unittest.TestCase):
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
 
+    def test_detail_fixture_extracts_full_description_text(self) -> None:
+        # Arrange
+        source = TalentoSource()
+        listing = _detail_listing_from_input("talento")
+        expected = _expected("talento", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("talento", "detail"), listing)
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
 
 class FinderWorkSourceTest(unittest.TestCase):
     QA_URL = "https://api.finder.work/api/v1/vacancies?search=QA"
@@ -831,6 +961,18 @@ class FinderWorkSourceTest(unittest.TestCase):
         self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
+
+    def test_detail_fixture_extracts_full_description_text(self) -> None:
+        # Arrange
+        source = FinderWorkSource()
+        listing = _detail_listing_from_input("finder_work")
+        expected = _expected("finder_work", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("finder_work", "detail"), listing)
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
 
 
 class GetmatchSourceTest(unittest.TestCase):
@@ -907,6 +1049,12 @@ class GetmatchSourceTest(unittest.TestCase):
         self.assertEqual(expected["expected_count"], len(parsed.listings))
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+        listing_with_sections = next(
+            listing
+            for listing in parsed.listings
+            if "Что делать" in listing.additional_sections
+        )
+        self.assertIn("О компании", listing_with_sections.additional_sections)
 
     def test_no_results_fixture_is_explicit_no_results(self) -> None:
         # Arrange
@@ -1038,6 +1186,33 @@ class ItJobsUzSourceTest(unittest.TestCase):
         self.assertEqual(expected["expected_count"], len(parsed.listings))
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+        listing_with_sections = next(
+            listing
+            for listing in parsed.listings
+            if listing.additional_sections
+        )
+        self.assertIn("responsibilities", listing_with_sections.additional_sections)
+        self.assertIn("benefits", listing_with_sections.additional_sections)
+
+    def test_success_fixture_merges_split_description_fields(self) -> None:
+        # Arrange
+        source = ItJobsUzSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("it_jobs_uz", "success"),
+            SourceFetchRequest(
+                source_id="it_jobs_uz",
+                query_variant="QA",
+                url=self.QA_URL,
+            ),
+        )
+        uzum_listing = _listing_by_id(parsed.listings, "cmmq8ycrn0007x3drm0yzpiuh")
+
+        # Assert
+        self.assertIsNotNone(uzum_listing.description)
+        self.assertIn("Тестировать Backend", uzum_listing.description or "")
+        self.assertIn("Опыт автоматизации тестирования на Java", uzum_listing.description or "")
 
     def test_no_results_fixture_is_explicit_no_results(self) -> None:
         # Arrange
@@ -1156,6 +1331,25 @@ class HirifySourceTest(unittest.TestCase):
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
 
+    def test_detail_fixture_extracts_full_description_text(self) -> None:
+        # Arrange
+        source = HirifySource()
+        listing = RawListing(
+            source_listing_id="548415",
+            title="Junior QA Automation Engineer (Kotlin)",
+            url="https://hirify.me/jobs/548415-junior-qa-automation-engineer-kotlin",
+            source="hirify",
+        )
+        expected = _expected("hirify", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("hirify", "detail"), listing)
+
+        # Assert
+        self.assertIsNotNone(detailed.description)
+        for text in expected["description_contains"]:
+            self.assertIn(text, detailed.description or "")
+
 
 class JobTurboSourceTest(unittest.TestCase):
     REMOTE_LISTINGS_URL = "https://jobturbo.ru/vakansii/remote"
@@ -1266,6 +1460,18 @@ class HireHiSourceTest(unittest.TestCase):
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
 
+    def test_detail_fixture_extracts_full_description_text(self) -> None:
+        # Arrange
+        source = HireHiSource()
+        listing = _detail_listing_from_input("hirehi")
+        expected = _expected("hirehi", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("hirehi", "detail"), listing)
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
 
 class StaffAmSourceTest(unittest.TestCase):
     QA_URL = "https://staff.am/en/jobs/quality-assurance"
@@ -1309,6 +1515,18 @@ class StaffAmSourceTest(unittest.TestCase):
         self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
+
+    def test_detail_fixture_extracts_full_description_text(self) -> None:
+        # Arrange
+        source = StaffAmSource()
+        listing = _detail_listing_from_input("staff_am")
+        expected = _expected("staff_am", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("staff_am", "detail"), listing)
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
 
 
 class JetBrainsCareerSourceTest(unittest.TestCase):
@@ -1364,6 +1582,9 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
                 self.assertIsNotNone(listing.description)
                 for phrase in phrases:
                     self.assertIn(phrase, listing.description or "")
+        sectioned_listing = parsed.listings[0]
+        self.assertIn("In this role, you will", sectioned_listing.additional_sections)
+        self.assertIn("We offer", sectioned_listing.additional_sections)
 
 
 def _e2e_success_fixture_mapping(catalog: SourceCatalog, request: SearchRequest) -> dict[str, Path]:
@@ -1444,7 +1665,13 @@ def _discover_next_request_fixture_mappings(
         remaining = scraper.descriptor.source_limit - collected_listings
         if remaining <= 0:
             continue
-        collected_listings += min(len(parsed.listings), remaining)
+        page_listings = parsed.listings[:remaining]
+        _map_detail_requests_if_needed(
+            scraper=scraper,
+            mapping=mapping,
+            listings=page_listings,
+        )
+        collected_listings += len(page_listings)
         if collected_listings >= scraper.descriptor.source_limit:
             continue
 
@@ -1478,6 +1705,22 @@ def _replay_payload_for_next_request(
             f"{scraper.descriptor.source_id} emitted uncaptured next_request URL: {next_request.url}"
         )
     return current_response_path
+
+
+def _map_detail_requests_if_needed(
+    *,
+    scraper: SourceScraper,
+    mapping: dict[str, Path],
+    listings: tuple[Any, ...],
+) -> None:
+    if not isinstance(scraper, DetailEnrichmentScraper):
+        return
+
+    detail_case = _required_fixture_case(scraper.descriptor.source_id, ParserFixtureKind.DETAIL)
+    detail_path = _fixture_response_path_from_case(detail_case)
+    for listing in listings:
+        detail_request = scraper.build_detail_request(listing)
+        mapping.setdefault(detail_request.url, detail_path)
 
 
 class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):

@@ -1,0 +1,8 @@
+{
+  "outcome": "success",
+  "description_contains": [
+    "Telecom Armenia",
+    "QA"
+  ],
+  "min_description_length": 200
+}

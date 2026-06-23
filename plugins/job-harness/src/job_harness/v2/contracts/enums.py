@@ -89,6 +89,8 @@ class DescriptionAvailability(StrEnum):
     NOT_EXPOSED = "not_exposed"
     DETAIL_TIMEOUT = "detail_timeout"
     DETAIL_BLOCKED = "detail_blocked"
+    DETAIL_PARSE_ERROR = "detail_parse_error"
+    DETAIL_RATE_LIMITED = "detail_rate_limited"
     NOT_REQUESTED = "not_requested"
 
 

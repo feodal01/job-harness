@@ -56,7 +56,6 @@ class SearchRequestTest(unittest.TestCase):
             remote_global=None,
             countries=("ru", "RU", "am"),
             cities=(" Москва ", "москва", "Ереван"),
-            max_results=0,
             sources=(" hh_ru ", "hh_ru", "career:vk"),
             source_types=(SourceType.AGGREGATOR, SourceType.AGGREGATOR),
         )
@@ -107,8 +106,6 @@ class SearchRequestTest(unittest.TestCase):
         # Arrange / Act / Assert
         with self.assertRaisesRegex(ValueError, "salary_from"):
             SearchRequest(query_variants=("QA",), salary_from=0)
-        with self.assertRaisesRegex(ValueError, "max_results"):
-            SearchRequest(query_variants=("QA",), max_results=-1)
 
 
 if __name__ == "__main__":

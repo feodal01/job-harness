@@ -13,6 +13,7 @@ from job_harness.v2.contracts import (
     AttemptEvidence,
     CriteriaDiagnostics,
     DescriptionAvailability,
+    DetailEnrichmentScraper,
     RawListing,
     RawSearchRecord,
     RetryInfo,
@@ -29,6 +30,8 @@ from job_harness.v2.runtime.catalog import SourceCatalog
 from job_harness.v2.runtime.errors import ClassifiedSourceError
 from job_harness.v2.runtime.ports import ArtifactFetcher, CorpusWriter
 from job_harness.v2.runtime.retry import RetryPolicy
+
+_MAX_DETAIL_ERRORS_IN_SUMMARY = 3
 
 
 @dataclass(frozen=True)
@@ -62,9 +65,17 @@ class _SearchJob:
 
 
 @dataclass(frozen=True)
+class _CollectedListing:
+    listing: RawListing
+    description_availability: DescriptionAvailability
+    detail_fetched: bool
+    detail_parse_error: str | None = None
+
+
+@dataclass(frozen=True)
 class _ParsedAttempt:
     outcome: SourceOutcome
-    listings: tuple[RawListing, ...]
+    listings: tuple[_CollectedListing, ...]
     evidence: AttemptEvidence
     pages_visited: int
 
@@ -262,10 +273,11 @@ class SearchOrchestrator:
 
     async def _fetch_search_pages(self, job: _SearchJob) -> _ParsedAttempt:
         descriptor = job.scraper.descriptor
-        listings: list[RawListing] = []
+        listings: list[_CollectedListing] = []
         current_request: SourceFetchRequest | None = job.request
         pages_visited = 0
         last_evidence = AttemptEvidence()
+        detail_errors: list[str] = []
 
         while current_request is not None and len(listings) < descriptor.source_limit:
             response = await self._fetcher.fetch(current_request)
@@ -290,26 +302,110 @@ class SearchOrchestrator:
                 )
 
             remaining = descriptor.source_limit - len(listings)
-            listings.extend(result.listings[:remaining])
+            page_listings = result.listings[:remaining]
+            enriched_listings, detail_pages_visited, page_detail_errors = await self._enrich_detail_pages(
+                job,
+                page_listings,
+            )
+            pages_visited += detail_pages_visited
+            listings.extend(enriched_listings)
+            detail_errors.extend(page_detail_errors)
             current_request = result.next_request
 
         if not listings:
             raise ValueError("source produced neither listings nor explicit no_results")
 
+        detail_error_summary = _detail_error_summary(detail_errors)
         return _ParsedAttempt(
-            outcome=SourceOutcome.SUCCESS,
+            outcome=SourceOutcome.PARTIAL_SUCCESS if detail_error_summary else SourceOutcome.SUCCESS,
             listings=tuple(listings),
-            evidence=last_evidence,
+            evidence=AttemptEvidence(error=detail_error_summary) if detail_error_summary else last_evidence,
             pages_visited=pages_visited,
         )
+
+    async def _enrich_detail_pages(
+        self,
+        job: _SearchJob,
+        listings: tuple[RawListing, ...],
+    ) -> tuple[tuple[_CollectedListing, ...], int, tuple[str, ...]]:
+        if not isinstance(job.scraper, DetailEnrichmentScraper):
+            return (
+                tuple(
+                    _CollectedListing(
+                        listing=listing,
+                        description_availability=(
+                            DescriptionAvailability.PRESENT
+                            if listing.description
+                            else DescriptionAvailability.NOT_REQUESTED
+                        ),
+                        detail_fetched=False,
+                    )
+                    for listing in listings
+                ),
+                0,
+                (),
+            )
+
+        enriched: list[_CollectedListing] = []
+        errors: list[str] = []
+        pages_visited = 0
+        for listing in listings:
+            try:
+                detail_request = job.scraper.build_detail_request(listing)
+                response = await self._fetcher.fetch(detail_request)
+                pages_visited += 1
+                if response.source_id != job.scraper.descriptor.source_id:
+                    raise ValueError("detail response.source_id must match scraper descriptor")
+                detailed = job.scraper.parse_detail_response(response, listing)
+                if not isinstance(detailed, RawListing):
+                    raise ValueError("parse_detail_response must return RawListing")
+                if detailed.source != job.scraper.descriptor.source_id:
+                    raise ValueError("detail listing.source must match source descriptor")
+            except ClassifiedSourceError as exc:
+                availability, error_message = _detail_failure_status(exc)
+                enriched.append(
+                    _CollectedListing(
+                        listing=listing,
+                        description_availability=availability,
+                        detail_fetched=True,
+                        detail_parse_error=error_message,
+                    )
+                )
+                errors.append(error_message)
+                continue
+            except Exception as exc:
+                error_message = str(exc)
+                enriched.append(
+                    _CollectedListing(
+                        listing=listing,
+                        description_availability=DescriptionAvailability.DETAIL_PARSE_ERROR,
+                        detail_fetched=True,
+                        detail_parse_error=error_message,
+                    )
+                )
+                errors.append(error_message)
+                continue
+            enriched.append(
+                _CollectedListing(
+                    listing=detailed,
+                    description_availability=(
+                        DescriptionAvailability.PRESENT
+                        if detailed.description
+                        else DescriptionAvailability.NOT_EXPOSED
+                    ),
+                    detail_fetched=True,
+                )
+            )
+        return tuple(enriched), pages_visited, tuple(errors)
 
     def _validated_listings(
         self,
         job: _SearchJob,
-        listings: tuple[RawListing, ...],
-    ) -> tuple[RawListing, ...]:
+        listings: tuple[_CollectedListing, ...],
+    ) -> tuple[_CollectedListing, ...]:
         descriptor = job.scraper.descriptor
-        for listing in listings:
+        for collected in listings:
+            listing = collected.listing
             if not isinstance(listing, RawListing):
                 raise ValueError("source returned a non-RawListing item")
             if listing.source != descriptor.source_id:
@@ -318,14 +414,15 @@ class SearchOrchestrator:
 
     def _write_raw_records(
         self,
-        listings: tuple[RawListing, ...],
+        listings: tuple[_CollectedListing, ...],
         *,
         run_id: str,
         append_sequence: int,
         job: _SearchJob,
     ) -> int:
         descriptor = job.scraper.descriptor
-        for listing in listings:
+        for collected in listings:
+            listing = collected.listing
             self._writer.append_raw_record(
                 RawSearchRecord(
                     run_id=run_id,
@@ -335,12 +432,9 @@ class SearchOrchestrator:
                     source_type=descriptor.source_type,
                     collected_at=datetime.now(UTC),
                     listing=listing,
-                    description_availability=(
-                        DescriptionAvailability.PRESENT
-                        if listing.description
-                        else DescriptionAvailability.NOT_REQUESTED
-                    ),
-                    detail_fetched=bool(listing.description),
+                    description_availability=collected.description_availability,
+                    detail_fetched=collected.detail_fetched,
+                    detail_parse_error=collected.detail_parse_error,
                     source_url=job.request.url,
                 )
             )
@@ -429,6 +523,30 @@ def _with_retry(
         ),
         evidence=record.evidence,
     )
+
+
+def _detail_failure_status(exc: ClassifiedSourceError) -> tuple[DescriptionAvailability, str]:
+    message = exc.evidence.error or str(exc)
+    if exc.outcome is SourceOutcome.BLOCKED:
+        return DescriptionAvailability.DETAIL_BLOCKED, message
+    if exc.outcome is SourceOutcome.RATE_LIMITED:
+        return DescriptionAvailability.DETAIL_RATE_LIMITED, message
+    if exc.outcome is SourceOutcome.PARSE_ERROR:
+        return DescriptionAvailability.DETAIL_PARSE_ERROR, message
+    if exc.outcome in (SourceOutcome.SOURCE_TIMEOUT, SourceOutcome.RUN_TIMEOUT):
+        return DescriptionAvailability.DETAIL_TIMEOUT, message
+    return DescriptionAvailability.NOT_EXPOSED, message
+
+
+def _detail_error_summary(errors: list[str]) -> str | None:
+    unique_errors = tuple(dict.fromkeys(error for error in errors if error.strip()))
+    if not unique_errors:
+        return None
+    if len(unique_errors) <= _MAX_DETAIL_ERRORS_IN_SUMMARY:
+        return "; ".join(unique_errors)
+    shown_errors = "; ".join(unique_errors[:_MAX_DETAIL_ERRORS_IN_SUMMARY])
+    hidden_count = len(unique_errors) - _MAX_DETAIL_ERRORS_IN_SUMMARY
+    return f"{shown_errors}; {hidden_count} more detail enrichment errors"
 
 
 def _resolve_run_id(request: SearchRequest, explicit_run_id: str | None) -> str:

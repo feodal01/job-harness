@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from html.parser import HTMLParser
 from typing import ClassVar
 from urllib.parse import urlencode
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    DetailEnrichmentScraper,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -17,8 +18,11 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
-    SourceScraper,
     SourceSearchParseResult,
+)
+from job_harness.v2.runtime.sources._next_flight import (
+    longest_html_description_from_payloads,
+    next_flight_payloads,
 )
 from job_harness.v2.runtime.sources._url import absolute_url
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
@@ -27,7 +31,7 @@ _BASE_URL = "https://talento.works"
 _LINK_PATTERN = re.compile(r"^/jobs/[a-f0-9-]+$")
 
 
-class TalentoSource(SourceScraper):
+class TalentoSource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
         return source_descriptor("talento")
@@ -59,6 +63,27 @@ class TalentoSource(SourceScraper):
                 evidence=AttemptEvidence(no_results=True),
             )
         return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=listing.url,
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        description = longest_html_description_from_payloads(next_flight_payloads(response.body))
+        if description is None:
+            raise ValueError("Talento detail page does not contain vacancy description")
+        return replace(
+            listing,
+            description=description,
+            raw_text=_join_text(listing.raw_text, description),
+        )
 
 
 @dataclass(frozen=True)
@@ -188,3 +213,8 @@ def _listing_from_anchor(anchor: _Anchor) -> RawListing | None:
 
 def _normalize_text(value: str) -> str:
     return " ".join(value.split())
+
+
+def _join_text(*parts: str | None) -> str | None:
+    text = " ".join(part.strip() for part in parts if part and part.strip())
+    return text or None

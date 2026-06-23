@@ -1,0 +1,102 @@
+{
+  "id": 31748853,
+  "title": "QA инженер",
+  "employment_type": "full_time",
+  "salary_from": 0,
+  "salary_to": 100000,
+  "currency_symbol": "RUR",
+  "experience": "year_minimum",
+  "short_description": "Студия WATT в поисках увлеченного и внимательного QA-инженера. Если ты любишь игры, замечаешь даже мелкие баги и хочешь влиять на игровой опыт - ждем твой отклик. Задачи: Тестирование игровых проектов Поиск, описание и отслеживание багов в баг-трекин...",
+  "publication_at": "2026-06-23T02:21:48.790867Z",
+  "distant_work": false,
+  "site_responses": false,
+  "direct_contacts": true,
+  "resume_required": false,
+  "letter_required": false,
+  "is_external": true,
+  "highlight": false,
+  "show_detailed": false,
+  "external_url": {
+    "label": "hh.ru",
+    "value": "https://hh.ru/applicant/vacancy_response?vacancyId=134459419&utm_source=finder.work&utm_medium=ppc&utm_campaign=dm_aggregators_main_b2c-rf-paid_cpa_applicant_feed"
+  },
+  "category": {
+    "id": 1,
+    "title": "IT, интернет, связь, телеком",
+    "title_prepositional": "в IT, интернет, связи, телеком",
+    "slug": "it_internet_svyaz_telekom"
+  },
+  "archived_at": null,
+  "description": "<p><strong>Студия WATT </strong>в поисках увлеченного и внимательного <strong>QA-инженера</strong>. Если ты любишь игры, замечаешь даже мелкие баги и хочешь влиять на игровой опыт - ждем твой отклик.</p> <p><strong>Задачи:</strong></p> <ul> <li>Тестирование игровых проектов</li> <li>Поиск, описание и отслеживание багов в баг-трекинговой системе</li> <li>Проверка новых фич и контента</li> <li>Взаимодействие с кросс-функциональной командой</li> <li>Подготовка тест-кейсов и тест-планов</li> <li>Участие в улучшении процессов тестирования</li> </ul> <strong>Требования:</strong> <ul> <li> <p>Понимание жизненного цикла разработки</p> </li> <li> <p>Умение четко и структурировано вести документацию</p> </li> <li> <p>Самостоятельность и проактивность</p> </li> <li> <p>Внимательность к деталям</p> </li> <li> <p>Понимание игровых механик</p> </li> <li> <p>Уверенное знание теории тестирования</p> </li> </ul> <p><strong>Будет плюсом: </strong></p> <ul> <li> <p>Опыт работы на игровых проектах</p> </li> <li> <p>Опыт работы с Unreal Engine</p> </li> </ul> <strong>Мы предлагаем:</strong> <ul> <li>Участие в разработке уникального игрового проекта</li> <li>Профессиональная команда и возможность влиять на развитие компании</li> <li>Работу из офиса или гибридный формат работы</li> </ul>",
+  "status": "active",
+  "professions": [
+    {
+      "id": 17,
+      "title": "Инженер",
+      "slug": "inzhener"
+    },
+    {
+      "id": 5073,
+      "title": "Инженер ТО",
+      "slug": "inzhener_to"
+    }
+  ],
+  "locations": [
+    {
+      "id": 8948,
+      "name": "Москва",
+      "slug": "moskva",
+      "name_prepositional": "в Москве",
+      "iso2": "",
+      "type": "city",
+      "country": {
+        "id": 698,
+        "name": "Россия",
+        "slug": "rossiia",
+        "name_prepositional": "в России",
+        "iso2": "RU",
+        "type": "country"
+      },
+      "parent": {
+        "id": 698,
+        "name": "Россия",
+        "slug": "rossiia",
+        "name_prepositional": "в России",
+        "iso2": "RU",
+        "type": "country"
+      }
+    }
+  ],
+  "valid_through": "2026-07-23",
+  "place": {
+    "lat": "55.783742",
+    "lon": "37.600388",
+    "city": "Москва",
+    "metro": [
+      {
+        "name": "Динамо",
+        "color": "#4FB04F"
+      },
+      {
+        "name": "Белорусская",
+        "color": "#4FB04F"
+      },
+      {
+        "name": "Маяковская",
+        "color": "#4FB04F"
+      }
+    ],
+    "region": null,
+    "street": null,
+    "house": null,
+    "postal_code": null,
+    "result": "Россия, Москва, улица Палиха, 10с3"
+  },
+  "company": {
+    "id": 450697,
+    "title": "Watt Studio",
+    "slug": "watt_studio",
+    "logo": "https://645626.selcdn.ru/finder/company/f3e3237f-d557-446d-8a7e-a5630db86524",
+    "site_url": "https://wattstudio.art"
+  }
+}

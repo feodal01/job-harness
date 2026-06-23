@@ -257,18 +257,27 @@ VALUES
     ('habr_career', 'optional_fields'),
     ('hh_ru', 'no_results'),
     ('hh_ru', 'pagination'),
+    ('hh_ru', 'detail'),
     ('hh_ru', 'optional_fields'),
+    ('hh_ru', 'blocked'),
     ('talanto', 'no_results'),
+    ('talanto', 'detail'),
     ('career:vk', 'no_results'),
+    ('career:vk', 'detail'),
     ('geekjob', 'no_results'),
     ('talento', 'no_results'),
+    ('talento', 'detail'),
     ('finder_work', 'no_results'),
+    ('finder_work', 'detail'),
     ('getmatch', 'no_results'),
     ('it_jobs_uz', 'no_results'),
     ('hirify', 'no_results'),
+    ('hirify', 'detail'),
     ('jobturbo', 'no_results'),
     ('hirehi', 'no_results'),
-    ('staff_am', 'no_results');
+    ('hirehi', 'detail'),
+    ('staff_am', 'no_results'),
+    ('staff_am', 'detail');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -373,6 +382,28 @@ VALUES
     (
         'hh_ru',
         3,
+        'hh_ru-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/hh_ru/detail/response.html',
+        'tests/v2/fixtures/scrapers/hh_ru/detail/meta.json',
+        'tests/v2/fixtures/scrapers/hh_ru/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'hh_ru',
+        4,
+        'hh_ru-blocked',
+        'blocked',
+        'tests/v2/fixtures/scrapers/hh_ru/blocked/response.html',
+        'tests/v2/fixtures/scrapers/hh_ru/blocked/meta.json',
+        'tests/v2/fixtures/scrapers/hh_ru/blocked/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'hh_ru',
+        5,
         'hh_ru-optional_fields',
         'optional_fields',
         'tests/v2/fixtures/scrapers/hh_ru/success/response.html',
@@ -422,6 +453,17 @@ VALUES
         'tests/v2/fixtures/scrapers/talanto/no_results/response.html',
         'tests/v2/fixtures/scrapers/talanto/no_results/meta.json',
         'tests/v2/fixtures/scrapers/talanto/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'talanto',
+        2,
+        'talanto-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/talanto/detail/response.html',
+        'tests/v2/fixtures/scrapers/talanto/detail/meta.json',
+        'tests/v2/fixtures/scrapers/talanto/detail/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     ),
@@ -569,6 +611,17 @@ VALUES
         'codex_direct_fixture_review'
     ),
     (
+        'hirify',
+        2,
+        'hirify-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/hirify/detail/response.json',
+        'tests/v2/fixtures/scrapers/hirify/detail/meta.json',
+        'tests/v2/fixtures/scrapers/hirify/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
         'jobturbo',
         0,
         'jobturbo-success',
@@ -631,6 +684,72 @@ VALUES
         'tests/v2/fixtures/scrapers/staff_am/no_results/response.html',
         'tests/v2/fixtures/scrapers/staff_am/no_results/meta.json',
         'tests/v2/fixtures/scrapers/staff_am/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'habr_career',
+        5,
+        'habr_career-detail-sectioned',
+        'detail',
+        'tests/v2/fixtures/scrapers/habr_career/detail_sectioned/response.html',
+        'tests/v2/fixtures/scrapers/habr_career/detail_sectioned/meta.json',
+        'tests/v2/fixtures/scrapers/habr_career/detail_sectioned/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:vk',
+        2,
+        'career:vk-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_vk/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_vk/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_vk/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'talento',
+        2,
+        'talento-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/talento/detail/response.html',
+        'tests/v2/fixtures/scrapers/talento/detail/meta.json',
+        'tests/v2/fixtures/scrapers/talento/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'finder_work',
+        2,
+        'finder_work-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/finder_work/detail/response.json',
+        'tests/v2/fixtures/scrapers/finder_work/detail/meta.json',
+        'tests/v2/fixtures/scrapers/finder_work/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'hirehi',
+        2,
+        'hirehi-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/hirehi/detail/response.html',
+        'tests/v2/fixtures/scrapers/hirehi/detail/meta.json',
+        'tests/v2/fixtures/scrapers/hirehi/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'staff_am',
+        2,
+        'staff_am-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/staff_am/detail/response.html',
+        'tests/v2/fixtures/scrapers/staff_am/detail/meta.json',
+        'tests/v2/fixtures/scrapers/staff_am/detail/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

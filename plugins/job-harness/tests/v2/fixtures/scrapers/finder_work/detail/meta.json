@@ -1,0 +1,9 @@
+{
+  "source_id": "finder_work",
+  "captured_url": "https://api.finder.work/api/v1/vacancies/31748853",
+  "capture_date": "2026-06-23",
+  "capture_method": "live curl capture for detail enrichment fixtures",
+  "fixture_kind": "detail",
+  "redactions": [],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

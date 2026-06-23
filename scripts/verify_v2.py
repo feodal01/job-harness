@@ -207,10 +207,12 @@ def _run_v2_application_cli_tests() -> int:
 def _run_v2_live_e2e() -> int:
     print("+ v2 live e2e (V2SearchApplication, full catalog)", flush=True)
     with tempfile.TemporaryDirectory(prefix="job-harness-v2-live-") as tmp:
-        report = _run_live_e2e_report(runs_dir=Path(tmp))
-        if report is None:
+        runs_dir = Path(tmp)
+
+        initial_report = _run_live_e2e_phase(runs_dir=runs_dir, phase="initial")
+        if initial_report is None:
             return 1
-        expected_source_ids = _report_expected_source_ids(report)
+        expected_source_ids = _report_expected_source_ids(initial_report)
         if expected_source_ids is None:
             return 1
         print(
@@ -218,7 +220,7 @@ def _run_v2_live_e2e() -> int:
             flush=True,
         )
 
-        first = _report_execution(report, key="first")
+        first = _report_execution(initial_report, key="execution")
         if first is None:
             return 1
         if not _validate_live_execution(
@@ -229,7 +231,20 @@ def _run_v2_live_e2e() -> int:
             return 1
         _print_live_execution_summary(first, label="live run 1 (QA, grade=middle, salary_from=150000, RU+AM)")
 
-        second = _report_execution(report, key="second")
+        append_to_run_id = first.get("run_id")
+        if not isinstance(append_to_run_id, str) or not append_to_run_id:
+            print("v2 live e2e failed: initial run_id missing", file=sys.stderr)
+            return 1
+
+        append_report = _run_live_e2e_phase(
+            runs_dir=runs_dir,
+            phase="append",
+            append_to_run_id=append_to_run_id,
+        )
+        if append_report is None:
+            return 1
+
+        second = _report_execution(append_report, key="execution")
         if second is None:
             return 1
         if not _validate_live_execution(
@@ -245,18 +260,29 @@ def _run_v2_live_e2e() -> int:
         return _validate_append_artifacts(first, second)
 
 
-def _run_live_e2e_report(*, runs_dir: Path) -> dict[str, object] | None:
+def _run_live_e2e_phase(
+    *,
+    runs_dir: Path,
+    phase: str,
+    append_to_run_id: str | None = None,
+) -> dict[str, object] | None:
+    cmd = [
+        "uv",
+        "--directory",
+        PLUGIN_ARG,
+        "run",
+        "python",
+        str(V2_LIVE_E2E_SCRIPT),
+        "--runs-dir",
+        str(runs_dir),
+        "--phase",
+        phase,
+    ]
+    if append_to_run_id is not None:
+        cmd.extend(["--append-to-run-id", append_to_run_id])
+
     completed = subprocess.run(
-        [
-            "uv",
-            "--directory",
-            PLUGIN_ARG,
-            "run",
-            "python",
-            str(V2_LIVE_E2E_SCRIPT),
-            "--runs-dir",
-            str(runs_dir),
-        ],
+        cmd,
         cwd=ROOT,
         text=True,
         capture_output=True,
@@ -275,7 +301,15 @@ def _run_live_e2e_report(*, runs_dir: Path) -> dict[str, object] | None:
     if not isinstance(value, dict):
         print("v2 live e2e failed: live_e2e returned non-object JSON", file=sys.stderr)
         return None
-    if value.get("record_type") != "v2_live_e2e_report":
+
+    expected_record_type = {
+        "initial": "v2_live_e2e_initial_report",
+        "append": "v2_live_e2e_append_report",
+    }.get(phase)
+    if expected_record_type is None:
+        print(f"v2 live e2e failed: unsupported phase {phase!r}", file=sys.stderr)
+        return None
+    if value.get("record_type") != expected_record_type:
         print("v2 live e2e failed: unexpected live_e2e record_type", file=sys.stderr)
         return None
     return value

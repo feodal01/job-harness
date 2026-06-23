@@ -72,6 +72,7 @@ class SourceCatalogTableTest(unittest.TestCase):
                 ParserFixtureKind.PAGINATION,
                 ParserFixtureKind.DETAIL,
                 ParserFixtureKind.OPTIONAL_FIELDS,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )
@@ -90,10 +91,12 @@ class SourceCatalogTableTest(unittest.TestCase):
         self.assertEqual(frozenset({SearchCriterion.QUERY}), descriptor.native_request_criteria)
         self.assertTrue(required_fixture_kinds.no_results)
         self.assertFalse(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.detail)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.NO_RESULTS,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )
@@ -132,12 +135,16 @@ class SourceCatalogTableTest(unittest.TestCase):
         )
         self.assertTrue(required_fixture_kinds.no_results)
         self.assertTrue(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.detail)
         self.assertTrue(required_fixture_kinds.optional_fields)
+        self.assertTrue(required_fixture_kinds.blocked)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.NO_RESULTS,
                 ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.DETAIL,
+                ParserFixtureKind.BLOCKED,
                 ParserFixtureKind.OPTIONAL_FIELDS,
             ),
             tuple(case.kind for case in fixture_suite.cases),
@@ -169,11 +176,13 @@ class SourceCatalogTableTest(unittest.TestCase):
             descriptor.structured_output_criteria,
         )
         self.assertTrue(required_fixture_kinds.no_results)
+        self.assertTrue(required_fixture_kinds.detail)
         self.assertFalse(required_fixture_kinds.pagination)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.NO_RESULTS,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )
@@ -228,10 +237,12 @@ class SourceCatalogTableTest(unittest.TestCase):
         self.assertEqual(frozenset(), descriptor.structured_output_criteria)
         self.assertTrue(required_fixture_kinds.no_results)
         self.assertFalse(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.detail)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.NO_RESULTS,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )
@@ -265,10 +276,12 @@ class SourceCatalogTableTest(unittest.TestCase):
         )
         self.assertTrue(required_fixture_kinds.no_results)
         self.assertFalse(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.detail)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.NO_RESULTS,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )
@@ -374,11 +387,13 @@ class SourceCatalogTableTest(unittest.TestCase):
             descriptor.structured_output_criteria,
         )
         self.assertTrue(required_fixture_kinds.no_results)
+        self.assertTrue(required_fixture_kinds.detail)
         self.assertFalse(required_fixture_kinds.pagination)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.NO_RESULTS,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )
@@ -442,10 +457,12 @@ class SourceCatalogTableTest(unittest.TestCase):
         )
         self.assertTrue(required_fixture_kinds.no_results)
         self.assertFalse(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.detail)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.NO_RESULTS,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )
@@ -476,10 +493,12 @@ class SourceCatalogTableTest(unittest.TestCase):
         )
         self.assertTrue(required_fixture_kinds.no_results)
         self.assertFalse(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.detail)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.NO_RESULTS,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )

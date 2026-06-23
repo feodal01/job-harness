@@ -4,6 +4,9 @@
 Companion runner for scripts/verify_v2.py. Invoked under the plugin environment:
 
     uv --directory plugins/job-harness run python scripts/v2_live_e2e.py --runs-dir /tmp/runs
+    uv --directory plugins/job-harness run python scripts/v2_live_e2e.py --runs-dir /tmp/runs --phase initial
+    uv --directory plugins/job-harness run python scripts/v2_live_e2e.py --runs-dir /tmp/runs --phase append \\
+        --append-to-run-id r-...
 """
 
 from __future__ import annotations
@@ -42,26 +45,67 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         help="Directory for v2 run artifacts.",
     )
+    parser.add_argument(
+        "--phase",
+        choices=("initial", "append", "both"),
+        default="both",
+        help="Run only the initial search, only an append, or both in one process.",
+    )
+    parser.add_argument(
+        "--append-to-run-id",
+        help="Existing run id for --phase append.",
+    )
     args = parser.parse_args(argv)
+    if args.phase == "append" and not args.append_to_run_id:
+        parser.error("--append-to-run-id is required for --phase append")
     try:
-        report = asyncio.run(run_live_e2e(runs_dir=args.runs_dir))
+        payload = asyncio.run(
+            run_live_e2e_phase(
+                runs_dir=args.runs_dir,
+                phase=args.phase,
+                append_to_run_id=args.append_to_run_id,
+            )
+        )
     except Exception as exc:
         print(f"job-harness-v2 live e2e failed: {exc}", file=sys.stderr)
         return 1
-    print(json.dumps(to_jsonable(report_payload(report)), ensure_ascii=False, sort_keys=True))
+    print(json.dumps(to_jsonable(payload), ensure_ascii=False, sort_keys=True))
     return 0
 
 
-async def run_live_e2e(*, runs_dir: Path) -> LiveE2EReport:
+async def run_live_e2e_phase(
+    *,
+    runs_dir: Path,
+    phase: str,
+    append_to_run_id: str | None,
+) -> dict[str, object]:
     expected_source_ids = implemented_source_ids()
+    catalog_source_count = len(source_catalog_entries())
     app = V2SearchApplication(config=_live_search_config(runs_dir))
+
+    if phase == "initial":
+        first = await app.search(_initial_live_request())
+        return _initial_report_payload(
+            catalog_source_count=catalog_source_count,
+            expected_source_ids=expected_source_ids,
+            execution=first,
+        )
+
+    if phase == "append":
+        if append_to_run_id is None:
+            raise ValueError("append_to_run_id is required for append phase")
+        second = await app.search(_append_live_request(append_to_run_id=append_to_run_id))
+        return _append_report_payload(execution=second)
+
     first = await app.search(_initial_live_request())
     second = await app.search(_append_live_request(append_to_run_id=first.run_id))
-    return LiveE2EReport(
-        catalog_source_count=len(source_catalog_entries()),
-        expected_source_ids=expected_source_ids,
-        first=first,
-        second=second,
+    return report_payload(
+        LiveE2EReport(
+            catalog_source_count=catalog_source_count,
+            expected_source_ids=expected_source_ids,
+            first=first,
+            second=second,
+        )
     )
 
 
@@ -73,6 +117,29 @@ def report_payload(report: LiveE2EReport) -> dict[str, object]:
         "expected_source_ids": report.expected_source_ids,
         "first": _execution_payload(report.first),
         "second": _execution_payload(report.second),
+    }
+
+
+def _initial_report_payload(
+    *,
+    catalog_source_count: int,
+    expected_source_ids: tuple[str, ...],
+    execution: V2SearchExecution,
+) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "record_type": "v2_live_e2e_initial_report",
+        "catalog_source_count": catalog_source_count,
+        "expected_source_ids": expected_source_ids,
+        "execution": _execution_payload(execution),
+    }
+
+
+def _append_report_payload(*, execution: V2SearchExecution) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "record_type": "v2_live_e2e_append_report",
+        "execution": _execution_payload(execution),
     }
 
 
@@ -125,7 +192,6 @@ def _initial_live_request() -> SearchRequest:
         grades=(Grade.MIDDLE,),
         salary_from=150_000,
         countries=("RU", "AM"),
-        max_results=10,
     )
 
 
@@ -139,7 +205,6 @@ def _append_live_request(*, append_to_run_id: str) -> SearchRequest:
                 mode=TextExclusionMode.SUBSTRING,
             ),
         ),
-        max_results=10,
         append_to_run_id=append_to_run_id,
     )
 

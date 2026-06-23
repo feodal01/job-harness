@@ -1,0 +1,9 @@
+{
+  "outcome": "success",
+  "description_contains": [
+    "инфраструктуры",
+    "мерчендайзинга",
+    "мобильного приложения"
+  ],
+  "min_description_length": 150
+}

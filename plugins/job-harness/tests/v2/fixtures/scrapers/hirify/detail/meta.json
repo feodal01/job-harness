@@ -1,0 +1,9 @@
+{
+  "source_id": "hirify",
+  "captured_url": "https://api.hirify.me/api/vacancies/548415",
+  "capture_date": "2026-06-23",
+  "capture_method": "curl API detail endpoint",
+  "fixture_kind": "detail",
+  "redactions": [],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

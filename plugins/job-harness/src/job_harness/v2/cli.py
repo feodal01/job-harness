@@ -10,7 +10,12 @@ from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 
-from job_harness.v2.application import V2SearchApplication, V2SearchConfig, V2SearchExecution
+from job_harness.v2.application import (
+    V2SearchApplication,
+    V2SearchConfig,
+    V2SearchExecution,
+    render_processed_results_markdown_file,
+)
 from job_harness.v2.contracts import (
     Grade,
     SearchRequest,
@@ -35,6 +40,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             execution = asyncio.run(_run_search(args))
             _print_json(_execution_payload(execution))
             return 0
+        if args.command == "format":
+            return _run_format(args)
     except Exception as exc:
         print(f"job-harness-v2 failed: {exc}", file=sys.stderr)
         return 1
@@ -61,7 +68,6 @@ def _build_parser() -> argparse.ArgumentParser:
     search.add_argument("--remote-global", choices=("true", "false"))
     search.add_argument("--country", action="append", default=[])
     search.add_argument("--city", action="append", default=[])
-    search.add_argument("--max-results", type=int, default=20)
     search.add_argument("--source", action="append", default=[])
     search.add_argument("--source-type", action="append", choices=_source_type_values(), default=[])
     search.add_argument("--append-to-run-id")
@@ -71,7 +77,37 @@ def _build_parser() -> argparse.ArgumentParser:
     search.add_argument("--run-timeout", type=float, default=120.0)
     search.add_argument("--fetch-timeout", type=float, default=15.0)
     search.add_argument("--retry-attempts", type=int, default=1)
+
+    format_cmd = subparsers.add_parser("format", help="Render processed-results.json as readable markdown.")
+    format_cmd.add_argument("--input", type=Path, required=True, help="Path to processed-results.json.")
+    format_cmd.add_argument("--output", type=Path, help="Write markdown to this file instead of stdout.")
+    format_cmd.add_argument(
+        "--description-limit",
+        type=int,
+        default=0,
+        help="Max characters per description/requirements section; 0 keeps full text.",
+    )
+    format_cmd.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Max listings to render; 0 includes every processed result.",
+    )
     return parser
+
+
+def _run_format(args: argparse.Namespace) -> int:
+    markdown = render_processed_results_markdown_file(
+        args.input,
+        description_limit=args.description_limit,
+        listing_limit=args.limit,
+    )
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(markdown, encoding="utf-8")
+        return 0
+    print(markdown)
+    return 0
 
 
 async def _run_search(args: argparse.Namespace) -> V2SearchExecution:
@@ -87,7 +123,6 @@ async def _run_search(args: argparse.Namespace) -> V2SearchExecution:
         remote_global=_optional_bool(args.remote_global),
         countries=tuple(args.country),
         cities=tuple(args.city),
-        max_results=args.max_results,
         sources=tuple(args.source),
         source_types=tuple(SourceType(value) for value in args.source_type),
         append_to_run_id=args.append_to_run_id,

@@ -1,0 +1,9 @@
+{
+  "outcome": "success",
+  "description_contains": [
+    "Задачи",
+    "Требования",
+    "VK ID"
+  ],
+  "min_description_length": 500
+}

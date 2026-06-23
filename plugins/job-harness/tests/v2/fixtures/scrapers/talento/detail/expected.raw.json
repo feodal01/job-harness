@@ -1,0 +1,9 @@
+{
+  "outcome": "success",
+  "description_contains": [
+    "Цифровые привычки",
+    "Требования",
+    "190"
+  ],
+  "min_description_length": 300
+}

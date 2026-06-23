@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import html
 import json
+import re
+from dataclasses import replace
+from html.parser import HTMLParser
 from typing import Any, cast
 from urllib.parse import urlencode
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    ClassifiedSourceError,
+    DetailEnrichmentScraper,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -16,7 +21,6 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
-    SourceScraper,
     SourceSearchParseResult,
 )
 from job_harness.v2.runtime.sources._url import absolute_url, strip_query, update_query
@@ -37,9 +41,39 @@ _CURRENCY_MAP = {
     "RUR": "RUB",
 }
 _REMOTE_WORK_FORMAT = "REMOTE"
+_HH_DESCRIPTION_QA = "vacancy-description"
+_VOID_TAGS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+}
+_SECTION_LABEL_PREFIXES = (
+    "будет ",
+    "вам ",
+    "для ",
+    "задачи",
+    "мы ",
+    "наши ",
+    "обязанности",
+    "о ",
+    "требования",
+    "условия",
+    "что ",
+)
 
 
-class HhRuSource(SourceScraper):
+class HhRuSource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
         return source_descriptor("hh_ru")
@@ -78,6 +112,30 @@ class HhRuSource(SourceScraper):
             outcome=SourceOutcome.SUCCESS,
             listings=listings,
             next_request=next_request,
+        )
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=listing.url,
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        block_reason = _detail_block_reason(response.body)
+        if block_reason is not None:
+            raise ClassifiedSourceError(SourceOutcome.BLOCKED, block_reason)
+        description, additional_sections = _detail_description(response.body)
+        return replace(
+            listing,
+            description=description,
+            requirements=listing.requirements or _requirements(additional_sections),
+            additional_sections=additional_sections,
+            raw_text=_join_text(listing.raw_text, description),
         )
 
 
@@ -306,6 +364,120 @@ def _next_page_request(
     )
 
 
+class _VacancyDescriptionCollector(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self.sections: dict[str, list[str]] = {}
+        self._depth: int | None = None
+        self._strong_parts: list[str] | None = None
+        self._current_section: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self._depth is None:
+            attr_map = {key: value or "" for key, value in attrs}
+            if attr_map.get("data-qa") == _HH_DESCRIPTION_QA:
+                self._depth = 1
+            return
+
+        if tag not in _VOID_TAGS:
+            self._depth += 1
+        if tag == "strong":
+            self._strong_parts = []
+
+    def handle_data(self, data: str) -> None:
+        if self._depth is None:
+            return
+        text = _normalize_text(data)
+        if not text:
+            return
+        self.parts.append(text)
+        if self._strong_parts is not None:
+            self._strong_parts.append(text)
+            return
+        if self._current_section is not None:
+            self.sections.setdefault(self._current_section, []).append(text)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._depth is None:
+            return
+        if tag == "strong" and self._strong_parts is not None:
+            label = _normalize_text(" ".join(self._strong_parts)).rstrip(":")
+            if _is_section_label(label):
+                self._current_section = label
+                self.sections.setdefault(label, [])
+            self._strong_parts = None
+        if tag not in _VOID_TAGS:
+            self._depth -= 1
+        if self._depth == 0:
+            self._depth = None
+            self._strong_parts = None
+            self._current_section = None
+
+
+def _detail_block_reason(body: str) -> str | None:
+    if f'data-qa="{_HH_DESCRIPTION_QA}"' not in body and "AccountCaptcha-route" in body:
+        return "hh.ru account captcha on vacancy detail"
+    try:
+        state = _extract_initial_state(body)
+    except ValueError:
+        return None
+    if state.get("isLightPage") is not True:
+        return None
+    request = state.get("request")
+    if isinstance(request, dict) and _text(request.get("luxPageName")) == "AccountCaptcha":
+        return "hh.ru account captcha on vacancy detail"
+    captcha = state.get("hhcaptcha")
+    if isinstance(captcha, dict) and captcha.get("isBot") is True:
+        return "hh.ru account captcha on vacancy detail"
+    if state.get("captchaAccountState") is not None:
+        return "hh.ru account captcha on vacancy detail"
+    return None
+
+
+def _detail_description(body: str) -> tuple[str, dict[str, str]]:
+    description, sections = _detail_description_from_dom(body)
+    if description:
+        return description, sections
+    return _detail_description_from_state(body)
+
+
+def _detail_description_from_dom(body: str) -> tuple[str, dict[str, str]]:
+    collector = _VacancyDescriptionCollector()
+    collector.feed(body)
+    description = _normalize_punctuation(" ".join(collector.parts).strip())
+    sections = {
+        label: _normalize_punctuation("\n".join(parts).strip())
+        for label, parts in collector.sections.items()
+        if parts and "\n".join(parts).strip()
+    }
+    return description, sections
+
+
+def _detail_description_from_state(body: str) -> tuple[str, dict[str, str]]:
+    state = _extract_initial_state(body)
+    vacancy_view = state.get("vacancyView")
+    if not isinstance(vacancy_view, dict):
+        raise ValueError("HH detail page does not contain vacancy description")
+    raw_html = vacancy_view.get("description")
+    if not isinstance(raw_html, str) or not raw_html.strip():
+        raise ValueError("HH detail page does not contain vacancy description")
+    return _detail_description_from_dom(f'<div data-qa="{_HH_DESCRIPTION_QA}">{raw_html}</div>')
+
+
+def _requirements(sections: dict[str, str]) -> str | None:
+    for label, body in sections.items():
+        folded = label.casefold()
+        if "ожидаем" in folded or "требован" in folded:
+            return body
+    return None
+
+
+def _is_section_label(value: str) -> bool:
+    folded = value.casefold()
+    return any(folded.startswith(prefix) for prefix in _SECTION_LABEL_PREFIXES)
+
+
 def _nested_text(value: dict[str, Any], key: str, nested_key: str) -> str | None:
     nested = value.get(key)
     if not isinstance(nested, dict):
@@ -336,3 +508,11 @@ def _int_or_none(value: object) -> int | None:
 def _join_text(*parts: str | None) -> str | None:
     text = " ".join(part.strip() for part in parts if part and part.strip())
     return text or None
+
+
+def _normalize_text(value: str) -> str:
+    return " ".join(value.split())
+
+
+def _normalize_punctuation(value: str) -> str:
+    return re.sub(r"\s+([,.;:!?])", r"\1", value)

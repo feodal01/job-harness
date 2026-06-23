@@ -1,0 +1,9 @@
+{
+  "source_id": "hirehi",
+  "captured_url": "https://hirehi.ru/qa/ruchnoi-testirovshchik-55069",
+  "capture_date": "2026-06-23",
+  "capture_method": "live curl capture for detail enrichment fixtures",
+  "fixture_kind": "detail",
+  "redactions": [],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}
