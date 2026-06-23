@@ -1,0 +1,8 @@
+{
+  "outcome": "success",
+  "description_contains": [
+    "Ожидания от кандидата",
+    "habrastorage.org"
+  ],
+  "min_description_length": 120
+}

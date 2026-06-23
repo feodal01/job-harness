@@ -23,6 +23,7 @@ from job_harness.v2.contracts.enums import (
     TextField,
     Transport,
 )
+from job_harness.v2.contracts.errors import ClassifiedSourceError
 from job_harness.v2.contracts.fixtures import (
     ParserFixtureCase,
     ParserFixtureSuite,
@@ -52,6 +53,7 @@ __all__ = [
     "AttemptCounts",
     "AttemptEvidence",
     "ALL_SEARCH_CRITERIA",
+    "ClassifiedSourceError",
     "CriteriaDiagnostics",
     "CriterionCapability",
     "CriterionDeclaration",

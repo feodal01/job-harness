@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import replace
 from typing import Any
 from urllib.parse import urlencode
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    DetailEnrichmentScraper,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -16,9 +18,9 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
-    SourceScraper,
     SourceSearchParseResult,
 )
+from job_harness.v2.runtime.sources._html import html_to_text
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
 _API_URL = "https://api.finder.work/api/v1/vacancies"
@@ -59,7 +61,7 @@ _EXPERIENCE_GRADE_MAP = {
 }
 
 
-class FinderWorkSource(SourceScraper):
+class FinderWorkSource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
         return source_descriptor("finder_work")
@@ -107,6 +109,31 @@ class FinderWorkSource(SourceScraper):
                 evidence=AttemptEvidence(no_results=True),
             )
         return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        listing_id = listing.source_listing_id
+        if not listing_id:
+            raise ValueError("Finder.work detail request requires source_listing_id")
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=f"{_API_URL}/{listing_id}",
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        item = _json_object(response.body)
+        description = html_to_text(_text(item.get("description")))
+        if description is None:
+            raise ValueError("Finder.work detail payload does not contain vacancy description")
+        return replace(
+            listing,
+            description=description,
+            raw_text=_join_text(listing.raw_text, description),
+        )
 
 
 def _search_params(query_variant: str, request: SearchRequest) -> dict[str, str]:

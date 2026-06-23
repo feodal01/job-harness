@@ -1,0 +1,9 @@
+{
+  "source_id": "talanto",
+  "captured_url": "https://talanto.work/jobs/41519f55-efc3-4bec-aa54-3adf5e235fef",
+  "capture_date": "2026-06-23",
+  "capture_method": "curl job detail page",
+  "fixture_kind": "detail",
+  "redactions": [],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

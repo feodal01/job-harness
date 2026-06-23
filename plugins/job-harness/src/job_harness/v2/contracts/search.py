@@ -43,7 +43,6 @@ class SearchRequest:
     remote_global: bool | None = None
     countries: tuple[str, ...] = ()
     cities: tuple[str, ...] = ()
-    max_results: int = 20
     sources: tuple[str, ...] = ()
     source_types: tuple[SourceType, ...] = ()
     append_to_run_id: str | None = None
@@ -83,8 +82,6 @@ class SearchRequest:
 
         if self.salary_from is not None and self.salary_from < 1:
             raise ValueError("salary_from must be >= 1 when provided")
-        if self.max_results < 0:
-            raise ValueError("max_results must be >= 0")
         if self.append_to_run_id is not None and not self.append_to_run_id.strip():
             raise ValueError("append_to_run_id must be non-empty when provided")
 

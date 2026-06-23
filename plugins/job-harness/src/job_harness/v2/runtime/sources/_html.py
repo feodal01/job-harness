@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from html.parser import HTMLParser
 
 
@@ -66,6 +67,30 @@ class ClassTextCollector(HTMLParser):
         if not self.parts:
             return None
         return "\n".join(self.parts)
+
+
+class _TextCollector(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        text = " ".join(data.split())
+        if text:
+            self.parts.append(text)
+
+    def text(self) -> str | None:
+        if not self.parts:
+            return None
+        return "\n".join(self.parts)
+
+
+def html_to_text(value: str) -> str | None:
+    if not value.strip():
+        return None
+    collector = _TextCollector()
+    collector.feed(html.unescape(value))
+    return collector.text()
 
 
 _VOID_TAGS = {

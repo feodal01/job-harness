@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import html
-import json
 import re
+from dataclasses import replace
 from typing import Any
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    DetailEnrichmentScraper,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -16,10 +16,9 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
-    SourceScraper,
     SourceSearchParseResult,
 )
-from job_harness.v2.runtime.sources._html import ScriptCollector
+from job_harness.v2.runtime.sources._detail_html import extract_next_data, localized_html_to_text
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
 _BASE_URL = "https://staff.am"
@@ -38,7 +37,7 @@ _DEV_KEYWORDS = (
 )
 
 
-class StaffAmSource(SourceScraper):
+class StaffAmSource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
         return source_descriptor("staff_am")
@@ -62,8 +61,11 @@ class StaffAmSource(SourceScraper):
         response: SourceResponseArtifact,
         request: SourceFetchRequest,
     ) -> SourceSearchParseResult:
-        payload = _extract_next_data(response.body)
-        page_props = payload.get("props", {}).get("pageProps", {})
+        payload = extract_next_data(response.body)
+        props = payload.get("props")
+        if not isinstance(props, dict):
+            raise ValueError("Staff.am __NEXT_DATA__ props is malformed")
+        page_props = props.get("pageProps")
         if not isinstance(page_props, dict):
             raise ValueError("Staff.am __NEXT_DATA__ pageProps is malformed")
 
@@ -85,6 +87,27 @@ class StaffAmSource(SourceScraper):
                 evidence=AttemptEvidence(no_results=True),
             )
         return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=listing.url,
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        description = _staff_detail_description(response.body)
+        if description is None:
+            raise ValueError("Staff.am detail page does not contain vacancy description")
+        return replace(
+            listing,
+            description=description,
+            raw_text=_join_text(listing.raw_text, description),
+        )
 
 
 def _search_url(query_variant: str) -> str:
@@ -154,16 +177,32 @@ def _listing_from_job(job: dict[str, Any]) -> RawListing | None:
     )
 
 
-def _extract_next_data(body: str) -> dict[str, Any]:
-    collector = ScriptCollector()
-    collector.feed(body)
-    for attrs, text in collector.scripts:
-        if attrs.get("id") != "__NEXT_DATA__":
-            continue
-        value = json.loads(html.unescape(text))
-        if isinstance(value, dict):
-            return value
-    raise ValueError("Staff.am response does not contain __NEXT_DATA__")
+def _staff_detail_description(body: str) -> str | None:
+    payload = extract_next_data(body)
+    props = payload.get("props")
+    if not isinstance(props, dict):
+        raise ValueError("Staff.am __NEXT_DATA__ props is malformed")
+    page_props = props.get("pageProps")
+    if not isinstance(page_props, dict):
+        raise ValueError("Staff.am __NEXT_DATA__ pageProps is malformed")
+    job = page_props.get("job")
+    if not isinstance(job, dict):
+        raise ValueError("Staff.am detail page does not contain job object")
+
+    sections: list[str] = []
+    for field in (
+        "description",
+        "responsibilities",
+        "required_qualifications",
+        "additional_information",
+        "application_procedures",
+    ):
+        text = localized_html_to_text(job.get(field))
+        if text:
+            sections.append(text)
+    if not sections:
+        return None
+    return "\n\n".join(sections)
 
 
 def _listing_matches_query(listing: RawListing, query: str) -> bool:

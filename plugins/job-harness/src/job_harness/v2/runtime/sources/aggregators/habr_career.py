@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import replace
 from typing import Any
 from urllib.parse import urlencode
@@ -20,7 +21,7 @@ from job_harness.v2.contracts import (
     SourceSearchParseResult,
 )
 from job_harness.v2.contracts.enums import Grade
-from job_harness.v2.runtime.sources._html import ClassTextCollector, ScriptCollector
+from job_harness.v2.runtime.sources._html import ClassTextCollector, ScriptCollector, html_to_text
 from job_harness.v2.runtime.sources._url import absolute_url, update_query
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
@@ -99,12 +100,7 @@ class HabrCareerSource(DetailEnrichmentScraper):
         response: SourceResponseArtifact,
         listing: RawListing,
     ) -> RawListing:
-        collector = ClassTextCollector(
-            tag_name="div",
-            class_name="vacancy-description__text",
-        )
-        collector.feed(response.body)
-        description = collector.text()
+        description = _habr_detail_description(response.body)
         if description is None:
             raise ValueError("Habr detail page does not contain vacancy description")
         return replace(
@@ -112,6 +108,60 @@ class HabrCareerSource(DetailEnrichmentScraper):
             description=description,
             raw_text=_join_text(listing.raw_text, description),
         )
+
+
+def _habr_detail_description(body: str) -> str | None:
+    collector = ScriptCollector()
+    collector.feed(body)
+    for _attrs, text in collector.scripts:
+        if not text.startswith("{") or '"vacancy"' not in text:
+            continue
+        data = json.loads(text)
+        vacancy = data.get("vacancy")
+        if not isinstance(vacancy, dict):
+            continue
+        raw_description = vacancy.get("description")
+        if isinstance(raw_description, str) and raw_description.strip():
+            parsed = _habr_description_text(raw_description, vacancy)
+            if parsed:
+                return parsed
+
+    dom_collector = ClassTextCollector(
+        tag_name="div",
+        class_name="vacancy-description__text",
+    )
+    dom_collector.feed(body)
+    return dom_collector.text()
+
+
+_MIN_PARSED_DESCRIPTION_CHARS = 120
+
+
+def _habr_description_text(raw_description: str, vacancy: dict[str, object]) -> str | None:
+    parsed = html_to_text(raw_description)
+    banner = _str_value(vacancy.get("bannerDescription")).strip()
+    image_urls = _image_urls_from_html(raw_description)
+    sections: list[str] = []
+    if parsed and len(parsed) >= _MIN_PARSED_DESCRIPTION_CHARS:
+        sections.append(parsed)
+    elif banner:
+        sections.append(banner)
+    elif parsed:
+        sections.append(parsed)
+    if image_urls:
+        sections.append("Vacancy details are published as images:\n" + "\n".join(image_urls))
+    if not sections:
+        return None
+    return "\n\n".join(sections)
+
+
+def _image_urls_from_html(value: str) -> tuple[str, ...]:
+    urls: list[str] = []
+    for match in re.finditer(r"""<img[^>]+src=["']([^"']+)["']""", value, flags=re.IGNORECASE):
+        url = match.group(1).strip()
+        if url and url not in urls:
+            urls.append(url)
+    return tuple(urls)
 
 
 def _extract_habr_payload(body: str) -> dict[str, Any]:

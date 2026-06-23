@@ -1,0 +1,9 @@
+{
+  "source_id": "career:vk",
+  "captured_url": "https://team.vk.company/vacancy/45562/",
+  "capture_date": "2026-06-23",
+  "capture_method": "live curl capture for detail enrichment fixtures",
+  "fixture_kind": "detail",
+  "redactions": [],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

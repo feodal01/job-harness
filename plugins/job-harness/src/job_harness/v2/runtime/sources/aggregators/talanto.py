@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from typing import Any, cast
 from urllib.parse import urlencode
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    DetailEnrichmentScraper,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -15,10 +17,9 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
-    SourceScraper,
     SourceSearchParseResult,
 )
-from job_harness.v2.runtime.sources._html import ScriptCollector
+from job_harness.v2.runtime.sources._html import ScriptCollector, html_to_text
 from job_harness.v2.runtime.sources._url import absolute_url
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
@@ -66,7 +67,7 @@ _COUNTRY_BY_LOCATION_TOKEN = {
 _COUNTRY_CODE_TOKENS = {"cy", "ge", "kz", "ph", "pl", "pt", "rs", "ru", "ua", "uz"}
 
 
-class TalantoSource(SourceScraper):
+class TalantoSource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
         return source_descriptor("talanto")
@@ -99,6 +100,47 @@ class TalantoSource(SourceScraper):
             )
         listings = tuple(_talanto_listing(job) for job in jobs)
         return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=listing.url,
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        description = _detail_description(response.body)
+        if description is None:
+            raise ValueError("Talanto detail page does not contain vacancy description")
+        return replace(
+            listing,
+            description=description,
+            raw_text=_join_text(listing.raw_text, description),
+        )
+
+
+def _detail_description(body: str) -> str | None:
+    decoder = json.JSONDecoder()
+    for payload in _next_flight_payloads(body):
+        start = 0
+        marker = '"description":'
+        while True:
+            index = payload.find(marker, start)
+            if index == -1:
+                break
+            try:
+                value, _end = decoder.raw_decode(payload[index + len(marker) :])
+            except json.JSONDecodeError:
+                start = index + len(marker)
+                continue
+            if isinstance(value, str) and value.startswith("<"):
+                return html_to_text(value)
+            start = index + len(marker)
+    return None
 
 
 def _extract_initial_jobs(body: str) -> tuple[tuple[dict[str, Any], ...], int]:

@@ -1,0 +1,9 @@
+{
+  "source_id": "hh_ru",
+  "captured_url": "https://hh.ru/vacancy/134362377",
+  "capture_date": "2026-06-23",
+  "capture_method": "reproduced after 79 sequential vacancy detail fetches; real AccountCaptcha light page",
+  "fixture_kind": "blocked",
+  "redactions": [],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

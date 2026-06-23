@@ -13,6 +13,7 @@ from job_harness.v2.contracts import (
     AttemptCounts,
     AttemptEvidence,
     CriteriaDiagnostics,
+    DescriptionAvailability,
     RawSearchRecord,
     RetryInfo,
     RetryNextAction,
@@ -46,7 +47,6 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     query_variants=("QA",),
                     exclude_companies=("blocked",),
                     exclude_text=(TextExclusion("legacy stack"),),
-                    max_results=10,
                 ),
                 run_id="r-test",
                 append_sequence=0,
@@ -65,6 +65,47 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                 "none_native_request",
                 payload["source_criteria_plan"][0]["actions"][0]["action"],
             )
+
+    def test_propagates_detail_parse_status_into_processed_results(self) -> None:
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            with RawCorpusWriter(run_dir) as writer:
+                writer.append_raw_record(
+                    _raw_record(
+                        "1",
+                        company="Acme",
+                        description="",
+                        raw_text="QA Engineer from search snippet",
+                        description_availability=DescriptionAvailability.DETAIL_BLOCKED,
+                        detail_fetched=True,
+                        detail_parse_error="hh.ru account captcha on vacancy detail",
+                    )
+                )
+                writer.append_attempt_record(_attempt_record())
+
+            output_path = run_dir / "processed-results.json"
+
+            # Act
+            ResultTablePostProcessor().process(
+                request=SearchRequest(query_variants=("QA",)),
+                run_id="r-test",
+                append_sequence=0,
+                raw_listings_path=run_dir / "raw-listings.jsonl",
+                source_attempts_path=run_dir / "source-attempts.jsonl",
+                output_path=output_path,
+            )
+
+            # Assert
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            result = payload["results"][0]
+            self.assertEqual("detail_blocked", result["description_availability"])
+            self.assertTrue(result["detail_fetched"])
+            self.assertEqual(
+                "hh.ru account captcha on vacancy detail",
+                result["detail_parse_error"],
+            )
+            self.assertIsNone(result["description"])
 
     def test_marks_text_enrichment_required_from_source_attempt_diagnostics(self) -> None:
         # Arrange
@@ -88,7 +129,6 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                 request=SearchRequest(
                     query_variants=("QA",),
                     remote_global=True,
-                    max_results=10,
                 ),
                 run_id="r-test",
                 append_sequence=0,
@@ -132,7 +172,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
             # Act
             ResultTablePostProcessor().process(
-                request=SearchRequest(query_variants=("QA",), max_results=10),
+                request=SearchRequest(query_variants=("QA",)),
                 run_id="r-test",
                 append_sequence=0,
                 raw_listings_path=run_dir / "raw-listings.jsonl",
@@ -184,7 +224,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
             # Act
             ResultTablePostProcessor().process(
-                request=SearchRequest(query_variants=("QA",), max_results=10),
+                request=SearchRequest(query_variants=("QA",)),
                 run_id="r-test",
                 append_sequence=0,
                 raw_listings_path=run_dir / "raw-listings.jsonl",
@@ -196,31 +236,120 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             payload = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertEqual(["QA Engineer"], [row["title"] for row in payload["results"]])
 
+    def test_preserves_additional_sections_and_uses_them_for_text_matching(self) -> None:
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            with RawCorpusWriter(run_dir) as writer:
+                writer.append_raw_record(
+                    _raw_record(
+                        "1",
+                        company="JetBrains",
+                        source="career:jetbrains",
+                        query_variant="automation testing",
+                        title="Backend Engineer",
+                        description="Build product services.",
+                        additional_sections={
+                            "responsibilities": "Own automation testing infrastructure.",
+                            "benefits": "Relocation support.",
+                        },
+                    )
+                )
+                writer.append_attempt_record(
+                    _attempt_record(
+                        source="career:jetbrains",
+                        source_type=SourceType.COMPANY_CAREER,
+                        requested=frozenset({SearchCriterion.QUERY}),
+                        native=frozenset(),
+                        structured=frozenset({SearchCriterion.QUERY}),
+                        postprocess=frozenset({SearchCriterion.QUERY}),
+                    )
+                )
+
+            output_path = run_dir / "processed-results.json"
+
+            # Act
+            ResultTablePostProcessor().process(
+                request=SearchRequest(query_variants=("automation testing",)),
+                run_id="r-test",
+                append_sequence=0,
+                raw_listings_path=run_dir / "raw-listings.jsonl",
+                source_attempts_path=run_dir / "source-attempts.jsonl",
+                output_path=output_path,
+            )
+
+            # Assert
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(1, payload["result_count"])
+            self.assertEqual(
+                {
+                    "benefits": "Relocation support.",
+                    "responsibilities": "Own automation testing infrastructure.",
+                },
+                payload["results"][0]["additional_sections"],
+            )
+
+    def test_reads_jsonl_records_with_unicode_line_separators_inside_fields(self) -> None:
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            description = "Modern QA role\u2028Second paragraph with test strategy."
+            with RawCorpusWriter(run_dir) as writer:
+                writer.append_raw_record(_raw_record("1", company="Acme", description=description))
+                writer.append_attempt_record(_attempt_record())
+
+            output_path = run_dir / "processed-results.json"
+
+            # Act
+            ResultTablePostProcessor().process(
+                request=SearchRequest(query_variants=("QA",)),
+                run_id="r-test",
+                append_sequence=0,
+                raw_listings_path=run_dir / "raw-listings.jsonl",
+                source_attempts_path=run_dir / "source-attempts.jsonl",
+                output_path=output_path,
+            )
+
+            # Assert
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(description, payload["results"][0]["description"])
+
 
 def _raw_record(
     source_listing_id: str,
     *,
     company: str,
     source: str = "hh_ru",
+    query_variant: str = "QA",
     title: str | None = None,
     description: str | None = None,
+    additional_sections: dict[str, str] | None = None,
+    raw_text: str | None = None,
+    description_availability: DescriptionAvailability = DescriptionAvailability.NOT_REQUESTED,
+    detail_fetched: bool = False,
+    detail_parse_error: str | None = None,
 ) -> RawSearchRecord:
     raw_listing = listing(source, source_listing_id)
+    effective_description = description if description is not None else (title or "Modern QA role")
     raw_listing = replace(
         raw_listing,
         company=company,
         title=title or raw_listing.title,
-        description=description or title or "Modern QA role",
-        raw_text=description or title or "Modern QA role",
+        description=effective_description,
+        additional_sections=additional_sections or {},
+        raw_text=raw_text if raw_text is not None else effective_description,
     )
     return RawSearchRecord(
         run_id="r-test",
         append_sequence=0,
-        query_variant="QA",
+        query_variant=query_variant,
         source=source,
         source_type=SourceType.COMPANY_CAREER if source.startswith("career:") else SourceType.AGGREGATOR,
         collected_at=datetime(2026, 6, 22, 10, 0, tzinfo=UTC),
         listing=raw_listing,
+        description_availability=description_availability,
+        detail_fetched=detail_fetched,
+        detail_parse_error=detail_parse_error,
         source_url=f"https://example.test/{source}/search?q=QA",
     )
 

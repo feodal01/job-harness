@@ -37,6 +37,7 @@ class RawListing:
     native_grade: str | None = None
     description: str | None = None
     requirements: str | None = None
+    additional_sections: dict[str, str] = field(default_factory=dict)
     skills: tuple[str, ...] = ()
     raw_text: str | None = None
     raw: dict[str, object] = field(default_factory=dict)
@@ -67,6 +68,7 @@ class RawSearchRecord:
     record_type: Literal["raw_listing"] = "raw_listing"
     description_availability: DescriptionAvailability = DescriptionAvailability.NOT_REQUESTED
     detail_fetched: bool = False
+    detail_parse_error: str | None = None
     source_url: str | None = None
 
     def __post_init__(self) -> None:

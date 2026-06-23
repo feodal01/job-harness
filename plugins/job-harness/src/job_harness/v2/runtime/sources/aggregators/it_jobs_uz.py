@@ -178,7 +178,7 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
     location = _text(item.get("location")).strip() or None
     work_type = _text(item.get("workType")).strip().upper()
     remote = work_type == "REMOTE" or None
-    description = _text(item.get("description")).strip() or None
+    description = _combined_description(item)
     requirements = _text(item.get("requirements")).strip() or None
     responsibilities = _text(item.get("responsibilities")).strip() or None
     benefits = _text(item.get("benefits")).strip() or None
@@ -212,6 +212,14 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         raw["benefits"] = benefits
     if expires_at:
         raw["expires_at"] = expires_at
+    additional_sections = {
+        key: value
+        for key, value in (
+            ("responsibilities", responsibilities),
+            ("benefits", benefits),
+        )
+        if value
+    }
 
     return RawListing(
         source_listing_id=str(item_id),
@@ -233,6 +241,7 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         native_grade=_native_grade(_text(item.get("experienceLevel")).strip()),
         description=description,
         requirements=requirements,
+        additional_sections=additional_sections,
         skills=skills,
         raw_text=_join_text(
             title,
@@ -247,6 +256,17 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         ),
         raw=raw,
     )
+
+
+def _combined_description(item: dict[str, Any]) -> str | None:
+    sections: list[str] = []
+    for field in ("description", "requirements", "responsibilities", "benefits"):
+        text = _text(item.get(field)).strip()
+        if text:
+            sections.append(text)
+    if not sections:
+        return None
+    return "\n\n".join(sections)
 
 
 def _listing_matches_query(listing: RawListing, query: str) -> bool:
