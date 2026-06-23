@@ -55,8 +55,9 @@ def build_supported_source_catalog(source_ids: tuple[str, ...] = ()) -> SourceCa
 
 
 def implemented_source_ids() -> tuple[str, ...]:
-    catalog_ids = tuple(entry.source_id for entry in source_catalog_entries())
-    return tuple(source_id for source_id in catalog_ids if source_id in _SOURCE_FACTORIES)
+    catalog_ids = _catalog_source_ids()
+    _raise_for_source_factory_catalog_mismatch(catalog_ids)
+    return catalog_ids
 
 
 def _selected_source_ids(source_ids: tuple[str, ...]) -> tuple[str, ...]:
@@ -68,3 +69,17 @@ def _selected_source_ids(source_ids: tuple[str, ...]) -> tuple[str, ...]:
     if unknown:
         raise ValueError(f"unknown or unimplemented v2 sources: {', '.join(unknown)}")
     return tuple(source_id for source_id in available if source_id in source_ids)
+
+
+def _catalog_source_ids() -> tuple[str, ...]:
+    return tuple(entry.source_id for entry in source_catalog_entries())
+
+
+def _raise_for_source_factory_catalog_mismatch(source_ids: tuple[str, ...]) -> None:
+    missing = tuple(source_id for source_id in source_ids if source_id not in _SOURCE_FACTORIES)
+    if missing:
+        raise ValueError(f"catalog sources missing runtime implementation: {', '.join(missing)}")
+    catalog_id_set = set(source_ids)
+    extra = tuple(source_id for source_id in _SOURCE_FACTORIES if source_id not in catalog_id_set)
+    if extra:
+        raise ValueError(f"runtime implementations missing catalog rows: {', '.join(extra)}")
