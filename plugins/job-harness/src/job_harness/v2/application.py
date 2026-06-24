@@ -2,37 +2,35 @@
 
 from __future__ import annotations
 
-import json
 import secrets
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
 from job_harness.v2.contracts import SearchRequest, SourceAttemptRecord
+from job_harness.v2.persistence import SqliteRunStore
+from job_harness.v2.ports import ArtifactFetcher, RunStoreFactory
 from job_harness.v2.postprocessing import (
     ProcessedResults,
     ResultTablePostProcessor,
-    write_processed_results_html_file,
 )
-from job_harness.v2.postprocessing.formatters import render_processed_results_markdown_file
+from job_harness.v2.presentation import render_processed_results_html
 from job_harness.v2.runtime import (
-    ArtifactFetcher,
     HttpArtifactFetcher,
     OrchestratorConfig,
-    RawCorpusWriter,
     RetryPolicy,
     RunLayout,
     RunPaths,
     SearchOrchestrator,
     build_supported_source_catalog,
 )
+from job_harness.v2.serialization import to_jsonable
 
 __all__ = [
     "V2SearchApplication",
     "V2SearchConfig",
     "V2SearchExecution",
     "new_run_id",
-    "render_processed_results_markdown_file",
 ]
 
 
@@ -74,44 +72,51 @@ class V2SearchApplication:
         config: V2SearchConfig | None = None,
         fetcher: ArtifactFetcher | None = None,
         postprocessor: ResultTablePostProcessor | None = None,
+        run_store_factory: RunStoreFactory | None = None,
     ) -> None:
         self._config = config or V2SearchConfig()
         self._fetcher = fetcher or HttpArtifactFetcher(timeout_seconds=self._config.fetch_timeout_seconds)
         self._postprocessor = postprocessor or ResultTablePostProcessor()
+        self._run_store_factory = run_store_factory or SqliteRunStore
 
     async def search(self, request: SearchRequest, *, run_id: str | None = None) -> V2SearchExecution:
         layout = RunLayout(self._config.runs_dir)
-        paths, append_sequence = _resolve_paths(layout=layout, request=request, run_id=run_id)
+        paths = _resolve_paths(layout=layout, request=request, run_id=run_id)
         catalog = build_supported_source_catalog(self._config.source_ids)
-        with RawCorpusWriter(paths.run_dir) as writer:
+        with self._run_store_factory(paths.database_path, run_id=paths.run_id) as store:
+            append_sequence = store.reserve_append_attempt(to_jsonable(request))
             orchestrator = SearchOrchestrator(
                 catalog=catalog,
                 fetcher=self._fetcher,
-                writer=writer,
+                writer=store,
                 config=OrchestratorConfig(
                     source_attempt_timeout_seconds=self._config.source_attempt_timeout_seconds,
                     run_timeout_seconds=self._config.run_timeout_seconds,
                     retry_policy=self._config.retry_policy,
                 ),
             )
-            run_result = await orchestrator.run(
-                request,
-                run_id=paths.run_id,
-                append_sequence=append_sequence,
-            )
-
-        processed = self._postprocessor.process(
-            request=request,
-            run_id=paths.run_id,
-            append_sequence=append_sequence,
-            raw_listings_path=paths.raw_listings_path,
-            source_attempts_path=paths.source_attempts_path,
-            output_path=paths.processed_results_path,
-        )
-        write_processed_results_html_file(
-            _read_processed_results_payload(paths.processed_results_path),
-            paths.report_html_path,
-        )
+            try:
+                run_result = await orchestrator.run(
+                    request,
+                    run_id=paths.run_id,
+                    append_sequence=append_sequence,
+                )
+                processed = self._postprocessor.process(
+                    request=request,
+                    run_id=paths.run_id,
+                    append_sequence=append_sequence,
+                    raw_records=store.read_raw_records(),
+                    source_attempts=store.read_source_attempts(),
+                )
+                store.write_processed_results(processed.payload)
+                paths.report_html_path.write_text(
+                    render_processed_results_html(processed.payload),
+                    encoding="utf-8",
+                )
+                store.mark_append_attempt_completed()
+            except Exception:
+                store.mark_append_attempt_failed()
+                raise
         return V2SearchExecution(
             run_id=run_result.run_id,
             append_sequence=append_sequence,
@@ -132,18 +137,14 @@ def _resolve_paths(
     layout: RunLayout,
     request: SearchRequest,
     run_id: str | None,
-) -> tuple[RunPaths, int]:
+) -> RunPaths:
     if request.append_to_run_id is not None:
         if run_id is not None and run_id != request.append_to_run_id:
             raise ValueError("run_id must match append_to_run_id")
-        return layout.existing_run(request.append_to_run_id), layout.next_append_sequence(request.append_to_run_id)
+        paths = layout.existing_run(request.append_to_run_id)
+        if not paths.database_path.exists():
+            raise FileNotFoundError(f"v2 run database does not exist: {paths.database_path}")
+        return paths
 
     effective_run_id = run_id or new_run_id()
-    return layout.create_new_run(effective_run_id), 0
-
-
-def _read_processed_results_payload(path: Path) -> dict[str, object]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise ValueError(f"processed results file is not a JSON object: {path}")
-    return value
+    return layout.create_new_run(effective_run_id)

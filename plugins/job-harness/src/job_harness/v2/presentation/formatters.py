@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
+
+from job_harness.v2.serialization import JsonObject
 
 
 def render_processed_results_markdown(
-    payload: dict[str, object],
+    payload: JsonObject,
     *,
     description_limit: int = 0,
     listing_limit: int = 0,
@@ -63,23 +63,7 @@ def render_processed_results_markdown(
     return "\n".join(lines)
 
 
-def render_processed_results_markdown_file(
-    path: Path,
-    *,
-    description_limit: int = 0,
-    listing_limit: int = 0,
-) -> str:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"processed results file is not a JSON object: {path}")
-    return render_processed_results_markdown(
-        payload,
-        description_limit=description_limit,
-        listing_limit=listing_limit,
-    )
-
-
-def _result_count(payload: dict[str, object]) -> int:
+def _result_count(payload: JsonObject) -> int:
     results = payload.get("results")
     if isinstance(results, list):
         return len(results)
@@ -89,7 +73,7 @@ def _result_count(payload: dict[str, object]) -> int:
     return 0
 
 
-def _shown_count(payload: dict[str, object], listing_limit: int) -> int:
+def _shown_count(payload: JsonObject, listing_limit: int) -> int:
     total = _result_count(payload)
     if listing_limit <= 0:
         return total

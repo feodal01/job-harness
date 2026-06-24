@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import tempfile
 import unittest
 from dataclasses import replace
@@ -23,18 +22,30 @@ from job_harness.v2.contracts import (
     SourceOutcome,
     SourceResponseArtifact,
 )
+from job_harness.v2.persistence import SqliteRunStore
 from job_harness.v2.runtime import (
     ClassifiedSourceError,
     OrchestratorConfig,
-    RawCorpusWriter,
     RetryPolicy,
     SearchOrchestrator,
     SourceCatalog,
 )
 
 
-def _read_jsonl(path: Path) -> list[dict[str, Any]]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+def _store(run_dir: Path, *, query_variants: tuple[str, ...] = ("QA",)) -> SqliteRunStore:
+    store = SqliteRunStore(run_dir / "run.sqlite", run_id="r-test")
+    store.reserve_append_attempt({"query_variants": list(query_variants)})
+    return store
+
+
+def _read_raw_records(run_dir: Path) -> list[dict[str, Any]]:
+    with SqliteRunStore(run_dir / "run.sqlite", run_id="r-test") as store:
+        return list(store.read_raw_records())
+
+
+def _read_source_attempts(run_dir: Path) -> list[dict[str, Any]]:
+    with SqliteRunStore(run_dir / "run.sqlite", run_id="r-test") as store:
+        return list(store.read_source_attempts())
 
 
 class FakeDetailScraper(FakeScraper, DetailEnrichmentScraper):
@@ -70,7 +81,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             outcome=SourceOutcome.NO_RESULTS,
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(hh), supported(empty))),
                     fetcher=FakeFetcher(),
@@ -86,7 +97,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.SUCCESS, outcomes["hh_ru"])
             self.assertEqual(SourceOutcome.NO_RESULTS, outcomes["empty_jobs"])
             self.assertEqual(1, result.raw_records_written)
-            self.assertEqual(1, len(_read_jsonl(Path(tmp) / "raw-listings.jsonl")))
+            self.assertEqual(1, len(_read_raw_records(Path(tmp))))
 
     async def test_failed_source_does_not_block_successful_source(self) -> None:
         # Arrange
@@ -106,7 +117,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(good), supported(bad))),
                     fetcher=fetcher,
@@ -137,7 +148,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(flaky),)),
                     fetcher=fetcher,
@@ -151,7 +162,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             # Assert
             self.assertEqual(SourceOutcome.SUCCESS, result.attempts[-1].outcome)
             self.assertEqual(2, len(fetcher.calls))
-            attempt_records = _read_jsonl(Path(tmp) / "source-attempts.jsonl")
+            attempt_records = _read_source_attempts(Path(tmp))
             self.assertEqual(["network_error", "success"], [record["outcome"] for record in attempt_records])
             self.assertEqual("retry", attempt_records[0]["retry"]["next_action"])
 
@@ -163,7 +174,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         )
         fetcher = FakeFetcher(delays={("slow_jobs", "QA"): 0.05})
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(slow),)),
                     fetcher=fetcher,
@@ -188,7 +199,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             raw_listings=(listing("other_jobs", "1"),),
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(noisy),)),
                     fetcher=FakeFetcher(),
@@ -202,7 +213,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             # Assert
             self.assertEqual(SourceOutcome.INVALID_SOURCE_OUTPUT, result.attempts[0].outcome)
             self.assertEqual(0, result.raw_records_written)
-            self.assertEqual([], _read_jsonl(Path(tmp) / "raw-listings.jsonl"))
+            self.assertEqual([], _read_raw_records(Path(tmp)))
 
     async def test_append_mode_preserves_existing_raw_records(self) -> None:
         # Arrange
@@ -211,7 +222,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             raw_listings=(listing("hh_ru"),),
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(scraper),)),
                     fetcher=FakeFetcher(),
@@ -221,13 +232,14 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
 
                 # Act
                 await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+                writer.reserve_append_attempt({"query_variants": ["quality assurance"]})
                 await orchestrator.run(
                     SearchRequest(query_variants=("quality assurance",), append_to_run_id="r-test"),
                     append_sequence=1,
                 )
 
             # Assert
-            raw_records = _read_jsonl(Path(tmp) / "raw-listings.jsonl")
+            raw_records = _read_raw_records(Path(tmp))
             self.assertEqual(2, len(raw_records))
             self.assertEqual([0, 1], [record["append_sequence"] for record in raw_records])
             self.assertEqual(
@@ -243,7 +255,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         )
         fetcher = FakeFetcher(delays={("slow_jobs", "QA"): 0.05})
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(slow),)),
                     fetcher=fetcher,
@@ -276,7 +288,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         )
         fetcher = FakeFetcher()
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(scraper),)),
                     fetcher=fetcher,
@@ -296,7 +308,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
                 ],
                 [call.url for call in fetcher.calls],
             )
-            raw_records = _read_jsonl(Path(tmp) / "raw-listings.jsonl")
+            raw_records = _read_raw_records(Path(tmp))
             self.assertEqual(1, len(raw_records))
             self.assertEqual("present", raw_records[0]["description_availability"])
             self.assertTrue(raw_records[0]["detail_fetched"])
@@ -325,7 +337,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(scraper),)),
                     fetcher=fetcher,
@@ -340,7 +352,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.PARTIAL_SUCCESS, result.attempts[0].outcome)
             self.assertEqual("detail connection reset", result.attempts[0].evidence.error)
             self.assertEqual(2, result.raw_records_written)
-            raw_records = _read_jsonl(Path(tmp) / "raw-listings.jsonl")
+            raw_records = _read_raw_records(Path(tmp))
             self.assertEqual(
                 [
                     "https://example.test/detail_jobs/jobs/1",
@@ -373,7 +385,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(scraper),)),
                     fetcher=fetcher,
@@ -387,7 +399,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             # Assert
             self.assertEqual(SourceOutcome.PARTIAL_SUCCESS, result.attempts[0].outcome)
             self.assertEqual("hh.ru account captcha on vacancy detail", result.attempts[0].evidence.error)
-            raw_records = _read_jsonl(Path(tmp) / "raw-listings.jsonl")
+            raw_records = _read_raw_records(Path(tmp))
             self.assertEqual("detail_blocked", raw_records[0]["description_availability"])
             self.assertTrue(raw_records[0]["detail_fetched"])
             self.assertEqual(
@@ -416,7 +428,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with _store(Path(tmp)) as writer:
                 orchestrator = SearchOrchestrator(
                     catalog=SourceCatalog((supported(scraper),)),
                     fetcher=fetcher,
@@ -429,7 +441,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
 
             # Assert
             self.assertEqual(SourceOutcome.PARTIAL_SUCCESS, result.attempts[0].outcome)
-            raw_records = _read_jsonl(Path(tmp) / "raw-listings.jsonl")
+            raw_records = _read_raw_records(Path(tmp))
             self.assertEqual("detail_rate_limited", raw_records[0]["description_availability"])
             self.assertEqual("HTTP Error 429: Too Many Requests", raw_records[0]["detail_parse_error"])
 

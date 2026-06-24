@@ -26,9 +26,9 @@ from job_harness.v2.contracts import (
     SourceScraper,
     SourceSearchParseResult,
 )
+from job_harness.v2.ports import ArtifactFetcher, CorpusWriter
 from job_harness.v2.runtime.catalog import SourceCatalog
 from job_harness.v2.runtime.errors import ClassifiedSourceError
-from job_harness.v2.runtime.ports import ArtifactFetcher, CorpusWriter
 from job_harness.v2.runtime.retry import RetryPolicy
 
 _MAX_DETAIL_ERRORS_IN_SUMMARY = 3

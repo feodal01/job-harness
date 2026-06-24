@@ -20,10 +20,10 @@ from job_harness.v2.contracts import (
     SourceResponseArtifact,
     SourceScraper,
 )
+from job_harness.v2.persistence import SqliteRunStore
 from job_harness.v2.runtime import (
     ClassifiedSourceError,
     OrchestratorConfig,
-    RawCorpusWriter,
     RetryPolicy,
     SearchOrchestrator,
     SourceCatalog,
@@ -1861,7 +1861,8 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
         request = SearchRequest(query_variants=(_E2E_SUCCESS_QUERY,))
         fetcher = FixtureFetcher(_e2e_success_fixture_mapping(catalog, request))
         with tempfile.TemporaryDirectory() as tmp:
-            with RawCorpusWriter(Path(tmp)) as writer:
+            with SqliteRunStore(Path(tmp) / "run.sqlite", run_id="r-test") as writer:
+                writer.reserve_append_attempt({"query_variants": [_E2E_SUCCESS_QUERY]})
                 orchestrator = SearchOrchestrator(
                     catalog=catalog,
                     fetcher=fetcher,
@@ -1871,6 +1872,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
 
                 # Act
                 result = await orchestrator.run(request, run_id="r-test")
+                raw_records = writer.read_raw_records()
 
             # Assert
             outcomes = {attempt.source: attempt for attempt in result.attempts}
@@ -1883,10 +1885,6 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                 else:
                     self.assertEqual(0, attempt.counts.raw_listings_written, source_id)
 
-            raw_records = [
-                json.loads(line)
-                for line in (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8").splitlines()
-            ]
             self.assertEqual(result.raw_records_written, len(raw_records))
             self.assertEqual(
                 {
@@ -1911,7 +1909,8 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
             with self.subTest(source_id=case.source_id):
                 fetcher = FixtureFetcher({case.url: case.response_path})
                 with tempfile.TemporaryDirectory() as tmp:
-                    with RawCorpusWriter(Path(tmp)) as writer:
+                    with SqliteRunStore(Path(tmp) / "run.sqlite", run_id="r-test") as writer:
+                        writer.reserve_append_attempt({"query_variants": [case.query_variant]})
                         orchestrator = SearchOrchestrator(
                             catalog=build_supported_source_catalog((case.source_id,)),
                             fetcher=fetcher,
@@ -1924,6 +1923,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                             SearchRequest(query_variants=(case.query_variant,)),
                             run_id="r-test",
                         )
+                        raw_records = writer.read_raw_records()
 
                     # Assert
                     self.assertEqual(0, result.raw_records_written)
@@ -1931,7 +1931,7 @@ class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
                         {case.source_id: SourceOutcome.NO_RESULTS},
                         {attempt.source: attempt.outcome for attempt in result.attempts},
                     )
-                    self.assertEqual("", (Path(tmp) / "raw-listings.jsonl").read_text(encoding="utf-8"))
+                    self.assertEqual((), raw_records)
 
 
 if __name__ == "__main__":

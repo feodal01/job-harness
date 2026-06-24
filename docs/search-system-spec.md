@@ -47,7 +47,7 @@ Post-processing reads this raw corpus and produces derived views. Re-running pos
 
 The public search request should contain:
 
-- `query_variants: list[str]`: required; one or more text formulations, such as `["QA", "тестировщик", "quality assurance"]`.
+- `query_variants: list[str]`: required; one or more text formulations, such as `["QA", "AQA", "SDET", "тестировщик", "quality assurance"]`. The CLI accepts repeated `--query` flags and compact pipe-separated `--queries` strings for the same engine contract.
 - `grades: list[Grade] | null`: optional exact grade list. Valid values: `intern`, `junior`, `middle`, `senior`, `lead`. The exact enum can be narrowed by implementation, but the semantics must stay exact-match, not minimum seniority.
 - `salary_from: int | null`: optional lower salary bound.
 - `published_since: date | null`: optional lower date bound for freshness. The name should avoid the ambiguity of "не позже"; this means "vacancy was published on or after this date".
@@ -117,7 +117,9 @@ These concepts must not be collapsed into one enum.
 
 ## Raw Listing Schema
 
-The raw search corpus is JSONL. Each line is one immutable record:
+The raw search corpus is stored in the `raw_listings` table inside the run's
+`run.sqlite` database. Each row keeps normalized columns for common access and
+the immutable JSON record payload:
 
 ```json
 {

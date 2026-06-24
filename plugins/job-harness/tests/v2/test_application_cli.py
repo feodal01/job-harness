@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from job_harness.v2.application import V2SearchApplication, V2SearchConfig
-from job_harness.v2.cli import main as cli_main
+from job_harness.v2.cli import _build_parser, _query_variants, main as cli_main
 from job_harness.v2.contracts import (
     ParserFixtureCase,
     ParserFixtureKind,
@@ -16,6 +16,7 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceResponseArtifact,
 )
+from job_harness.v2.persistence import SqliteRunStore
 from job_harness.v2.runtime import RetryPolicy
 from job_harness.v2.source_catalog import country_catalog_entries, source_catalog_entries, source_fixture_suite
 
@@ -111,21 +112,19 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(0, first.append_sequence)
             self.assertEqual(1, second.append_sequence)
             self.assertEqual(first.paths.run_dir, second.paths.run_dir)
-            self.assertTrue(first.paths.raw_listings_path.exists())
-            self.assertTrue(first.paths.source_attempts_path.exists())
-            self.assertTrue(first.paths.run_manifest_path.exists())
-            self.assertTrue(first.paths.processed_results_path.exists())
+            self.assertTrue(first.paths.database_path.exists())
             self.assertTrue(first.paths.report_html_path.exists())
 
-            raw_lines = first.paths.raw_listings_path.read_text(encoding="utf-8").splitlines()
-            manifest = json.loads(first.paths.run_manifest_path.read_text(encoding="utf-8"))
-            processed = json.loads(first.paths.processed_results_path.read_text(encoding="utf-8"))
+            with SqliteRunStore(first.paths.database_path, run_id="r-test") as store:
+                raw_records = store.read_raw_records()
+                manifest = store.read_run_manifest()
+                processed = store.read_processed_results()
             self.assertGreater(first.raw_records_written, 0)
-            self.assertEqual(first.raw_records_written + second.raw_records_written, len(raw_lines))
+            self.assertEqual(first.raw_records_written + second.raw_records_written, len(raw_records))
             self.assertEqual(1, manifest["latest_append_sequence"])
-            self.assertEqual(len(raw_lines), processed["raw_records_read"])
+            self.assertEqual(len(raw_records), processed["raw_records_read"])
             self.assertGreater(processed["result_count"], 1)
-            self.assertLessEqual(processed["result_count"], len(raw_lines))
+            self.assertLessEqual(processed["result_count"], len(raw_records))
             self.assertNotIn("truncated", processed)
             self.assertIn("filtered_out_results", processed)
             self.assertIn("job-harness-payload", first.paths.report_html_path.read_text(encoding="utf-8"))
@@ -151,6 +150,29 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
             [source["source_id"] for source in payload["sources"]],
         )
         self.assertTrue(all(source["implemented"] for source in payload["sources"]))
+
+    async def test_cli_accepts_pipe_separated_query_variants(self) -> None:
+        # Arrange
+        args = _build_parser().parse_args(
+            [
+                "search",
+                "--query",
+                "QA",
+                "--queries",
+                "AQA | SDET | Quality Assurance",
+            ]
+        )
+
+        # Act / Assert
+        self.assertEqual(("QA", "AQA", "SDET", "Quality Assurance"), _query_variants(args))
+
+    async def test_cli_rejects_empty_pipe_separated_query_variant(self) -> None:
+        # Arrange
+        args = _build_parser().parse_args(["search", "--queries", "QA || SDET"])
+
+        # Act / Assert
+        with self.assertRaisesRegex(ValueError, "--queries"):
+            _query_variants(args)
 
 
 if __name__ == "__main__":

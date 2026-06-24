@@ -14,7 +14,6 @@ from job_harness.v2.application import (
     V2SearchApplication,
     V2SearchConfig,
     V2SearchExecution,
-    render_processed_results_markdown_file,
 )
 from job_harness.v2.contracts import (
     Grade,
@@ -24,8 +23,10 @@ from job_harness.v2.contracts import (
     TextExclusion,
     TextExclusionMode,
 )
+from job_harness.v2.persistence import read_processed_results_payload
+from job_harness.v2.presentation import render_processed_results_markdown
 from job_harness.v2.runtime import RetryPolicy, implemented_source_ids
-from job_harness.v2.runtime.serialization import to_jsonable
+from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import country_catalog_entries, source_catalog_entries
 
 
@@ -56,7 +57,13 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("list-sources", help="Print the v2 source catalog.")
 
     search = subparsers.add_parser("search", help="Run a v2 job search.")
-    search.add_argument("--query", action="append", required=True, help="Search query variant. Repeatable.")
+    search.add_argument("--query", action="append", default=[], help="Search query variant. Repeatable.")
+    search.add_argument(
+        "--queries",
+        action="append",
+        default=[],
+        help='Pipe-separated query variants, for example: "QA | AQA | SDET". Repeatable.',
+    )
     search.add_argument("--grade", action="append", choices=_grade_values(), default=[])
     search.add_argument("--salary-from", type=int)
     search.add_argument("--published-since", type=_date_arg)
@@ -78,8 +85,8 @@ def _build_parser() -> argparse.ArgumentParser:
     search.add_argument("--fetch-timeout", type=float, default=15.0)
     search.add_argument("--retry-attempts", type=int, default=1)
 
-    format_cmd = subparsers.add_parser("format", help="Render processed-results.json as readable markdown.")
-    format_cmd.add_argument("--input", type=Path, required=True, help="Path to processed-results.json.")
+    format_cmd = subparsers.add_parser("format", help="Render processed results from run.sqlite as markdown.")
+    format_cmd.add_argument("--input", type=Path, required=True, help="Path to run.sqlite.")
     format_cmd.add_argument("--output", type=Path, help="Write markdown to this file instead of stdout.")
     format_cmd.add_argument(
         "--description-limit",
@@ -97,8 +104,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _run_format(args: argparse.Namespace) -> int:
-    markdown = render_processed_results_markdown_file(
-        args.input,
+    payload = read_processed_results_payload(args.input)
+    markdown = render_processed_results_markdown(
+        payload,
         description_limit=args.description_limit,
         listing_limit=args.limit,
     )
@@ -112,7 +120,7 @@ def _run_format(args: argparse.Namespace) -> int:
 
 async def _run_search(args: argparse.Namespace) -> V2SearchExecution:
     request = SearchRequest(
-        query_variants=tuple(args.query),
+        query_variants=_query_variants(args),
         grades=tuple(Grade(value) for value in args.grade),
         salary_from=args.salary_from,
         published_since=args.published_since,
@@ -137,6 +145,16 @@ async def _run_search(args: argparse.Namespace) -> V2SearchExecution:
         )
     )
     return await app.search(request, run_id=args.run_id)
+
+
+def _query_variants(args: argparse.Namespace) -> tuple[str, ...]:
+    variants = list(args.query)
+    for group in args.queries:
+        parts = tuple(item.strip() for item in group.split("|"))
+        if not parts or any(not item for item in parts):
+            raise ValueError("--queries must contain non-empty variants separated by |")
+        variants.extend(parts)
+    return tuple(variants)
 
 
 def _source_catalog_payload() -> dict[str, object]:
@@ -188,10 +206,11 @@ def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
         "append_sequence": execution.append_sequence,
         "run_dir": str(execution.paths.run_dir),
         "artifacts": {
-            "raw_listings": str(execution.paths.raw_listings_path),
-            "source_attempts": str(execution.paths.source_attempts_path),
-            "run_manifest": str(execution.paths.run_manifest_path),
-            "processed_results": str(execution.paths.processed_results_path),
+            "database": str(execution.paths.database_path),
+            "raw_listings_table": "raw_listings",
+            "source_attempts_table": "source_attempts",
+            "run_manifest_table": "run_manifest",
+            "processed_results_table": "processed_results",
             "report_html": str(execution.paths.report_html_path),
         },
         "raw_records_written_this_call": execution.raw_records_written,

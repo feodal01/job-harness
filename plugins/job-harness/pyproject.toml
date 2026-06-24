@@ -1,6 +1,6 @@
 [project]
 name = "job-harness"
-version = "0.2.36"
+version = "0.2.40"
 description = "Universal job search and application harness"
 requires-python = ">=3.12"
 dependencies = [
@@ -17,7 +17,8 @@ packages = ["src/job_harness"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/job_harness/v2/source_catalog.sql" = "job_harness/v2/source_catalog.sql"
-"src/job_harness/v2/postprocessing/report_template.html" = "job_harness/v2/postprocessing/report_template.html"
+"src/job_harness/v2/persistence/schema.sql" = "job_harness/v2/persistence/schema.sql"
+"src/job_harness/v2/presentation/report_template.html" = "job_harness/v2/presentation/report_template.html"
 
 [build-system]
 requires = ["hatchling"]

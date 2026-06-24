@@ -10,6 +10,7 @@ from job_harness.v2.contracts import (
     TextField,
     search_criterion_descriptor,
 )
+from job_harness.v2.serialization import JsonObject
 
 
 @dataclass(frozen=True)
@@ -19,7 +20,7 @@ class CriteriaProcessingPlanner:
     def build_plan(
         self,
         *,
-        source_attempts: tuple[dict[str, object], ...],
+        source_attempts: tuple[JsonObject, ...],
         rows: tuple[dict[str, object], ...],
     ) -> tuple[dict[str, object], ...]:
         text_evidence = _text_evidence_by_source_query_field(rows)

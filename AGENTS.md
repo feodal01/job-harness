@@ -71,8 +71,8 @@ must not duplicate the skill workflow text.
 **v2 search workflow:** call `job-harness-v2 list-sources`, then
 `job-harness-v2 search` with criteria flags. Artifacts land under
 `.job-harness/v2/runs/<run_id>/`. Use `--append-to-run-id` for additional query
-variants. Read `processed-results.json` for presentation; `raw-listings.jsonl`
-is unfiltered evidence.
+variants. Read the `processed_results` table from `run.sqlite` for presentation;
+the `raw_listings` table is unfiltered evidence.
 
 **v2 search features to preserve:**
 
@@ -83,7 +83,7 @@ is unfiltered evidence.
 
 The v2 CLI entry point:
 
-`uv --directory plugins/job-harness run job-harness-v2 search --query "QA" --country RU`
+`uv --directory plugins/job-harness run job-harness-v2 search --queries "QA | AQA | SDET | quality assurance" --country RU`
 
 Legacy v1 CLI/MCP remains under `job_harness.v1` for maintenance.
 
@@ -91,6 +91,6 @@ Legacy v1 CLI/MCP remains under `job_harness.v1` for maintenance.
 
 Run from the repo root:
 
-`python scripts/verify_v2.py` — v2 lint, types, unit tests, and full-catalog live e2e
+`python scripts/verify_v2.py` — v2 lint, types, unit tests, and full-catalog live e2e. Use `python scripts/verify_v2.py --live-profile light` for the bounded two-source live e2e profile.
 
 `python scripts/verify_repo.py full` — repository-wide gate including v1 tests

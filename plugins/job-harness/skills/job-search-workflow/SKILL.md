@@ -44,8 +44,7 @@ results from processed exports — not from raw scrape dumps.
 
    ```bash
    uv --directory plugins/job-harness run job-harness-v2 search \
-     --query "QA" \
-     --query "quality assurance" \
+     --queries "QA | AQA | SDET | quality assurance | тестировщик" \
      --grade middle \
      --salary-from 150000 \
      --country RU \
@@ -59,10 +58,11 @@ results from processed exports — not from raw scrape dumps.
    **Key response fields:**
    - `run_id` — reuse for append
    - `run_dir` — directory with all artifacts
-   - `artifacts.raw_listings` — `raw-listings.jsonl` (unfiltered source evidence)
-   - `artifacts.processed_results` — `processed-results.json` (filtered/deduped export)
+   - `artifacts.database` — `run.sqlite` (durable run store)
+   - `artifacts.raw_listings_table` — `raw_listings` table (unfiltered source evidence)
+   - `artifacts.processed_results_table` — `processed_results` table (filtered/deduped export)
    - `artifacts.report_html` — `report.html` (self-contained interactive report)
-   - `artifacts.source_attempts` — per-source diagnostics
+   - `artifacts.source_attempts_table` — per-source diagnostics
    - `attempts[*].outcome` — `success`, `no_results`, or failure classes
    - `processed_result_count` — downstream listing count after post-processing
 
@@ -70,7 +70,7 @@ results from processed exports — not from raw scrape dumps.
 
    ```bash
    uv --directory plugins/job-harness run job-harness-v2 search \
-     --query "тестировщик" \
+     --queries "тестировщик | инженер по тестированию" \
      --append-to-run-id "<run_id>" \
      --runs-dir .job-harness/v2/runs
    ```
@@ -78,9 +78,9 @@ results from processed exports — not from raw scrape dumps.
 6. **Read results safely** — Raw and processed artifacts can be large.
    - Use stdout summary fields and `attempts` for diagnostics first.
    - Give the user `report.html` as the primary browsable artifact when present.
-   - Read `processed-results.json` in small slices when needed.
-   - Treat `raw-listings.jsonl` as audit evidence, not the presentation layer.
-   - Never dump full artifact files into the conversation.
+   - Read `processed_results` rows from `run.sqlite` in small slices when needed.
+   - Treat the `raw_listings` table as audit evidence, not the presentation layer.
+   - Never dump full database tables into the conversation.
 
 7. **Filter & rank** — Apply the brief's exclusion criteria on processed
    results. Use `--exclude-text`, `--exclude-regex`, and `--exclude-company`
@@ -92,7 +92,7 @@ results from processed exports — not from raw scrape dumps.
    remote/relocation when available, source id, and the listing URL. Note which
    sources returned `no_results` vs `success`.
 
-9. **Save** — Keep `processed-results.json`, `report.html`, and the execution
+9. **Save** — Keep `run.sqlite`, `report.html`, and the execution
    JSON in the project run folder as the durable audit trail. Write a separate
    `report.md` only when the user asks for a markdown summary.
 
@@ -104,6 +104,7 @@ results from processed exports — not from raw scrape dumps.
 | CLI flag | Maps to | Notes |
 |----------|---------|-------|
 | `--query` | `query_variants` | Repeatable; each variant runs against selected sources |
+| `--queries` | `query_variants` | Pipe-separated variants, for example `"QA \| AQA \| SDET"`; repeatable |
 | `--grade` | `grades` | `intern`, `junior`, `middle`, `senior`, `lead`; repeatable |
 | `--salary-from` | `salary_from` | Integer lower bound; native on some sources, post-filter elsewhere |
 | `--published-since` | `published_since` | ISO date `YYYY-MM-DD` |
@@ -152,16 +153,19 @@ handled in post-processing.
 
 Each run directory contains:
 
-- `raw-listings.jsonl` — one raw listing per line; not deduped or globally capped
-- `source-attempts.jsonl` — per-source attempt records with outcomes and evidence
-- `run-manifest.json` — run id, append sequence, source summary
-- `processed-results.json` — filtered, deduped export for presentation
+- `run.sqlite` — durable run database
+  - `raw_listings` — one raw listing per row; not deduped or globally capped
+  - `source_attempts` — per-source attempt records with outcomes and evidence
+  - `run_manifest` — run id, append sequence, source summary
+  - `processed_results` — filtered, deduped export for presentation
 - `report.html` — self-contained interactive report for kept and filtered-out rows
 
 ## Key principles
 
 - Use **`job-harness-v2`**, not legacy `job-harness` (v1), for new searches.
 - Raw depth is controlled by each source's `source_limit` in the catalog.
+- Prefer several query variants via `--queries` to improve recall; narrow sources
+  or append in batches when the search would become too slow or block-prone.
 - `no_results` is a valid healthy outcome — distinguish it from transport failures
   (`network_error`, `rate_limited`, `source_timeout`, …).
 - Always call `list-sources` before the first search on a new host/session.

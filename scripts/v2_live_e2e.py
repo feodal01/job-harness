@@ -21,17 +21,23 @@ from pathlib import Path
 from job_harness.v2.application import V2SearchApplication, V2SearchConfig, V2SearchExecution
 from job_harness.v2.contracts import Grade, SearchRequest, SourceAttemptRecord, TextExclusion, TextExclusionMode
 from job_harness.v2.runtime import RetryPolicy, implemented_source_ids
-from job_harness.v2.runtime.serialization import to_jsonable
+from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import source_catalog_entries
 
 LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 240.0
 LIVE_RUN_TIMEOUT_SECONDS = 480.0
 LIVE_FETCH_TIMEOUT_SECONDS = 30.0
+LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 60.0
+LIGHT_RUN_TIMEOUT_SECONDS = 120.0
+LIGHT_FETCH_TIMEOUT_SECONDS = 15.0
+LIGHT_SOURCE_IDS = ("career:jetbrains", "jobturbo")
+LIVE_PROFILES = ("full", "light")
 
 
 @dataclass(frozen=True)
 class LiveE2EReport:
     catalog_source_count: int
+    source_profile: str
     expected_source_ids: tuple[str, ...]
     first: V2SearchExecution
     second: V2SearchExecution
@@ -55,6 +61,12 @@ def main(argv: list[str] | None = None) -> int:
         "--append-to-run-id",
         help="Existing run id for --phase append.",
     )
+    parser.add_argument(
+        "--profile",
+        choices=LIVE_PROFILES,
+        default="full",
+        help="Live source profile to run. full probes every implemented source; light probes a bounded subset.",
+    )
     args = parser.parse_args(argv)
     if args.phase == "append" and not args.append_to_run_id:
         parser.error("--append-to-run-id is required for --phase append")
@@ -64,6 +76,7 @@ def main(argv: list[str] | None = None) -> int:
                 runs_dir=args.runs_dir,
                 phase=args.phase,
                 append_to_run_id=args.append_to_run_id,
+                profile=args.profile,
             )
         )
     except Exception as exc:
@@ -78,15 +91,17 @@ async def run_live_e2e_phase(
     runs_dir: Path,
     phase: str,
     append_to_run_id: str | None,
+    profile: str,
 ) -> dict[str, object]:
-    expected_source_ids = implemented_source_ids()
+    expected_source_ids = _profile_source_ids(profile)
     catalog_source_count = len(source_catalog_entries())
-    app = V2SearchApplication(config=_live_search_config(runs_dir))
+    app = V2SearchApplication(config=_live_search_config(runs_dir, profile=profile))
 
     if phase == "initial":
-        first = await app.search(_initial_live_request())
+        first = await app.search(_initial_live_request(profile))
         return _initial_report_payload(
             catalog_source_count=catalog_source_count,
+            source_profile=profile,
             expected_source_ids=expected_source_ids,
             execution=first,
         )
@@ -94,14 +109,15 @@ async def run_live_e2e_phase(
     if phase == "append":
         if append_to_run_id is None:
             raise ValueError("append_to_run_id is required for append phase")
-        second = await app.search(_append_live_request(append_to_run_id=append_to_run_id))
+        second = await app.search(_append_live_request(profile, append_to_run_id=append_to_run_id))
         return _append_report_payload(execution=second)
 
-    first = await app.search(_initial_live_request())
-    second = await app.search(_append_live_request(append_to_run_id=first.run_id))
+    first = await app.search(_initial_live_request(profile))
+    second = await app.search(_append_live_request(profile, append_to_run_id=first.run_id))
     return report_payload(
         LiveE2EReport(
             catalog_source_count=catalog_source_count,
+            source_profile=profile,
             expected_source_ids=expected_source_ids,
             first=first,
             second=second,
@@ -114,6 +130,8 @@ def report_payload(report: LiveE2EReport) -> dict[str, object]:
         "schema_version": 1,
         "record_type": "v2_live_e2e_report",
         "catalog_source_count": report.catalog_source_count,
+        "source_profile": report.source_profile,
+        "selected_source_count": len(report.expected_source_ids),
         "expected_source_ids": report.expected_source_ids,
         "first": _execution_payload(report.first),
         "second": _execution_payload(report.second),
@@ -123,6 +141,7 @@ def report_payload(report: LiveE2EReport) -> dict[str, object]:
 def _initial_report_payload(
     *,
     catalog_source_count: int,
+    source_profile: str,
     expected_source_ids: tuple[str, ...],
     execution: V2SearchExecution,
 ) -> dict[str, object]:
@@ -130,6 +149,8 @@ def _initial_report_payload(
         "schema_version": 1,
         "record_type": "v2_live_e2e_initial_report",
         "catalog_source_count": catalog_source_count,
+        "source_profile": source_profile,
+        "selected_source_count": len(expected_source_ids),
         "expected_source_ids": expected_source_ids,
         "execution": _execution_payload(execution),
     }
@@ -151,10 +172,12 @@ def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
         "append_sequence": execution.append_sequence,
         "run_dir": str(execution.paths.run_dir),
         "artifacts": {
-            "raw_listings": str(execution.paths.raw_listings_path),
-            "source_attempts": str(execution.paths.source_attempts_path),
-            "run_manifest": str(execution.paths.run_manifest_path),
-            "processed_results": str(execution.paths.processed_results_path),
+            "database": str(execution.paths.database_path),
+            "raw_listings_table": "raw_listings",
+            "source_attempts_table": "source_attempts",
+            "run_manifest_table": "run_manifest",
+            "processed_results_table": "processed_results",
+            "report_html": str(execution.paths.report_html_path),
         },
         "raw_records_written_this_call": execution.raw_records_written,
         "processed_result_count": execution.processed_results.result_count,
@@ -175,7 +198,18 @@ def _attempt_payload(attempt: SourceAttemptRecord) -> dict[str, object]:
     }
 
 
-def _live_search_config(runs_dir: Path) -> V2SearchConfig:
+def _live_search_config(runs_dir: Path, *, profile: str) -> V2SearchConfig:
+    if profile == "light":
+        return V2SearchConfig(
+            runs_dir=runs_dir,
+            source_ids=LIGHT_SOURCE_IDS,
+            source_attempt_timeout_seconds=LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS,
+            run_timeout_seconds=LIGHT_RUN_TIMEOUT_SECONDS,
+            fetch_timeout_seconds=LIGHT_FETCH_TIMEOUT_SECONDS,
+            retry_policy=RetryPolicy(max_attempts=1),
+        )
+    if profile != "full":
+        raise ValueError(f"unknown live e2e profile: {profile}")
     return V2SearchConfig(
         runs_dir=runs_dir,
         source_ids=(),
@@ -186,7 +220,11 @@ def _live_search_config(runs_dir: Path) -> V2SearchConfig:
     )
 
 
-def _initial_live_request() -> SearchRequest:
+def _initial_live_request(profile: str) -> SearchRequest:
+    if profile == "light":
+        return SearchRequest(query_variants=("Developer",))
+    if profile != "full":
+        raise ValueError(f"unknown live e2e profile: {profile}")
     return SearchRequest(
         query_variants=("QA",),
         grades=(Grade.MIDDLE,),
@@ -195,7 +233,20 @@ def _initial_live_request() -> SearchRequest:
     )
 
 
-def _append_live_request(*, append_to_run_id: str) -> SearchRequest:
+def _append_live_request(profile: str, *, append_to_run_id: str) -> SearchRequest:
+    if profile == "light":
+        return SearchRequest(
+            query_variants=("QA",),
+            exclude_text=(
+                TextExclusion(
+                    pattern="zzzzzz-no-live-e2e-match",
+                    mode=TextExclusionMode.SUBSTRING,
+                ),
+            ),
+            append_to_run_id=append_to_run_id,
+        )
+    if profile != "full":
+        raise ValueError(f"unknown live e2e profile: {profile}")
     return SearchRequest(
         query_variants=("тестировщик",),
         countries=("RU", "AM"),
@@ -207,6 +258,18 @@ def _append_live_request(*, append_to_run_id: str) -> SearchRequest:
         ),
         append_to_run_id=append_to_run_id,
     )
+
+
+def _profile_source_ids(profile: str) -> tuple[str, ...]:
+    if profile == "full":
+        return implemented_source_ids()
+    if profile == "light":
+        implemented = frozenset(implemented_source_ids())
+        missing = tuple(source_id for source_id in LIGHT_SOURCE_IDS if source_id not in implemented)
+        if missing:
+            raise ValueError(f"light live e2e sources are not implemented: {', '.join(missing)}")
+        return tuple(source_id for source_id in implemented_source_ids() if source_id in LIGHT_SOURCE_IDS)
+    raise ValueError(f"unknown live e2e profile: {profile}")
 
 
 if __name__ == "__main__":
