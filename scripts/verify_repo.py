@@ -83,7 +83,15 @@ def main() -> int:
 
 
 def _run_lint() -> int:
-    return _run(["uv", "--directory", PLUGIN_ARG, "run", "ruff", "check", "src", "scripts", "tests", "../../scripts"])
+    checks = (
+        [sys.executable, "scripts/check_no_compat_comments.py"],
+        ["uv", "--directory", PLUGIN_ARG, "run", "ruff", "check", "src", "scripts", "tests", "../../scripts"],
+    )
+    for check in checks:
+        code = _run(check)
+        if code != 0:
+            return code
+    return 0
 
 
 def _run_types() -> int:

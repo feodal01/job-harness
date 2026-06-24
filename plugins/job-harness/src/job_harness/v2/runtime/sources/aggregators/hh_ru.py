@@ -37,6 +37,12 @@ _EXPERIENCE_GRADE_MAP = {
     "between3And6": "senior",
     "moreThan6": "lead",
 }
+_EXPERIENCE_TEXT_MAP = {
+    "noExperience": "без опыта",
+    "between1And3": "1–3 года",
+    "between3And6": "3–6 лет",
+    "moreThan6": "более 6 лет",
+}
 _CURRENCY_MAP = {
     "RUR": "RUB",
 }
@@ -130,12 +136,15 @@ class HhRuSource(DetailEnrichmentScraper):
         if block_reason is not None:
             raise ClassifiedSourceError(SourceOutcome.BLOCKED, block_reason)
         description, additional_sections = _detail_description(response.body)
+        structured = _detail_structured_facts(response.body)
         return replace(
             listing,
             description=description,
             requirements=listing.requirements or _requirements(additional_sections),
             additional_sections=additional_sections,
-            raw_text=_join_text(listing.raw_text, description),
+            skills=_merge_text_tuple(listing.skills, structured.skills),
+            raw_text=_join_text(listing.raw_text, description, structured.raw_text),
+            raw={**listing.raw, **structured.raw},
         )
 
 
@@ -367,11 +376,12 @@ def _next_page_request(
 class _VacancyDescriptionCollector(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
+        self.chunks: list[str] = []
         self.sections: dict[str, list[str]] = {}
         self._depth: int | None = None
         self._strong_parts: list[str] | None = None
         self._current_section: str | None = None
+        self._list_stack: list[tuple[str, int]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if self._depth is None:
@@ -382,6 +392,14 @@ class _VacancyDescriptionCollector(HTMLParser):
 
         if tag not in _VOID_TAGS:
             self._depth += 1
+        if tag in {"p", "div", "ul", "ol"}:
+            self._newline()
+        if tag in {"ul", "ol"}:
+            self._list_stack.append((tag, 0))
+        if tag == "br":
+            self._newline()
+        if tag == "li":
+            self._start_list_item()
         if tag == "strong":
             self._strong_parts = []
 
@@ -391,7 +409,7 @@ class _VacancyDescriptionCollector(HTMLParser):
         text = _normalize_text(data)
         if not text:
             return
-        self.parts.append(text)
+        self._append_text(text)
         if self._strong_parts is not None:
             self._strong_parts.append(text)
             return
@@ -407,12 +425,38 @@ class _VacancyDescriptionCollector(HTMLParser):
                 self._current_section = label
                 self.sections.setdefault(label, [])
             self._strong_parts = None
+        if tag in {"p", "div", "li"}:
+            self._newline()
+        if tag in {"ul", "ol"}:
+            if self._list_stack:
+                self._list_stack.pop()
+            self._newline()
         if tag not in _VOID_TAGS:
             self._depth -= 1
         if self._depth == 0:
             self._depth = None
             self._strong_parts = None
             self._current_section = None
+            self._list_stack = []
+
+    def _append_text(self, value: str) -> None:
+        if self.chunks and self.chunks[-1] not in {"\n", " ", "• "} and not self.chunks[-1].endswith((" ", "\n")):
+            self.chunks.append(" ")
+        self.chunks.append(value)
+
+    def _newline(self) -> None:
+        if self.chunks and self.chunks[-1] != "\n":
+            self.chunks.append("\n")
+
+    def _start_list_item(self) -> None:
+        self._newline()
+        if not self._list_stack:
+            self.chunks.append("• ")
+            return
+        tag, count = self._list_stack[-1]
+        count += 1
+        self._list_stack[-1] = (tag, count)
+        self.chunks.append(f"{count}. " if tag == "ol" else "• ")
 
 
 def _detail_block_reason(body: str) -> str | None:
@@ -445,9 +489,9 @@ def _detail_description(body: str) -> tuple[str, dict[str, str]]:
 def _detail_description_from_dom(body: str) -> tuple[str, dict[str, str]]:
     collector = _VacancyDescriptionCollector()
     collector.feed(body)
-    description = _normalize_punctuation(" ".join(collector.parts).strip())
+    description = _normalize_formatted_text("".join(collector.chunks))
     sections = {
-        label: _normalize_punctuation("\n".join(parts).strip())
+        label: _normalize_formatted_text("\n".join(parts))
         for label, parts in collector.sections.items()
         if parts and "\n".join(parts).strip()
     }
@@ -465,12 +509,88 @@ def _detail_description_from_state(body: str) -> tuple[str, dict[str, str]]:
     return _detail_description_from_dom(f'<div data-qa="{_HH_DESCRIPTION_QA}">{raw_html}</div>')
 
 
+class _DetailStructuredFacts:
+    def __init__(
+        self,
+        *,
+        skills: tuple[str, ...] = (),
+        raw: dict[str, object] | None = None,
+        raw_text: str | None = None,
+    ) -> None:
+        self.skills = skills
+        self.raw = raw or {}
+        self.raw_text = raw_text
+
+
+def _detail_structured_facts(body: str) -> _DetailStructuredFacts:
+    try:
+        state = _extract_initial_state(body)
+    except ValueError:
+        return _DetailStructuredFacts()
+    vacancy_view = state.get("vacancyView")
+    if not isinstance(vacancy_view, dict):
+        return _DetailStructuredFacts()
+
+    raw: dict[str, object] = {}
+    for key in (
+        "compensation",
+        "workExperience",
+        "workFormats",
+        "keySkills",
+        "employmentForm",
+        "workScheduleByDays",
+        "workingHours",
+        "acceptLaborContract",
+        "civilLawContracts",
+    ):
+        if key in vacancy_view:
+            raw[key] = vacancy_view[key]
+
+    skills = _key_skills(vacancy_view.get("keySkills"))
+    return _DetailStructuredFacts(
+        skills=skills,
+        raw=raw,
+        raw_text=_join_text(
+            _EXPERIENCE_TEXT_MAP.get(_text(vacancy_view.get("workExperience"))),
+            " ".join(_string_list(vacancy_view.get("workFormats"))),
+            " ".join(_string_list(vacancy_view.get("workScheduleByDays"))),
+            " ".join(_string_list(vacancy_view.get("workingHours"))),
+            " ".join(skills),
+        ),
+    )
+
+
 def _requirements(sections: dict[str, str]) -> str | None:
     for label, body in sections.items():
         folded = label.casefold()
         if "ожидаем" in folded or "требован" in folded:
             return body
     return None
+
+
+def _key_skills(value: object) -> tuple[str, ...]:
+    if not isinstance(value, dict):
+        return ()
+    return _string_list(value.get("keySkill"))
+
+
+def _string_list(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    return tuple(text for item in value if (text := _text(item).strip()))
+
+
+def _merge_text_tuple(first: tuple[str, ...], second: tuple[str, ...]) -> tuple[str, ...]:
+    values: list[str] = []
+    seen: set[str] = set()
+    for value in (*first, *second):
+        normalized = value.strip()
+        folded = normalized.casefold()
+        if not normalized or folded in seen:
+            continue
+        values.append(normalized)
+        seen.add(folded)
+    return tuple(values)
 
 
 def _is_section_label(value: str) -> bool:
@@ -516,3 +636,11 @@ def _normalize_text(value: str) -> str:
 
 def _normalize_punctuation(value: str) -> str:
     return re.sub(r"\s+([,.;:!?])", r"\1", value)
+
+
+def _normalize_formatted_text(value: str) -> str:
+    text = _normalize_punctuation(value)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n[ \t]+", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()

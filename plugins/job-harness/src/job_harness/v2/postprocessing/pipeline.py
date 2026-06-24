@@ -14,6 +14,47 @@ from job_harness.v2.postprocessing.criteria_plan import CriteriaProcessingPlanne
 from job_harness.v2.runtime.serialization import to_jsonable
 
 _TEXT_FIELDS = ("title", "description", "requirements", "additional_sections", "skills", "raw_text")
+_HH_EXPERIENCE_TEXT = {
+    "noExperience": "без опыта",
+    "between1And3": "1–3 года",
+    "between3And6": "3–6 лет",
+    "moreThan6": "более 6 лет",
+}
+_HH_EMPLOYMENT_FORM_TEXT = {
+    "FULL": "полная занятость",
+    "PART": "частичная занятость",
+    "PROJECT": "проектная работа",
+    "VOLUNTEER": "волонтерство",
+    "PROBATION": "стажировка",
+}
+_HH_WORK_FORMAT_TEXT = {
+    "REMOTE": "удалённо",
+    "ON_SITE": "на месте работодателя",
+    "HYBRID": "гибрид",
+    "FIELD_WORK": "разъездной",
+}
+_HH_WORK_SCHEDULE_TEXT = {
+    "FIVE_ON_TWO_OFF": "5/2",
+    "TWO_ON_TWO_OFF": "2/2",
+    "SIX_ON_ONE_OFF": "6/1",
+    "FLEXIBLE": "гибкий",
+    "SHIFT": "сменный",
+    "FLY_IN_FLY_OUT": "вахтовый",
+}
+_HH_WORKING_HOURS_TEXT = {
+    "HOURS_2": "2",
+    "HOURS_3": "3",
+    "HOURS_4": "4",
+    "HOURS_5": "5",
+    "HOURS_6": "6",
+    "HOURS_7": "7",
+    "HOURS_8": "8",
+    "HOURS_9": "9",
+    "HOURS_10": "10",
+    "HOURS_11": "11",
+    "HOURS_12": "12",
+    "HOURS_24": "24",
+}
 _SHORT_QUERY_TOKEN_LENGTH = 2
 
 
@@ -48,12 +89,14 @@ class ResultTablePostProcessor:
         )
         native_query_attempts = _native_query_attempts(source_attempts)
         kept_rows: list[dict[str, object]] = []
+        filtered_rows: list[dict[str, object]] = []
         removed_counts: dict[str, int] = {}
 
         for row in rows:
             reason = _removal_reason(row, request, native_query_attempts)
             if reason is not None:
                 removed_counts[reason] = removed_counts.get(reason, 0) + 1
+                filtered_rows.append({**row, "decision": "filtered_out", "decision_reasons": (reason,)})
                 continue
             kept_rows.append({**row, "decision": "kept", "decision_reasons": ("matches_requested_filters",)})
 
@@ -62,11 +105,13 @@ class ResultTablePostProcessor:
             "record_type": "processed_results",
             "run_id": run_id,
             "append_sequence": append_sequence,
+            "search_request": to_jsonable(request),
             "raw_records_read": len(raw_records),
             "result_count": len(kept_rows),
             "removed_counts": removed_counts,
             "source_criteria_plan": source_criteria_plan,
             "results": kept_rows,
+            "filtered_out_results": filtered_rows,
         }
         _write_json_atomic(output_path, payload)
         return ProcessedResults(
@@ -119,15 +164,19 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
             "salary_min": _optional_int(listing.get("salary_min")),
             "salary_max": _optional_int(listing.get("salary_max")),
             "salary_currency": _optional_text(listing.get("salary_currency")),
+            "display_salary": _display_salary(listing),
             "posted_at": _optional_text(listing.get("posted_at")),
             "remote_in_country": _optional_bool(listing.get("remote_in_country")),
             "remote_global": _optional_bool(listing.get("remote_global")),
             "relocation": _optional_bool(listing.get("relocation")),
             "native_grade": _optional_text(listing.get("native_grade")),
+            "display_experience": _display_experience(listing),
+            "display_work_format": _display_work_format(listing),
             "description": _optional_text(listing.get("description")),
             "requirements": _optional_text(listing.get("requirements")),
             "additional_sections": _text_mapping(listing.get("additional_sections")),
             "skills": _text_tuple(listing.get("skills")),
+            "source_facts": _source_facts(listing),
             "raw_text": _optional_text(listing.get("raw_text")),
             "description_availability": _optional_text(record.get("description_availability")),
             "detail_fetched": bool(record.get("detail_fetched")),
@@ -147,6 +196,97 @@ def _dedupe_rows(rows: tuple[dict[str, object], ...]) -> tuple[dict[str, object]
         seen.add(key)
         unique_rows.append(row)
     return tuple(unique_rows)
+
+
+def _source_facts(listing: dict[str, object]) -> tuple[dict[str, str], ...]:
+    source = _text(listing.get("source"))
+    raw = listing.get("raw")
+    if source != "hh_ru" or not isinstance(raw, dict):
+        return ()
+
+    facts: list[dict[str, str]] = []
+    _append_fact(facts, "Employment", _HH_EMPLOYMENT_FORM_TEXT.get(_text(raw.get("employmentForm"))))
+    _append_fact(facts, "Contract", _hh_contract_text(raw))
+    _append_fact(facts, "Schedule", _mapped_list(raw.get("workScheduleByDays"), _HH_WORK_SCHEDULE_TEXT))
+    _append_fact(facts, "Working hours", _mapped_list(raw.get("workingHours"), _HH_WORKING_HOURS_TEXT))
+    return tuple(facts)
+
+
+def _display_salary(listing: dict[str, object]) -> str | None:
+    salary_text = _optional_text(listing.get("salary_text"))
+    if salary_text:
+        return salary_text
+    salary_min = _optional_int(listing.get("salary_min"))
+    salary_max = _optional_int(listing.get("salary_max"))
+    salary_currency = _optional_text(listing.get("salary_currency"))
+    if salary_min is not None and salary_max is not None:
+        return f"{salary_min} - {salary_max}{f' {salary_currency}' if salary_currency else ''}"
+    if salary_min is not None:
+        return f"from {salary_min}{f' {salary_currency}' if salary_currency else ''}"
+    if salary_max is not None:
+        return f"up to {salary_max}{f' {salary_currency}' if salary_currency else ''}"
+    raw = listing.get("raw")
+    if isinstance(raw, dict):
+        compensation = _hh_compensation_text(raw.get("compensation"))
+        if compensation:
+            return compensation
+    return "не указан"
+
+
+def _display_experience(listing: dict[str, object]) -> str | None:
+    raw = listing.get("raw")
+    if isinstance(raw, dict):
+        experience = _HH_EXPERIENCE_TEXT.get(_text(raw.get("workExperience")))
+        if experience:
+            return experience
+    return _optional_text(listing.get("native_grade"))
+
+
+def _display_work_format(listing: dict[str, object]) -> str | None:
+    raw = listing.get("raw")
+    if isinstance(raw, dict):
+        work_format = _mapped_list(raw.get("workFormats"), _HH_WORK_FORMAT_TEXT)
+        if work_format:
+            return work_format
+    remote_global = _optional_bool(listing.get("remote_global"))
+    remote_in_country = _optional_bool(listing.get("remote_in_country"))
+    relocation = _optional_bool(listing.get("relocation"))
+    if remote_global is True:
+        return "remote global"
+    if remote_in_country is True:
+        return "remote"
+    if remote_in_country is False and remote_global is False:
+        return "on-site or hybrid"
+    if relocation is True:
+        return "relocation"
+    return None
+
+
+def _append_fact(facts: list[dict[str, str]], label: str, value: str | None) -> None:
+    if value:
+        facts.append({"label": label, "value": value})
+
+
+def _mapped_list(value: object, mapping: dict[str, str]) -> str | None:
+    values = _text_tuple(value)
+    mapped = tuple(mapping.get(item, item) for item in values)
+    return ", ".join(mapped) or None
+
+
+def _hh_contract_text(raw: dict[str, object]) -> str | None:
+    contracts: list[str] = []
+    if raw.get("acceptLaborContract") is True:
+        contracts.append("трудовой договор")
+    civil_contracts = raw.get("civilLawContracts")
+    if isinstance(civil_contracts, list) and civil_contracts:
+        contracts.append("ГПХ")
+    return ", ".join(contracts) or None
+
+
+def _hh_compensation_text(value: object) -> str | None:
+    if isinstance(value, dict) and "noCompensation" in value:
+        return "не указан"
+    return None
 
 
 def _native_query_attempts(source_attempts: tuple[dict[str, object], ...]) -> frozenset[tuple[str, str]]:
