@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-import json
-import os
 import re
 from dataclasses import dataclass
 from datetime import date
-from pathlib import Path
 
 from job_harness.v2.contracts import SearchRequest, TextExclusion, TextExclusionMode
 from job_harness.v2.matching import FuzzyBounds, fuzzy_any_match, fuzzy_tokens_match
 from job_harness.v2.postprocessing.criteria_plan import CriteriaProcessingPlanner
-from job_harness.v2.runtime.serialization import to_jsonable
+from job_harness.v2.serialization import JsonObject, to_jsonable
 
 _TEXT_FIELDS = ("title", "description", "requirements", "additional_sections", "skills", "raw_text")
 _HH_EXPERIENCE_TEXT = {
@@ -67,7 +64,7 @@ class ProcessedResults:
     append_sequence: int
     raw_records_read: int
     result_count: int
-    output_path: Path
+    payload: JsonObject
 
 
 class ResultTablePostProcessor:
@@ -79,12 +76,9 @@ class ResultTablePostProcessor:
         request: SearchRequest,
         run_id: str,
         append_sequence: int,
-        raw_listings_path: Path,
-        source_attempts_path: Path,
-        output_path: Path,
+        raw_records: tuple[JsonObject, ...],
+        source_attempts: tuple[JsonObject, ...],
     ) -> ProcessedResults:
-        raw_records = _read_jsonl_objects(raw_listings_path)
-        source_attempts = _read_required_jsonl_objects(source_attempts_path)
         rows = _dedupe_rows(_listing_rows(raw_records))
         source_criteria_plan = CriteriaProcessingPlanner().build_plan(
             source_attempts=source_attempts,
@@ -103,7 +97,7 @@ class ResultTablePostProcessor:
                 continue
             kept_rows.append({**row, "decision": "kept", "decision_reasons": ("matches_requested_filters",)})
 
-        payload = {
+        payload = to_jsonable({
             "schema_version": 1,
             "record_type": "processed_results",
             "run_id": run_id,
@@ -115,35 +109,16 @@ class ResultTablePostProcessor:
             "source_criteria_plan": source_criteria_plan,
             "results": kept_rows,
             "filtered_out_results": filtered_rows,
-        }
-        _write_json_atomic(output_path, payload)
+        })
+        if not isinstance(payload, dict):
+            raise TypeError("processed results payload must be a JSON object")
         return ProcessedResults(
             run_id=run_id,
             append_sequence=append_sequence,
             raw_records_read=len(raw_records),
             result_count=len(kept_rows),
-            output_path=output_path,
+            payload=payload,
         )
-
-
-def _read_jsonl_objects(path: Path) -> tuple[dict[str, object], ...]:
-    if not path.exists():
-        return ()
-    records: list[dict[str, object]] = []
-    for line in path.read_text(encoding="utf-8").split("\n"):
-        if not line.strip():
-            continue
-        value = json.loads(line)
-        if not isinstance(value, dict):
-            raise ValueError(f"raw corpus line is not a JSON object: {path}")
-        records.append(value)
-    return tuple(records)
-
-
-def _read_required_jsonl_objects(path: Path) -> tuple[dict[str, object], ...]:
-    if not path.exists():
-        raise FileNotFoundError(f"required JSONL artifact does not exist: {path}")
-    return _read_jsonl_objects(path)
 
 
 def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, object], ...]:
@@ -427,19 +402,6 @@ def _published_since(row: dict[str, object], published_since: date) -> bool:
         return date.fromisoformat(raw[:10]) >= published_since
     except ValueError:
         return False
-
-
-def _write_json_atomic(path: Path, payload: dict[str, object]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_suffix(".json.tmp")
-    tmp_fd = os.open(str(tmp_path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
-    try:
-        encoded = (json.dumps(to_jsonable(payload), ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
-        os.write(tmp_fd, encoded)
-        os.fsync(tmp_fd)
-    finally:
-        os.close(tmp_fd)
-    os.replace(tmp_path, path)
 
 
 def _text(value: object) -> str:

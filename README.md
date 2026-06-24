@@ -19,10 +19,10 @@ Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
 - Contract-first search engine under `src/job_harness/v2/`
 - **14 implemented sources** — Russian/CIS aggregators plus VK and JetBrains career pages
 - Strict source catalog via `job-harness-v2 list-sources` with per-source limits and criteria capabilities
-- Raw corpus + processed export separation: `raw-listings.jsonl` vs `processed-results.json`
+- Raw corpus + processed export separation in `run.sqlite`: `raw_listings` vs `processed_results`
 - Search criteria: query variants, grades, salary floor, freshness, remote/relocation, countries, cities, text exclusions
 - Append mode to accumulate multiple query variants in one run
-- Live verification gate: `python scripts/verify_v2.py` (full catalog e2e through `V2SearchApplication`)
+- Live verification gate: `python scripts/verify_v2.py` (full catalog e2e) or `python scripts/verify_v2.py --live-profile light` (bounded two-source e2e)
 - Runtime skill `job-search-workflow` documents the canonical v2 agent workflow
 
 Legacy v1 (MCP async search, browser pool, employer resolution, company-live-batch) remains available under `src/job_harness/v1/` for maintenance but is not the primary search path.
@@ -59,14 +59,14 @@ uv --directory plugins/job-harness run job-harness-v2 list-sources
 
 ```bash
 uv --directory plugins/job-harness run job-harness-v2 search \
-  --query "QA" \
+  --queries "QA | AQA | SDET | Quality Assurance" \
   --grade middle \
   --salary-from 150000 \
   --country RU \
   --max-results 20
 ```
 
-Stdout is a single JSON object (`record_type: v2_search_execution`) with `run_id`, artifact paths, per-source `attempts`, and `processed_result_count`.
+Stdout is a single JSON object (`record_type: v2_search_execution`) with `run_id`, `run.sqlite` path, per-source `attempts`, and `processed_result_count`.
 
 Default artifact root: `.job-harness/v2/runs/<run_id>/`
 
@@ -74,7 +74,7 @@ Default artifact root: `.job-harness/v2/runs/<run_id>/`
 
 ```bash
 uv --directory plugins/job-harness run job-harness-v2 search \
-  --query "тестировщик" \
+  --queries "тестировщик | инженер по тестированию" \
   --append-to-run-id "<run_id>" \
   --max-results 20
 ```
@@ -84,6 +84,7 @@ uv --directory plugins/job-harness run job-harness-v2 search \
 | Flag | Description |
 |------|-------------|
 | `--query` | Search text; **repeatable** for multiple variants |
+| `--queries` | Pipe-separated query variants, for example `"QA \| AQA \| SDET"`; repeatable |
 | `--grade` | `intern`, `junior`, `middle`, `senior`, `lead`; repeatable |
 | `--salary-from` | Minimum salary (integer) |
 | `--published-since` | ISO date `YYYY-MM-DD` |
@@ -133,16 +134,15 @@ Each run under `.job-harness/v2/runs/<run_id>/`:
 
 | File | Purpose |
 |------|---------|
-| `raw-listings.jsonl` | Unfiltered raw listings from all sources |
-| `source-attempts.jsonl` | Per-source outcomes, timings, diagnostics |
-| `run-manifest.json` | Run metadata and append sequence |
-| `processed-results.json` | Filtered, deduped, capped export for presentation |
+| `run.sqlite` | Durable run database with `raw_listings`, `source_attempts`, `run_manifest`, and `processed_results` tables |
+| `report.html` | Self-contained interactive report generated from `processed_results` |
 
 ## Verification
 
 ```bash
-# v2 gate (deterministic + optional live full-catalog e2e)
+# v2 gate (deterministic + optional live e2e)
 python scripts/verify_v2.py
+python scripts/verify_v2.py --live-profile light
 python scripts/verify_v2.py --skip-live
 
 # Repository gate (lint, types, v1+v2 unit tests, optional v1 live smokes)
@@ -175,4 +175,4 @@ plugins/job-harness/
 
 ## Status
 
-v2 is the primary search surface for new work: 14 contract-first sources, fixture-backed parsers, and a full-catalog live e2e gate. v1 remains for MCP compatibility and legacy tooling under `src/job_harness/v1/`.
+v2 is the primary search surface for new work: 14 contract-first sources, fixture-backed parsers, and full/light live e2e profiles. v1 remains for MCP compatibility and legacy tooling under `src/job_harness/v1/`.

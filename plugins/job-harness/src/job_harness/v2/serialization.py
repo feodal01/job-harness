@@ -8,6 +8,8 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any, cast
 
+type JsonObject = dict[str, Any]
+
 
 def to_jsonable(value: object) -> Any:
     if is_dataclass(value):

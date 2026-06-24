@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -58,6 +59,12 @@ def main() -> int:
         action="store_true",
         help="Run only deterministic v2 checks. The default includes a full-catalog live e2e run.",
     )
+    parser.add_argument(
+        "--live-profile",
+        choices=("full", "light"),
+        default="full",
+        help="Live e2e source profile to run when live checks are enabled.",
+    )
     args = parser.parse_args()
 
     checks = [
@@ -76,7 +83,7 @@ def main() -> int:
         _run_v2_tests,
     ]
     if not args.skip_live:
-        checks.append(_run_v2_live_e2e)
+        checks.append(lambda: _run_v2_live_e2e(args.live_profile))
 
     for check in checks:
         code = check()
@@ -186,7 +193,7 @@ def _run_v2_persistence_tests() -> int:
     return _run_unittest_modules(
         "v2 run artifact storage tests",
         (
-            "tests.v2.test_runtime_corpus",
+            "tests.v2.test_persistence_sqlite_run_store",
             "tests.v2.test_runtime_run_layout",
         ),
     )
@@ -209,19 +216,19 @@ def _run_v2_application_cli_tests() -> int:
     )
 
 
-def _run_v2_live_e2e() -> int:
-    print("+ v2 live e2e (V2SearchApplication, full catalog)", flush=True)
+def _run_v2_live_e2e(live_profile: str) -> int:
+    print(f"+ v2 live e2e (V2SearchApplication, {live_profile} profile)", flush=True)
     with tempfile.TemporaryDirectory(prefix="job-harness-v2-live-") as tmp:
         runs_dir = Path(tmp)
 
-        initial_report = _run_live_e2e_phase(runs_dir=runs_dir, phase="initial")
+        initial_report = _run_live_e2e_phase(runs_dir=runs_dir, phase="initial", live_profile=live_profile)
         if initial_report is None:
             return 1
         expected_source_ids = _report_expected_source_ids(initial_report)
         if expected_source_ids is None:
             return 1
         print(
-            f"v2 live e2e catalog: {len(expected_source_ids)} implemented sources",
+            f"v2 live e2e selected sources: {len(expected_source_ids)}",
             flush=True,
         )
 
@@ -234,7 +241,7 @@ def _run_v2_live_e2e() -> int:
             expected_source_ids=expected_source_ids,
         ):
             return 1
-        _print_live_execution_summary(first, label="live run 1 (QA, grade=middle, salary_from=150000, RU+AM)")
+        _print_live_execution_summary(first, label=_live_phase_label(live_profile, phase="initial"))
 
         append_to_run_id = first.get("run_id")
         if not isinstance(append_to_run_id, str) or not append_to_run_id:
@@ -244,6 +251,7 @@ def _run_v2_live_e2e() -> int:
         append_report = _run_live_e2e_phase(
             runs_dir=runs_dir,
             phase="append",
+            live_profile=live_profile,
             append_to_run_id=append_to_run_id,
         )
         if append_report is None:
@@ -260,15 +268,28 @@ def _run_v2_live_e2e() -> int:
             return 1
         _print_live_execution_summary(
             second,
-            label="live run 2 (append тестировщик, RU+AM, exclude_text)",
+            label=_live_phase_label(live_profile, phase="append"),
         )
         return _validate_append_artifacts(first, second)
+
+
+def _live_phase_label(live_profile: str, *, phase: str) -> str:
+    if live_profile == "light" and phase == "initial":
+        return "light run 1 (Developer, career:jetbrains+jobturbo)"
+    if live_profile == "light" and phase == "append":
+        return "light run 2 (append QA, exclude_text)"
+    if live_profile == "full" and phase == "initial":
+        return "full run 1 (QA, grade=middle, salary_from=150000, RU+AM)"
+    if live_profile == "full" and phase == "append":
+        return "full run 2 (append тестировщик, RU+AM, exclude_text)"
+    raise ValueError(f"unsupported live e2e label: profile={live_profile!r}, phase={phase!r}")
 
 
 def _run_live_e2e_phase(
     *,
     runs_dir: Path,
     phase: str,
+    live_profile: str,
     append_to_run_id: str | None = None,
 ) -> dict[str, object] | None:
     cmd = [
@@ -282,6 +303,8 @@ def _run_live_e2e_phase(
         str(runs_dir),
         "--phase",
         phase,
+        "--profile",
+        live_profile,
     ]
     if append_to_run_id is not None:
         cmd.extend(["--append-to-run-id", append_to_run_id])
@@ -329,10 +352,17 @@ def _report_expected_source_ids(report: dict[str, object]) -> tuple[str, ...] | 
     if len(source_ids) != len(raw_ids):
         print("v2 live e2e failed: invalid expected_source_ids entries", file=sys.stderr)
         return None
-    catalog_source_count = report.get("catalog_source_count")
-    if catalog_source_count != len(source_ids):
+    selected_source_count = report.get("selected_source_count")
+    if selected_source_count != len(source_ids):
         print(
-            "v2 live e2e failed: catalog source count does not match implemented sources",
+            "v2 live e2e failed: selected source count does not match expected sources",
+            file=sys.stderr,
+        )
+        return None
+    catalog_source_count = report.get("catalog_source_count")
+    if not isinstance(catalog_source_count, int) or catalog_source_count < len(source_ids):
+        print(
+            "v2 live e2e failed: catalog source count is smaller than selected sources",
             file=sys.stderr,
         )
         return None
@@ -412,7 +442,11 @@ def _validate_live_processed_artifact(
     *,
     artifacts: dict[str, object],
 ) -> bool:
-    processed = json.loads(Path(_required_text(artifacts, "processed_results")).read_text(encoding="utf-8"))
+    append_sequence = payload.get("append_sequence")
+    if not isinstance(append_sequence, int):
+        print("v2 live e2e failed: invalid append_sequence for processed lookup", file=sys.stderr)
+        return False
+    processed = _read_processed_payload(artifacts, append_sequence=append_sequence)
     if processed.get("record_type") != "processed_results":
         print("v2 live e2e failed: processed artifact has wrong record_type", file=sys.stderr)
         return False
@@ -441,19 +475,14 @@ def _validate_live_engine_outputs(
         print("v2 live e2e failed: expected raw_records_written_this_call > 0", file=sys.stderr)
         return False
 
-    raw_path = Path(_required_text(artifacts, "raw_listings"))
-    raw_lines = [line for line in raw_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    if append_sequence == 0 and len(raw_lines) < raw_written:
-        print("v2 live e2e failed: raw_listings artifact shorter than reported writes", file=sys.stderr)
+    raw_records = _read_raw_records(artifacts)
+    if append_sequence == 0 and len(raw_records) < raw_written:
+        print("v2 live e2e failed: raw_listings table shorter than reported writes", file=sys.stderr)
         return False
 
-    source_attempt_lines = [
-        line
-        for line in Path(_required_text(artifacts, "source_attempts")).read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-    if not source_attempt_lines:
-        print("v2 live e2e failed: source_attempts artifact is empty", file=sys.stderr)
+    source_attempts = _read_source_attempt_records(artifacts)
+    if not source_attempts:
+        print("v2 live e2e failed: source_attempts table is empty", file=sys.stderr)
         return False
 
     if append_sequence == 0:
@@ -535,10 +564,23 @@ def _validated_live_artifacts(payload: dict[str, object]) -> dict[str, object] |
     if not isinstance(artifacts, dict):
         print("v2 live e2e failed: missing artifacts object", file=sys.stderr)
         return None
-    for name in ("raw_listings", "source_attempts", "run_manifest", "processed_results"):
-        path = Path(_required_text(artifacts, name))
-        if not path.exists():
-            print(f"v2 live e2e failed: missing artifact {name}: {path}", file=sys.stderr)
+    database_path = Path(_required_text(artifacts, "database"))
+    if not database_path.exists():
+        print(f"v2 live e2e failed: missing run database: {database_path}", file=sys.stderr)
+        return None
+    report_html_path = Path(_required_text(artifacts, "report_html"))
+    if not report_html_path.exists():
+        print(f"v2 live e2e failed: missing report HTML: {report_html_path}", file=sys.stderr)
+        return None
+    expected_tables = {
+        "raw_listings_table": "raw_listings",
+        "source_attempts_table": "source_attempts",
+        "run_manifest_table": "run_manifest",
+        "processed_results_table": "processed_results",
+    }
+    for key, expected_value in expected_tables.items():
+        if artifacts.get(key) != expected_value:
+            print(f"v2 live e2e failed: unexpected {key}", file=sys.stderr)
             return None
     return artifacts
 
@@ -581,13 +623,7 @@ def _has_known_vk_tls_chain_error(attempt: dict[str, object], artifacts: dict[st
 
 
 def _read_source_attempt_artifact(artifacts: dict[str, object]) -> list[dict[str, object]]:
-    path = Path(_required_text(artifacts, "source_attempts"))
-    records: list[dict[str, object]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        record = json.loads(line)
-        if isinstance(record, dict):
-            records.append(record)
-    return records
+    return _read_source_attempt_records(artifacts)
 
 
 def _is_known_vk_tls_chain_error(detailed_attempt: dict[str, object]) -> bool:
@@ -617,11 +653,84 @@ def _validate_append_artifacts(first: dict[str, object], second: dict[str, objec
     if not isinstance(artifacts, dict):
         print("v2 live e2e failed: append artifacts missing", file=sys.stderr)
         return 1
-    manifest = json.loads(Path(_required_text(artifacts, "run_manifest")).read_text(encoding="utf-8"))
+    manifest = _read_run_manifest(artifacts)
     if manifest.get("latest_append_sequence") != 1:
         print("v2 live e2e failed: manifest did not advance latest_append_sequence", file=sys.stderr)
         return 1
     return 0
+
+
+def _read_processed_payload(artifacts: dict[str, object], *, append_sequence: int) -> dict[str, object]:
+    rows = _read_json_rows(
+        artifacts,
+        """
+        SELECT payload_json
+        FROM processed_results
+        WHERE append_sequence = ?
+        """,
+        (append_sequence,),
+    )
+    if len(rows) != 1:
+        raise ValueError(f"expected one processed_results row for append_sequence={append_sequence}")
+    return rows[0]
+
+
+def _read_raw_records(artifacts: dict[str, object]) -> list[dict[str, object]]:
+    return _read_json_rows(
+        artifacts,
+        """
+        SELECT record_json
+        FROM raw_listings
+        ORDER BY append_sequence, id
+        """,
+        (),
+    )
+
+
+def _read_source_attempt_records(artifacts: dict[str, object]) -> list[dict[str, object]]:
+    return _read_json_rows(
+        artifacts,
+        """
+        SELECT payload_json
+        FROM source_attempts
+        ORDER BY append_sequence, id
+        """,
+        (),
+    )
+
+
+def _read_run_manifest(artifacts: dict[str, object]) -> dict[str, object]:
+    rows = _read_json_rows(
+        artifacts,
+        """
+        SELECT payload_json
+        FROM run_manifest
+        """,
+        (),
+    )
+    if len(rows) != 1:
+        raise ValueError("expected one run_manifest row")
+    return rows[0]
+
+
+def _read_json_rows(
+    artifacts: dict[str, object],
+    sql: str,
+    parameters: tuple[object, ...],
+) -> list[dict[str, object]]:
+    database_path = Path(_required_text(artifacts, "database"))
+    connection = sqlite3.connect(str(database_path), timeout=30.0)
+    try:
+        rows = connection.execute(sql, parameters).fetchall()
+    finally:
+        connection.close()
+    payloads: list[dict[str, object]] = []
+    for row in rows:
+        payload = json.loads(row[0])
+        if not isinstance(payload, dict):
+            raise ValueError("database payload row is not a JSON object")
+        payloads.append(payload)
+    return payloads
 
 
 def _required_text(value: dict[str, object], key: str) -> str:

@@ -1,6 +1,6 @@
 # v2 append: concurrency gaps and live e2e false failure
 
-Status: open  
+Status: resolved in v2 SQLite run-store migration
 Discovered: 2026-06-22  
 Area: `plugins/job-harness/src/job_harness/v2/`, `scripts/verify_v2.py`, `scripts/v2_live_e2e.py`
 
@@ -11,7 +11,19 @@ Two related issues around v2 append mode:
 1. **Live e2e gate false failure** — `verify_v2.py` (live profile) can report `processed_result_count mismatch` even when append behavior is correct.
 2. **No run-level serialization** — parallel append searches against the same `run_id` have undefined behavior: duplicate `append_sequence`, last-writer-wins on `processed-results.json` and `run-manifest.json`, and possibly stale processed output.
 
-Sequential append (agent waits for the first search to finish, then appends) matches the current design. Parallel append to one run is not safe today.
+In the former JSON/JSONL implementation, sequential append worked, but parallel
+append to one run was not safe.
+
+## Resolution
+
+The v2 run store now uses a per-run `run.sqlite` database. `append_sequence`
+allocation happens inside `SqliteRunStore.reserve_append_attempt()` with
+`BEGIN IMMEDIATE`, and processed results are stored per `(run_id,
+append_sequence)` in the `processed_results` table. Live e2e validation reads
+the matching processed snapshot from SQLite instead of comparing an in-memory
+count to a later overwritten file.
+
+The original analysis below describes the former JSON/JSONL artifact contract.
 
 ---
 

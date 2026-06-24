@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from job_harness.v2.cli import main as cli_main
-from job_harness.v2.postprocessing.formatters import render_processed_results_markdown
-from job_harness.v2.postprocessing.report import render_processed_results_html
+from job_harness.v2.persistence import SqliteRunStore
+from job_harness.v2.presentation import render_processed_results_html, render_processed_results_markdown
 
 
 class ProcessedResultsMarkdownTests(unittest.TestCase):
@@ -92,21 +91,32 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
     def test_cli_format_writes_output_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            input_path = root / "processed-results.json"
+            input_path = root / "run.sqlite"
             output_path = root / "report.md"
-            input_path.write_text(
-                json.dumps(
+            with SqliteRunStore(input_path, run_id="r-cli") as store:
+                store.reserve_append_attempt({"query_variants": ["QA"]})
+                store.write_processed_results(
                     {
                         "record_type": "processed_results",
                         "run_id": "r-cli",
                         "append_sequence": 0,
                         "raw_records_read": 1,
-                        "result_count": 0,
-                        "results": [],
+                        "result_count": 1,
+                        "results": [{"title": "Old append snapshot"}],
                     }
-                ),
-                encoding="utf-8",
-            )
+                )
+                store.mark_append_attempt_completed()
+                store.reserve_append_attempt({"query_variants": ["AQA"]})
+                store.write_processed_results(
+                    {
+                        "record_type": "processed_results",
+                        "run_id": "r-cli",
+                        "append_sequence": 1,
+                        "raw_records_read": 2,
+                        "result_count": 1,
+                        "results": [{"title": "Latest full run snapshot"}],
+                    }
+                )
 
             exit_code = cli_main(
                 [
@@ -119,7 +129,10 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
             )
 
             self.assertEqual(exit_code, 0)
-            self.assertIn("# Job search results — `r-cli`", output_path.read_text(encoding="utf-8"))
+            markdown = output_path.read_text(encoding="utf-8")
+            self.assertIn("# Job search results — `r-cli`", markdown)
+            self.assertIn("Latest full run snapshot", markdown)
+            self.assertNotIn("Old append snapshot", markdown)
 
 
 class ProcessedResultsHtmlTests(unittest.TestCase):
