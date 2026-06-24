@@ -23,11 +23,11 @@ Format:
 
 ---
 
-### Fallback selectors
+### Selector drift
 
-**Pattern:** Websites change layouts without notice. A selector that works today returns 0 elements tomorrow, and the scraper silently produces empty results.
+**Pattern:** Websites change layouts without notice. A selector that works today returns 0 elements tomorrow, and the scraper can silently produce empty results.
 
-**Strategy:** Always code with fallback chains: try the current selector, fall back to the previous one. Pattern: `if el.count() == 0: el = fallback_selector`. When you discover a new layout, add it as the primary and keep the old one as fallback — don't replace.
+**Strategy:** Keep one current, fixture-backed parsing contract per source shape. When a site changes, capture or minimize the real new artifact, update the parser to the new contract, and remove obsolete selector branches in the same patch.
 
 **Origin:** hh.ru changed vacancy card selectors twice.
 

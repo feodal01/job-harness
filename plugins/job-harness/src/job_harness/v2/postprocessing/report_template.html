@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>__TITLE__</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #18202a;
+      --muted: #657184;
+      --line: #d9dee7;
+      --accent: #0f766e;
+      --good: #166534;
+      --warn: #9a3412;
+      --bad: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(246, 247, 249, 0.96);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+    }
+    main { padding: 18px 0 36px; }
+    .request-summary {
+      margin-bottom: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+    .request-summary-inner {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+    .request-summary h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+    .wrap {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+    }
+    .top {
+      display: grid;
+      gap: 14px;
+      padding: 18px 0 14px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    .meta, .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .run-id {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .run-id code {
+      color: var(--ink);
+      font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .pill strong { color: var(--ink); font-weight: 650; }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding-bottom: 12px;
+    }
+    button, select, input {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--ink);
+      font: inherit;
+    }
+    button {
+      min-height: 34px;
+      padding: 6px 11px;
+      cursor: pointer;
+    }
+    button.active {
+      border-color: var(--accent);
+      background: #e8f5f2;
+      color: #083b36;
+      font-weight: 650;
+    }
+    select {
+      min-height: 34px;
+      padding: 6px 9px;
+    }
+    .results {
+      display: grid;
+      gap: 10px;
+    }
+    article {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+    article.filtered {
+      border-left: 4px solid var(--warn);
+    }
+    article.kept {
+      border-left: 4px solid var(--good);
+    }
+    .card-head {
+      display: grid;
+      gap: 6px;
+    }
+    .title-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+    .title-main {
+      display: flex;
+      min-width: 0;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .title-text {
+      display: grid;
+      min-width: 0;
+      gap: 3px;
+    }
+    .company-line {
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .ordinal {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      height: 30px;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #eef2f6;
+      color: var(--muted);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    a {
+      color: var(--accent);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 6px 14px;
+      color: var(--muted);
+    }
+    .grid b {
+      color: var(--ink);
+      font-weight: 650;
+    }
+    details {
+      border-top: 1px solid var(--line);
+      padding-top: 9px;
+    }
+    summary {
+      cursor: pointer;
+      color: var(--accent);
+      font-weight: 650;
+    }
+    pre {
+      margin: 10px 0 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #2a3441;
+      font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .debug-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .debug-meta b {
+      color: #475569;
+      font-weight: 650;
+    }
+    .empty {
+      padding: 24px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      text-align: center;
+    }
+    @media (max-width: 700px) {
+      .wrap { width: min(100vw - 20px, 1180px); }
+      .title-row { display: grid; }
+      .title-main { align-items: flex-start; }
+      .tabs button { flex: 1 1 auto; }
+      h1 { font-size: 19px; }
+      h2 { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <div>
+        <h1 id="page-title">Job search results</h1>
+        <div class="run-id">Run ID: <code id="run-id"></code></div>
+      </div>
+      <div class="filters">
+        <select id="source-filter" aria-label="Source"></select>
+      </div>
+      <div class="tabs" role="tablist">
+        <button id="tab-kept" type="button" data-view="kept" class="active">Kept</button>
+        <button id="tab-filtered" type="button" data-view="filtered">Filtered out</button>
+        <button id="tab-all" type="button" data-view="all">All</button>
+      </div>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="request-summary">
+      <div class="request-summary-inner">
+        <h2>Search request</h2>
+        <div class="meta" id="request-params"></div>
+      </div>
+    </section>
+    <section class="results" id="results"></section>
+  </main>
+  <script id="job-harness-payload" type="application/json">__PAYLOAD__</script>
+  <script>
+    const payload = JSON.parse(document.getElementById("job-harness-payload").textContent);
+    const state = { view: "kept", source: "" };
+
+    const kept = Array.isArray(payload.results) ? payload.results : [];
+    const filtered = Array.isArray(payload.filtered_out_results) ? payload.filtered_out_results : [];
+    const allRows = kept.concat(filtered);
+
+    const text = (value) => value === null || value === undefined ? "" : String(value).trim();
+    const list = (value) => Array.isArray(value) ? value.map(text).filter(Boolean) : [];
+    const uniq = (values) => Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+
+    function pill(label, value) {
+      const el = document.createElement("span");
+      el.className = "pill";
+      el.innerHTML = `<strong>${escapeHtml(label)}</strong>&nbsp;${escapeHtml(text(value))}`;
+      return el;
+    }
+
+    function escapeHtml(value) {
+      return text(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function matches(row) {
+      if (state.view === "kept" && row.decision !== "kept") return false;
+      if (state.view === "filtered" && row.decision !== "filtered_out") return false;
+      if (state.source && row.source !== state.source) return false;
+      return true;
+    }
+
+    function renderHeader() {
+      document.getElementById("run-id").textContent = text(payload.run_id) || "unknown";
+      document.getElementById("tab-kept").textContent = `Kept (${kept.length})`;
+      document.getElementById("tab-filtered").textContent = `Filtered out (${filtered.length})`;
+      document.getElementById("tab-all").textContent = `All (${allRows.length})`;
+    }
+
+    function renderSearchRequest() {
+      const container = document.getElementById("request-params");
+      const request = payload.search_request && typeof payload.search_request === "object"
+        ? payload.search_request
+        : {};
+      const items = [
+        requestField("Query", listText(request.query_variants, "not recorded")),
+        requestField("Grade", listText(request.grades, "Any")),
+        requestField("Salary from", text(request.salary_from) || "None"),
+        requestField("Published since", text(request.published_since) || "Any date"),
+        requestField("Countries", listText(request.countries, "Any country")),
+        requestField("Cities", listText(request.cities, "Any city")),
+        requestField("Sources", listText(request.sources, "Full catalog")),
+        requestField("Source types", listText(request.source_types, "All types")),
+        requestField("Remote in country", optionalBooleanText(request.remote_in_country)),
+        requestField("Remote global", optionalBooleanText(request.remote_global)),
+        requestField("Relocation", optionalBooleanText(request.relocation)),
+        requestField("Exclude companies", listText(request.exclude_companies, "None")),
+        requestField("Exclude text", exclusionText(request.exclude_text) || "None"),
+        requestField("Append to run", text(request.append_to_run_id) || "New run")
+      ];
+      container.replaceChildren(...items);
+    }
+
+    function requestField(label, value) {
+      return pill(label, value);
+    }
+
+    function listText(value, emptyText) {
+      const items = list(value);
+      return items.length ? items.join(", ") : emptyText;
+    }
+
+    function optionalBooleanText(value) {
+      if (value === true) return "Required";
+      if (value === false) return "Excluded";
+      return "Any";
+    }
+
+    function exclusionText(value) {
+      if (!Array.isArray(value)) return "";
+      return value.map((item) => {
+        if (!item || typeof item !== "object") return "";
+        const mode = text(item.mode) || "substring";
+        return `${mode}: ${text(item.pattern)}`;
+      }).filter(Boolean).join(", ");
+    }
+
+    function fillSelect(id, firstLabel, values) {
+      const select = document.getElementById(id);
+      const selected = select.value;
+      select.replaceChildren(new Option(firstLabel, ""));
+      for (const value of values) select.append(new Option(value, value));
+      select.value = values.includes(selected) ? selected : "";
+    }
+
+    function renderFilters() {
+      fillSelect("source-filter", "All sources", uniq(allRows.map((row) => text(row.source))));
+    }
+
+    function renderResults() {
+      const container = document.getElementById("results");
+      const rows = allRows.filter(matches);
+      container.replaceChildren();
+      if (!rows.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "No listings match the current view.";
+        container.append(empty);
+        return;
+      }
+      container.append(...rows.map((row, index) => renderRow(row, index + 1)));
+    }
+
+    function renderRow(row, ordinal) {
+      const article = document.createElement("article");
+      article.className = row.decision === "filtered_out" ? "filtered" : "kept";
+
+      const head = document.createElement("div");
+      head.className = "card-head";
+      const titleRow = document.createElement("div");
+      titleRow.className = "title-row";
+      const titleMain = document.createElement("div");
+      titleMain.className = "title-main";
+      const ordinalBadge = document.createElement("span");
+      ordinalBadge.className = "ordinal";
+      ordinalBadge.textContent = String(ordinal);
+      const titleText = document.createElement("div");
+      titleText.className = "title-text";
+      const title = document.createElement("h2");
+      const url = text(row.url);
+      if (url) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.textContent = text(row.title) || "Untitled vacancy";
+        title.append(link);
+      } else {
+        title.textContent = text(row.title) || "Untitled vacancy";
+      }
+      titleText.append(title);
+      const company = text(row.company);
+      if (company) {
+        const companyLine = document.createElement("div");
+        companyLine.className = "company-line";
+        companyLine.textContent = company;
+        titleText.append(companyLine);
+      }
+      titleMain.append(ordinalBadge, titleText);
+      titleRow.append(titleMain);
+      head.append(titleRow);
+
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      grid.append(
+        cardField("Experience", row.display_experience),
+        cardField("Salary", row.display_salary),
+        cardField("Posted", row.posted_at),
+        cardField("Country", row.country),
+        cardField("Location", row.location_text),
+        cardField("Remote in country", booleanText(row.remote_in_country)),
+        cardField("Remote global", booleanText(row.remote_global)),
+        cardField("Relocation", booleanText(row.relocation))
+      );
+      head.append(grid);
+      article.append(head);
+
+      const detailParts = detailTextParts(row);
+      const body = detailParts.join("\n\n");
+      if (body) {
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = "Details";
+        const pre = document.createElement("pre");
+        pre.textContent = body;
+        details.append(summary, pre);
+        article.append(details);
+      }
+
+      const debugFields = [
+        debugField("Source", row.source),
+        debugField("Source listing ID", row.source_listing_id),
+        debugField("Query", row.query_variant),
+        debugField("Description", row.description_availability),
+        debugField("Detail fetched", booleanText(row.detail_fetched)),
+        debugField("Detail parse error", row.detail_parse_error)
+      ].filter(Boolean);
+      if (debugFields.length) {
+        const debug = document.createElement("div");
+        debug.className = "debug-meta";
+        debug.replaceChildren(...debugFields);
+        article.append(debug);
+      }
+      return article;
+    }
+
+    function detailTextParts(row) {
+      const description = text(row.description);
+      const requirements = text(row.requirements);
+      const rawText = text(row.raw_text);
+      const parts = [];
+      if (description) parts.push(description);
+      if (requirements && !description.includes(requirements)) parts.push(requirements);
+      if (!parts.length && rawText) parts.push(rawText);
+      return parts;
+    }
+
+    function cardField(label, value) {
+      const valueText = text(value);
+      const div = document.createElement("div");
+      div.innerHTML = `<b>${escapeHtml(label)}:</b> ${escapeHtml(valueText || "not specified")}`;
+      return div;
+    }
+
+    function debugField(label, value) {
+      const valueText = text(value);
+      if (!valueText) return null;
+      const div = document.createElement("div");
+      div.innerHTML = `<b>${escapeHtml(label)}:</b> ${escapeHtml(valueText)}`;
+      return div;
+    }
+
+    function booleanText(value) {
+      if (value === true) return "yes";
+      if (value === false) return "no";
+      return "";
+    }
+
+    function setView(view) {
+      state.view = view;
+      for (const button of document.querySelectorAll(".tabs button")) {
+        button.classList.toggle("active", button.dataset.view === view);
+      }
+      renderResults();
+    }
+
+    document.getElementById("source-filter").addEventListener("change", (event) => {
+      state.source = event.target.value;
+      renderResults();
+    });
+    for (const button of document.querySelectorAll(".tabs button")) {
+      button.addEventListener("click", () => setView(button.dataset.view));
+    }
+
+    renderHeader();
+    renderSearchRequest();
+    renderFilters();
+    renderResults();
+  </script>
+</body>
+</html>

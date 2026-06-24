@@ -1,0 +1,32 @@
+{
+  "outcome": "success",
+  "skills": [
+    "CI/CD",
+    "Jenkins",
+    "TeamCity",
+    "Gitlab",
+    "Selenium",
+    "Pytest",
+    "C#",
+    "SQL",
+    "JOIN запросы",
+    "NUnit",
+    "REST",
+    "ДБО"
+  ],
+  "raw": {
+    "workExperience": "between1And3",
+    "workFormats": [
+      "REMOTE"
+    ],
+    "employmentForm": "FULL",
+    "workScheduleByDays": [
+      "FIVE_ON_TWO_OFF"
+    ],
+    "workingHours": [
+      "HOURS_8"
+    ],
+    "acceptLaborContract": true,
+    "civilLawContracts": null
+  }
+}

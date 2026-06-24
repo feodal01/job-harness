@@ -58,9 +58,39 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             # Assert
             payload = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertEqual(3, result.raw_records_read)
+            self.assertEqual(
+                {
+                    "append_to_run_id": None,
+                    "cities": [],
+                    "countries": [],
+                    "exclude_companies": ["blocked"],
+                    "exclude_text": [
+                        {
+                            "case_sensitive": False,
+                            "fields": [],
+                            "mode": "substring",
+                            "pattern": "legacy stack",
+                        }
+                    ],
+                    "grades": [],
+                    "published_since": None,
+                    "query_variants": ["QA"],
+                    "relocation": None,
+                    "remote_global": None,
+                    "remote_in_country": None,
+                    "salary_from": None,
+                    "source_types": [],
+                    "sources": [],
+                },
+                payload["search_request"],
+            )
             self.assertEqual(1, payload["result_count"])
             self.assertEqual("1", payload["results"][0]["source_listing_id"])
             self.assertEqual({"excluded_company": 1}, payload["removed_counts"])
+            self.assertEqual(1, len(payload["filtered_out_results"]))
+            self.assertEqual("2", payload["filtered_out_results"][0]["source_listing_id"])
+            self.assertEqual("filtered_out", payload["filtered_out_results"][0]["decision"])
+            self.assertEqual(["excluded_company"], payload["filtered_out_results"][0]["decision_reasons"])
             self.assertEqual(
                 "none_native_request",
                 payload["source_criteria_plan"][0]["actions"][0]["action"],
@@ -106,6 +136,55 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                 result["detail_parse_error"],
             )
             self.assertIsNone(result["description"])
+
+    def test_builds_hh_source_facts_from_raw_structured_fields(self) -> None:
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            with RawCorpusWriter(run_dir) as writer:
+                writer.append_raw_record(
+                    _raw_record(
+                        "134519442",
+                        company="Норд Клан",
+                        raw={
+                            "compensation": {"noCompensation": {}},
+                            "workExperience": "between1And3",
+                            "employmentForm": "FULL",
+                            "acceptLaborContract": True,
+                            "workScheduleByDays": ["FIVE_ON_TWO_OFF"],
+                            "workingHours": ["HOURS_8"],
+                            "workFormats": ["REMOTE"],
+                        },
+                    )
+                )
+                writer.append_attempt_record(_attempt_record())
+
+            output_path = run_dir / "processed-results.json"
+
+            # Act
+            ResultTablePostProcessor().process(
+                request=SearchRequest(query_variants=("QA",)),
+                run_id="r-test",
+                append_sequence=0,
+                raw_listings_path=run_dir / "raw-listings.jsonl",
+                source_attempts_path=run_dir / "source-attempts.jsonl",
+                output_path=output_path,
+            )
+
+            # Assert
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual("не указан", payload["results"][0]["display_salary"])
+            self.assertEqual("1–3 года", payload["results"][0]["display_experience"])
+            self.assertEqual("удалённо", payload["results"][0]["display_work_format"])
+            self.assertEqual(
+                [
+                    {"label": "Employment", "value": "полная занятость"},
+                    {"label": "Contract", "value": "трудовой договор"},
+                    {"label": "Schedule", "value": "5/2"},
+                    {"label": "Working hours", "value": "8"},
+                ],
+                payload["results"][0]["source_facts"],
+            )
 
     def test_marks_text_enrichment_required_from_source_attempt_diagnostics(self) -> None:
         # Arrange
@@ -468,6 +547,7 @@ def _raw_record(
     description_availability: DescriptionAvailability = DescriptionAvailability.NOT_REQUESTED,
     detail_fetched: bool = False,
     detail_parse_error: str | None = None,
+    raw: dict[str, object] | None = None,
 ) -> RawSearchRecord:
     raw_listing = listing(source, source_listing_id)
     effective_description = description if description is not None else (title or "Modern QA role")
@@ -480,6 +560,7 @@ def _raw_record(
         additional_sections=additional_sections or {},
         remote_in_country=remote_in_country,
         raw_text=raw_text if raw_text is not None else effective_description,
+        raw=raw or {},
     )
     return RawSearchRecord(
         run_id="r-test",

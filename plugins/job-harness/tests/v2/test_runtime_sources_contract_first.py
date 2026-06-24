@@ -548,8 +548,31 @@ class HhRuSourceTest(unittest.TestCase):
         self.assertIsNotNone(detailed.description)
         for text in expected["description_contains"]:
             self.assertIn(text, detailed.description or "")
+        self.assertIn("\n• Полное ручное тестирование iOS, Android и Web-версии.", detailed.description or "")
+        self.assertIn("\n1. краткую информацию о себе;", detailed.description or "")
         self.assertEqual(set(expected["additional_sections"]), set(detailed.additional_sections))
         self.assertIn("Опыт работы QA от 2 лет.", detailed.requirements or "")
+
+    def test_detail_fixture_extracts_structured_skills_and_work_facts(self) -> None:
+        # Arrange
+        source = HhRuSource()
+        listing = RawListing(
+            source_listing_id="134519442",
+            title="Middle QA Automation Engineer (.Net)",
+            url="https://spb.hh.ru/vacancy/134519442",
+            source="hh_ru",
+        )
+        expected = _expected("hh_ru", "detail_structured")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("hh_ru", "detail_structured"), listing)
+
+        # Assert
+        self.assertEqual(tuple(expected["skills"]), detailed.skills)
+        for key, value in expected["raw"].items():
+            self.assertEqual(value, detailed.raw.get(key), key)
+        self.assertIn("1–3 года", detailed.raw_text or "")
+        self.assertIn("Pytest", detailed.raw_text or "")
 
     def test_blocked_detail_fixture_classifies_account_captcha(self) -> None:
         # Arrange

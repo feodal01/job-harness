@@ -50,7 +50,6 @@ results from processed exports — not from raw scrape dumps.
      --salary-from 150000 \
      --country RU \
      --country AM \
-     --max-results 20 \
      --runs-dir .job-harness/v2/runs
    ```
 
@@ -62,6 +61,7 @@ results from processed exports — not from raw scrape dumps.
    - `run_dir` — directory with all artifacts
    - `artifacts.raw_listings` — `raw-listings.jsonl` (unfiltered source evidence)
    - `artifacts.processed_results` — `processed-results.json` (filtered/deduped export)
+   - `artifacts.report_html` — `report.html` (self-contained interactive report)
    - `artifacts.source_attempts` — per-source diagnostics
    - `attempts[*].outcome` — `success`, `no_results`, or failure classes
    - `processed_result_count` — downstream listing count after post-processing
@@ -72,12 +72,12 @@ results from processed exports — not from raw scrape dumps.
    uv --directory plugins/job-harness run job-harness-v2 search \
      --query "тестировщик" \
      --append-to-run-id "<run_id>" \
-     --max-results 20 \
      --runs-dir .job-harness/v2/runs
    ```
 
 6. **Read results safely** — Raw and processed artifacts can be large.
    - Use stdout summary fields and `attempts` for diagnostics first.
+   - Give the user `report.html` as the primary browsable artifact when present.
    - Read `processed-results.json` in small slices when needed.
    - Treat `raw-listings.jsonl` as audit evidence, not the presentation layer.
    - Never dump full artifact files into the conversation.
@@ -92,9 +92,9 @@ results from processed exports — not from raw scrape dumps.
    remote/relocation when available, source id, and the listing URL. Note which
    sources returned `no_results` vs `success`.
 
-9. **Save** — Copy `processed-results.json` and the execution JSON into the
-   project run folder when the user wants a durable audit trail. Write a human
-   report to `report.md`.
+9. **Save** — Keep `processed-results.json`, `report.html`, and the execution
+   JSON in the project run folder as the durable audit trail. Write a separate
+   `report.md` only when the user asks for a markdown summary.
 
 10. **Iterate** — If results are insufficient, suggest query variants, source
     subsets, or criteria adjustments. Re-search only with user approval.
@@ -115,7 +115,6 @@ results from processed exports — not from raw scrape dumps.
 | `--remote-global` | `remote_global` | `true` / `false` |
 | `--country` | `countries` | Repeatable ISO codes (`RU`, `AM`); filters catalog-eligible sources |
 | `--city` | `cities` | Repeatable city names |
-| `--max-results` | `max_results` | Caps **processed** export only; raw limits come from catalog `source_limit` |
 | `--source` | `sources` | Repeatable exact source ids; omit for full catalog |
 | `--source-type` | `source_types` | `aggregator` or `company_career` |
 | `--append-to-run-id` | append mode | Adds to existing run corpus |
@@ -156,13 +155,13 @@ Each run directory contains:
 - `raw-listings.jsonl` — one raw listing per line; not deduped or globally capped
 - `source-attempts.jsonl` — per-source attempt records with outcomes and evidence
 - `run-manifest.json` — run id, append sequence, source summary
-- `processed-results.json` — filtered, deduped, capped export for presentation
+- `processed-results.json` — filtered, deduped export for presentation
+- `report.html` — self-contained interactive report for kept and filtered-out rows
 
 ## Key principles
 
 - Use **`job-harness-v2`**, not legacy `job-harness` (v1), for new searches.
-- Treat `max_results` as a presentation limit only. Raw depth is controlled by
-  each source's `source_limit` in the catalog.
+- Raw depth is controlled by each source's `source_limit` in the catalog.
 - `no_results` is a valid healthy outcome — distinguish it from transport failures
   (`network_error`, `rate_limited`, `source_timeout`, …).
 - Always call `list-sources` before the first search on a new host/session.

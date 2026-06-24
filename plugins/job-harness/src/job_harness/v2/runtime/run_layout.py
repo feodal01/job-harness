@@ -10,6 +10,7 @@ from typing import Any
 from job_harness.v2.runtime.artifacts import (
     PROCESSED_RESULTS_FILENAME,
     RAW_LISTINGS_FILENAME,
+    REPORT_HTML_FILENAME,
     RUN_MANIFEST_FILENAME,
     SOURCE_ATTEMPTS_FILENAME,
 )
@@ -23,6 +24,7 @@ class RunPaths:
     source_attempts_path: Path
     run_manifest_path: Path
     processed_results_path: Path
+    report_html_path: Path
 
 
 @dataclass(frozen=True)
@@ -42,6 +44,7 @@ class RunLayout:
             source_attempts_path=run_dir / SOURCE_ATTEMPTS_FILENAME,
             run_manifest_path=run_dir / RUN_MANIFEST_FILENAME,
             processed_results_path=run_dir / PROCESSED_RESULTS_FILENAME,
+            report_html_path=run_dir / REPORT_HTML_FILENAME,
         )
 
     def create_new_run(self, run_id: str) -> RunPaths:

@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import secrets
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
 from job_harness.v2.contracts import SearchRequest, SourceAttemptRecord
-from job_harness.v2.postprocessing import ProcessedResults, ResultTablePostProcessor
+from job_harness.v2.postprocessing import (
+    ProcessedResults,
+    ResultTablePostProcessor,
+    write_processed_results_html_file,
+)
 from job_harness.v2.postprocessing.formatters import render_processed_results_markdown_file
 from job_harness.v2.runtime import (
     ArtifactFetcher,
@@ -103,6 +108,10 @@ class V2SearchApplication:
             source_attempts_path=paths.source_attempts_path,
             output_path=paths.processed_results_path,
         )
+        write_processed_results_html_file(
+            _read_processed_results_payload(paths.processed_results_path),
+            paths.report_html_path,
+        )
         return V2SearchExecution(
             run_id=run_result.run_id,
             append_sequence=append_sequence,
@@ -131,3 +140,10 @@ def _resolve_paths(
 
     effective_run_id = run_id or new_run_id()
     return layout.create_new_run(effective_run_id), 0
+
+
+def _read_processed_results_payload(path: Path) -> dict[str, object]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"processed results file is not a JSON object: {path}")
+    return value

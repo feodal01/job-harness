@@ -115,6 +115,7 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(first.paths.source_attempts_path.exists())
             self.assertTrue(first.paths.run_manifest_path.exists())
             self.assertTrue(first.paths.processed_results_path.exists())
+            self.assertTrue(first.paths.report_html_path.exists())
 
             raw_lines = first.paths.raw_listings_path.read_text(encoding="utf-8").splitlines()
             manifest = json.loads(first.paths.run_manifest_path.read_text(encoding="utf-8"))
@@ -126,6 +127,8 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
             self.assertGreater(processed["result_count"], 1)
             self.assertLessEqual(processed["result_count"], len(raw_lines))
             self.assertNotIn("truncated", processed)
+            self.assertIn("filtered_out_results", processed)
+            self.assertIn("job-harness-payload", first.paths.report_html_path.read_text(encoding="utf-8"))
 
     async def test_cli_lists_v2_sources_without_touching_v1_cli(self) -> None:
         # Arrange

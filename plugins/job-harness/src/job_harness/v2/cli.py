@@ -192,6 +192,7 @@ def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
             "source_attempts": str(execution.paths.source_attempts_path),
             "run_manifest": str(execution.paths.run_manifest_path),
             "processed_results": str(execution.paths.processed_results_path),
+            "report_html": str(execution.paths.report_html_path),
         },
         "raw_records_written_this_call": execution.raw_records_written,
         "processed_result_count": execution.processed_results.result_count,

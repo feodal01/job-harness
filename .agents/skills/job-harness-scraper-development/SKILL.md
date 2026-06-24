@@ -21,6 +21,12 @@ Before changing scraper behavior or tests, read:
 
 ## Development Rules
 
+- The plugin is in active early development. Do not add compatibility shims,
+  legacy fallbacks, backward-compatible adapters, or code paths whose purpose is
+  preserving old behavior. Change the contract directly and update callers,
+  fixtures, and tests in the same patch. Treat compatibility comments as a
+  code smell; `scripts/check_no_compat_comments.py` enforces this for source
+  comments.
 - Bump the plugin version for every installable plugin runtime change. Update
   `plugins/job-harness/.codex-plugin/plugin.json`,
   `plugins/job-harness/pyproject.toml`, and the local `job-harness` package
@@ -79,13 +85,13 @@ Before changing scraper behavior or tests, read:
   structurally broken page into `success` or `no_results`.
 - Strip tracking parameters from emitted vacancy URLs.
 - Keep raw source facts separate from downstream filtering, ranking, dedupe, and
-  `max_results`.
+  presentation.
 
 ## Useful Patterns
 
 Use `references/scrapers.md` for:
 
-- fallback selector chains;
+- strict selector and parser maintenance;
 - dynamic `data-*` attribute handling;
 - over-broad selector cleanup;
 - anti-bot and anti-abuse redirects;

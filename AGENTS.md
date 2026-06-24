@@ -12,6 +12,12 @@ The agent receives a natural-language job search request, runs the v2 search CLI
 
 Search broadly across all available sources: job aggregators and employer career pages. Aggregators are useful, but they create a search bubble: some companies and vacancies appear only on employer sites. The v2 engine searches the full implemented catalog unless the user narrows sources explicitly.
 
+The plugin is in active early development. Do not add compatibility shims,
+legacy fallbacks, backward-compatible adapters, or code paths whose purpose is
+preserving old behavior. Change the contract directly and update all callers,
+fixtures, and tests in the same patch. `scripts/check_no_compat_comments.py`
+rejects source comments that justify compatibility work.
+
 ## Architecture
 
 ```
@@ -71,13 +77,13 @@ is unfiltered evidence.
 **v2 search features to preserve:**
 
 - Full catalog when `--source` is omitted; exact ids when repeated `--source` is used.
-- Per-source raw limits from `source_catalog.sql`; `max_results` only caps processed export.
+- Per-source raw limits from `source_catalog.sql`.
 - Criteria capabilities per source (`native_request`, `structured_output`, `unsupported`).
 - Append mode with shared run corpus and advancing `append_sequence`.
 
 The v2 CLI entry point:
 
-`uv --directory plugins/job-harness run job-harness-v2 search --query "QA" --country RU --max-results 20`
+`uv --directory plugins/job-harness run job-harness-v2 search --query "QA" --country RU`
 
 Legacy v1 CLI/MCP remains under `job_harness.v1` for maintenance.
 

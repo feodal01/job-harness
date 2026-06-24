@@ -23,6 +23,7 @@ class RunLayoutTest(unittest.TestCase):
             self.assertEqual(paths.run_dir / "source-attempts.jsonl", paths.source_attempts_path)
             self.assertEqual(paths.run_dir / "run-manifest.json", paths.run_manifest_path)
             self.assertEqual(paths.run_dir / "processed-results.json", paths.processed_results_path)
+            self.assertEqual(paths.run_dir / "report.html", paths.report_html_path)
 
     def test_next_append_sequence_reads_run_manifest(self) -> None:
         # Arrange

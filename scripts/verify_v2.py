@@ -61,6 +61,7 @@ def main() -> int:
     args = parser.parse_args()
 
     checks = [
+        _run_no_compat_comments,
         _run_v2_lint,
         _run_v2_types,
         _run_v2_architecture_boundary_tests,
@@ -103,6 +104,10 @@ def _run_v2_lint() -> int:
             "../../scripts/v2_live_e2e.py",
         ]
     )
+
+
+def _run_no_compat_comments() -> int:
+    return _run([sys.executable, "scripts/check_no_compat_comments.py"])
 
 
 def _run_v2_types() -> int:
