@@ -1,0 +1,22 @@
+{
+  "expected_count": 1,
+  "next_url": null,
+  "sample_listings": [
+    {
+      "source_listing_id": "16704",
+      "title": "Руководитель направления (1С)",
+      "url": "https://ibs.ru/career/vacancies/rukovoditel-napravleniya-1s-moskva-100923/",
+      "company": "IBS",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "Аналитика и консалтинг",
+        "Разработка",
+        "1C"
+      ]
+    }
+  ]
+}

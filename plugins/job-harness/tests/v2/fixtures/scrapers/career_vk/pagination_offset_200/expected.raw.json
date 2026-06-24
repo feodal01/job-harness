@@ -1,0 +1,49 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=225",
+  "sample_listings": [
+    {
+      "source_listing_id": "45608",
+      "title": "Backend-разработчик",
+      "url": "https://team.vk.company/vacancy/45608/",
+      "company": "Сферум",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Комбинированный",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "backend"
+      ]
+    },
+    {
+      "source_listing_id": "45130",
+      "title": "Cтарший Backend-разработчик",
+      "url": "https://team.vk.company/vacancy/45130/",
+      "company": "MAX",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "go"
+      ]
+    },
+    {
+      "source_listing_id": "45563",
+      "title": "Старший программист Backend",
+      "url": "https://team.vk.company/vacancy/45563/",
+      "company": "MAX",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "go"
+      ]
+    }
+  ]
+}

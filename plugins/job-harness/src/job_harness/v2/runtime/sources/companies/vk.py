@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import html
 import json
 from dataclasses import replace
 from typing import Any
@@ -20,16 +19,13 @@ from job_harness.v2.contracts import (
     SourceResponseArtifact,
     SourceSearchParseResult,
 )
-from job_harness.v2.runtime.sources._html import ClassTextCollector, ScriptCollector
+from job_harness.v2.runtime.sources._html import ClassTextCollector
 from job_harness.v2.runtime.sources._url import absolute_url
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
 _BASE_URL = "https://team.vk.company/vacancy/"
-_SPECIALTIES = {
-    "qa": "284",
-    "тестировщик": "284",
-    "тестирование": "284",
-}
+_API_URL = "https://team.vk.company/career/api/v2/vacancies/"
+_PAGE_LIMIT = 25
 
 
 class VKCareerSource(DetailEnrichmentScraper):
@@ -46,7 +42,7 @@ class VKCareerSource(DetailEnrichmentScraper):
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
                 query_variant=query_variant,
-                url=_build_vk_url(query_variant),
+                url=_build_vk_api_url(remote_in_country=request.remote_in_country),
             )
             for query_variant in request.query_variants
         )
@@ -56,24 +52,34 @@ class VKCareerSource(DetailEnrichmentScraper):
         response: SourceResponseArtifact,
         _request: SourceFetchRequest,
     ) -> SourceSearchParseResult:
-        payload = _extract_next_data(response.body)
-        page_props = payload.get("props", {}).get("pageProps", {})
-        if not isinstance(page_props, dict):
-            raise ValueError("VK __NEXT_DATA__ pageProps is malformed")
-
-        items = page_props.get("initialVacancies")
-        total_count = page_props.get("initialTotalCount")
+        payload = _extract_json_object(response.body)
+        items = payload.get("results")
+        total_count = payload.get("count")
+        next_url = payload.get("next")
         if not isinstance(items, list) or not isinstance(total_count, int):
-            raise ValueError("VK vacancies payload is malformed")
+            raise ValueError("VK vacancies API payload is malformed")
         if total_count == 0 and not items:
             return SourceSearchParseResult(
                 outcome=SourceOutcome.NO_RESULTS,
                 listings=(),
                 evidence=AttemptEvidence(no_results=True),
             )
+        if not items:
+            raise ValueError("VK vacancies API returned an empty page before completion")
+
+        next_request = (
+            SourceFetchRequest(
+                source_id=_request.source_id,
+                query_variant=_request.query_variant,
+                url=next_url,
+            )
+            if isinstance(next_url, str) and next_url
+            else None
+        )
         return SourceSearchParseResult(
             outcome=SourceOutcome.SUCCESS,
             listings=tuple(_vk_listing(item) for item in items if isinstance(item, dict)),
+            next_request=next_request,
         )
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
@@ -100,23 +106,18 @@ class VKCareerSource(DetailEnrichmentScraper):
         )
 
 
-def _build_vk_url(query: str) -> str:
-    lowered = query.casefold()
-    specialty = next((value for key, value in _SPECIALTIES.items() if key in lowered), None)
-    params = {"specialty": specialty} if specialty else {"search": query}
-    return f"{_BASE_URL}?{urlencode(params)}"
+def _build_vk_api_url(*, remote_in_country: bool | None) -> str:
+    params = {"limit": str(_PAGE_LIMIT)}
+    if remote_in_country is True:
+        params["remote"] = "true"
+    return f"{_API_URL}?{urlencode(params)}"
 
 
-def _extract_next_data(body: str) -> dict[str, Any]:
-    collector = ScriptCollector()
-    collector.feed(body)
-    for attrs, text in collector.scripts:
-        if attrs.get("id") != "__NEXT_DATA__":
-            continue
-        value = json.loads(html.unescape(text))
-        if isinstance(value, dict):
-            return value
-    raise ValueError("VK response does not contain __NEXT_DATA__")
+def _extract_json_object(body: str) -> dict[str, Any]:
+    value = json.loads(body)
+    if not isinstance(value, dict):
+        raise ValueError("VK response JSON must be an object")
+    return value
 
 
 def _vk_listing(item: dict[str, Any]) -> RawListing:

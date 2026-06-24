@@ -10,6 +10,7 @@ from datetime import date
 from pathlib import Path
 
 from job_harness.v2.contracts import SearchRequest, TextExclusion, TextExclusionMode
+from job_harness.v2.matching import FuzzyBounds, fuzzy_any_match, fuzzy_tokens_match
 from job_harness.v2.postprocessing.criteria_plan import CriteriaProcessingPlanner
 from job_harness.v2.runtime.serialization import to_jsonable
 
@@ -56,6 +57,8 @@ _HH_WORKING_HOURS_TEXT = {
     "HOURS_24": "24",
 }
 _SHORT_QUERY_TOKEN_LENGTH = 2
+_QUERY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.78)
+_CITY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.9)
 
 
 @dataclass(frozen=True)
@@ -330,7 +333,11 @@ def _removal_reason(
         return "relocation_mismatch"
     if request.countries and _text(row["country"]).upper() not in request.countries:
         return "country_mismatch"
-    if request.cities and _text(row["city"]).casefold() not in {city.casefold() for city in request.cities}:
+    if request.cities and not fuzzy_any_match(
+        request.cities,
+        _text(row["city"]),
+        bounds=_CITY_FUZZY_BOUNDS,
+    ):
         return "city_mismatch"
     return None
 
@@ -361,23 +368,13 @@ def _query_matches(row: dict[str, object]) -> bool:
 
 
 def _query_text_matches(*, tokens: tuple[str, ...], haystack: str) -> bool:
-    normalized_haystack = haystack.casefold()
     if not tokens:
         return True
-    if len(tokens) == 1:
-        return _token_matches(tokens[0], normalized_haystack)
-    return all(_token_matches(token, normalized_haystack) for token in tokens)
+    return fuzzy_tokens_match(" ".join(tokens), haystack, bounds=_QUERY_FUZZY_BOUNDS)
 
 
 def _query_tokens(query: str) -> tuple[str, ...]:
     return tuple(token.casefold() for token in re.findall(r"[\w+#.-]+", query) if token.strip())
-
-
-def _token_matches(token: str, haystack: str) -> bool:
-    if len(token) <= _SHORT_QUERY_TOKEN_LENGTH:
-        pattern = rf"(?<![\w]){re.escape(token)}(?![\w])"
-        return re.search(pattern, haystack) is not None
-    return token in haystack
 
 
 def _company_excluded(row: dict[str, object], excluded_companies: tuple[str, ...]) -> bool:

@@ -315,6 +315,144 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             payload = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertEqual(["QA Engineer"], [row["title"] for row in payload["results"]])
 
+    def test_fuzzy_query_postprocess_matches_title_tokens(self) -> None:
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            with RawCorpusWriter(run_dir) as writer:
+                writer.append_raw_record(
+                    _raw_record(
+                        "1",
+                        company="VK",
+                        source="career:vk",
+                        title="Инженер по тестированию",
+                        description="",
+                        raw_text="",
+                    )
+                )
+                writer.append_raw_record(
+                    _raw_record(
+                        "2",
+                        company="VK",
+                        source="career:vk",
+                        title="AQA",
+                        description="",
+                        raw_text="",
+                    )
+                )
+                writer.append_raw_record(
+                    _raw_record(
+                        "3",
+                        company="VK",
+                        source="career:vk",
+                        title="Account Manager",
+                        description="",
+                        raw_text="",
+                    )
+                )
+                writer.append_attempt_record(
+                    _attempt_record(
+                        source="career:vk",
+                        source_type=SourceType.COMPANY_CAREER,
+                        requested=frozenset({SearchCriterion.QUERY}),
+                        native=frozenset(),
+                        structured=frozenset({SearchCriterion.QUERY}),
+                        postprocess=frozenset({SearchCriterion.QUERY}),
+                    )
+                )
+
+            output_path = run_dir / "processed-results.json"
+
+            # Act
+            ResultTablePostProcessor().process(
+                request=SearchRequest(query_variants=("QA",)),
+                run_id="r-test",
+                append_sequence=0,
+                raw_listings_path=run_dir / "raw-listings.jsonl",
+                source_attempts_path=run_dir / "source-attempts.jsonl",
+                output_path=output_path,
+            )
+
+            # Assert
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(["AQA"], [row["title"] for row in payload["results"]])
+            self.assertEqual({"query_mismatch": 2}, payload["removed_counts"])
+
+    def test_fuzzy_query_postprocess_matches_russian_inflected_title(self) -> None:
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            with RawCorpusWriter(run_dir) as writer:
+                writer.append_raw_record(
+                    _raw_record(
+                        "1",
+                        company="VK",
+                        source="career:vk",
+                        query_variant="тестировщик",
+                        title="Инженер по тестированию",
+                        description="",
+                        raw_text="",
+                    )
+                )
+                writer.append_attempt_record(
+                    _attempt_record(
+                        source="career:vk",
+                        source_type=SourceType.COMPANY_CAREER,
+                        requested=frozenset({SearchCriterion.QUERY}),
+                        native=frozenset(),
+                        structured=frozenset({SearchCriterion.QUERY}),
+                        postprocess=frozenset({SearchCriterion.QUERY}),
+                    )
+                )
+
+            output_path = run_dir / "processed-results.json"
+
+            # Act
+            ResultTablePostProcessor().process(
+                request=SearchRequest(query_variants=("тестировщик",)),
+                run_id="r-test",
+                append_sequence=0,
+                raw_listings_path=run_dir / "raw-listings.jsonl",
+                source_attempts_path=run_dir / "source-attempts.jsonl",
+                output_path=output_path,
+            )
+
+            # Assert
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(["Инженер по тестированию"], [row["title"] for row in payload["results"]])
+
+    def test_fuzzy_city_filter_matches_case_and_inflection(self) -> None:
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            with RawCorpusWriter(run_dir) as writer:
+                writer.append_raw_record(_raw_record("1", company="VK", city="Москва"))
+                writer.append_raw_record(_raw_record("2", company="VK", city="Санкт-Петербург"))
+                writer.append_attempt_record(
+                    _attempt_record(
+                        requested=frozenset({SearchCriterion.QUERY, SearchCriterion.CITIES}),
+                        structured=frozenset({SearchCriterion.CITIES}),
+                        postprocess=frozenset({SearchCriterion.CITIES}),
+                    )
+                )
+
+            output_path = run_dir / "processed-results.json"
+
+            # Act
+            ResultTablePostProcessor().process(
+                request=SearchRequest(query_variants=("QA",), cities=("москве",)),
+                run_id="r-test",
+                append_sequence=0,
+                raw_listings_path=run_dir / "raw-listings.jsonl",
+                source_attempts_path=run_dir / "source-attempts.jsonl",
+                output_path=output_path,
+            )
+
+            # Assert
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(["Москва"], [row["city"] for row in payload["results"]])
+            self.assertEqual({"city_mismatch": 1}, payload["removed_counts"])
+
     def test_preserves_additional_sections_and_uses_them_for_text_matching(self) -> None:
         # Arrange
         with tempfile.TemporaryDirectory() as tmp:
@@ -404,6 +542,8 @@ def _raw_record(
     description: str | None = None,
     additional_sections: dict[str, str] | None = None,
     raw_text: str | None = None,
+    city: str | None = None,
+    remote_in_country: bool | None = None,
     description_availability: DescriptionAvailability = DescriptionAvailability.NOT_REQUESTED,
     detail_fetched: bool = False,
     detail_parse_error: str | None = None,
@@ -415,8 +555,10 @@ def _raw_record(
         raw_listing,
         company=company,
         title=title or raw_listing.title,
+        city=city,
         description=effective_description,
         additional_sections=additional_sections or {},
+        remote_in_country=remote_in_country,
         raw_text=raw_text if raw_text is not None else effective_description,
         raw=raw or {},
     )

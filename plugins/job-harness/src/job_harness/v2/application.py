@@ -40,8 +40,8 @@ __all__ = [
 class V2SearchConfig:
     runs_dir: Path = Path(".job-harness/v2/runs")
     source_ids: tuple[str, ...] = ()
-    source_attempt_timeout_seconds: float = 30.0
-    run_timeout_seconds: float = 120.0
+    source_attempt_timeout_seconds: float = 180.0
+    run_timeout_seconds: float = 360.0
     fetch_timeout_seconds: float = 15.0
     retry_policy: RetryPolicy = field(default_factory=RetryPolicy)
 

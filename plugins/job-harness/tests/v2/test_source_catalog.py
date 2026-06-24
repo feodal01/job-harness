@@ -87,15 +87,34 @@ class SourceCatalogTableTest(unittest.TestCase):
         self.assertEqual(SourceType.COMPANY_CAREER, descriptor.source_type)
         self.assertEqual(Transport.HTTP, descriptor.transport)
         self.assertEqual(("RU",), descriptor.countries)
-        self.assertEqual(25, descriptor.source_limit)
-        self.assertEqual(frozenset({SearchCriterion.QUERY}), descriptor.native_request_criteria)
-        self.assertTrue(required_fixture_kinds.no_results)
-        self.assertFalse(required_fixture_kinds.pagination)
+        self.assertEqual(300, descriptor.source_limit)
+        self.assertEqual(frozenset({SearchCriterion.REMOTE_IN_COUNTRY}), descriptor.native_request_criteria)
+        self.assertEqual(
+            frozenset(
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.CITIES,
+                }
+            ),
+            descriptor.structured_output_criteria,
+        )
+        self.assertFalse(required_fixture_kinds.no_results)
+        self.assertTrue(required_fixture_kinds.pagination)
         self.assertTrue(required_fixture_kinds.detail)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
-                ParserFixtureKind.NO_RESULTS,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
                 ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
@@ -123,11 +142,16 @@ class SourceCatalogTableTest(unittest.TestCase):
             descriptor.structured_output_criteria,
         )
         self.assertFalse(required_fixture_kinds.no_results)
-        self.assertFalse(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.pagination)
         self.assertTrue(required_fixture_kinds.detail)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
+                ParserFixtureKind.PAGINATION,
                 ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),

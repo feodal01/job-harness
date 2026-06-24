@@ -1,0 +1,50 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=250",
+  "sample_listings": [
+    {
+      "source_listing_id": "45635",
+      "title": "ML-инженер",
+      "url": "https://team.vk.company/vacancy/45635/",
+      "company": "Информационная безопасность",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "machine learning",
+        "information security"
+      ]
+    },
+    {
+      "source_listing_id": "46327",
+      "title": "Руководитель группы рекомендаций фильмов и сериалов",
+      "url": "https://team.vk.company/vacancy/46327/",
+      "company": "VK Видео",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Офисный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "machine learning"
+      ]
+    },
+    {
+      "source_listing_id": "45293",
+      "title": "Старший ML-инженер",
+      "url": "https://team.vk.company/vacancy/45293/",
+      "company": "VK Реклама",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Комбинированный",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "machine learning"
+      ]
+    }
+  ]
+}

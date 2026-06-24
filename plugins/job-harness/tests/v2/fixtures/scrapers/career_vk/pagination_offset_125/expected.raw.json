@@ -1,0 +1,50 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "next_url": "https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=150",
+  "sample_listings": [
+    {
+      "source_listing_id": "45368",
+      "title": "Старший продуктовый аналитик",
+      "url": "https://team.vk.company/vacancy/45368/",
+      "company": "VK AdBlogger",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, Дистанционный",
+      "remote_in_country": true,
+      "remote_global": null,
+      "skills": [
+        "python",
+        "SQL"
+      ]
+    },
+    {
+      "source_listing_id": "45544",
+      "title": "Продуктовый аналитик",
+      "url": "https://team.vk.company/vacancy/45544/",
+      "company": "MAX",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "analytics"
+      ]
+    },
+    {
+      "source_listing_id": "45227",
+      "title": "Продуктовый аналитик",
+      "url": "https://team.vk.company/vacancy/45227/",
+      "company": "Стратегические проекты",
+      "country": "RU",
+      "city": "Москва",
+      "location_text": "Москва, гибкий",
+      "remote_in_country": false,
+      "remote_global": null,
+      "skills": [
+        "analytics"
+      ]
+    }
+  ]
+}
