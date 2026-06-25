@@ -211,7 +211,7 @@ def _hh_listing(vacancy: dict[str, Any]) -> RawListing:
         url=_vacancy_url(vacancy, source_listing_id),
         source="hh_ru",
         company=company,
-        country="RU",
+        country="Россия",
         city=location.city,
         location_text=location.text,
         salary_text=compensation.text,

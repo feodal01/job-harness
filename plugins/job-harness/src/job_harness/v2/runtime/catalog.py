@@ -66,15 +66,6 @@ class SourceCatalog:
                 if scraper.descriptor.source_type in allowed_types
             ]
 
-        if request.countries:
-            wanted_countries = frozenset(request.countries)
-            selected = [
-                scraper
-                for scraper in selected
-                if not scraper.descriptor.countries
-                or bool(wanted_countries & frozenset(scraper.descriptor.countries))
-            ]
-
         if request.exclude_companies:
             excluded = tuple(item.casefold() for item in request.exclude_companies)
             selected = [

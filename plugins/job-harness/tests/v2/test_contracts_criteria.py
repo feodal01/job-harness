@@ -35,9 +35,9 @@ class SearchCriterionDescriptorTest(unittest.TestCase):
             SearchCriterion.GRADES,
             SearchCriterion.SALARY_FROM,
             SearchCriterion.RELOCATION,
-            SearchCriterion.REMOTE_IN_COUNTRY,
-            SearchCriterion.REMOTE_GLOBAL,
-            SearchCriterion.COUNTRIES,
+            SearchCriterion.REMOTE_MODE,
+            SearchCriterion.WORK_FROM_GEOGRAPHIES,
+            SearchCriterion.VACANCY_GEOGRAPHIES,
             SearchCriterion.CITIES,
         ):
             with self.subTest(criterion=criterion):
@@ -67,6 +67,46 @@ class SearchCriterionDescriptorTest(unittest.TestCase):
                 TextField.RAW_TEXT,
             ),
             descriptor.text_enrichment_fields,
+        )
+
+    def test_search_criteria_are_new_remote_geography_contract(self) -> None:
+        # Arrange / Act
+        criteria = tuple(criterion.value for criterion in ALL_SEARCH_CRITERIA)
+
+        # Assert
+        self.assertEqual(
+            (
+                "query",
+                "grades",
+                "salary_from",
+                "published_since",
+                "relocation",
+                "remote_mode",
+                "work_from_geographies",
+                "vacancy_geographies",
+                "cities",
+            ),
+            criteria,
+        )
+
+    def test_remote_geography_descriptors_read_postprocessing_facts(self) -> None:
+        # Arrange / Act
+        remote_mode = search_criterion_descriptor(SearchCriterion.REMOTE_MODE)
+        work_from = search_criterion_descriptor(SearchCriterion.WORK_FROM_GEOGRAPHIES)
+        vacancy = search_criterion_descriptor(SearchCriterion.VACANCY_GEOGRAPHIES)
+
+        # Assert
+        self.assertEqual(
+            ("remote_in_country", "remote_global", "country", "location_text", "raw"),
+            remote_mode.source_fact_fields,
+        )
+        self.assertEqual(
+            ("remote_in_country", "remote_global", "country", "location_text", "raw"),
+            work_from.source_fact_fields,
+        )
+        self.assertEqual(
+            ("country", "city", "location_text", "raw"),
+            vacancy.source_fact_fields,
         )
 
     def test_salary_descriptor_allows_text_extraction(self) -> None:

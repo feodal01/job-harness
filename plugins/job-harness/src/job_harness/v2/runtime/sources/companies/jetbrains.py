@@ -27,21 +27,12 @@ _SECTION_LABEL_RE = re.compile(
     r"<(?P<tag>h[1-6]|strong)[^>]*>(?P<label>.*?)</(?P=tag)>",
     re.I | re.S,
 )
-
-_COUNTRIES = {
-    "Armenia": "AM",
-    "China": "CN",
-    "Cyprus": "CY",
-    "Czech Republic": "CZ",
-    "Germany": "DE",
-    "Netherlands": "NL",
-    "Poland": "PL",
-    "Serbia": "RS",
-    "Spain": "ES",
-    "United Kingdom": "GB",
-    "United States": "US",
+_LINKEDIN_TAG_RE = re.compile(r"#LI-[A-Za-z0-9_-]+", re.I)
+_LINKEDIN_WORKPLACE_TAGS = {
+    "#li-hybrid",
+    "#li-onsite",
+    "#li-remote",
 }
-
 
 class JetBrainsCareerSource(SourceScraper):
     @property
@@ -95,14 +86,16 @@ def _listing(job: dict[str, Any]) -> RawListing:
     location_text = _nested_text(job, "location", "name")
     locations = _locations(location_text)
     content = _text(job.get("content"))
-    description = _html_to_text(content)
-    additional_sections = _html_sections(content)
+    linkedin_workplace_tags = _linkedin_workplace_tags(content)
+    visible_content = _remove_linkedin_tags(content)
+    description = _html_to_text(visible_content)
+    additional_sections = _html_sections(visible_content)
     departments = _names(job.get("departments"))
     offices = _names(job.get("offices"))
     metadata = _metadata(job.get("metadata"))
     first_location = locations[0] if locations else _Location(city=None, country=None, remote=False)
-    remote_in_country = any(location.remote for location in locations)
-    remote_global = any(location.remote and location.country is None for location in locations)
+    remote_in_country = _remote_in_country(locations)
+    remote_global = _remote_global(locations)
 
     return RawListing(
         source_listing_id=source_listing_id or None,
@@ -132,6 +125,7 @@ def _listing(job: dict[str, Any]) -> RawListing:
             "internal_job_id": job.get("internal_job_id"),
             "requisition_id": job.get("requisition_id"),
             "updated_at": job.get("updated_at"),
+            "linkedin_workplace_tags": linkedin_workplace_tags,
             "departments": departments,
             "offices": offices,
             "metadata": metadata,
@@ -195,6 +189,19 @@ def _html_sections(value: str) -> dict[str, str]:
     return sections
 
 
+def _linkedin_workplace_tags(value: str) -> tuple[str, ...]:
+    tags: list[str] = []
+    for match in _LINKEDIN_TAG_RE.findall(html.unescape(value)):
+        tag = match.upper()
+        if tag.casefold() in _LINKEDIN_WORKPLACE_TAGS and tag not in tags:
+            tags.append(tag)
+    return tuple(tags)
+
+
+def _remove_linkedin_tags(value: str) -> str:
+    return _LINKEDIN_TAG_RE.sub("", html.unescape(value))
+
+
 def _section_label(match: re.Match[str]) -> str | None:
     tag = match.group("tag").casefold()
     label = (_html_to_text(match.group("label")) or "").rstrip(":").strip()
@@ -220,11 +227,29 @@ def _parse_location(value: str) -> _Location:
         return _Location(city=None, country=None, remote=True)
     if value.casefold().startswith("remote,"):
         country_name = value.split(",", 1)[1].strip()
-        return _Location(city=None, country=_COUNTRIES.get(country_name), remote=True)
+        return _Location(city=None, country=country_name or None, remote=True)
     if "," not in value:
-        return _Location(city=value, country=_COUNTRIES.get(value), remote=False)
+        return _Location(city=value, country=None, remote=False)
     city, country_name = (part.strip() for part in value.rsplit(",", 1))
-    return _Location(city=city or None, country=_COUNTRIES.get(country_name), remote=False)
+    return _Location(city=city or None, country=country_name or None, remote=False)
+
+
+def _remote_global(locations: tuple[_Location, ...]) -> bool | None:
+    remote_locations = tuple(location for location in locations if location.remote)
+    if not remote_locations:
+        return False
+    if any(location.country is None for location in remote_locations):
+        return None
+    return False
+
+
+def _remote_in_country(locations: tuple[_Location, ...]) -> bool | None:
+    remote_locations = tuple(location for location in locations if location.remote)
+    if not remote_locations:
+        return False
+    if any(location.country is None for location in remote_locations):
+        return None
+    return True
 
 
 def _metadata(value: object) -> tuple[str, ...]:

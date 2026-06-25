@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -17,17 +18,28 @@ from tests.v2._support.contract_runtime import (
 from job_harness.v2.contracts import (
     DetailEnrichmentScraper,
     RawListing,
+    RawSearchRecord,
     SearchRequest,
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
+    SourceType,
 )
 from job_harness.v2.persistence import SqliteRunStore
+from job_harness.v2.ports import RunStore
+from job_harness.v2.postprocessing import ResultTablePostProcessor
 from job_harness.v2.runtime import (
     ClassifiedSourceError,
+    DetailEnrichmentRunner,
+    DetailServiceConfig,
+    DetailWorkItem,
     OrchestratorConfig,
     RetryPolicy,
+    RetryServiceConfig,
     SearchOrchestrator,
+    SearchPipeline,
+    SearchPipelineConfig,
+    SearchServiceConfig,
     SourceCatalog,
 )
 
@@ -38,6 +50,10 @@ def _store(run_dir: Path, *, query_variants: tuple[str, ...] = ("QA",)) -> Sqlit
     return store
 
 
+def _store_factory(database_path: Path, *, run_id: str) -> RunStore:
+    return SqliteRunStore(database_path, run_id=run_id)
+
+
 def _read_raw_records(run_dir: Path) -> list[dict[str, Any]]:
     with SqliteRunStore(run_dir / "run.sqlite", run_id="r-test") as store:
         return list(store.read_raw_records())
@@ -46,6 +62,56 @@ def _read_raw_records(run_dir: Path) -> list[dict[str, Any]]:
 def _read_source_attempts(run_dir: Path) -> list[dict[str, Any]]:
     with SqliteRunStore(run_dir / "run.sqlite", run_id="r-test") as store:
         return list(store.read_source_attempts())
+
+
+def _detail_config() -> DetailServiceConfig:
+    return DetailServiceConfig(
+        per_source_concurrency=1,
+        default_request_delay_seconds=0.0,
+        request_delay_seconds_by_source={},
+        stop_on_blocked=True,
+        stop_on_rate_limited=True,
+    )
+
+
+def _service_config() -> SearchServiceConfig:
+    return SearchServiceConfig(
+        source_attempt_timeout_seconds=30.0,
+        run_timeout_seconds=60.0,
+        fetch_timeout_seconds=15.0,
+        retry=RetryServiceConfig(max_attempts=1, backoff_seconds=0.0),
+        detail=_detail_config(),
+    )
+
+
+def _raw_search_record(raw_listing: RawListing, *, append_sequence: int = 0) -> RawSearchRecord:
+    return RawSearchRecord(
+        run_id="r-test",
+        append_sequence=append_sequence,
+        query_variant="QA",
+        source=raw_listing.source,
+        source_type=SourceType.AGGREGATOR,
+        collected_at=datetime(2026, 6, 24, 10, 0, tzinfo=UTC),
+        listing=raw_listing,
+        source_url=f"https://example.test/{raw_listing.source}/search?q=QA",
+    )
+
+
+def _append_detail_work_items(
+    store: SqliteRunStore,
+    listings: tuple[RawListing, ...],
+) -> tuple[DetailWorkItem, ...]:
+    for raw_listing in listings:
+        store.append_raw_record(_raw_search_record(raw_listing))
+    return tuple(
+        DetailWorkItem(
+            raw_record_id=row.raw_record_id,
+            source=str(row.payload["source"]),
+            query_variant=str(row.payload["query_variant"]),
+            listing=listings[index],
+        )
+        for index, row in enumerate(store.read_raw_record_rows())
+    )
 
 
 class FakeDetailScraper(FakeScraper, DetailEnrichmentScraper):
@@ -274,7 +340,7 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(SourceOutcome.RUN_TIMEOUT, result.attempts[0].outcome)
             self.assertEqual(0, result.raw_records_written)
 
-    async def test_detail_enrichment_scraper_writes_full_description_before_raw_record(self) -> None:
+    async def test_detail_enrichment_scraper_search_phase_writes_search_only_raw_record(self) -> None:
         # Arrange
         base_listing = replace(
             listing("detail_jobs"),
@@ -302,24 +368,56 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             # Assert
             self.assertEqual(SourceOutcome.SUCCESS, result.attempts[0].outcome)
             self.assertEqual(
-                [
-                    "https://example.test/detail_jobs/search?q=QA",
-                    "https://example.test/detail_jobs/detail/1",
-                ],
+                ["https://example.test/detail_jobs/search?q=QA"],
                 [call.url for call in fetcher.calls],
             )
             raw_records = _read_raw_records(Path(tmp))
             self.assertEqual(1, len(raw_records))
-            self.assertEqual("present", raw_records[0]["description_availability"])
-            self.assertTrue(raw_records[0]["detail_fetched"])
+            self.assertEqual("not_requested", raw_records[0]["description_availability"])
+            self.assertFalse(raw_records[0]["detail_fetched"])
             self.assertEqual("https://example.test/detail_jobs/jobs/1", raw_records[0]["listing"]["url"])
-            self.assertEqual(
-                "Full detail description for QA Engineer 1",
-                raw_records[0]["listing"]["description"],
-            )
-            self.assertEqual("Full detail requirements", raw_records[0]["listing"]["requirements"])
+            self.assertIsNone(raw_records[0]["listing"]["description"])
+            self.assertIsNone(raw_records[0]["listing"]["requirements"])
 
-    async def test_detail_enrichment_failure_preserves_search_listings_as_partial_success(self) -> None:
+    async def test_detail_runner_enriches_every_work_item_without_count_budget(self) -> None:
+        # Arrange
+        listings = tuple(
+            replace(listing("detail_jobs", str(index)), description=None, raw_text=f"QA Engineer {index}")
+            for index in range(1, 6)
+        )
+        scraper = FakeDetailScraper(
+            source_descriptor=descriptor("detail_jobs"),
+            raw_listings=listings,
+        )
+        fetcher = FakeFetcher()
+        with tempfile.TemporaryDirectory() as tmp:
+            with _store(Path(tmp)) as writer:
+                work_items = _append_detail_work_items(writer, listings)
+                runner = DetailEnrichmentRunner(
+                    catalog=SourceCatalog((supported(scraper),)),
+                    fetcher=fetcher,
+                    writer=writer,
+                    config=_detail_config(),
+                )
+
+                # Act
+                result = await runner.run(work_items)
+
+            # Assert
+            self.assertEqual(5, result.attempted)
+            self.assertEqual(5, result.enriched)
+            self.assertEqual(0, result.failed)
+            self.assertEqual(
+                [f"https://example.test/detail_jobs/detail/{index}" for index in range(1, 6)],
+                [call.url for call in fetcher.calls],
+            )
+            raw_records = _read_raw_records(Path(tmp))
+            self.assertEqual(
+                [f"Full detail description for QA Engineer {index}" for index in range(1, 6)],
+                [record["listing"]["description"] for record in raw_records],
+            )
+
+    async def test_detail_runner_failure_preserves_search_listing_diagnostics(self) -> None:
         # Arrange
         listings = (
             replace(listing("detail_jobs", "1"), description=None, raw_text="QA Engineer 1"),
@@ -332,43 +430,45 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         fetcher = FakeFetcher(
             failures={
                 ("detail_jobs", "QA Engineer 1"): [
-                    ClassifiedSourceError(SourceOutcome.NETWORK_ERROR, "detail connection reset")
+                    ClassifiedSourceError(
+                        SourceOutcome.NETWORK_ERROR,
+                        "detail connection reset",
+                    )
                 ],
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
             with _store(Path(tmp)) as writer:
-                orchestrator = SearchOrchestrator(
+                work_items = _append_detail_work_items(writer, listings)
+                runner = DetailEnrichmentRunner(
                     catalog=SourceCatalog((supported(scraper),)),
                     fetcher=fetcher,
                     writer=writer,
-                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+                    config=_detail_config(),
                 )
 
                 # Act
-                result = await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+                result = await runner.run(work_items)
 
             # Assert
-            self.assertEqual(SourceOutcome.PARTIAL_SUCCESS, result.attempts[0].outcome)
-            self.assertEqual("detail connection reset", result.attempts[0].evidence.error)
-            self.assertEqual(2, result.raw_records_written)
+            self.assertEqual(2, result.attempted)
+            self.assertEqual(1, result.enriched)
+            self.assertEqual(1, result.failed)
             raw_records = _read_raw_records(Path(tmp))
+            self.assertEqual("detail_parse_error", raw_records[0]["description_availability"])
+            self.assertTrue(raw_records[0]["detail_fetched"])
+            self.assertEqual("detail connection reset", raw_records[0]["detail_parse_error"])
+            self.assertIsNone(raw_records[0]["listing"]["description"])
             self.assertEqual(
-                [
-                    "https://example.test/detail_jobs/jobs/1",
-                    "https://example.test/detail_jobs/jobs/2",
-                ],
-                [record["listing"]["url"] for record in raw_records],
-            )
-            self.assertEqual(
-                [None, "Full detail description for QA Engineer 2"],
-                [record["listing"]["description"] for record in raw_records],
+                "Full detail description for QA Engineer 2",
+                raw_records[1]["listing"]["description"],
             )
 
-    async def test_detail_blocked_preserves_listing_and_marks_detail_blocked(self) -> None:
+    async def test_detail_runner_blocked_stops_source_and_preserves_remaining_rows(self) -> None:
         # Arrange
         listings = (
             replace(listing("detail_jobs", "1"), description=None, raw_text="QA Engineer 1"),
+            replace(listing("detail_jobs", "2"), description=None, raw_text="QA Engineer 2"),
         )
         scraper = FakeDetailScraper(
             source_descriptor=descriptor("detail_jobs"),
@@ -386,19 +486,23 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             with _store(Path(tmp)) as writer:
-                orchestrator = SearchOrchestrator(
+                work_items = _append_detail_work_items(writer, listings)
+                runner = DetailEnrichmentRunner(
                     catalog=SourceCatalog((supported(scraper),)),
                     fetcher=fetcher,
                     writer=writer,
-                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+                    config=_detail_config(),
                 )
 
                 # Act
-                result = await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+                result = await runner.run(work_items)
 
             # Assert
-            self.assertEqual(SourceOutcome.PARTIAL_SUCCESS, result.attempts[0].outcome)
-            self.assertEqual("hh.ru account captcha on vacancy detail", result.attempts[0].evidence.error)
+            self.assertEqual(1, result.attempted)
+            self.assertEqual(0, result.enriched)
+            self.assertEqual(1, result.failed)
+            self.assertEqual(("detail_jobs",), result.stopped_sources)
+            self.assertEqual(["https://example.test/detail_jobs/detail/1"], [call.url for call in fetcher.calls])
             raw_records = _read_raw_records(Path(tmp))
             self.assertEqual("detail_blocked", raw_records[0]["description_availability"])
             self.assertTrue(raw_records[0]["detail_fetched"])
@@ -406,9 +510,10 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
                 "hh.ru account captcha on vacancy detail",
                 raw_records[0]["detail_parse_error"],
             )
-            self.assertIsNone(raw_records[0]["listing"]["description"])
+            self.assertEqual("not_requested", raw_records[1]["description_availability"])
+            self.assertFalse(raw_records[1]["detail_fetched"])
 
-    async def test_detail_rate_limited_preserves_listing_and_status(self) -> None:
+    async def test_detail_runner_rate_limited_preserves_listing_and_status(self) -> None:
         # Arrange
         listings = (
             replace(listing("detail_jobs", "1"), description=None, raw_text="QA Engineer 1"),
@@ -429,21 +534,87 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             with _store(Path(tmp)) as writer:
-                orchestrator = SearchOrchestrator(
+                work_items = _append_detail_work_items(writer, listings)
+                runner = DetailEnrichmentRunner(
                     catalog=SourceCatalog((supported(scraper),)),
                     fetcher=fetcher,
                     writer=writer,
-                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+                    config=_detail_config(),
                 )
 
                 # Act
-                result = await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+                result = await runner.run(work_items)
 
             # Assert
-            self.assertEqual(SourceOutcome.PARTIAL_SUCCESS, result.attempts[0].outcome)
+            self.assertEqual(1, result.attempted)
+            self.assertEqual(("detail_jobs",), result.stopped_sources)
             raw_records = _read_raw_records(Path(tmp))
             self.assertEqual("detail_rate_limited", raw_records[0]["description_availability"])
             self.assertEqual("HTTP Error 429: Too Many Requests", raw_records[0]["detail_parse_error"])
+
+    async def test_pipeline_fetches_detail_only_for_pre_enrichment_kept_rows(self) -> None:
+        # Arrange
+        kept = replace(
+            listing("detail_jobs", "1"),
+            company="Acme",
+            description=None,
+            raw_text="QA Engineer 1",
+        )
+        filtered = replace(
+            listing("detail_jobs", "2"),
+            company="BlockedCorp",
+            description=None,
+            raw_text="QA Engineer 2",
+        )
+        scraper = FakeDetailScraper(
+            source_descriptor=descriptor("detail_jobs"),
+            raw_listings=(kept, filtered),
+        )
+        fetcher = FakeFetcher()
+        with tempfile.TemporaryDirectory() as tmp:
+            pipeline = SearchPipeline(
+                config=SearchPipelineConfig(
+                    runs_dir=Path(tmp),
+                    service_config=_service_config(),
+                ),
+                fetcher=fetcher,
+                postprocessor=ResultTablePostProcessor(),
+                run_store_factory=_store_factory,
+                catalog=SourceCatalog((supported(scraper),)),
+            )
+
+            # Act
+            execution = await pipeline.run(
+                SearchRequest(
+                    query_variants=("QA",),
+                    exclude_companies=("Blocked",),
+                ),
+                run_id="r-test",
+            )
+
+            # Assert
+            self.assertEqual(1, execution.detail_summary["total_detail_work_items"])
+            self.assertEqual(1, execution.detail_summary["attempted"])
+            self.assertEqual(
+                [
+                    "https://example.test/detail_jobs/search?q=QA",
+                    "https://example.test/detail_jobs/detail/1",
+                ],
+                [call.url for call in fetcher.calls],
+            )
+            with SqliteRunStore(execution.paths.database_path, run_id="r-test") as store:
+                raw_records = store.read_raw_records()
+                pre_processed = store.read_processed_results(append_sequence=0, phase="pre_enrichment")
+                final_processed = store.read_processed_results(append_sequence=0)
+            by_id = {record["listing"]["source_listing_id"]: record for record in raw_records}
+            self.assertTrue(by_id["1"]["detail_fetched"])
+            self.assertEqual("Full detail description for QA Engineer 1", by_id["1"]["listing"]["description"])
+            self.assertFalse(by_id["2"]["detail_fetched"])
+            self.assertIsNone(by_id["2"]["listing"]["description"])
+            self.assertEqual("pre_enrichment", pre_processed["phase"])
+            self.assertEqual("final", final_processed["phase"])
+            self.assertEqual(1, final_processed["result_count"])
+            self.assertEqual(1, len(final_processed["filtered_out_results"]))
 
 
 if __name__ == "__main__":

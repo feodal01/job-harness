@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from tests.v2._support.contract_runtime import listing
 from job_harness.v2.contracts import (
     AttemptCounts,
     CriteriaDiagnostics,
+    DescriptionAvailability,
     RetryInfo,
     RetryNextAction,
     SearchCriterion,
@@ -79,6 +81,7 @@ class SqliteRunStoreTest(unittest.TestCase):
             store.write_processed_results(
                 {
                     "record_type": "processed_results",
+                    "phase": "final",
                     "run_id": "r-test",
                     "append_sequence": 0,
                     "raw_records_read": 1,
@@ -96,6 +99,37 @@ class SqliteRunStoreTest(unittest.TestCase):
             self.assertEqual("source_attempt", attempt_records[0]["record_type"])
             self.assertEqual(["success"], manifest["source_attempts"])
             self.assertEqual("processed_results", processed["record_type"])
+            self.assertEqual("final", processed["phase"])
+
+    def test_updates_raw_record_detail_fields(self) -> None:
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp, SqliteRunStore(Path(tmp) / "run.sqlite", run_id="r-test") as store:
+            store.reserve_append_attempt({"query_variants": ["QA"]})
+            store.append_raw_record(_raw_record(1))
+            raw_record_id = store.read_raw_record_rows()[0].raw_record_id
+            detailed = replace(
+                listing("hh_ru", "1"),
+                description="Full detail description",
+                requirements="Full detail requirements",
+            )
+
+            # Act
+            store.update_raw_record_detail(
+                raw_record_id=raw_record_id,
+                listing=detailed,
+                description_availability=DescriptionAvailability.PRESENT,
+                detail_fetched=True,
+                detail_parse_error=None,
+            )
+
+            # Assert
+            raw_records = store.read_raw_records()
+            raw_rows = store.read_raw_record_rows()
+            self.assertEqual(raw_record_id, raw_rows[0].raw_record_id)
+            self.assertEqual("present", raw_records[0]["description_availability"])
+            self.assertTrue(raw_records[0]["detail_fetched"])
+            self.assertEqual("Full detail description", raw_records[0]["listing"]["description"])
+            self.assertEqual("Full detail requirements", raw_records[0]["listing"]["requirements"])
 
     def test_concurrent_raw_writes_preserve_records(self) -> None:
         # Arrange

@@ -138,6 +138,14 @@ Format:
 
 **Origin:** CIS expansion added RU-only sources, Armenia/Uzbekistan-specific sources, regional HH hosts, and multi-country remote aggregators.
 
+### Geography normalization boundary
+
+**Pattern:** Sources expose countries, regions, and cities in inconsistent forms, including localized names, slug-like codes, and city-only locations. If each scraper maps those forms to ISO country codes locally, the codebase accumulates duplicate dictionaries and source-specific guesses.
+
+**Strategy:** Scrapers should preserve the source-exposed country, region, city, remote-location, or location text as raw facts. They must not keep source-local country or city-to-country mapping dictionaries. Normalize countries, regions, and city-derived geography only in the shared v2 geography/post-processing layer, using a maintained dataset or library plus conservative ambiguity rules.
+
+**Origin:** Remote/geography filtering exposed duplicate country mappings in Hirify, Getmatch, and Talanto, and city-only locations such as Moscow needed scalable shared normalization rather than source-local mappings.
+
 ### Public API before browser scraping
 
 **Pattern:** Modern job boards often render with Next/Nuxt/Vue, but the page exposes a public JSON endpoint or SSR payload. Browser scraping those pages is slower and more fragile than using the underlying data contract.
@@ -153,3 +161,11 @@ Format:
 **Strategy:** If a keyword parameter is ignored, inspect browser network traffic for taxonomy endpoints. Match the user's query against specialization/category names and slugs, then pass the platform's native category parameter. Add tests for multiple IT roles, not only the role used in smoke testing.
 
 **Origin:** Getmatch ignores `q/search/query` on `/api/offers`; the working route is `/api/specializations` plus `/api/offers?sp=<specialization_slug>`.
+
+### LinkedIn Job Wrapping workplace tags
+
+**Pattern:** ATS-backed career sites may include LinkedIn Job Wrapping tags such as `#LI-Remote`, `#LI-Hybrid`, and `#LI-Onsite` in vacancy content. They may be visually hidden or stripped on LinkedIn, but they are structured workplace signals rather than ordinary prose. Non-workplace `#LI-*` tags usually identify recruiter or tracking metadata.
+
+**Strategy:** Extract only the workplace tags and preserve them as dedicated raw facts such as `linkedin_workplace_tags`. Do not mix them into visible description text or generic `work_format` inside a scraper. Let post-processing resolve precedence: explicit source fields and visible work-format text win over LinkedIn tags; when no explicit signal exists, workplace tags can determine the work format directly. Preserve multiple workplace tags and resolve them centrally instead of selecting the first match.
+
+**Origin:** JetBrains Greenhouse listings included hidden `#LI-HYBRID` and `#LI-REMOTE` tags; treating the first tag as source `work_format` hid conflicts and made the report harder to audit.

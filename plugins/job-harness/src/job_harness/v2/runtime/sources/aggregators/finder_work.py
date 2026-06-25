@@ -26,33 +26,6 @@ from job_harness.v2.source_catalog import source_descriptor, source_required_fix
 _API_URL = "https://api.finder.work/api/v1/vacancies"
 _PUBLIC_BASE_URL = "https://finder.work/vacancies"
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
-_COUNTRY_BY_TEXT = {
-    "арм": "AM",
-    "armen": "AM",
-    "азер": "AZ",
-    "azer": "AZ",
-    "беларус": "BY",
-    "belarus": "BY",
-    "казахстан": "KZ",
-    "kazakh": "KZ",
-    "киргиз": "KG",
-    "кыргыз": "KG",
-    "kyrgyz": "KG",
-    "молдов": "MD",
-    "moldov": "MD",
-    "росси": "RU",
-    "russia": "RU",
-    "таджик": "TJ",
-    "tajik": "TJ",
-    "узбек": "UZ",
-    "uzbek": "UZ",
-    "туркмен": "TM",
-    "turkmen": "TM",
-    "грузи": "GE",
-    "georgia": "GE",
-    "украин": "UA",
-    "ukrain": "UA",
-}
 _EXPERIENCE_GRADE_MAP = {
     "no_experience": "junior",
     "one_year_more": "junior",
@@ -183,7 +156,7 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         url=f"{_PUBLIC_BASE_URL}/{item_id}",
         source="finder_work",
         company=company or None,
-        country=_country_from_text(location_text or "") or "RU",
+        country=None,
         city=city,
         location_text=location_text,
         salary_text=_salary_text(salary_min, salary_max, currency),
@@ -192,7 +165,7 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         salary_currency=currency,
         posted_at=_text(item.get("publication_at")).strip() or None,
         remote_in_country=bool(item.get("distant_work")) or None,
-        remote_global=bool(item.get("distant_work")) or None,
+        remote_global=None,
         relocation=None,
         native_grade=_native_grade(_text(item.get("experience")).strip()),
         description=description,
@@ -214,14 +187,6 @@ def _native_grade(value: str) -> str | None:
     if not value:
         return None
     return _EXPERIENCE_GRADE_MAP.get(value, value)
-
-
-def _country_from_text(text: str) -> str | None:
-    folded = text.casefold()
-    for marker, code in _COUNTRY_BY_TEXT.items():
-        if marker in folded:
-            return code
-    return None
 
 
 def _plain_text(value: object) -> str | None:

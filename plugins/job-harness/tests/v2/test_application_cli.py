@@ -8,16 +8,17 @@ import unittest
 from pathlib import Path
 
 from job_harness.v2.application import V2SearchApplication, V2SearchConfig
-from job_harness.v2.cli import _build_parser, _query_variants, main as cli_main
+from job_harness.v2.cli import _build_parser, _query_variants, _request_from_args, main as cli_main
 from job_harness.v2.contracts import (
     ParserFixtureCase,
     ParserFixtureKind,
+    RemoteMode,
     SearchRequest,
     SourceFetchRequest,
     SourceResponseArtifact,
 )
 from job_harness.v2.persistence import SqliteRunStore
-from job_harness.v2.runtime import RetryPolicy
+from job_harness.v2.runtime import DetailServiceConfig, RetryServiceConfig, SearchServiceConfig
 from job_harness.v2.source_catalog import country_catalog_entries, source_catalog_entries, source_fixture_suite
 
 _PLUGIN_ROOT_PARENT_INDEX = 2
@@ -36,6 +37,22 @@ class FixtureFetcher:
             media_type="application/json" if path.suffix == ".json" else "text/html",
             body=path.read_text(encoding="utf-8"),
         )
+
+
+def _test_service_config() -> SearchServiceConfig:
+    return SearchServiceConfig(
+        source_attempt_timeout_seconds=30.0,
+        run_timeout_seconds=60.0,
+        fetch_timeout_seconds=15.0,
+        retry=RetryServiceConfig(max_attempts=1, backoff_seconds=0.0),
+        detail=DetailServiceConfig(
+            per_source_concurrency=1,
+            default_request_delay_seconds=0.0,
+            request_delay_seconds_by_source={},
+            stop_on_blocked=True,
+            stop_on_rate_limited=True,
+        ),
+    )
 
 
 def _application_fixture_source() -> tuple[str, str, dict[str, Path]]:
@@ -97,7 +114,7 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                 config=V2SearchConfig(
                     runs_dir=Path(tmp),
                     source_ids=(fixture_source_id,),
-                    retry_policy=RetryPolicy(max_attempts=1),
+                    service_config=_test_service_config(),
                 ),
                 fetcher=FixtureFetcher(fixture_mapping),
             )
@@ -122,7 +139,9 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
             self.assertGreater(first.raw_records_written, 0)
             self.assertEqual(first.raw_records_written + second.raw_records_written, len(raw_records))
             self.assertEqual(1, manifest["latest_append_sequence"])
+            self.assertIn("detail_enrichment", manifest)
             self.assertEqual(len(raw_records), processed["raw_records_read"])
+            self.assertEqual("final", processed["phase"])
             self.assertGreater(processed["result_count"], 1)
             self.assertLessEqual(processed["result_count"], len(raw_records))
             self.assertNotIn("truncated", processed)
@@ -165,6 +184,135 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
 
         # Act / Assert
         self.assertEqual(("QA", "AQA", "SDET", "Quality Assurance"), _query_variants(args))
+
+    async def test_cli_search_help_does_not_expose_runtime_controls(self) -> None:
+        # Arrange
+        stdout = io.StringIO()
+
+        # Act
+        with contextlib.redirect_stdout(stdout), self.assertRaises(SystemExit) as raised:
+            _build_parser().parse_args(["search", "--help"])
+
+        # Assert
+        self.assertEqual(0, raised.exception.code)
+        search_help = stdout.getvalue()
+        self.assertIn("--queries", search_help)
+        self.assertIn("--source", search_help)
+        self.assertIn("--remote-mode", search_help)
+        self.assertIn("--hybrid-ok", search_help)
+        self.assertIn("--office-ok", search_help)
+        self.assertIn("--work-from", search_help)
+        self.assertIn("--vacancy-geography", search_help)
+        self.assertNotIn("--remote-in-country", search_help)
+        self.assertNotIn("--remote-global", search_help)
+        self.assertNotIn("--country", search_help)
+        self.assertNotIn("--source-attempt-timeout", search_help)
+        self.assertNotIn("--run-timeout", search_help)
+        self.assertNotIn("--fetch-timeout", search_help)
+        self.assertNotIn("--retry-attempts", search_help)
+
+    async def test_cli_rejects_any_remote_mode(self) -> None:
+        # Arrange / Act / Assert
+        with self.assertRaises(SystemExit):
+            _build_parser().parse_args(["search", "--queries", "QA", "--remote-mode", "any-remote"])
+
+    async def test_cli_rejects_invalid_remote_geography_combination(self) -> None:
+        # Arrange
+        stderr = io.StringIO()
+
+        # Act
+        with contextlib.redirect_stderr(stderr):
+            code = cli_main(
+                [
+                    "search",
+                    "--queries",
+                    "QA",
+                    "--remote-mode",
+                    "global-remote-only",
+                    "--work-from",
+                    "RU",
+                ]
+            )
+
+        # Assert
+        self.assertEqual(1, code)
+        self.assertIn("work_from_geographies", stderr.getvalue())
+
+    async def test_cli_rejects_global_remote_with_physical_format_flags(self) -> None:
+        for flag in ("--hybrid-ok", "--office-ok"):
+            with self.subTest(flag=flag):
+                # Arrange
+                stderr = io.StringIO()
+
+                # Act
+                with contextlib.redirect_stderr(stderr):
+                    code = cli_main(
+                        [
+                            "search",
+                            "--queries",
+                            "QA",
+                            "--remote-mode",
+                            "global-remote-only",
+                            flag,
+                        ]
+                    )
+
+                # Assert
+                self.assertEqual(1, code)
+                self.assertIn("global_remote_only", stderr.getvalue())
+
+    async def test_cli_rejects_invalid_geography_token(self) -> None:
+        for args in (
+            [
+                "search",
+                "--queries",
+                "QA",
+                "--remote-mode",
+                "compatible-remote",
+                "--work-from",
+                "global",
+            ],
+            ["search", "--queries", "QA", "--vacancy-geography", "moon"],
+        ):
+            with self.subTest(args=args):
+                # Arrange
+                stderr = io.StringIO()
+
+                # Act
+                with contextlib.redirect_stderr(stderr):
+                    code = cli_main(args)
+
+                # Assert
+                self.assertEqual(1, code)
+                self.assertIn("unsupported geography", stderr.getvalue())
+
+    async def test_cli_builds_remote_geography_request_fields(self) -> None:
+        # Arrange
+        args = _build_parser().parse_args(
+            [
+                "search",
+                "--queries",
+                "QA",
+                "--remote-mode",
+                "compatible-remote",
+                "--hybrid-ok",
+                "--office-ok",
+                "--work-from",
+                "europe",
+                "--vacancy-geography",
+                "CY",
+            ]
+        )
+
+        # Act
+        request = _request_from_args(args)
+
+        # Assert
+        self.assertEqual(RemoteMode.COMPATIBLE_REMOTE, request.remote_mode)
+        self.assertTrue(request.hybrid_ok)
+        self.assertTrue(request.office_ok)
+        self.assertEqual(("europe",), request.work_from_geographies)
+        self.assertEqual(("CY",), request.vacancy_geographies)
 
     async def test_cli_rejects_empty_pipe_separated_query_variant(self) -> None:
         # Arrange

@@ -161,6 +161,14 @@
       color: var(--muted);
       font-weight: 650;
     }
+    .company-line.excluded-reason {
+      display: inline-block;
+      padding: 2px 6px;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      background: #fef2f2;
+      color: var(--bad);
+    }
     .ordinal {
       display: inline-flex;
       flex: 0 0 auto;
@@ -194,8 +202,35 @@
       gap: 6px 14px;
       color: var(--muted);
     }
+    .field.excluded-reason {
+      margin: -2px -6px;
+      padding: 2px 6px;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      background: #fef2f2;
+      color: var(--bad);
+    }
     .grid b {
       color: var(--ink);
+      font-weight: 650;
+    }
+    .field.excluded-reason b {
+      color: var(--bad);
+    }
+    .skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-top: 2px;
+    }
+    .skill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: #eef2f6;
+      color: #475569;
       font-weight: 650;
     }
     details {
@@ -322,18 +357,20 @@
         : {};
       const items = [
         requestField("Query", listText(request.query_variants, "not recorded")),
-        requestField("Grade", listText(request.grades, "Any")),
-        requestField("Salary from", text(request.salary_from) || "None"),
-        requestField("Published since", text(request.published_since) || "Any date"),
-        requestField("Countries", listText(request.countries, "Any country")),
-        requestField("Cities", listText(request.cities, "Any city")),
+        requestField("Grade", listText(request.grades, "N/a")),
+        requestField("Salary from", text(request.salary_from) || "N/a"),
+        requestField("Published since", text(request.published_since) || "N/a"),
+        requestField("Remote mode", remoteModeText(request.remote_mode)),
+        requestField("Hybrid ok", booleanFlagText(request.hybrid_ok)),
+        requestField("Office ok", booleanFlagText(request.office_ok)),
+        requestField("Work from", listText(request.work_from_geographies, "N/a")),
+        requestField("Vacancy geography", listText(request.vacancy_geographies, "N/a")),
+        requestField("Cities", listText(request.cities, "N/a")),
         requestField("Sources", listText(request.sources, "Full catalog")),
         requestField("Source types", listText(request.source_types, "All types")),
-        requestField("Remote in country", optionalBooleanText(request.remote_in_country)),
-        requestField("Remote global", optionalBooleanText(request.remote_global)),
         requestField("Relocation", optionalBooleanText(request.relocation)),
-        requestField("Exclude companies", listText(request.exclude_companies, "None")),
-        requestField("Exclude text", exclusionText(request.exclude_text) || "None"),
+        requestField("Exclude companies", listText(request.exclude_companies, "N/a")),
+        requestField("Exclude text", exclusionText(request.exclude_text) || "N/a"),
         requestField("Append to run", text(request.append_to_run_id) || "New run")
       ];
       container.replaceChildren(...items);
@@ -345,13 +382,21 @@
 
     function listText(value, emptyText) {
       const items = list(value);
-      return items.length ? items.join(", ") : emptyText;
+      return items.length ? items.join(", ") : (emptyText || "N/a");
     }
 
     function optionalBooleanText(value) {
       if (value === true) return "Required";
       if (value === false) return "Excluded";
-      return "Any";
+      return "N/a";
+    }
+
+    function booleanFlagText(value) {
+      return value === true ? "yes" : "no";
+    }
+
+    function remoteModeText(value) {
+      return text(value) || "N/a";
     }
 
     function exclusionText(value) {
@@ -421,6 +466,7 @@
       if (company) {
         const companyLine = document.createElement("div");
         companyLine.className = "company-line";
+        if (hasRemovalReason(row, "excluded_company")) companyLine.classList.add("excluded-reason");
         companyLine.textContent = company;
         titleText.append(companyLine);
       }
@@ -430,18 +476,21 @@
 
       const grid = document.createElement("div");
       grid.className = "grid";
+      const highlightedLabels = highlightedCardFieldLabels(row);
       grid.append(
-        cardField("Experience", row.display_experience),
-        cardField("Salary", row.display_salary),
-        cardField("Posted", row.posted_at),
-        cardField("Country", row.country),
-        cardField("Location", row.location_text),
-        cardField("Remote in country", booleanText(row.remote_in_country)),
-        cardField("Remote global", booleanText(row.remote_global)),
-        cardField("Relocation", booleanText(row.relocation))
+        cardField("Experience", row.display_experience, highlightedLabels.has("Experience")),
+        cardField("Salary", row.display_salary, highlightedLabels.has("Salary")),
+        cardField("Posted", row.posted_at, highlightedLabels.has("Posted")),
+        cardField("Work format", row.display_work_format, highlightedLabels.has("Work format")),
+        cardField("Country", row.country, highlightedLabels.has("Country")),
+        cardField("Location", row.location_text, highlightedLabels.has("Location")),
+        cardField("Remote scope", row.remote_scope, highlightedLabels.has("Remote scope")),
+        cardField("Relocation", booleanText(row.relocation), highlightedLabels.has("Relocation"))
       );
       head.append(grid);
       article.append(head);
+      const skillTags = skillsElement(row);
+      if (skillTags) article.append(skillTags);
 
       const detailParts = detailTextParts(row);
       const body = detailParts.join("\n\n");
@@ -456,9 +505,13 @@
       }
 
       const debugFields = [
+        debugField("Filter reason", removalReasonText(row)),
         debugField("Source", row.source),
         debugField("Source listing ID", row.source_listing_id),
         debugField("Query", row.query_variant),
+        debugField("Work formats", list(row.work_formats).join(", ")),
+        debugField("Raw remote in country", booleanText(row.remote_in_country)),
+        debugField("Raw remote global", booleanText(row.remote_global)),
         debugField("Description", row.description_availability),
         debugField("Detail fetched", booleanText(row.detail_fetched)),
         debugField("Detail parse error", row.detail_parse_error)
@@ -483,11 +536,72 @@
       return parts;
     }
 
-    function cardField(label, value) {
+    function cardField(label, value, highlighted) {
       const valueText = text(value);
       const div = document.createElement("div");
+      div.className = highlighted ? "field excluded-reason" : "field";
       div.innerHTML = `<b>${escapeHtml(label)}:</b> ${escapeHtml(valueText || "not specified")}`;
       return div;
+    }
+
+    function decisionReasons(row) {
+      return list(row.decision_reasons);
+    }
+
+    function hasRemovalReason(row, reason) {
+      return decisionReasons(row).includes(reason);
+    }
+
+    function removalReasonText(row) {
+      return row.decision === "filtered_out" ? decisionReasons(row).join(", ") : "";
+    }
+
+    function highlightedCardFieldLabels(row) {
+      const labels = new Set();
+      const mappings = [
+        ["grade_mismatch", "Experience"],
+        ["salary_below_requested_minimum", "Salary"],
+        ["published_before_requested_date", "Posted"],
+        ["vacancy_geography_mismatch", "Country"],
+        ["vacancy_geography_unknown", "Country"],
+        ["city_mismatch", "Location"],
+        ["remote_eligibility_mismatch", "Remote scope"],
+        ["remote_eligibility_unknown", "Remote scope"],
+        ["remote_global_mismatch", "Remote scope"],
+        ["remote_global_unknown", "Remote scope"],
+        ["remote_mismatch", "Remote scope"],
+        ["remote_scope_unknown", "Remote scope"],
+        ["remote_global_mismatch", "Work format"],
+        ["remote_eligibility_mismatch", "Work format"],
+        ["remote_mismatch", "Work format"],
+        ["hybrid_geography_mismatch", "Work format"],
+        ["hybrid_geography_unknown", "Work format"],
+        ["office_geography_mismatch", "Work format"],
+        ["office_geography_unknown", "Work format"],
+        ["hybrid_geography_mismatch", "Country"],
+        ["hybrid_geography_unknown", "Country"],
+        ["office_geography_mismatch", "Country"],
+        ["office_geography_unknown", "Country"],
+        ["relocation_mismatch", "Relocation"]
+      ];
+      for (const [reason, label] of mappings) {
+        if (hasRemovalReason(row, reason)) labels.add(label);
+      }
+      return labels;
+    }
+
+    function skillsElement(row) {
+      const skills = list(row.skills);
+      if (!skills.length) return null;
+      const container = document.createElement("div");
+      container.className = "skills";
+      for (const skill of skills) {
+        const item = document.createElement("span");
+        item.className = "skill";
+        item.textContent = skill;
+        container.append(item);
+      }
+      return container;
     }
 
     function debugField(label, value) {

@@ -201,7 +201,7 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
     if category_name:
         raw["category_name"] = category_name
     if work_type:
-        raw["work_type"] = work_type.casefold()
+        raw.update({"work_type": work_type.casefold(), "work_format": work_type.casefold()})
     if company_website:
         raw["company_website"] = company_website
     if company_logo:
@@ -227,7 +227,7 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         url=f"{_PUBLIC_BASE_URL}/{slug}",
         source="it_jobs_uz",
         company=_text(item.get("companyName")).strip() or None,
-        country="UZ",
+        country="Uzbekistan",
         city=location,
         location_text=location,
         salary_text=_salary_text(salary_min, salary_max, currency, period),
@@ -236,7 +236,7 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         salary_currency=currency,
         posted_at=_text(item.get("publishedAt") or item.get("createdAt")).strip() or None,
         remote_in_country=remote,
-        remote_global=remote,
+        remote_global=False if remote else None,
         relocation=None,
         native_grade=_native_grade(_text(item.get("experienceLevel")).strip()),
         description=description,
@@ -250,6 +250,7 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
             requirements,
             responsibilities,
             benefits,
+            work_type.casefold(),
             source_name,
             company_website,
             " ".join(skills),

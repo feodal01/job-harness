@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
 from typing import Protocol, Self
 
 from job_harness.v2.contracts import (
+    DescriptionAvailability,
+    RawListing,
     RawSearchRecord,
     SourceAttemptRecord,
     SourceFetchRequest,
@@ -32,7 +35,30 @@ class CorpusWriter(Protocol):
         """Atomically replace the machine-readable run manifest."""
 
 
-class RunStore(CorpusWriter, Protocol):
+class DetailRecordWriter(Protocol):
+    def update_raw_record_detail(
+        self,
+        *,
+        raw_record_id: int,
+        listing: RawListing,
+        description_availability: DescriptionAvailability,
+        detail_fetched: bool,
+        detail_parse_error: str | None,
+    ) -> None:
+        """Update detail enrichment fields for one stored raw listing row."""
+
+
+@dataclass(frozen=True)
+class StoredRawRecord:
+    raw_record_id: int
+    payload: JsonObject
+
+    def __post_init__(self) -> None:
+        if self.raw_record_id < 1:
+            raise ValueError("raw_record_id must be >= 1")
+
+
+class RunStore(CorpusWriter, DetailRecordWriter, Protocol):
     @property
     def database_path(self) -> Path:
         """Path to the backing run database."""
@@ -60,13 +86,16 @@ class RunStore(CorpusWriter, Protocol):
     def read_raw_records(self) -> tuple[JsonObject, ...]:
         """Read raw listing record payloads for the run."""
 
+    def read_raw_record_rows(self) -> tuple[StoredRawRecord, ...]:
+        """Read raw listing rows with stable SQLite row ids."""
+
     def read_source_attempts(self) -> tuple[JsonObject, ...]:
         """Read source attempt payloads for the run."""
 
     def read_run_manifest(self) -> JsonObject:
         """Read the latest run manifest payload."""
 
-    def read_processed_results(self, *, append_sequence: int | None = None) -> JsonObject:
+    def read_processed_results(self, *, append_sequence: int | None = None, phase: str = "final") -> JsonObject:
         """Read a processed-results payload."""
 
     def close(self) -> None:

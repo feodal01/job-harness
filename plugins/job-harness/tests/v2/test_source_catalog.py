@@ -88,12 +88,14 @@ class SourceCatalogTableTest(unittest.TestCase):
         self.assertEqual(Transport.HTTP, descriptor.transport)
         self.assertEqual(("RU",), descriptor.countries)
         self.assertEqual(300, descriptor.source_limit)
-        self.assertEqual(frozenset({SearchCriterion.REMOTE_IN_COUNTRY}), descriptor.native_request_criteria)
+        self.assertEqual(frozenset(), descriptor.native_request_criteria)
         self.assertEqual(
             frozenset(
                 {
                     SearchCriterion.QUERY,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),
@@ -131,12 +133,14 @@ class SourceCatalogTableTest(unittest.TestCase):
         self.assertEqual(Transport.HTTP, descriptor.transport)
         self.assertEqual(("RU",), descriptor.countries)
         self.assertEqual(100, descriptor.source_limit)
-        self.assertEqual(frozenset({SearchCriterion.REMOTE_IN_COUNTRY}), descriptor.native_request_criteria)
+        self.assertEqual(frozenset(), descriptor.native_request_criteria)
         self.assertEqual(
             frozenset(
                 {
                     SearchCriterion.QUERY,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                 }
             ),
             descriptor.structured_output_criteria,
@@ -182,8 +186,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),
@@ -224,8 +229,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                     SearchCriterion.GRADES,
                     SearchCriterion.SALARY_FROM,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),
@@ -261,9 +267,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                     SearchCriterion.QUERY,
                     SearchCriterion.SALARY_FROM,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.REMOTE_GLOBAL,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                 }
             ),
             descriptor.structured_output_criteria,
@@ -323,8 +329,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),
@@ -358,9 +365,9 @@ class SourceCatalogTableTest(unittest.TestCase):
             frozenset(
                 {
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.REMOTE_GLOBAL,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),
@@ -396,9 +403,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.REMOTE_GLOBAL,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),
@@ -434,9 +441,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.REMOTE_GLOBAL,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),
@@ -472,8 +479,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                     SearchCriterion.QUERY,
                     SearchCriterion.GRADES,
                     SearchCriterion.SALARY_FROM,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.REMOTE_GLOBAL,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
                 }
             ),
             descriptor.structured_output_criteria,
@@ -503,9 +510,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.SALARY_FROM,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.REMOTE_GLOBAL,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),
@@ -539,9 +546,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
                     SearchCriterion.RELOCATION,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.REMOTE_GLOBAL,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),
@@ -576,9 +583,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_IN_COUNTRY,
-                    SearchCriterion.REMOTE_GLOBAL,
-                    SearchCriterion.COUNTRIES,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
                     SearchCriterion.CITIES,
                 }
             ),

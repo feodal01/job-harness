@@ -8,33 +8,40 @@
       "title": "Операционный менеджер",
       "url": "https://team.vk.company/vacancy/45587/",
       "company": "VK Знакомства",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва, Дистанционный",
       "remote_in_country": true,
-      "skills": ["project management"]
+      "skills": [
+        "project management"
+      ]
     },
     {
       "source_listing_id": "45627",
       "title": "Администратор",
       "url": "https://team.vk.company/vacancy/45627/",
       "company": "Административный департамент",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва, Офисный",
       "remote_in_country": false,
-      "skills": ["administrative department"]
+      "skills": [
+        "administrative department"
+      ]
     },
     {
       "source_listing_id": "45678",
       "title": "Инженер технических систем безопасности",
       "url": "https://team.vk.company/vacancy/45678/",
       "company": "Корпоративный центр",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва, Офисный",
       "remote_in_country": false,
-      "skills": ["engineer", "security"]
+      "skills": [
+        "engineer",
+        "security"
+      ]
     }
   ]
 }

@@ -65,9 +65,10 @@ CREATE TABLE IF NOT EXISTS run_manifest (
 CREATE TABLE IF NOT EXISTS processed_results (
     run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
     append_sequence INTEGER NOT NULL CHECK (append_sequence >= 0),
+    phase TEXT NOT NULL,
     payload_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    PRIMARY KEY (run_id, append_sequence),
+    PRIMARY KEY (run_id, append_sequence, phase),
     FOREIGN KEY (run_id, append_sequence)
         REFERENCES append_attempts(run_id, append_sequence)
         ON DELETE CASCADE

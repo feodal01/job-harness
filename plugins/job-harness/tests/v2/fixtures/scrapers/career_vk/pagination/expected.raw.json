@@ -8,33 +8,41 @@
       "title": "Менеджер по кадрам",
       "url": "https://team.vk.company/vacancy/44870/",
       "company": "Департамент персонала",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва, Офисный",
       "remote_in_country": false,
-      "skills": ["HR", "SAP"]
+      "skills": [
+        "HR",
+        "SAP"
+      ]
     },
     {
       "source_listing_id": "45607",
       "title": "Старший финансовый менеджер",
       "url": "https://team.vk.company/vacancy/45607/",
       "company": "Финансовый департамент",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва, Дистанционный",
       "remote_in_country": true,
-      "skills": ["finance", "1C"]
+      "skills": [
+        "finance",
+        "1C"
+      ]
     },
     {
       "source_listing_id": "41854",
       "title": "Ведущий методолог",
       "url": "https://team.vk.company/vacancy/41854/",
       "company": "VK",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва, Дистанционный",
       "remote_in_country": true,
-      "skills": ["finance"]
+      "skills": [
+        "finance"
+      ]
     }
   ]
 }

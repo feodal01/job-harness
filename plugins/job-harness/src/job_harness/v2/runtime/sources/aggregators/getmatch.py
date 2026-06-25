@@ -29,33 +29,8 @@ _PUBLIC_BASE_URL = "https://getmatch.ru"
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _PENDING_SLUGS_HEADER = "x-getmatch-pending-slugs"
 _SEEN_IDS_HEADER = "x-getmatch-seen-ids"
-_COUNTRY_BY_TEXT = {
-    "арм": "AM",
-    "armen": "AM",
-    "азер": "AZ",
-    "azer": "AZ",
-    "беларус": "BY",
-    "belarus": "BY",
-    "казахстан": "KZ",
-    "kazakh": "KZ",
-    "киргиз": "KG",
-    "кыргыз": "KG",
-    "kyrgyz": "KG",
-    "молдов": "MD",
-    "moldov": "MD",
-    "росси": "RU",
-    "russia": "RU",
-    "таджик": "TJ",
-    "tajik": "TJ",
-    "узбек": "UZ",
-    "uzbek": "UZ",
-    "туркмен": "TM",
-    "turkmen": "TM",
-    "грузи": "GE",
-    "georgia": "GE",
-    "украин": "UA",
-    "ukrain": "UA",
-}
+_GLOBAL_REMOTE_LOCATION_IDS = frozenset({"_cu-world"})
+_GLOBAL_REMOTE_TEXT = frozenset({"world", "worldwide", "global", "весь мир"})
 
 
 class GetmatchSource(SourceScraper):
@@ -240,7 +215,6 @@ def _listing_from_offer(offer: dict[str, Any]) -> RawListing | None:
     location_requirements = offer.get("location_requirements")
     location_items = offer.get("location_items")
     location_text = _location_text(location_items)
-    country_text = _country_text(location_requirements)
     remote = _is_remote(location_requirements)
     city = _city(location_requirements, location_items)
     skills = _skills(offer.get("skills_objects"))
@@ -248,6 +222,13 @@ def _listing_from_offer(offer: dict[str, Any]) -> RawListing | None:
     description = _plain_text(offer_description)
     additional_sections = _html_sections(offer_description)
     salary_text = _text(offer.get("salary_description")).strip() or _format_salary(offer)
+    raw = {"id": offer_id, "analytics_id": offer.get("analytics_id")}
+    work_format = _work_format(location_requirements, location_items)
+    if work_format:
+        raw["work_format"] = work_format
+    remote_locations = _remote_location_texts(location_requirements)
+    if remote_locations:
+        raw["remote_locations"] = remote_locations
 
     return RawListing(
         source_listing_id=str(offer_id),
@@ -255,7 +236,7 @@ def _listing_from_offer(offer: dict[str, Any]) -> RawListing | None:
         url=_absolute_url(url_path),
         source="getmatch",
         company=company or None,
-        country=_country_from_text(country_text) or "RU",
+        country=None,
         city=city,
         location_text=location_text,
         salary_text=salary_text or None,
@@ -263,16 +244,16 @@ def _listing_from_offer(offer: dict[str, Any]) -> RawListing | None:
         salary_max=_positive_int(offer.get("salary_display_to")),
         salary_currency=_text(offer.get("salary_currency")).strip() or None,
         posted_at=_text(offer.get("published_at")).strip() or None,
-        remote_in_country=remote,
-        remote_global=remote,
+        remote_in_country=False if remote is False else None,
+        remote_global=_is_global_remote(location_requirements),
         relocation=None,
         native_grade=None,
         description=description,
         requirements=None,
         additional_sections=additional_sections,
         skills=skills,
-        raw_text=_join_text(title, company, location_text, salary_text, description),
-        raw={"id": offer_id, "analytics_id": offer.get("analytics_id")},
+        raw_text=_join_text(title, company, location_text, work_format, salary_text, description),
+        raw=raw,
     )
 
 
@@ -316,16 +297,6 @@ def _location_text(location_items: object) -> str | None:
     return ", ".join(labels) or None
 
 
-def _country_text(location_requirements: object) -> str:
-    if not isinstance(location_requirements, list):
-        return ""
-    return " ".join(
-        _text(item.get("country")).strip()
-        for item in location_requirements
-        if isinstance(item, dict)
-    )
-
-
 def _city(location_requirements: object, location_items: object) -> str | None:
     if isinstance(location_requirements, list):
         for item in location_requirements:
@@ -350,6 +321,59 @@ def _is_remote(location_requirements: object) -> bool | None:
     ) or None
 
 
+def _work_format(location_requirements: object, location_items: object) -> str | None:
+    values: list[str] = []
+    _append_work_formats(values, location_requirements)
+    _append_work_formats(values, location_items)
+    return ", ".join(values) or None
+
+
+def _append_work_formats(values: list[str], source_items: object) -> None:
+    if not isinstance(source_items, list):
+        return
+    for item in source_items:
+        if not isinstance(item, dict):
+            continue
+        value = _text(item.get("format")).strip().casefold()
+        if value and value not in values:
+            values.append(value)
+
+
+def _is_global_remote(location_requirements: object) -> bool | None:
+    if not isinstance(location_requirements, list):
+        return None
+
+    remote_seen = False
+    for item in location_requirements:
+        if not isinstance(item, dict) or item.get("format") != "remote":
+            continue
+        remote_seen = True
+        location_id = _text(item.get("location_id")).strip().casefold()
+        city = _text(item.get("city")).strip().casefold()
+        country = _text(item.get("country")).strip().casefold()
+        if location_id in _GLOBAL_REMOTE_LOCATION_IDS or city in _GLOBAL_REMOTE_TEXT or country in _GLOBAL_REMOTE_TEXT:
+            return True
+
+    return False if remote_seen else None
+
+
+def _remote_location_texts(location_requirements: object) -> tuple[str, ...]:
+    if not isinstance(location_requirements, list):
+        return ()
+    values: list[str] = []
+    for item in location_requirements:
+        if not isinstance(item, dict) or item.get("format") != "remote":
+            continue
+        text = (
+            _text(item.get("country")).strip()
+            or _text(item.get("city")).strip()
+            or _text(item.get("location_id")).strip()
+        )
+        if text and text not in values:
+            values.append(text)
+    return tuple(values)
+
+
 def _skills(value: object) -> tuple[str, ...]:
     if not isinstance(value, list):
         return ()
@@ -358,14 +382,6 @@ def _skills(value: object) -> tuple[str, ...]:
         for skill in value
         if isinstance(skill, dict) and _text(skill.get("name")).strip()
     )
-
-
-def _country_from_text(text: str) -> str | None:
-    folded = text.casefold()
-    for marker, code in _COUNTRY_BY_TEXT.items():
-        if marker in folded:
-            return code
-    return None
 
 
 def _plain_text(value: object) -> str | None:

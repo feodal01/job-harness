@@ -20,7 +20,7 @@ class SourceCatalogTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate source_id"):
             SourceCatalog((supported(scraper), supported(scraper)))
 
-    def test_selects_by_source_id_type_and_country(self) -> None:
+    def test_selects_by_source_id_and_type(self) -> None:
         # Arrange
         hh = FakeScraper(
             source_descriptor=descriptor("hh_ru", source_type=SourceType.AGGREGATOR, countries=("RU",)),
@@ -38,7 +38,7 @@ class SourceCatalogTest(unittest.TestCase):
         request = SearchRequest(
             query_variants=("QA",),
             source_types=(SourceType.COMPANY_CAREER,),
-            countries=("US",),
+            vacancy_geographies=("US",),
         )
 
         # Act
