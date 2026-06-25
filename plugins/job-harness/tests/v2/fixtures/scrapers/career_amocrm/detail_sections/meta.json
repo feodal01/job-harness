@@ -1,0 +1,11 @@
+{
+  "source": "career:amocrm",
+  "captured_url": "https://www.amocrm.ru/jobs/xteam/middle-senior-backend-developer/",
+  "capture_date": "2026-06-25",
+  "capture_method": "curl -L with browser User-Agent",
+  "country": "RU",
+  "fixture_kind": "detail",
+  "real_capture": true,
+  "redactions": [],
+  "notes": "Real amoCRM detail page covering strong-tag section labels and inline strong text inside a section."
+}

@@ -1,0 +1,11 @@
+{
+  "source": "career:amocrm",
+  "captured_url": "https://www.amocrm.ru/jobs/support/technical-support/",
+  "capture_date": "2026-06-25",
+  "capture_method": "curl -L with browser User-Agent",
+  "country": "RU",
+  "fixture_kind": "detail",
+  "real_capture": true,
+  "redactions": [],
+  "notes": "Real amoCRM detail page for the visible technical support vacancy."
+}
