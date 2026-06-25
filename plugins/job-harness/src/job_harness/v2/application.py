@@ -2,29 +2,23 @@
 
 from __future__ import annotations
 
-import secrets
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from dataclasses import dataclass
 from pathlib import Path
 
 from job_harness.v2.contracts import SearchRequest, SourceAttemptRecord
 from job_harness.v2.persistence import SqliteRunStore
-from job_harness.v2.ports import ArtifactFetcher, RunStoreFactory
+from job_harness.v2.ports import ArtifactFetcher, RunStore, RunStoreFactory
 from job_harness.v2.postprocessing import (
     ProcessedResults,
     ResultTablePostProcessor,
 )
-from job_harness.v2.presentation import render_processed_results_html
 from job_harness.v2.runtime import (
-    HttpArtifactFetcher,
-    OrchestratorConfig,
-    RetryPolicy,
-    RunLayout,
     RunPaths,
-    SearchOrchestrator,
-    build_supported_source_catalog,
+    SearchPipeline,
+    SearchPipelineConfig,
+    SearchServiceConfig,
+    new_run_id,
 )
-from job_harness.v2.serialization import to_jsonable
 
 __all__ = [
     "V2SearchApplication",
@@ -38,18 +32,9 @@ __all__ = [
 class V2SearchConfig:
     runs_dir: Path = Path(".job-harness/v2/runs")
     source_ids: tuple[str, ...] = ()
-    source_attempt_timeout_seconds: float = 180.0
-    run_timeout_seconds: float = 360.0
-    fetch_timeout_seconds: float = 15.0
-    retry_policy: RetryPolicy = field(default_factory=RetryPolicy)
+    service_config: SearchServiceConfig | None = None
 
     def __post_init__(self) -> None:
-        if self.source_attempt_timeout_seconds <= 0:
-            raise ValueError("source_attempt_timeout_seconds must be > 0")
-        if self.run_timeout_seconds <= 0:
-            raise ValueError("run_timeout_seconds must be > 0")
-        if self.fetch_timeout_seconds <= 0:
-            raise ValueError("fetch_timeout_seconds must be > 0")
         object.__setattr__(self, "runs_dir", Path(self.runs_dir))
 
 
@@ -61,6 +46,7 @@ class V2SearchExecution:
     attempts: tuple[SourceAttemptRecord, ...]
     raw_records_written: int
     processed_results: ProcessedResults
+    detail_summary: dict[str, object]
 
 
 class V2SearchApplication:
@@ -75,76 +61,31 @@ class V2SearchApplication:
         run_store_factory: RunStoreFactory | None = None,
     ) -> None:
         self._config = config or V2SearchConfig()
-        self._fetcher = fetcher or HttpArtifactFetcher(timeout_seconds=self._config.fetch_timeout_seconds)
+        self._fetcher = fetcher
         self._postprocessor = postprocessor or ResultTablePostProcessor()
-        self._run_store_factory = run_store_factory or SqliteRunStore
+        self._run_store_factory = run_store_factory or _sqlite_run_store_factory
 
     async def search(self, request: SearchRequest, *, run_id: str | None = None) -> V2SearchExecution:
-        layout = RunLayout(self._config.runs_dir)
-        paths = _resolve_paths(layout=layout, request=request, run_id=run_id)
-        catalog = build_supported_source_catalog(self._config.source_ids)
-        with self._run_store_factory(paths.database_path, run_id=paths.run_id) as store:
-            append_sequence = store.reserve_append_attempt(to_jsonable(request))
-            orchestrator = SearchOrchestrator(
-                catalog=catalog,
-                fetcher=self._fetcher,
-                writer=store,
-                config=OrchestratorConfig(
-                    source_attempt_timeout_seconds=self._config.source_attempt_timeout_seconds,
-                    run_timeout_seconds=self._config.run_timeout_seconds,
-                    retry_policy=self._config.retry_policy,
-                ),
-            )
-            try:
-                run_result = await orchestrator.run(
-                    request,
-                    run_id=paths.run_id,
-                    append_sequence=append_sequence,
-                )
-                processed = self._postprocessor.process(
-                    request=request,
-                    run_id=paths.run_id,
-                    append_sequence=append_sequence,
-                    raw_records=store.read_raw_records(),
-                    source_attempts=store.read_source_attempts(),
-                )
-                store.write_processed_results(processed.payload)
-                paths.report_html_path.write_text(
-                    render_processed_results_html(processed.payload),
-                    encoding="utf-8",
-                )
-                store.mark_append_attempt_completed()
-            except Exception:
-                store.mark_append_attempt_failed()
-                raise
+        execution = await SearchPipeline(
+            config=SearchPipelineConfig(
+                runs_dir=self._config.runs_dir,
+                source_ids=self._config.source_ids,
+                service_config=self._config.service_config,
+            ),
+            fetcher=self._fetcher,
+            postprocessor=self._postprocessor,
+            run_store_factory=self._run_store_factory,
+        ).run(request, run_id=run_id)
         return V2SearchExecution(
-            run_id=run_result.run_id,
-            append_sequence=append_sequence,
-            paths=paths,
-            attempts=run_result.attempts,
-            raw_records_written=run_result.raw_records_written,
-            processed_results=processed,
+            run_id=execution.run_id,
+            append_sequence=execution.append_sequence,
+            paths=execution.paths,
+            attempts=execution.attempts,
+            raw_records_written=execution.raw_records_written,
+            processed_results=execution.processed_results,
+            detail_summary=execution.detail_summary,
         )
 
 
-def new_run_id() -> str:
-    now = datetime.now(UTC)
-    return f"r-{now.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}"
-
-
-def _resolve_paths(
-    *,
-    layout: RunLayout,
-    request: SearchRequest,
-    run_id: str | None,
-) -> RunPaths:
-    if request.append_to_run_id is not None:
-        if run_id is not None and run_id != request.append_to_run_id:
-            raise ValueError("run_id must match append_to_run_id")
-        paths = layout.existing_run(request.append_to_run_id)
-        if not paths.database_path.exists():
-            raise FileNotFoundError(f"v2 run database does not exist: {paths.database_path}")
-        return paths
-
-    effective_run_id = run_id or new_run_id()
-    return layout.create_new_run(effective_run_id)
+def _sqlite_run_store_factory(database_path: Path, *, run_id: str) -> RunStore:
+    return SqliteRunStore(database_path, run_id=run_id)

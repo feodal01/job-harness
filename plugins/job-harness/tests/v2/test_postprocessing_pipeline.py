@@ -13,6 +13,7 @@ from job_harness.v2.contracts import (
     CriteriaDiagnostics,
     DescriptionAvailability,
     RawSearchRecord,
+    RemoteMode,
     RetryInfo,
     RetryNextAction,
     SearchCriterion,
@@ -22,7 +23,7 @@ from job_harness.v2.contracts import (
     SourceType,
     TextExclusion,
 )
-from job_harness.v2.postprocessing import ResultTablePostProcessor
+from job_harness.v2.postprocessing import ProcessingPhase, ResultTablePostProcessor
 from job_harness.v2.serialization import to_jsonable
 
 
@@ -36,6 +37,7 @@ def _process_payload(
         request=request,
         run_id="r-test",
         append_sequence=0,
+        phase=ProcessingPhase.FINAL,
         raw_records=tuple(_json_object(record) for record in raw_records),
         source_attempts=tuple(_source_attempt_payload(record) for record in source_attempts),
     )
@@ -78,7 +80,6 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             {
                 "append_to_run_id": None,
                 "cities": [],
-                "countries": [],
                 "exclude_companies": ["blocked"],
                 "exclude_text": [
                     {
@@ -89,14 +90,17 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     }
                 ],
                 "grades": [],
+                "hybrid_ok": False,
+                "office_ok": False,
                 "published_since": None,
                 "query_variants": ["QA"],
                 "relocation": None,
-                "remote_global": None,
-                "remote_in_country": None,
+                "remote_mode": None,
                 "salary_from": None,
                 "source_types": [],
                 "sources": [],
+                "vacancy_geographies": [],
+                "work_from_geographies": [],
             },
             payload["search_request"],
         )
@@ -176,31 +180,783 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             payload["results"][0]["source_facts"],
         )
 
+    def test_uses_source_work_format_before_boolean_remote_fallback(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",)),
+            raw_records=(
+                _raw_record(
+                    "676604",
+                    company="",
+                    source="hirify",
+                    title="Senior QA Automation Engineer (Fintech)",
+                    remote_in_country=False,
+                    raw={"work_format": "hybrid"},
+                ),
+            ),
+            source_attempts=(_attempt_record(source="hirify"),),
+        )
+
+        # Assert
+        self.assertEqual("hybrid", payload["results"][0]["display_work_format"])
+
+    def test_vk_hybrid_work_format_aliases_win_before_remote_boolean(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("UK",),
+                vacancy_geographies=("UK",),
+                hybrid_ok=True,
+            ),
+            raw_records=(
+                _raw_record(
+                    "45608",
+                    company="VK",
+                    source="career:vk",
+                    country="UK",
+                    remote_in_country=True,
+                    remote_global=False,
+                    raw={"work_format": "Комбинированный"},
+                ),
+                _raw_record(
+                    "45130",
+                    company="VK",
+                    source="career:vk",
+                    country="PL",
+                    remote_in_country=True,
+                    remote_global=False,
+                    raw={"work_format": "гибкий"},
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:vk"),),
+        )
+
+        # Assert
+        self.assertEqual(["45608"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual("hybrid", payload["results"][0]["display_work_format"])
+        self.assertEqual(["hybrid"], payload["results"][0]["work_formats"])
+        self.assertEqual("hybrid", payload["results"][0]["remote_scope"])
+        self.assertEqual("hybrid", payload["filtered_out_results"][0]["display_work_format"])
+        self.assertEqual(["hybrid"], payload["filtered_out_results"][0]["work_formats"])
+        self.assertEqual("hybrid", payload["filtered_out_results"][0]["remote_scope"])
+        self.assertEqual({"hybrid_geography_mismatch": 1, "vacancy_geography_mismatch": 1}, payload["removed_counts"])
+
+    def test_linkedin_workplace_tags_are_fallback_after_explicit_work_format(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",)),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    raw={"work_format": "office", "linkedin_workplace_tags": ["#LI-HYBRID"]},
+                ),
+                _raw_record(
+                    "2",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    remote_in_country=False,
+                    remote_global=False,
+                    raw={"linkedin_workplace_tags": ["#LI-HYBRID", "#LI-REMOTE"]},
+                ),
+                _raw_record(
+                    "3",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    remote_in_country=False,
+                    remote_global=False,
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:jetbrains"),),
+        )
+
+        # Assert
+        self.assertEqual(["office", "hybrid, remote", "office"], [
+            row["display_work_format"] for row in payload["results"]
+        ])
+        self.assertEqual([["office"], ["hybrid", "remote"], ["office"]], [
+            row["work_formats"] for row in payload["results"]
+        ])
+
+    def test_linkedin_remote_tag_drives_remote_scope_before_onsite_booleans(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("US",),
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    country="US",
+                    remote_in_country=False,
+                    remote_global=False,
+                    raw={"linkedin_workplace_tags": ["#LI-REMOTE"]},
+                ),
+                _raw_record(
+                    "2",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    country="US",
+                    remote_in_country=False,
+                    remote_global=False,
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:jetbrains"),),
+        )
+
+        # Assert
+        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual("country:US", payload["results"][0]["remote_scope"])
+        self.assertEqual("remote", payload["results"][0]["display_work_format"])
+        self.assertEqual({"remote_eligibility_mismatch": 1}, payload["removed_counts"])
+
+    def test_hybrid_ok_accepts_linkedin_hybrid_tag_with_matching_geography(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("CY",),
+                hybrid_ok=True,
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    country="Cyprus",
+                    remote_in_country=False,
+                    remote_global=False,
+                    raw={"linkedin_workplace_tags": ["#LI-HYBRID"]},
+                ),
+                _raw_record(
+                    "2",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    country="US",
+                    remote_in_country=False,
+                    remote_global=False,
+                    raw={"linkedin_workplace_tags": ["#LI-HYBRID"]},
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:jetbrains"),),
+        )
+
+        # Assert
+        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual("hybrid", payload["results"][0]["display_work_format"])
+        self.assertEqual("hybrid", payload["results"][0]["remote_scope"])
+        self.assertEqual({"hybrid_geography_mismatch": 1}, payload["removed_counts"])
+
+    def test_normalizes_country_values_during_postprocessing(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",)),
+            raw_records=(
+                _raw_record("1", company="Acme", country="Кипр"),
+                _raw_record("2", company="Acme", country="United States"),
+                _raw_record("3", company="Acme", country="CZ"),
+                _raw_record("4", company="Acme", country=None, raw={"regions": ["cyprus"]}),
+                _raw_record("5", company="Acme", country="europe"),
+                _raw_record("6", company="Acme", country="turkey"),
+                _raw_record("7", company="Acme", country=None, raw={"regions": ["czech_republic"]}),
+                _raw_record("8", company="Acme", country="UK"),
+                _raw_record("9", company="Acme", country=None, raw={"regions": ["cote_d_ivoire"]}),
+                _raw_record("10", company="Acme", country="EU"),
+                _raw_record("11", company="Acme", country=None, raw={"remote_type": "europe"}),
+                _raw_record("12", company="Acme", country=None, raw={"remote_restrictions": ["russia"]}),
+                _raw_record("13", company="Acme", country=None, raw={"remote_type": "global"}),
+                _raw_record(
+                    "14",
+                    company="Acme",
+                    country=None,
+                    location_text=(
+                        "Boston, Massachusetts; Foster City, California; Marlton, New Jersey; "
+                        "Remote, United States"
+                    ),
+                ),
+                _raw_record("15", company="Acme", country="BY", location_text="Россия, Беларусь"),
+                _raw_record(
+                    "16",
+                    company="Acme",
+                    country=None,
+                    location_text=(
+                        "Amsterdam, Netherlands; Belgrade, Serbia; Berlin, Germany; Limassol, Cyprus; "
+                        "London, United Kingdom; Madrid, Spain; Prague, Czech Republic"
+                    ),
+                    remote_in_country=True,
+                    remote_global=False,
+                ),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(
+            [
+                "CY",
+                "US",
+                "CZ",
+                "CY",
+                "europe",
+                "TR",
+                "CZ",
+                "GB",
+                "CI",
+                "EU",
+                "europe",
+                "RU",
+                None,
+                "US",
+                "RU, BY",
+                "NL, RS, DE, CY, GB, ES, CZ",
+            ],
+            [row["country"] for row in payload["results"]],
+        )
+        self.assertEqual(["RU", "BY"], payload["results"][14]["countries"])
+        self.assertEqual("country:US", payload["results"][13]["remote_scope"])
+        self.assertEqual(
+            "country:NL, country:RS, country:DE, country:CY, country:GB, country:ES, country:CZ",
+            payload["results"][15]["remote_scope"],
+        )
+
+    def test_country_filter_uses_normalized_country_values(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("CY",)),
+            raw_records=(
+                _raw_record("1", company="Acme", country="Кипр"),
+                _raw_record("2", company="Acme", country="Украина"),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["CY"], [row["country"] for row in payload["results"]])
+        self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual("UA", payload["filtered_out_results"][0]["country"])
+
+    def test_country_filter_matches_any_normalized_country_value(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("RU",)),
+            raw_records=(
+                _raw_record("1", company="Acme", country="BY", location_text="Россия, Беларусь"),
+                _raw_record("2", company="Acme", country="BY", location_text="Минск, Беларусь"),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["RU, BY"], [row["country"] for row in payload["results"]])
+        self.assertEqual(["BY"], [row["country"] for row in payload["filtered_out_results"]])
+        self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
+
+    def test_country_filter_uses_explicit_region_scope_membership(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("PL",)),
+            raw_records=(
+                _raw_record("1", company="Acme", country="europe"),
+                _raw_record("2", company="Acme", country="EU"),
+                _raw_record("3", company="Acme", country="United States"),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["europe", "EU"], [row["country"] for row in payload["results"]])
+        self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual("US", payload["filtered_out_results"][0]["country"])
+
+    def test_country_filter_does_not_treat_russia_as_europe_scope_member(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("RU",)),
+            raw_records=(
+                _raw_record("1", company="Acme", country="europe"),
+                _raw_record("2", company="Acme", country="Russia"),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["RU"], [row["country"] for row in payload["results"]])
+        self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual("europe", payload["filtered_out_results"][0]["country"])
+
+    def test_compatible_remote_matches_global_and_intersecting_work_from_scope(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("europe",),
+            ),
+            raw_records=(
+                _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
+                _raw_record("2", company="Acme", country="US", remote_in_country=True, remote_global=False),
+                _raw_record("3", company="Acme", country="PL", remote_in_country=True, remote_global=False),
+                _raw_record("4", company="Acme", country="RU", remote_in_country=True, remote_global=False),
+                _raw_record(
+                    "5",
+                    company="Acme",
+                    country="CY",
+                    remote_in_country=True,
+                    remote_global=False,
+                    raw={"remote_restrictions": ["EU"]},
+                ),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["1", "3", "5"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({"remote_eligibility_mismatch": 2}, payload["removed_counts"])
+        self.assertEqual(
+            ["country:US", "country:RU"],
+            [row["remote_scope"] for row in payload["filtered_out_results"]],
+        )
+
+    def test_remote_scope_prefers_explicit_remote_locations_over_vacancy_locations(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("BY",),
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="Acme",
+                    country="BY",
+                    location_text="Минск (Беларусь), Россия",
+                    remote_in_country=True,
+                    remote_global=False,
+                    raw={"remote_locations": ["Россия"]},
+                ),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual([], payload["results"])
+        self.assertEqual({"remote_eligibility_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual("country:RU", payload["filtered_out_results"][0]["remote_scope"])
+        self.assertEqual("BY, RU", payload["filtered_out_results"][0]["country"])
+
+    def test_remote_in_country_uses_city_derived_country_scope(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("RU",),
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="Acme",
+                    city="Москва",
+                    location_text="Москва",
+                    remote_in_country=True,
+                    remote_global=None,
+                ),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual("RU", payload["results"][0]["country"])
+        self.assertEqual("country:RU", payload["results"][0]["remote_scope"])
+
+    def test_source_offices_contribute_vacancy_country_but_not_remote_scope(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("Campus Ambassador",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("GB",),
+                vacancy_geographies=("europe",),
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    title="Campus Ambassador (Universities in Europe)",
+                    location_text="Remote",
+                    remote_in_country=None,
+                    remote_global=None,
+                    raw={"offices": ["Amsterdam", "London"]},
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:jetbrains"),),
+        )
+
+        # Assert
+        row = payload["filtered_out_results"][0]
+        self.assertEqual("NL, GB", row["country"])
+        self.assertEqual("unknown", row["remote_scope"])
+        self.assertEqual(["remote_eligibility_unknown"], row["decision_reasons"])
+
+    def test_vacancy_geography_keeps_global_remote_scope_for_remote_search(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("europe",),
+                vacancy_geographies=("europe",),
+            ),
+            raw_records=(
+                _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
+                _raw_record("2", company="Acme", country="PL", remote_in_country=True, remote_global=False),
+                _raw_record("3", company="Acme", country=None, remote_in_country=True, remote_global=True),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["1", "2", "3"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({}, payload["removed_counts"])
+
+    def test_work_from_uk_and_vacancy_europe_keeps_global_and_mixed_scope_remote(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("UK",),
+                vacancy_geographies=("europe",),
+                hybrid_ok=True,
+                office_ok=True,
+            ),
+            raw_records=(
+                _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
+                _raw_record("2", company="Acme", country="PL", remote_in_country=True, remote_global=False),
+                _raw_record(
+                    "3",
+                    company="Acme",
+                    country="PL",
+                    remote_in_country=True,
+                    remote_global=False,
+                    raw={"remote_restrictions": ["europe"]},
+                ),
+                _raw_record(
+                    "4",
+                    company="Acme",
+                    country="UK",
+                    remote_in_country=True,
+                    remote_global=False,
+                    raw={"regions": ["europe"], "remote_locations": ["UK"]},
+                ),
+                _raw_record("5", company="Acme", country="PL", raw={"work_format": "hybrid"}),
+                _raw_record("6", company="Acme", country="PL", raw={"work_format": "office"}),
+                _raw_record(
+                    "7",
+                    company="Acme",
+                    country="UK",
+                    raw={"regions": ["europe"], "work_format": "hybrid"},
+                ),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["1", "4"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual(
+            {
+                "remote_eligibility_mismatch": 2,
+                "hybrid_geography_mismatch": 2,
+                "office_geography_mismatch": 1,
+            },
+            payload["removed_counts"],
+        )
+        self.assertEqual(
+            ["country:PL", "region:europe", "hybrid", "onsite", "hybrid"],
+            [row["remote_scope"] for row in payload["filtered_out_results"]],
+        )
+
+    def test_work_from_uk_and_vacancy_europe_keeps_remote_country_gb_inside_multi_country_listing(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("UK",),
+                vacancy_geographies=("europe",),
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    country="NL, RS, DE, CY, GB, ES, CZ, PL, AM",
+                    location_text=(
+                        "Amsterdam, Netherlands; Berlin, Germany; London, United Kingdom; "
+                        "Madrid, Spain; Prague, Czech Republic; Remote, Germany"
+                    ),
+                    remote_in_country=True,
+                    remote_global=False,
+                    raw={
+                        "remote_locations": ["NL", "RS", "DE", "CY", "GB", "ES", "CZ", "PL", "AM"],
+                    },
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:jetbrains"),),
+        )
+
+        # Assert
+        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({}, payload["removed_counts"])
+        expected_remote_scope = (
+            "country:NL, country:RS, country:DE, country:CY, country:GB, "
+            "country:ES, country:CZ, country:PL, country:AM"
+        )
+        self.assertEqual(
+            expected_remote_scope,
+            payload["results"][0]["remote_scope"],
+        )
+
+    def test_work_from_uk_and_vacancy_uk_accepts_requested_physical_and_remote_formats(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("UK",),
+                vacancy_geographies=("UK",),
+                hybrid_ok=True,
+                office_ok=True,
+            ),
+            raw_records=(
+                _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
+                _raw_record("2", company="Acme", country="United Kingdom", remote_in_country=True),
+                _raw_record("3", company="Acme", country="UK", raw={"work_format": "hybrid"}),
+                _raw_record("4", company="Acme", country="GB", raw={"work_format": "office"}),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["1", "2", "3", "4"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({}, payload["removed_counts"])
+
+    def test_work_from_uk_and_vacancy_uk_remote_only_accepts_in_country_and_global_remote(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("UK",),
+                vacancy_geographies=("UK",),
+            ),
+            raw_records=(
+                _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
+                _raw_record("2", company="Acme", country="United Kingdom", remote_in_country=True),
+                _raw_record("3", company="Acme", country="UK", raw={"work_format": "hybrid"}),
+                _raw_record("4", company="Acme", country="GB", raw={"work_format": "office"}),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["1", "2"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({"remote_eligibility_mismatch": 2}, payload["removed_counts"])
+
+    def test_remote_modes_distinguish_unknown_global_and_non_remote_evidence(self) -> None:
+        # Arrange / Act
+        global_payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY),
+            raw_records=(
+                _raw_record("1", company="Acme", remote_in_country=True, remote_global=True),
+                _raw_record("2", company="Acme", remote_in_country=True, remote_global=False, country="PL"),
+                _raw_record("3", company="Acme"),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+        non_remote_payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.NON_REMOTE_ONLY),
+            raw_records=(
+                _raw_record("1", company="Acme", remote_in_country=False, remote_global=False),
+                _raw_record("2", company="Acme", remote_in_country=True, remote_global=True),
+                _raw_record("3", company="Acme"),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["1"], [row["source_listing_id"] for row in global_payload["results"]])
+        self.assertEqual(
+            {"remote_global_mismatch": 1, "remote_global_unknown": 1},
+            global_payload["removed_counts"],
+        )
+        self.assertEqual(["1"], [row["source_listing_id"] for row in non_remote_payload["results"]])
+        self.assertEqual(
+            {"remote_mismatch": 1, "remote_scope_unknown": 1},
+            non_remote_payload["removed_counts"],
+        )
+
+    def test_bare_remote_without_global_evidence_is_unknown_for_global_remote_only(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="Acme",
+                    location_text="Remote",
+                    remote_in_country=True,
+                    remote_global=None,
+                    raw={"locations": [{"city": None, "country": None, "remote": True}]},
+                ),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual([], payload["results"])
+        self.assertEqual({"remote_global_unknown": 1}, payload["removed_counts"])
+        self.assertEqual("unknown", payload["filtered_out_results"][0]["remote_scope"])
+
+    def test_hybrid_and_office_flags_accept_physical_formats_in_work_from_geography(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("RU",),
+                hybrid_ok=True,
+                office_ok=True,
+            ),
+            raw_records=(
+                _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
+                _raw_record("2", company="Acme", country="RU", raw={"work_format": "hybrid"}),
+                _raw_record("3", company="Acme", country="RU", raw={"work_format": "office"}),
+                _raw_record("4", company="Acme", country="TR", raw={"work_format": "hybrid"}),
+                _raw_record("5", company="Acme", country=None, raw={"work_format": "office"}),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["1", "2", "3"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual(
+            {"hybrid_geography_mismatch": 1, "office_geography_unknown": 1},
+            payload["removed_counts"],
+        )
+        self.assertEqual("hybrid", payload["results"][1]["display_work_format"])
+        self.assertEqual(["hybrid"], payload["results"][1]["work_formats"])
+        self.assertEqual(
+            [["hybrid_geography_mismatch"], ["office_geography_unknown"]],
+            [row["decision_reasons"] for row in payload["filtered_out_results"]],
+        )
+
+    def test_hybrid_and_office_do_not_bypass_remote_policy_without_flags(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("RU",),
+            ),
+            raw_records=(
+                _raw_record("1", company="Acme", country="RU", remote_in_country=True, raw={"work_format": "hybrid"}),
+                _raw_record("2", company="Acme", country="RU", raw={"work_format": "office"}),
+                _raw_record("3", company="Acme", country="US", remote_in_country=True, remote_global=True),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["3"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual(
+            {"remote_eligibility_mismatch": 2},
+            payload["removed_counts"],
+        )
+
+    def test_global_remote_only_removes_physical_formats(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY,
+            ),
+            raw_records=(
+                _raw_record("1", company="Acme", country="CY", raw={"work_format": "office"}),
+                _raw_record("2", company="Acme", country="CY", raw={"work_format": "hybrid"}),
+                _raw_record("3", company="Acme", country="US", remote_in_country=True, remote_global=True),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(["3"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual(
+            {"remote_global_mismatch": 2},
+            payload["removed_counts"],
+        )
+        self.assertEqual(
+            [
+                ["remote_global_mismatch"],
+                ["remote_global_mismatch"],
+            ],
+            [row["decision_reasons"] for row in payload["filtered_out_results"]],
+        )
+
+    def test_explicit_onsite_work_format_overrides_raw_global_marker(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="Acme",
+                    remote_in_country=False,
+                    remote_global=False,
+                    raw={"remote_type": "global", "work_format": "onsite"},
+                ),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual([], payload["results"])
+        self.assertEqual({"remote_global_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual("onsite", payload["filtered_out_results"][0]["remote_scope"])
+
     def test_marks_text_enrichment_required_from_source_attempt_diagnostics(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_global=True,
+                remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY,
             ),
             raw_records=(_raw_record("1", company="Acme"),),
             source_attempts=(
                 _attempt_record(
-                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_GLOBAL}),
+                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
                     native=frozenset({SearchCriterion.QUERY}),
-                    unsupported=frozenset({SearchCriterion.REMOTE_GLOBAL}),
-                    postprocess=frozenset({SearchCriterion.REMOTE_GLOBAL}),
+                    unsupported=frozenset({SearchCriterion.REMOTE_MODE}),
+                    postprocess=frozenset({SearchCriterion.REMOTE_MODE}),
                 ),
             ),
         )
 
         # Assert
-        actions = {
-            action["criterion"]: action
-            for action in payload["source_criteria_plan"][0]["actions"]
-        }
-        self.assertEqual("text_enrichment_required", actions["remote_global"]["action"])
-        self.assertTrue(actions["remote_global"]["requires_enrichment"])
+        actions = {action["criterion"]: action for action in payload["source_criteria_plan"][0]["actions"]}
+        self.assertEqual("text_enrichment_required", actions["remote_mode"]["action"])
+        self.assertTrue(actions["remote_mode"]["requires_enrichment"])
 
     def test_filters_query_when_source_did_not_apply_native_query(self) -> None:
         # Arrange / Act
@@ -261,6 +1017,47 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(["QA Engineer"], [row["title"] for row in payload["results"]])
+
+    def test_query_postprocess_does_not_match_description_only_role_mentions(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("Developer",)),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    query_variant="Developer",
+                    title="Account Manager (China)",
+                    description="JetBrains creates developer tools and AI-powered IDEs.",
+                    additional_sections={"responsibilities": "Work with developer tool customers."},
+                    raw_text="Account Manager (China) JetBrains creates developer tools.",
+                ),
+                _raw_record(
+                    "2",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    query_variant="Developer",
+                    title="Developer Advocate",
+                    description="Works with technical communities.",
+                ),
+            ),
+            source_attempts=(
+                _attempt_record(
+                    source="career:jetbrains",
+                    source_type=SourceType.COMPANY_CAREER,
+                    query_variant="Developer",
+                    requested=frozenset({SearchCriterion.QUERY}),
+                    native=frozenset(),
+                    structured=frozenset({SearchCriterion.QUERY}),
+                    postprocess=frozenset({SearchCriterion.QUERY}),
+                ),
+            ),
+        )
+
+        # Assert
+        self.assertEqual(["Developer Advocate"], [row["title"] for row in payload["results"]])
+        self.assertEqual({"query_mismatch": 1}, payload["removed_counts"])
 
     def test_fuzzy_query_postprocess_matches_title_tokens(self) -> None:
         # Arrange / Act
@@ -352,7 +1149,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual(["Москва"], [row["city"] for row in payload["results"]])
         self.assertEqual({"city_mismatch": 1}, payload["removed_counts"])
 
-    def test_preserves_additional_sections_and_uses_them_for_text_matching(self) -> None:
+    def test_preserves_additional_sections_when_title_matches_query(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(query_variants=("automation testing",)),
@@ -362,7 +1159,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     company="JetBrains",
                     source="career:jetbrains",
                     query_variant="automation testing",
-                    title="Backend Engineer",
+                    title="Automation Testing Engineer",
                     description="Build product services.",
                     additional_sections={
                         "responsibilities": "Own automation testing infrastructure.",
@@ -417,8 +1214,11 @@ def _raw_record(
     description: str | None = None,
     additional_sections: dict[str, str] | None = None,
     raw_text: str | None = None,
+    country: str | None = None,
     city: str | None = None,
+    location_text: str | None = None,
     remote_in_country: bool | None = None,
+    remote_global: bool | None = None,
     description_availability: DescriptionAvailability = DescriptionAvailability.NOT_REQUESTED,
     detail_fetched: bool = False,
     detail_parse_error: str | None = None,
@@ -426,16 +1226,22 @@ def _raw_record(
 ) -> RawSearchRecord:
     raw_listing = listing(source, source_listing_id)
     effective_description = description if description is not None else (title or "Modern QA role")
+    effective_raw = raw
+    if effective_raw is None and remote_global is True:
+        effective_raw = {"remote_type": "global"}
     raw_listing = replace(
         raw_listing,
         company=company,
         title=title or raw_listing.title,
+        country=country,
         city=city,
+        location_text=location_text,
         description=effective_description,
         additional_sections=additional_sections or {},
         remote_in_country=remote_in_country,
+        remote_global=remote_global,
         raw_text=raw_text if raw_text is not None else effective_description,
-        raw=raw or {},
+        raw=effective_raw or {},
     )
     return RawSearchRecord(
         run_id="r-test",
@@ -456,6 +1262,7 @@ def _attempt_record(
     *,
     source: str = "hh_ru",
     source_type: SourceType = SourceType.AGGREGATOR,
+    query_variant: str = "QA",
     requested: frozenset[SearchCriterion] = frozenset({SearchCriterion.QUERY}),
     native: frozenset[SearchCriterion] = frozenset({SearchCriterion.QUERY}),
     structured: frozenset[SearchCriterion] = frozenset(),
@@ -466,7 +1273,7 @@ def _attempt_record(
     return SourceAttemptRecord(
         source=source,
         source_type=source_type,
-        query_variant="QA",
+        query_variant=query_variant,
         attempt=1,
         outcome=SourceOutcome.SUCCESS,
         started_at=now,

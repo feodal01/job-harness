@@ -15,13 +15,14 @@
       "salary_max": null,
       "salary_currency": null,
       "posted_at": null,
-      "remote_in_country": true,
-      "remote_global": true,
+      "remote_in_country": null,
+      "remote_global": null,
       "native_grade": "senior",
       "skills": [],
       "raw_keys": [
         "href",
-        "position"
+        "position",
+        "work_format"
       ]
     },
     {
@@ -37,13 +38,14 @@
       "salary_max": null,
       "salary_currency": null,
       "posted_at": null,
-      "remote_in_country": true,
-      "remote_global": true,
+      "remote_in_country": null,
+      "remote_global": null,
       "native_grade": "lead",
       "skills": [],
       "raw_keys": [
         "href",
-        "position"
+        "position",
+        "work_format"
       ]
     }
   ]

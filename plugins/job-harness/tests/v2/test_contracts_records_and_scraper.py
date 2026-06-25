@@ -45,10 +45,10 @@ def _listing() -> RawListing:
 
 def _criteria_diagnostics() -> CriteriaDiagnostics:
     return CriteriaDiagnostics(
-        requested=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_GLOBAL}),
+        requested=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
         native_applied=frozenset({SearchCriterion.QUERY}),
-        unsupported=frozenset({SearchCriterion.REMOTE_GLOBAL}),
-        postprocess=frozenset({SearchCriterion.REMOTE_GLOBAL}),
+        unsupported=frozenset({SearchCriterion.REMOTE_MODE}),
+        postprocess=frozenset({SearchCriterion.REMOTE_MODE}),
     )
 
 
@@ -80,6 +80,35 @@ class RawRecordTest(unittest.TestCase):
                 url="/jobs/1",
                 source="hh_ru",
             )
+
+    def test_raw_listing_rejects_global_remote_without_explicit_source_evidence(self) -> None:
+        # Arrange / Act / Assert
+        with self.assertRaisesRegex(ValueError, "remote_global"):
+            RawListing(
+                source_listing_id="123",
+                title="QA Engineer",
+                url="https://example.test/jobs/123",
+                source="career:jetbrains",
+                location_text="Remote",
+                remote_in_country=True,
+                remote_global=True,
+                raw={"locations": ({"city": None, "country": None, "remote": True},)},
+            )
+
+    def test_raw_listing_accepts_global_remote_with_explicit_source_evidence(self) -> None:
+        # Arrange / Act
+        listing = RawListing(
+            source_listing_id="123",
+            title="QA Engineer",
+            url="https://example.test/jobs/123",
+            source="hirify",
+            remote_in_country=True,
+            remote_global=True,
+            raw={"remote_type": "global"},
+        )
+
+        # Assert
+        self.assertTrue(listing.remote_global)
 
     def test_raw_search_record_requires_listing_source_to_match(self) -> None:
         # Arrange / Act / Assert

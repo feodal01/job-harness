@@ -206,7 +206,7 @@ def _habr_listing(item: dict[str, Any]) -> RawListing:
         url=absolute_url(_DETAIL_BASE_URL, href),
         source="habr_career",
         company=company or None,
-        country="RU",
+        country="Россия",
         city=city_values[0] if city_values else None,
         location_text=", ".join(city_values) or None,
         salary_text=salary_text or None,

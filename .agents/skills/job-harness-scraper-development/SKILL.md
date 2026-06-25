@@ -45,6 +45,14 @@ Before changing scraper behavior or tests, read:
   host-specific file instead of putting a single-host assumption in a shared
   runtime skill.
 - Treat live runs as debugging, smoke, or drift evidence, not merge proof.
+- After changing scraper behavior, parser output, result post-processing,
+  filtering, dedupe, presentation fields, or report rendering, run a live query
+  that exercises the changed behavior and manually audit at least 10 affected
+  cards when that many are available. For each audited card, open the source
+  vacancy page, compare the source-visible facts and relevant structured or
+  hidden source facts with what the user-facing report shows, and record the
+  evidence before claiming the work is done. If fewer than 10 affected cards
+  exist, audit every affected card and state the smaller sample size.
 - Base source-specific parser fixtures on real captured source artifacts.
 - Do not invent captcha, VPN, geo, login, no-result, or malformed source pages
   to make a source parser test pass.
@@ -67,10 +75,14 @@ Before changing scraper behavior or tests, read:
    brittle rendered text.
 4. Use live browser/debug runs only to understand or capture reality. Convert any
    parser-relevant finding into a deterministic G2 fixture before relying on it.
-5. Put generic transport/runtime classification in shared detectors and G5 tests.
+5. For scraper, post-processing, filtering, or presentation changes, perform the
+   live affected-card audit from Development Rules before handoff. The audit must
+   include direct source-page checks, not only inspecting generated report rows
+   or SQLite payloads.
+6. Put generic transport/runtime classification in shared detectors and G5 tests.
    Put source-specific parser/classifier behavior in G2 only when backed by real
    captured artifacts.
-6. Run the repository verification gate before handoff.
+7. Run the repository verification gate before handoff.
 
 ## Adding Or Changing A Scraper
 
@@ -86,6 +98,19 @@ Before changing scraper behavior or tests, read:
 - Strip tracking parameters from emitted vacancy URLs.
 - Keep raw source facts separate from downstream filtering, ranking, dedupe, and
   presentation.
+- Treat LinkedIn Job Wrapping workplace tags (`#LI-Remote`, `#LI-Hybrid`,
+  `#LI-Onsite`) as valid source-exposed workplace signals when they appear in a
+  real captured source artifact. Preserve them as dedicated raw facts, not as
+  visible description text and not as generic `work_format`. Post-processing owns
+  the precedence: explicit source fields or visible work-format text win over
+  LinkedIn tags; if no explicit signal exists, LinkedIn tags may determine work
+  format directly. Preserve multiple workplace tags instead of selecting the
+  first one.
+- Do not normalize country names or city names to ISO codes inside scrapers and
+  do not keep source-local country or city-to-country mapping dictionaries. Emit
+  the country/location text the source actually exposed, or `None` when the
+  source did not expose it. Country, region, and city-derived geography
+  normalization belongs in shared v2 post-processing/geography code.
 
 ## Useful Patterns
 
@@ -99,4 +124,5 @@ Use `references/scrapers.md` for:
 - Bitrix SEF filter URLs;
 - browser isolated-world limitations;
 - country-aware source metadata;
+- LinkedIn Job Wrapping workplace tags;
 - specialization/category APIs.

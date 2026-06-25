@@ -69,6 +69,7 @@ def main() -> int:
 
     checks = [
         _run_no_compat_comments,
+        _run_v2_module_structure_check,
         _run_v2_lint,
         _run_v2_types,
         _run_v2_architecture_boundary_tests,
@@ -107,6 +108,7 @@ def _run_v2_lint() -> int:
             V2_RUFF_IGNORES,
             "src/job_harness/v2",
             "tests/v2",
+            "../../scripts/check_v2_module_structure.py",
             "../../scripts/verify_v2.py",
             "../../scripts/v2_live_e2e.py",
         ]
@@ -115,6 +117,10 @@ def _run_v2_lint() -> int:
 
 def _run_no_compat_comments() -> int:
     return _run([sys.executable, "scripts/check_no_compat_comments.py"])
+
+
+def _run_v2_module_structure_check() -> int:
+    return _run([sys.executable, "scripts/check_v2_module_structure.py"])
 
 
 def _run_v2_types() -> int:
@@ -127,6 +133,7 @@ def _run_v2_types() -> int:
             "mypy",
             "src/job_harness/v2",
             "tests/v2",
+            "../../scripts/check_v2_module_structure.py",
             "../../scripts/verify_v2.py",
             "../../scripts/v2_live_e2e.py",
             *V2_MYPY_STRICT_FLAGS,
@@ -523,9 +530,7 @@ def _validate_all_live_sources_attempted(
 
 def _validate_healthy_live_attempt(attempts: list[object], *, source_id: str) -> bool:
     source_attempts = [
-        attempt
-        for attempt in attempts
-        if isinstance(attempt, dict) and attempt.get("source") == source_id
+        attempt for attempt in attempts if isinstance(attempt, dict) and attempt.get("source") == source_id
     ]
     if not source_attempts:
         print(f"v2 live e2e failed: {source_id} attempt is missing", file=sys.stderr)
@@ -587,9 +592,7 @@ def _validated_live_artifacts(payload: dict[str, object]) -> dict[str, object] |
 
 def _validate_vk_live_attempt(attempts: list[object], artifacts: dict[str, object]) -> bool:
     vk_attempts = [
-        attempt
-        for attempt in attempts
-        if isinstance(attempt, dict) and attempt.get("source") == "career:vk"
+        attempt for attempt in attempts if isinstance(attempt, dict) and attempt.get("source") == "career:vk"
     ]
     if not vk_attempts:
         print("v2 live e2e failed: career:vk attempt is missing", file=sys.stderr)
@@ -666,12 +669,12 @@ def _read_processed_payload(artifacts: dict[str, object], *, append_sequence: in
         """
         SELECT payload_json
         FROM processed_results
-        WHERE append_sequence = ?
+        WHERE append_sequence = ? AND phase = 'final'
         """,
         (append_sequence,),
     )
     if len(rows) != 1:
-        raise ValueError(f"expected one processed_results row for append_sequence={append_sequence}")
+        raise ValueError(f"expected one final processed_results row for append_sequence={append_sequence}")
     return rows[0]
 
 

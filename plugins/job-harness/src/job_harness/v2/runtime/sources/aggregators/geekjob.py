@@ -32,38 +32,7 @@ _SALARY_LINE_RE = re.compile(
     re.I,
 )
 _DATE_RE = re.compile(r"\b\d{1,2}\s+[а-яё]+\b", re.I)
-_MAX_COUNTRY_CODE_TOKEN_LENGTH = 3
-_COUNTRY_BY_TEXT = {
-    "арм": "AM",
-    "armen": "AM",
-    "азер": "AZ",
-    "azer": "AZ",
-    "беларус": "BY",
-    "belarus": "BY",
-    "казахстан": "KZ",
-    "kazakh": "KZ",
-    "киргиз": "KG",
-    "кыргыз": "KG",
-    "kyrgyz": "KG",
-    "молдов": "MD",
-    "moldov": "MD",
-    "росси": "RU",
-    "russia": "RU",
-    "таджик": "TJ",
-    "tajik": "TJ",
-    "узбек": "UZ",
-    "uzbek": "UZ",
-    "туркмен": "TM",
-    "turkmen": "TM",
-    "грузи": "GE",
-    "georgia": "GE",
-    "украин": "UA",
-    "ukrain": "UA",
-    "серб": "RS",
-    "serbia": "RS",
-    "кипр": "CY",
-    "cyprus": "CY",
-}
+_MAX_UPPERCASE_LOCATION_TOKEN_LENGTH = 3
 
 
 class GeekJobSource(SourceScraper):
@@ -186,7 +155,7 @@ def _listing_from_texts(href: str, texts: list[str]) -> RawListing | None:
         for text in cleaned
         if not _DATE_RE.fullmatch(text)
         and text != "chevron_right"
-        and not (len(text) <= _MAX_COUNTRY_CODE_TOKEN_LENGTH and text.isupper())
+        and not (len(text) <= _MAX_UPPERCASE_LOCATION_TOKEN_LENGTH and text.isupper())
     ]
     if not meaningful:
         return None
@@ -199,7 +168,7 @@ def _listing_from_texts(href: str, texts: list[str]) -> RawListing | None:
         salary_candidate = _salary_from_text(text)
         if salary_text is None and salary_candidate:
             salary_text = salary_candidate
-        if location_text is None and _country_from_text(text):
+        if location_text is None and salary_candidate and not _SALARY_LINE_RE.fullmatch(text):
             location_text = text
             continue
         if salary_candidate is not None and _SALARY_LINE_RE.fullmatch(text):
@@ -216,13 +185,14 @@ def _listing_from_texts(href: str, texts: list[str]) -> RawListing | None:
 
     blob = " ".join(meaningful)
     source_listing_id = href.rsplit("/", 1)[-1]
+    remote = _is_remote(blob) or None
     return RawListing(
         source_listing_id=source_listing_id,
         title=title,
         url=absolute_url(_BASE_URL, href),
         source="geekjob",
         company=company or None,
-        country=_country_from_text(blob),
+        country=None,
         city=None,
         location_text=location_text,
         salary_text=salary_text,
@@ -230,8 +200,8 @@ def _listing_from_texts(href: str, texts: list[str]) -> RawListing | None:
         salary_max=None,
         salary_currency=None,
         posted_at=_posted_at_from_texts(meaningful),
-        remote_in_country=_is_remote(blob) or None,
-        remote_global=_is_remote(blob) or None,
+        remote_in_country=remote,
+        remote_global=False if remote else None,
         relocation=None,
         native_grade=None,
         description=None,
@@ -264,14 +234,6 @@ def _listing_matches_query(listing: RawListing, query: str) -> bool:
 
 def _query_tokens(query: str) -> set[str]:
     return {token for token in re.findall(r"[a-zа-яё0-9+#.]+", query.casefold()) if len(token) > 1}
-
-
-def _country_from_text(text: str) -> str | None:
-    folded = text.casefold()
-    for marker, code in _COUNTRY_BY_TEXT.items():
-        if marker in folded:
-            return code
-    return None
 
 
 def _is_remote(text: str) -> bool:

@@ -47,8 +47,11 @@ results from processed exports — not from raw scrape dumps.
      --queries "QA | AQA | SDET | quality assurance | тестировщик" \
      --grade middle \
      --salary-from 150000 \
-     --country RU \
-     --country AM \
+     --remote-mode compatible-remote \
+     --hybrid-ok \
+     --work-from RU \
+     --vacancy-geography RU \
+     --vacancy-geography AM \
      --runs-dir .job-harness/v2/runs
    ```
 
@@ -112,23 +115,27 @@ results from processed exports — not from raw scrape dumps.
 | `--exclude-text` | `exclude_text` | Repeatable substring exclusions |
 | `--exclude-regex` | `exclude_regex` | Repeatable regex exclusions |
 | `--relocation` | `relocation` | `true` / `false` |
-| `--remote-in-country` | `remote_in_country` | `true` / `false` |
-| `--remote-global` | `remote_global` | `true` / `false` |
-| `--country` | `countries` | Repeatable ISO codes (`RU`, `AM`); filters catalog-eligible sources |
+| `--remote-mode` | `remote_mode` | `any`, `compatible-remote`, `global-remote-only`, `non-remote-only` |
+| `--hybrid-ok` | `hybrid_ok` | Allows hybrid vacancies when their country or region matches the requested search geography |
+| `--office-ok` | `office_ok` | Allows office vacancies when their country or region matches the requested search geography |
+| `--work-from` | `work_from_geographies` | Repeatable country or region; required for `compatible-remote` |
+| `--vacancy-geography` | `vacancy_geographies` | Repeatable country or region for vacancy location filtering |
 | `--city` | `cities` | Repeatable city names |
 | `--source` | `sources` | Repeatable exact source ids; omit for full catalog |
 | `--source-type` | `source_types` | `aggregator` or `company_career` |
 | `--append-to-run-id` | append mode | Adds to existing run corpus |
 | `--run-id` | explicit run id | Optional; auto-generated when omitted |
 | `--runs-dir` | artifact root | Default `.job-harness/v2/runs` |
-| `--source-attempt-timeout` | per-source timeout | Seconds (default 30) |
-| `--run-timeout` | orchestrator timeout | Seconds (default 120) |
-| `--fetch-timeout` | HTTP fetch timeout | Seconds (default 15) |
-| `--retry-attempts` | source retries | Default 1 |
 
 Call `list-sources` to see per-source `native_request_criteria` vs
 `structured_output_criteria` — unsupported criteria are still collected raw and
 handled in post-processing.
+
+Runtime safety settings such as source timeouts, run timeout, HTTP fetch
+timeout, retry count, detail request pacing, and detail concurrency are
+service-owned settings packaged in
+`job_harness/v2/runtime/search_service_config.json`. Agents should not pass
+these values as normal search criteria.
 
 ## Supported v2 sources (14)
 

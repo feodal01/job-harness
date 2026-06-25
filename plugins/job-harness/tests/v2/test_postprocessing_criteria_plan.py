@@ -10,11 +10,11 @@ class CriteriaProcessingPlannerTest(unittest.TestCase):
         # Arrange
         source_attempts = (
             _attempt(
-                requested=("query", "published_since", "remote_global"),
+                requested=("query", "published_since", "remote_mode"),
                 native=("query",),
                 structured=("published_since",),
-                unsupported=("remote_global",),
-                postprocess=("published_since", "remote_global"),
+                unsupported=("remote_mode",),
+                postprocess=("published_since", "remote_mode"),
             ),
         )
         rows = (_row(raw_text="Remote worldwide policy mentioned in the vacancy"),)
@@ -29,8 +29,8 @@ class CriteriaProcessingPlannerTest(unittest.TestCase):
         actions = _actions_by_criterion(plan[0])
         self.assertEqual("none_native_request", actions["query"]["action"])
         self.assertEqual("structured_postprocess", actions["published_since"]["action"])
-        self.assertEqual("text_enrichment_required", actions["remote_global"]["action"])
-        self.assertTrue(actions["remote_global"]["requires_enrichment"])
+        self.assertEqual("text_enrichment_required", actions["remote_mode"]["action"])
+        self.assertTrue(actions["remote_mode"]["requires_enrichment"])
 
     def test_marks_missing_text_when_unsupported_criterion_cannot_be_enriched(self) -> None:
         # Arrange

@@ -1,0 +1,19 @@
+{
+  "source_attempt_timeout_seconds": 180.0,
+  "run_timeout_seconds": 360.0,
+  "fetch_timeout_seconds": 15.0,
+  "retry": {
+    "max_attempts": 1,
+    "backoff_seconds": 0.0
+  },
+  "detail": {
+    "per_source_concurrency": 1,
+    "default_request_delay_seconds": 0.75,
+    "request_delay_seconds_by_source": {
+      "hh_ru": 1.5,
+      "hirify": 0.75
+    },
+    "stop_on_blocked": true,
+    "stop_on_rate_limited": true
+  }
+}

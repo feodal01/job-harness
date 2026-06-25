@@ -24,48 +24,6 @@ from job_harness.v2.source_catalog import source_descriptor, source_required_fix
 
 _API_URL = "https://api.hirify.me/api/vacancies"
 _PUBLIC_BASE_URL = "https://hirify.me/jobs"
-_REGION_COUNTRY = {
-    "armenia": "AM",
-    "azerbaijan": "AZ",
-    "belarus": "BY",
-    "georgia": "GE",
-    "kazakhstan": "KZ",
-    "kyrgyzstan": "KG",
-    "moldova": "MD",
-    "russia": "RU",
-    "tajikistan": "TJ",
-    "turkmenistan": "TM",
-    "ukraine": "UA",
-    "uzbekistan": "UZ",
-    "united_states": "US",
-}
-_COUNTRY_BY_TEXT = {
-    "арм": "AM",
-    "armen": "AM",
-    "азер": "AZ",
-    "azer": "AZ",
-    "беларус": "BY",
-    "belarus": "BY",
-    "казахстан": "KZ",
-    "kazakh": "KZ",
-    "киргиз": "KG",
-    "кыргыз": "KG",
-    "kyrgyz": "KG",
-    "молдов": "MD",
-    "moldov": "MD",
-    "росси": "RU",
-    "russia": "RU",
-    "таджик": "TJ",
-    "tajik": "TJ",
-    "узбек": "UZ",
-    "uzbek": "UZ",
-    "туркмен": "TM",
-    "turkmen": "TM",
-    "грузи": "GE",
-    "georgia": "GE",
-    "украин": "UA",
-    "ukrain": "UA",
-}
 
 
 class HirifySource(DetailEnrichmentScraper):
@@ -211,8 +169,10 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
     location_text = _text(item.get("location")).strip() or None
     country = _country_from_item(item, location_text)
     work_format = item.get("work_format")
-    work_format_text = " ".join(_text(value) for value in work_format) if isinstance(work_format, list) else ""
-    remote = _is_remote(work_format_text) or None
+    work_format_values = _code_values(work_format)
+    work_format_text = " ".join(work_format_values)
+    remote_type = _text(item.get("remote_type")).strip().casefold()
+    remote_in_country, remote_global = _remote_flags(work_format_values=work_format_values, remote_type=remote_type)
     salary_min, salary_max, currency = _salary_fields(item)
     skills = _named_values(item.get("tags"))
     specializations = _named_values(item.get("specializations"))
@@ -221,37 +181,6 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
     regions = _region_codes(item.get("regions"))
     description = _text(item.get("tldr")).strip() or None
     posted_at = _text(item.get("updated_at") or item.get("created_at")).strip() or None
-
-    raw: dict[str, object] = {"id": item_id}
-    if not company:
-        raw["company_missing"] = True
-    source_name = _text(item.get("source")).strip()
-    source_secondary = _text(item.get("source_secondary")).strip()
-    if source_name:
-        raw["external_source"] = source_name
-    if source_secondary:
-        raw["external_source_secondary"] = source_secondary
-    if work_format_text:
-        raw["work_format"] = work_format_text.casefold()
-    remote_type = _text(item.get("remote_type")).strip()
-    if remote_type:
-        raw["remote_type"] = remote_type
-    work_type = _text(item.get("work_type")).strip()
-    if work_type:
-        raw["work_type"] = work_type
-    if regions:
-        raw["regions"] = regions
-    if specializations:
-        raw["specializations"] = specializations
-    english_level = _text(item.get("english_level")).strip()
-    if english_level:
-        raw["english_level"] = english_level
-    linkedin = _text(item.get("linkedin")).strip()
-    if linkedin:
-        raw["linkedin"] = linkedin
-    application_channel = _text(item.get("application_channel")).strip()
-    if application_channel:
-        raw["application_channel"] = application_channel
 
     return RawListing(
         source_listing_id=str(item_id),
@@ -267,16 +196,70 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         salary_max=salary_max,
         salary_currency=currency,
         posted_at=posted_at,
-        remote_in_country=remote,
-        remote_global=remote,
+        remote_in_country=remote_in_country,
+        remote_global=remote_global,
         relocation=None,
         native_grade=native_grade,
         description=description,
         requirements=None,
         skills=skills,
-        raw_text=_join_text(title, company, location_text, description, work_format_text, " ".join(skills)),
-        raw=raw,
+        raw_text=_join_text(title, company, location_text, description, country, work_format_text, " ".join(skills)),
+        raw=_raw_facts_from_item(
+            item,
+            item_id=item_id,
+            company=company,
+            work_format_text=work_format_text,
+            remote_type=remote_type,
+            regions=regions,
+            specializations=specializations,
+        ),
     )
+
+
+def _raw_facts_from_item(
+    item: dict[str, Any],
+    *,
+    item_id: object,
+    company: str,
+    work_format_text: str,
+    remote_type: str,
+    regions: tuple[str, ...],
+    specializations: tuple[str, ...],
+) -> dict[str, object]:
+    raw: dict[str, object] = {"id": item_id}
+    if not company:
+        raw["company_missing"] = True
+    for raw_key, item_key in (
+        ("external_source", "source"),
+        ("external_source_secondary", "source_secondary"),
+        ("work_type", "work_type"),
+        ("english_level", "english_level"),
+        ("linkedin", "linkedin"),
+        ("application_channel", "application_channel"),
+    ):
+        _append_raw_text(raw, raw_key, item.get(item_key))
+    for raw_key, values in (
+        ("work_format", (work_format_text.casefold(),) if work_format_text else ()),
+        ("remote_type", (remote_type,) if remote_type else ()),
+        ("remote_restrictions", _code_values(item.get("remote_restrictions"))),
+        ("excluded_locations", _code_values(item.get("excluded_locations"))),
+        ("regions", regions),
+        ("specializations", specializations),
+    ):
+        _append_raw_values(raw, raw_key, values)
+    return raw
+
+
+def _append_raw_text(raw: dict[str, object], key: str, value: object) -> None:
+    text = _text(value).strip()
+    if text:
+        raw[key] = text
+
+
+def _append_raw_values(raw: dict[str, object], key: str, values: tuple[str, ...]) -> None:
+    if not values:
+        return
+    raw[key] = values[0] if key in {"remote_type", "work_format"} else values
 
 
 def _detail_description(payload: dict[str, Any]) -> str | None:
@@ -319,16 +302,15 @@ def _country_from_item(item: dict[str, Any], location_text: str | None) -> str |
         for region in regions:
             if not isinstance(region, dict):
                 continue
-            code = _text(region.get("code")).strip().casefold()
-            if code in _REGION_COUNTRY:
-                return _REGION_COUNTRY[code]
+            code = _text(region.get("code")).strip()
+            if code:
+                return code
             name = _text(region.get("name_en") or region.get("name")).strip()
-            country = _country_from_text(name)
-            if country:
-                return country
+            if name:
+                return name
     if location_text:
-        return _country_from_text(location_text)
-    return _country_from_text(_text(item.get("country")).strip())
+        return location_text
+    return _text(item.get("country")).strip() or None
 
 
 def _salary_fields(item: dict[str, Any]) -> tuple[int | None, int | None, str | None]:
@@ -359,6 +341,17 @@ def _region_codes(value: object) -> tuple[str, ...]:
     return tuple(codes)
 
 
+def _code_values(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    return tuple(
+        text
+        for entry in value
+        for text in (_text(entry).strip().casefold(),)
+        if text
+    )
+
+
 def _named_values(value: object) -> tuple[str, ...]:
     if not isinstance(value, list):
         return ()
@@ -380,17 +373,16 @@ def _json_object(body: str) -> dict[str, Any]:
     return value
 
 
-def _country_from_text(text: str) -> str | None:
-    folded = text.casefold()
-    for marker, code in _COUNTRY_BY_TEXT.items():
-        if marker in folded:
-            return code
-    return None
-
-
-def _is_remote(text: str) -> bool:
-    folded = text.casefold()
-    return "remote" in folded or "удал" in folded
+def _remote_flags(
+    *,
+    work_format_values: tuple[str, ...],
+    remote_type: str,
+) -> tuple[bool | None, bool | None]:
+    if "remote" in work_format_values:
+        return True, remote_type == "global" if remote_type else None
+    if work_format_values:
+        return False, False
+    return None, None
 
 
 def _salary_text(salary_min: int | None, salary_max: int | None, currency: str | None) -> str | None:

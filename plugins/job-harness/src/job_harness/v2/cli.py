@@ -17,6 +17,7 @@ from job_harness.v2.application import (
 )
 from job_harness.v2.contracts import (
     Grade,
+    RemoteMode,
     SearchRequest,
     SourceAttemptRecord,
     SourceType,
@@ -25,7 +26,7 @@ from job_harness.v2.contracts import (
 )
 from job_harness.v2.persistence import read_processed_results_payload
 from job_harness.v2.presentation import render_processed_results_markdown
-from job_harness.v2.runtime import RetryPolicy, implemented_source_ids
+from job_harness.v2.runtime import implemented_source_ids
 from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import country_catalog_entries, source_catalog_entries
 
@@ -38,7 +39,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             _print_json(_source_catalog_payload())
             return 0
         if args.command == "search":
-            execution = asyncio.run(_run_search(args))
+            request = _request_from_args(args)
+            execution = asyncio.run(_run_search(args, request))
             _print_json(_execution_payload(execution))
             return 0
         if args.command == "format":
@@ -71,19 +73,39 @@ def _build_parser() -> argparse.ArgumentParser:
     search.add_argument("--exclude-text", action="append", default=[])
     search.add_argument("--exclude-regex", action="append", default=[])
     search.add_argument("--relocation", choices=("true", "false"))
-    search.add_argument("--remote-in-country", choices=("true", "false"))
-    search.add_argument("--remote-global", choices=("true", "false"))
-    search.add_argument("--country", action="append", default=[])
+    search.add_argument(
+        "--remote-mode",
+        choices=_remote_mode_values(),
+        help="Remote policy: any, compatible-remote, global-remote-only, or non-remote-only.",
+    )
+    search.add_argument(
+        "--hybrid-ok",
+        action="store_true",
+        help="Allow hybrid vacancies when their geography matches the requested search geography.",
+    )
+    search.add_argument(
+        "--office-ok",
+        action="store_true",
+        help="Allow office vacancies when their geography matches the requested search geography.",
+    )
+    search.add_argument(
+        "--work-from",
+        action="append",
+        default=[],
+        help="Applicant work-from country or region for compatible_remote. Repeatable.",
+    )
+    search.add_argument(
+        "--vacancy-geography",
+        action="append",
+        default=[],
+        help="Country or region attached to the vacancy itself. Repeatable.",
+    )
     search.add_argument("--city", action="append", default=[])
     search.add_argument("--source", action="append", default=[])
     search.add_argument("--source-type", action="append", choices=_source_type_values(), default=[])
     search.add_argument("--append-to-run-id")
     search.add_argument("--run-id")
     search.add_argument("--runs-dir", type=Path, default=Path(".job-harness/v2/runs"))
-    search.add_argument("--source-attempt-timeout", type=float, default=30.0)
-    search.add_argument("--run-timeout", type=float, default=120.0)
-    search.add_argument("--fetch-timeout", type=float, default=15.0)
-    search.add_argument("--retry-attempts", type=int, default=1)
 
     format_cmd = subparsers.add_parser("format", help="Render processed results from run.sqlite as markdown.")
     format_cmd.add_argument("--input", type=Path, required=True, help="Path to run.sqlite.")
@@ -118,8 +140,8 @@ def _run_format(args: argparse.Namespace) -> int:
     return 0
 
 
-async def _run_search(args: argparse.Namespace) -> V2SearchExecution:
-    request = SearchRequest(
+def _request_from_args(args: argparse.Namespace) -> SearchRequest:
+    return SearchRequest(
         query_variants=_query_variants(args),
         grades=tuple(Grade(value) for value in args.grade),
         salary_from=args.salary_from,
@@ -127,21 +149,22 @@ async def _run_search(args: argparse.Namespace) -> V2SearchExecution:
         exclude_companies=tuple(args.exclude_company),
         exclude_text=_text_exclusions(args),
         relocation=_optional_bool(args.relocation),
-        remote_in_country=_optional_bool(args.remote_in_country),
-        remote_global=_optional_bool(args.remote_global),
-        countries=tuple(args.country),
+        remote_mode=_optional_remote_mode(args.remote_mode),
+        hybrid_ok=args.hybrid_ok,
+        office_ok=args.office_ok,
+        work_from_geographies=tuple(args.work_from),
+        vacancy_geographies=tuple(args.vacancy_geography),
         cities=tuple(args.city),
         sources=tuple(args.source),
         source_types=tuple(SourceType(value) for value in args.source_type),
         append_to_run_id=args.append_to_run_id,
     )
+
+
+async def _run_search(args: argparse.Namespace, request: SearchRequest) -> V2SearchExecution:
     app = V2SearchApplication(
         config=V2SearchConfig(
             runs_dir=args.runs_dir,
-            source_attempt_timeout_seconds=args.source_attempt_timeout,
-            run_timeout_seconds=args.run_timeout,
-            fetch_timeout_seconds=args.fetch_timeout,
-            retry_policy=RetryPolicy(max_attempts=args.retry_attempts),
         )
     )
     return await app.search(request, run_id=args.run_id)
@@ -215,6 +238,7 @@ def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
         },
         "raw_records_written_this_call": execution.raw_records_written,
         "processed_result_count": execution.processed_results.result_count,
+        "detail_summary": execution.detail_summary,
         "attempts": [_attempt_payload(attempt) for attempt in execution.attempts],
     }
 
@@ -234,13 +258,9 @@ def _attempt_payload(attempt: SourceAttemptRecord) -> dict[str, object]:
 
 def _text_exclusions(args: argparse.Namespace) -> tuple[TextExclusion, ...]:
     substring_exclusions = tuple(
-        TextExclusion(pattern=value, mode=TextExclusionMode.SUBSTRING)
-        for value in args.exclude_text
+        TextExclusion(pattern=value, mode=TextExclusionMode.SUBSTRING) for value in args.exclude_text
     )
-    regex_exclusions = tuple(
-        TextExclusion(pattern=value, mode=TextExclusionMode.REGEX)
-        for value in args.exclude_regex
-    )
+    regex_exclusions = tuple(TextExclusion(pattern=value, mode=TextExclusionMode.REGEX) for value in args.exclude_regex)
     return substring_exclusions + regex_exclusions
 
 
@@ -263,6 +283,16 @@ def _grade_values() -> tuple[str, ...]:
 
 def _source_type_values() -> tuple[str, ...]:
     return tuple(item.value for item in SourceType)
+
+
+def _remote_mode_values() -> tuple[str, ...]:
+    return tuple(item.value.replace("_", "-") for item in RemoteMode)
+
+
+def _optional_remote_mode(value: str | None) -> RemoteMode | None:
+    if value is None:
+        return None
+    return RemoteMode(value.replace("-", "_"))
 
 
 def _print_json(payload: object) -> None:

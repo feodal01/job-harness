@@ -20,7 +20,7 @@ from pathlib import Path
 
 from job_harness.v2.application import V2SearchApplication, V2SearchConfig, V2SearchExecution
 from job_harness.v2.contracts import Grade, SearchRequest, SourceAttemptRecord, TextExclusion, TextExclusionMode
-from job_harness.v2.runtime import RetryPolicy, implemented_source_ids
+from job_harness.v2.runtime import DetailServiceConfig, RetryServiceConfig, SearchServiceConfig, implemented_source_ids
 from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import source_catalog_entries
 
@@ -181,6 +181,7 @@ def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
         },
         "raw_records_written_this_call": execution.raw_records_written,
         "processed_result_count": execution.processed_results.result_count,
+        "detail_summary": execution.detail_summary,
         "attempts": [_attempt_payload(attempt) for attempt in execution.attempts],
     }
 
@@ -203,20 +204,46 @@ def _live_search_config(runs_dir: Path, *, profile: str) -> V2SearchConfig:
         return V2SearchConfig(
             runs_dir=runs_dir,
             source_ids=LIGHT_SOURCE_IDS,
-            source_attempt_timeout_seconds=LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS,
-            run_timeout_seconds=LIGHT_RUN_TIMEOUT_SECONDS,
-            fetch_timeout_seconds=LIGHT_FETCH_TIMEOUT_SECONDS,
-            retry_policy=RetryPolicy(max_attempts=1),
+            service_config=_live_service_config(
+                source_attempt_timeout_seconds=LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS,
+                run_timeout_seconds=LIGHT_RUN_TIMEOUT_SECONDS,
+                fetch_timeout_seconds=LIGHT_FETCH_TIMEOUT_SECONDS,
+            ),
         )
     if profile != "full":
         raise ValueError(f"unknown live e2e profile: {profile}")
     return V2SearchConfig(
         runs_dir=runs_dir,
         source_ids=(),
-        source_attempt_timeout_seconds=LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS,
-        run_timeout_seconds=LIVE_RUN_TIMEOUT_SECONDS,
-        fetch_timeout_seconds=LIVE_FETCH_TIMEOUT_SECONDS,
-        retry_policy=RetryPolicy(max_attempts=1),
+        service_config=_live_service_config(
+            source_attempt_timeout_seconds=LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS,
+            run_timeout_seconds=LIVE_RUN_TIMEOUT_SECONDS,
+            fetch_timeout_seconds=LIVE_FETCH_TIMEOUT_SECONDS,
+        ),
+    )
+
+
+def _live_service_config(
+    *,
+    source_attempt_timeout_seconds: float,
+    run_timeout_seconds: float,
+    fetch_timeout_seconds: float,
+) -> SearchServiceConfig:
+    return SearchServiceConfig(
+        source_attempt_timeout_seconds=source_attempt_timeout_seconds,
+        run_timeout_seconds=run_timeout_seconds,
+        fetch_timeout_seconds=fetch_timeout_seconds,
+        retry=RetryServiceConfig(max_attempts=1, backoff_seconds=0.0),
+        detail=DetailServiceConfig(
+            per_source_concurrency=1,
+            default_request_delay_seconds=0.75,
+            request_delay_seconds_by_source={
+                "hh_ru": 1.5,
+                "hirify": 0.75,
+            },
+            stop_on_blocked=True,
+            stop_on_rate_limited=True,
+        ),
     )
 
 
@@ -229,7 +256,7 @@ def _initial_live_request(profile: str) -> SearchRequest:
         query_variants=("QA",),
         grades=(Grade.MIDDLE,),
         salary_from=150_000,
-        countries=("RU", "AM"),
+        vacancy_geographies=("RU", "AM"),
     )
 
 
@@ -249,7 +276,7 @@ def _append_live_request(profile: str, *, append_to_run_id: str) -> SearchReques
         raise ValueError(f"unknown live e2e profile: {profile}")
     return SearchRequest(
         query_variants=("тестировщик",),
-        countries=("RU", "AM"),
+        vacancy_geographies=("RU", "AM"),
         exclude_text=(
             TextExclusion(
                 pattern="zzzzzz-no-live-e2e-match",

@@ -117,7 +117,7 @@ def _listing_from_item(item: dict[str, Any], anchor_texts: tuple[_VacancyAnchor,
         return None
 
     position = item.get("position")
-    raw: dict[str, object] = {"href": url if url.startswith("/") else absolute}
+    raw: dict[str, object] = {"href": url if url.startswith("/") else absolute, "work_format": "remote"}
     if isinstance(position, int) and position > 0:
         raw["position"] = position
 
@@ -135,8 +135,8 @@ def _listing_from_item(item: dict[str, Any], anchor_texts: tuple[_VacancyAnchor,
         salary_max=None,
         salary_currency=None,
         posted_at=None,
-        remote_in_country=True,
-        remote_global=True,
+        remote_in_country=None,
+        remote_global=None,
         relocation=None,
         native_grade=_native_grade(title),
         description=None,

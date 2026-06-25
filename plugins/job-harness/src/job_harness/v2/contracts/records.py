@@ -15,6 +15,20 @@ from job_harness.v2.contracts.enums import (
     SourceType,
 )
 
+_GLOBAL_REMOTE_EVIDENCE_MARKERS = ("global", "worldwide", "anywhere", "весь мир")
+_GLOBAL_REMOTE_EVIDENCE_RAW_KEYS = frozenset(
+    {
+        "eligible_locations",
+        "location",
+        "locations",
+        "remote_locations",
+        "remote_restrictions",
+        "remote_scope",
+        "remote_type",
+        "work_format",
+    }
+)
+
 
 @dataclass(frozen=True)
 class RawListing:
@@ -53,6 +67,8 @@ class RawListing:
             raise ValueError("salary_max must be >= 0")
         if self.salary_min is not None and self.salary_max is not None and self.salary_min > self.salary_max:
             raise ValueError("salary_min must be <= salary_max")
+        if self.remote_global is True and not _has_explicit_global_remote_evidence(self):
+            raise ValueError("remote_global=True requires explicit global remote evidence")
 
 
 @dataclass(frozen=True)
@@ -189,3 +205,23 @@ def _require_http_url(value: str, field_name: str) -> None:
     parsed = urlparse(value)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise ValueError(f"{field_name} must be an absolute http(s) URL")
+
+
+def _has_explicit_global_remote_evidence(listing: RawListing) -> bool:
+    if _value_mentions_global_remote((listing.location_text, listing.country, listing.city)):
+        return True
+    for key, value in listing.raw.items():
+        if key in _GLOBAL_REMOTE_EVIDENCE_RAW_KEYS and _value_mentions_global_remote(value):
+            return True
+    return False
+
+
+def _value_mentions_global_remote(value: object) -> bool:
+    if isinstance(value, str):
+        text = value.casefold()
+        return any(marker in text for marker in _GLOBAL_REMOTE_EVIDENCE_MARKERS)
+    if isinstance(value, dict):
+        return any(_value_mentions_global_remote(item) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_value_mentions_global_remote(item) for item in value)
+    return False

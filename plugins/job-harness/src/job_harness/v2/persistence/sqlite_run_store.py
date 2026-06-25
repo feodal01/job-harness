@@ -11,7 +11,8 @@ from importlib.resources import files
 from pathlib import Path
 from types import TracebackType
 
-from job_harness.v2.contracts import RawSearchRecord, SourceAttemptRecord
+from job_harness.v2.contracts import DescriptionAvailability, RawListing, RawSearchRecord, SourceAttemptRecord
+from job_harness.v2.ports import StoredRawRecord
 from job_harness.v2.serialization import JsonObject, to_jsonable
 
 _VALID_APPEND_STATUSES = frozenset({"in_progress", "completed", "failed"})
@@ -218,6 +219,9 @@ class SqliteRunStore:
         append_sequence = jsonable.get("append_sequence")
         if not isinstance(append_sequence, int) or append_sequence < 0:
             raise ValueError("processed results append_sequence must be >= 0")
+        phase = jsonable.get("phase")
+        if not isinstance(phase, str) or not phase:
+            raise ValueError("processed results phase must be non-empty")
         with self._lock:
             self._ensure_open()
             self._connection.execute(
@@ -225,20 +229,41 @@ class SqliteRunStore:
                 INSERT INTO processed_results (
                     run_id,
                     append_sequence,
+                    phase,
                     payload_json,
                     created_at
                 )
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(run_id, append_sequence) DO UPDATE SET
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(run_id, append_sequence, phase) DO UPDATE SET
                     payload_json = excluded.payload_json,
                     created_at = excluded.created_at
                 """,
-                (self._run_id, append_sequence, _json_dumps(jsonable), _now()),
+                (self._run_id, append_sequence, phase, _json_dumps(jsonable), _now()),
             )
             self._touch_run()
 
     def read_raw_records(self) -> tuple[JsonObject, ...]:
         return self._read_payloads("raw_listings", "record_json")
+
+    def read_raw_record_rows(self) -> tuple[StoredRawRecord, ...]:
+        with self._lock:
+            self._ensure_open()
+            rows = self._connection.execute(
+                """
+                SELECT id, record_json
+                FROM raw_listings
+                WHERE run_id = ?
+                ORDER BY append_sequence, id
+                """,
+                (self._run_id,),
+            ).fetchall()
+        return tuple(
+            StoredRawRecord(
+                raw_record_id=int(row["id"]),
+                payload=_json_object(row["record_json"], "raw_listings.record_json"),
+            )
+            for row in rows
+        )
 
     def read_source_attempts(self) -> tuple[JsonObject, ...]:
         return self._read_payloads("source_attempts", "payload_json")
@@ -258,8 +283,79 @@ class SqliteRunStore:
             raise FileNotFoundError(f"run manifest has not been written: {self._database_path}")
         return _json_object(row["payload_json"], "run_manifest.payload_json")
 
-    def read_processed_results(self, *, append_sequence: int | None = None) -> JsonObject:
-        return read_processed_results_payload(self._database_path, append_sequence=append_sequence)
+    def read_processed_results(
+        self,
+        *,
+        append_sequence: int | None = None,
+        phase: str = "final",
+    ) -> JsonObject:
+        return read_processed_results_payload(
+            self._database_path,
+            append_sequence=append_sequence,
+            phase=phase,
+        )
+
+    def update_raw_record_detail(
+        self,
+        *,
+        raw_record_id: int,
+        listing: RawListing,
+        description_availability: DescriptionAvailability,
+        detail_fetched: bool,
+        detail_parse_error: str | None,
+    ) -> None:
+        if raw_record_id < 1:
+            raise ValueError("raw_record_id must be >= 1")
+        listing_json = to_jsonable(listing)
+        if not isinstance(listing_json, dict):
+            raise ValueError("listing payload must be a JSON object")
+        with self._lock:
+            self._ensure_open()
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                row = self._connection.execute(
+                    """
+                    SELECT record_json
+                    FROM raw_listings
+                    WHERE id = ? AND run_id = ?
+                    """,
+                    (raw_record_id, self._run_id),
+                ).fetchone()
+                if row is None:
+                    raise KeyError(f"raw listing row does not exist: {raw_record_id}")
+                record_json = _json_object(row["record_json"], "raw_listings.record_json")
+                record_json["listing"] = listing_json
+                record_json["description_availability"] = description_availability.value
+                record_json["detail_fetched"] = detail_fetched
+                record_json["detail_parse_error"] = detail_parse_error
+                cursor = self._connection.execute(
+                    """
+                    UPDATE raw_listings
+                    SET
+                        description_availability = ?,
+                        detail_fetched = ?,
+                        detail_parse_error = ?,
+                        listing_json = ?,
+                        record_json = ?
+                    WHERE id = ? AND run_id = ?
+                    """,
+                    (
+                        description_availability.value,
+                        int(detail_fetched),
+                        detail_parse_error,
+                        _json_dumps(listing_json),
+                        _json_dumps(record_json),
+                        raw_record_id,
+                        self._run_id,
+                    ),
+                )
+                if cursor.rowcount != 1:
+                    raise RuntimeError("raw listing detail row was not updated")
+                self._touch_run()
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
 
     def close(self) -> None:
         with self._lock:
@@ -346,7 +442,10 @@ def read_processed_results_payload(
     database_path: Path,
     *,
     append_sequence: int | None = None,
+    phase: str = "final",
 ) -> JsonObject:
+    if not phase.strip():
+        raise ValueError("phase must be non-empty")
     if not database_path.exists():
         raise FileNotFoundError(f"run database does not exist: {database_path}")
     connection = sqlite3.connect(str(database_path), timeout=30.0)
@@ -357,18 +456,20 @@ def read_processed_results_payload(
                 """
                 SELECT payload_json
                 FROM processed_results
+                WHERE phase = ?
                 ORDER BY append_sequence DESC
                 LIMIT 1
-                """
+                """,
+                (phase,),
             ).fetchone()
         else:
             row = connection.execute(
                 """
                 SELECT payload_json
                 FROM processed_results
-                WHERE append_sequence = ?
+                WHERE append_sequence = ? AND phase = ?
                 """,
-                (append_sequence,),
+                (append_sequence, phase),
             ).fetchone()
     finally:
         connection.close()

@@ -11,6 +11,7 @@ from job_harness.v2.contracts import (
     AttemptEvidence,
     DetailEnrichmentScraper,
     RawListing,
+    RemoteMode,
     RequiredParserFixtures,
     SearchRequest,
     SourceDescriptor,
@@ -46,7 +47,7 @@ class IBSCareerSource(DetailEnrichmentScraper):
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
                 query_variant=query_variant,
-                url=_initial_url(remote_in_country=request.remote_in_country),
+                url=_initial_url(use_remote_collection_hint=_use_remote_collection_hint(request)),
             )
             for query_variant in request.query_variants
         )
@@ -105,8 +106,12 @@ class IBSCareerSource(DetailEnrichmentScraper):
         )
 
 
-def _initial_url(*, remote_in_country: bool | None) -> str:
-    if remote_in_country is True:
+def _use_remote_collection_hint(request: SearchRequest) -> bool:
+    return request.remote_mode == RemoteMode.COMPATIBLE_REMOTE
+
+
+def _initial_url(*, use_remote_collection_hint: bool) -> str:
+    if use_remote_collection_hint:
         return f"{_BASE_URL}{_REMOTE_DISCOVERY_FRAGMENT}"
     return _BASE_URL
 
@@ -164,6 +169,7 @@ def _listing(item: _IBSListItem) -> RawListing:
     source_listing_id = _source_listing_id(item)
     skills = tuple(tag for tag in item.tags if not _is_work_format_tag(tag))
     work_format_tags = tuple(tag for tag in item.tags if _is_work_format_tag(tag))
+    work_format = ", ".join(work_format_tags) or None
     remote = any(any(marker in tag.casefold() for marker in _REMOTE_MARKERS) for tag in item.tags)
     raw_text = _join_text(item.title, item.description, item.location_text, " ".join(item.tags))
     return RawListing(
@@ -172,7 +178,7 @@ def _listing(item: _IBSListItem) -> RawListing:
         url=item.url,
         source="career:ibs",
         company="IBS",
-        country="RU",
+        country="Россия",
         city=None,
         location_text=item.location_text,
         salary_text=None,
@@ -190,6 +196,7 @@ def _listing(item: _IBSListItem) -> RawListing:
         raw_text=raw_text,
         raw={
             "html_id": item.html_id,
+            "work_format": work_format,
             "work_format_tags": work_format_tags,
             "tags": item.tags,
         },

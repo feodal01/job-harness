@@ -8,7 +8,7 @@
       "title": "Главный инженер по качеству (QA-инженер)",
       "url": "https://career.habr.com/vacancies/1000165585",
       "company": "Банк России",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва",
       "salary_text": null,
@@ -33,7 +33,7 @@
       "title": "QA Engineer",
       "url": "https://career.habr.com/vacancies/1000166694",
       "company": "Actimind",
-      "country": "RU",
+      "country": "Россия",
       "city": null,
       "location_text": null,
       "salary_text": "от 2200 $",
@@ -59,7 +59,7 @@
       "title": "AI/LLM Инженер",
       "url": "https://career.habr.com/vacancies/1000166670",
       "company": "Bell Integrator",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва, Санкт-Петербург",
       "salary_text": null,
@@ -69,7 +69,11 @@
       "posted_at": "2026-06-17T16:46:18+03:00",
       "remote_in_country": false,
       "native_grade": "senior",
-      "skills": ["Python", "LLM", "Langgraph"]
+      "skills": [
+        "Python",
+        "LLM",
+        "Langgraph"
+      ]
     }
   ]
 }

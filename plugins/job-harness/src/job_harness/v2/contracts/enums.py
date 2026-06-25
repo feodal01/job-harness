@@ -42,15 +42,22 @@ class TextField(StrEnum):
     RAW_TEXT = "raw_text"
 
 
+class RemoteMode(StrEnum):
+    ANY = "any"
+    COMPATIBLE_REMOTE = "compatible_remote"
+    GLOBAL_REMOTE_ONLY = "global_remote_only"
+    NON_REMOTE_ONLY = "non_remote_only"
+
+
 class SearchCriterion(StrEnum):
     QUERY = "query"
     GRADES = "grades"
     SALARY_FROM = "salary_from"
     PUBLISHED_SINCE = "published_since"
     RELOCATION = "relocation"
-    REMOTE_IN_COUNTRY = "remote_in_country"
-    REMOTE_GLOBAL = "remote_global"
-    COUNTRIES = "countries"
+    REMOTE_MODE = "remote_mode"
+    WORK_FROM_GEOGRAPHIES = "work_from_geographies"
+    VACANCY_GEOGRAPHIES = "vacancy_geographies"
     CITIES = "cities"
 
 

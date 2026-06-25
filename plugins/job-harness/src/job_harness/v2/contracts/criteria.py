@@ -87,9 +87,9 @@ SEARCH_CRITERION_DESCRIPTORS: tuple[SearchCriterionDescriptor, ...] = (
         ),
     ),
     SearchCriterionDescriptor(
-        criterion=SearchCriterion.REMOTE_IN_COUNTRY,
-        request_field="remote_in_country",
-        source_fact_fields=("remote_in_country", "location_text"),
+        criterion=SearchCriterion.REMOTE_MODE,
+        request_field="remote_mode",
+        source_fact_fields=("remote_in_country", "remote_global", "country", "location_text", "raw"),
         text_enrichment=TextEnrichmentPolicy.ALLOWED,
         text_enrichment_fields=(
             TextField.DESCRIPTION,
@@ -98,9 +98,9 @@ SEARCH_CRITERION_DESCRIPTORS: tuple[SearchCriterionDescriptor, ...] = (
         ),
     ),
     SearchCriterionDescriptor(
-        criterion=SearchCriterion.REMOTE_GLOBAL,
-        request_field="remote_global",
-        source_fact_fields=("remote_global", "location_text"),
+        criterion=SearchCriterion.WORK_FROM_GEOGRAPHIES,
+        request_field="work_from_geographies",
+        source_fact_fields=("remote_in_country", "remote_global", "country", "location_text", "raw"),
         text_enrichment=TextEnrichmentPolicy.ALLOWED,
         text_enrichment_fields=(
             TextField.DESCRIPTION,
@@ -109,9 +109,9 @@ SEARCH_CRITERION_DESCRIPTORS: tuple[SearchCriterionDescriptor, ...] = (
         ),
     ),
     SearchCriterionDescriptor(
-        criterion=SearchCriterion.COUNTRIES,
-        request_field="countries",
-        source_fact_fields=("country", "location_text"),
+        criterion=SearchCriterion.VACANCY_GEOGRAPHIES,
+        request_field="vacancy_geographies",
+        source_fact_fields=("country", "city", "location_text", "raw"),
         text_enrichment=TextEnrichmentPolicy.ALLOWED,
         text_enrichment_fields=(
             TextField.DESCRIPTION,

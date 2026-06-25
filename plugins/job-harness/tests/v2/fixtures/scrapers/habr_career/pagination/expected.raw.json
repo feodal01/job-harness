@@ -8,24 +8,33 @@
       "title": "Инженер по тестированию / QA engineer (Виртуализация)",
       "url": "https://career.habr.com/vacancies/1000164814",
       "company": "МТ-Интеграция",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва",
       "remote_in_country": true,
       "native_grade": null,
-      "skills": ["Openstack", "Linux", "Python"]
+      "skills": [
+        "Openstack",
+        "Linux",
+        "Python"
+      ]
     },
     {
       "source_listing_id": "1000166918",
       "title": "Python developer",
       "url": "https://career.habr.com/vacancies/1000166918",
       "company": "М Тех",
-      "country": "RU",
+      "country": "Россия",
       "city": "Москва",
       "location_text": "Москва",
       "remote_in_country": true,
       "native_grade": "middle",
-      "skills": ["Python", "FastAPI", "SQLalchemy", "Apache Kafka"]
+      "skills": [
+        "Python",
+        "FastAPI",
+        "SQLalchemy",
+        "Apache Kafka"
+      ]
     }
   ]
 }

@@ -38,35 +38,6 @@ _GRADE_MAP = {
     "lead": "lead",
 }
 
-_COUNTRY_BY_LOCATION_TOKEN = {
-    "алматы": "KZ",
-    "beograd": "RS",
-    "cyprus": "CY",
-    "ge": "GE",
-    "gomel": "BY",
-    "kyiv": "UA",
-    "limassol": "CY",
-    "lisbon": "PT",
-    "metro manila": "PH",
-    "moscow": "RU",
-    "pl": "PL",
-    "poznan": "PL",
-    "poznań": "PL",
-    "pt": "PT",
-    "rs": "RS",
-    "russia": "RU",
-    "t'bilisi": "GE",
-    "warszawa": "PL",
-    "гомель": "BY",
-    "київ": "UA",
-    "киев": "UA",
-    "москва": "RU",
-    "россия": "RU",
-    "ташкент": "UZ",
-}
-_COUNTRY_CODE_TOKENS = {"cy", "ge", "kz", "ph", "pl", "pt", "rs", "ru", "ua", "uz"}
-
-
 class TalantoSource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
@@ -220,7 +191,7 @@ def _talanto_listing(job: dict[str, Any]) -> RawListing:
         salary_max=_int_or_none(job.get("salary_max")),
         salary_currency=_text_or_none(job.get("salary_currency")),
         posted_at=_text_or_none(job.get("published_at")),
-        remote_in_country=remote_type == "remote",
+        remote_in_country=False if remote_type and remote_type != "remote" else None,
         remote_global=None,
         relocation=None,
         native_grade=_grade(_text(job.get("level"))),
@@ -239,6 +210,7 @@ def _talanto_listing(job: dict[str, Any]) -> RawListing:
         ),
         raw={
             "id": job.get("id"),
+            "work_format": remote_type or None,
             "remote_type": job.get("remote_type"),
             "level": job.get("level"),
             "employment_type": job.get("employment_type"),
@@ -262,38 +234,17 @@ def _parse_location(location_text: str | None) -> _Location:
         return _Location(city=None, country=None)
     normalized = location_text.strip()
     if not normalized or normalized.casefold() == "remote" or normalized.casefold().startswith("удал"):
-        return _Location(city=None, country=_country_from_text(normalized))
+        return _Location(city=None, country=None)
 
     if ";" in normalized:
         parts = [part.strip() for part in normalized.split(";") if part.strip()]
-        city = next((part for part in parts if not _is_country_code_token(part)), None)
-        return _Location(city=city, country=_first_country_code(parts) or _country_from_text(normalized))
+        return _Location(city=parts[0] if parts else None, country=None)
 
     if "," in normalized:
         city, country_part = (part.strip() for part in normalized.rsplit(",", 1))
-        return _Location(city=city or None, country=_country_from_text(country_part) or _country_from_text(normalized))
+        return _Location(city=city or None, country=country_part or None)
 
-    return _Location(city=normalized, country=_country_from_text(normalized))
-
-
-def _country_from_text(value: str) -> str | None:
-    folded = value.casefold()
-    for token, country in _COUNTRY_BY_LOCATION_TOKEN.items():
-        if token in folded:
-            return country
-    return None
-
-
-def _is_country_code_token(value: str) -> bool:
-    return value.strip().casefold() in _COUNTRY_CODE_TOKENS
-
-
-def _first_country_code(parts: list[str]) -> str | None:
-    for part in parts:
-        token = part.strip().casefold()
-        if token in _COUNTRY_CODE_TOKENS:
-            return token.upper()
-    return None
+    return _Location(city=normalized, country=None)
 
 
 def _skills(value: object) -> tuple[str, ...]:

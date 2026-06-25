@@ -11,6 +11,7 @@ from job_harness.v2.contracts import (
     AttemptEvidence,
     DetailEnrichmentScraper,
     RawListing,
+    RemoteMode,
     RequiredParserFixtures,
     SearchRequest,
     SourceDescriptor,
@@ -42,7 +43,7 @@ class VKCareerSource(DetailEnrichmentScraper):
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
                 query_variant=query_variant,
-                url=_build_vk_api_url(remote_in_country=request.remote_in_country),
+                url=_build_vk_api_url(use_remote_collection_hint=_use_remote_collection_hint(request)),
             )
             for query_variant in request.query_variants
         )
@@ -106,9 +107,13 @@ class VKCareerSource(DetailEnrichmentScraper):
         )
 
 
-def _build_vk_api_url(*, remote_in_country: bool | None) -> str:
+def _use_remote_collection_hint(request: SearchRequest) -> bool:
+    return request.remote_mode == RemoteMode.COMPATIBLE_REMOTE
+
+
+def _build_vk_api_url(*, use_remote_collection_hint: bool) -> str:
     params = {"limit": str(_PAGE_LIMIT)}
-    if remote_in_country is True:
+    if use_remote_collection_hint:
         params["remote"] = "true"
     return f"{_API_URL}?{urlencode(params)}"
 
@@ -139,7 +144,7 @@ def _vk_listing(item: dict[str, Any]) -> RawListing:
         url=absolute_url(_BASE_URL, f"/vacancy/{source_listing_id}/"),
         source="career:vk",
         company=company or "VK",
-        country="RU",
+        country="Россия",
         city=city or None,
         location_text=location_text or None,
         salary_text=None,

@@ -5,13 +5,30 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import date
+from enum import StrEnum
 
 from job_harness.v2.contracts import SearchRequest, TextExclusion, TextExclusionMode
 from job_harness.v2.matching import FuzzyBounds, fuzzy_any_match, fuzzy_tokens_match
 from job_harness.v2.postprocessing.criteria_plan import CriteriaProcessingPlanner
+from job_harness.v2.postprocessing.remote_scope import (
+    country_text,
+    listing_countries,
+    listing_remote_scopes,
+    remote_filter_reasons,
+    remote_scope_text,
+    row_countries,
+    row_remote_scopes,
+    vacancy_geography_reasons,
+)
+from job_harness.v2.postprocessing.work_format import (
+    listing_work_formats,
+    row_work_formats,
+    work_format_policy_outcome,
+)
 from job_harness.v2.serialization import JsonObject, to_jsonable
 
 _TEXT_FIELDS = ("title", "description", "requirements", "additional_sections", "skills", "raw_text")
+_QUERY_TEXT_FIELDS = ("title", "skills")
 _HH_EXPERIENCE_TEXT = {
     "noExperience": "без опыта",
     "between1And3": "1–3 года",
@@ -53,15 +70,20 @@ _HH_WORKING_HOURS_TEXT = {
     "HOURS_12": "12",
     "HOURS_24": "24",
 }
-_SHORT_QUERY_TOKEN_LENGTH = 2
 _QUERY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.78)
 _CITY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.9)
+
+
+class ProcessingPhase(StrEnum):
+    PRE_ENRICHMENT = "pre_enrichment"
+    FINAL = "final"
 
 
 @dataclass(frozen=True)
 class ProcessedResults:
     run_id: str
     append_sequence: int
+    phase: ProcessingPhase
     raw_records_read: int
     result_count: int
     payload: JsonObject
@@ -76,8 +98,10 @@ class ResultTablePostProcessor:
         request: SearchRequest,
         run_id: str,
         append_sequence: int,
+        phase: ProcessingPhase,
         raw_records: tuple[JsonObject, ...],
         source_attempts: tuple[JsonObject, ...],
+        detail_summary: dict[str, object] | None = None,
     ) -> ProcessedResults:
         rows = _dedupe_rows(_listing_rows(raw_records))
         source_criteria_plan = CriteriaProcessingPlanner().build_plan(
@@ -90,31 +114,38 @@ class ResultTablePostProcessor:
         removed_counts: dict[str, int] = {}
 
         for row in rows:
-            reason = _removal_reason(row, request, native_query_attempts)
-            if reason is not None:
-                removed_counts[reason] = removed_counts.get(reason, 0) + 1
-                filtered_rows.append({**row, "decision": "filtered_out", "decision_reasons": (reason,)})
+            reasons = _removal_reasons(row, request, native_query_attempts)
+            if reasons:
+                for reason in reasons:
+                    removed_counts[reason] = removed_counts.get(reason, 0) + 1
+                filtered_rows.append({**row, "decision": "filtered_out", "decision_reasons": reasons})
                 continue
             kept_rows.append({**row, "decision": "kept", "decision_reasons": ("matches_requested_filters",)})
 
-        payload = to_jsonable({
-            "schema_version": 1,
-            "record_type": "processed_results",
-            "run_id": run_id,
-            "append_sequence": append_sequence,
-            "search_request": to_jsonable(request),
-            "raw_records_read": len(raw_records),
-            "result_count": len(kept_rows),
-            "removed_counts": removed_counts,
-            "source_criteria_plan": source_criteria_plan,
-            "results": kept_rows,
-            "filtered_out_results": filtered_rows,
-        })
+        payload = to_jsonable(
+            {
+                "schema_version": 1,
+                "record_type": "processed_results",
+                "phase": phase,
+                "run_id": run_id,
+                "append_sequence": append_sequence,
+                "search_request": to_jsonable(request),
+                "raw_records_read": len(raw_records),
+                "result_count": len(kept_rows),
+                "removed_counts": removed_counts,
+                "source_criteria_plan": source_criteria_plan,
+                "results": kept_rows,
+                "filtered_out_results": filtered_rows,
+            }
+        )
+        if detail_summary is not None:
+            payload["detail_summary"] = to_jsonable(detail_summary)
         if not isinstance(payload, dict):
             raise TypeError("processed results payload must be a JSON object")
         return ProcessedResults(
             run_id=run_id,
             append_sequence=append_sequence,
+            phase=phase,
             raw_records_read=len(raw_records),
             result_count=len(kept_rows),
             payload=payload,
@@ -127,7 +158,11 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
         listing = record.get("listing")
         if not isinstance(listing, dict):
             raise ValueError("raw listing record is missing listing object")
-        row = {
+        countries = listing_countries(listing)
+        remote_scopes = listing_remote_scopes(listing)
+        work_formats = listing_work_formats(listing)
+        row: dict[str, object] = {
+            "raw_record_id": _optional_int(record.get("raw_record_id")),
             "source": _text(record.get("source")),
             "query_variant": _text(record.get("query_variant")),
             "append_sequence": _int(record.get("append_sequence")),
@@ -135,7 +170,8 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
             "title": _text(listing.get("title")),
             "url": _text(listing.get("url")),
             "company": _optional_text(listing.get("company")),
-            "country": _optional_text(listing.get("country")),
+            "country": country_text(countries),
+            "countries": countries,
             "city": _optional_text(listing.get("city")),
             "location_text": _optional_text(listing.get("location_text")),
             "salary_text": _optional_text(listing.get("salary_text")),
@@ -146,6 +182,9 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
             "posted_at": _optional_text(listing.get("posted_at")),
             "remote_in_country": _optional_bool(listing.get("remote_in_country")),
             "remote_global": _optional_bool(listing.get("remote_global")),
+            "remote_scope": remote_scope_text(remote_scopes),
+            "remote_scopes": remote_scopes,
+            "work_formats": work_formats,
             "relocation": _optional_bool(listing.get("relocation")),
             "native_grade": _optional_text(listing.get("native_grade")),
             "display_experience": _display_experience(listing),
@@ -226,6 +265,13 @@ def _display_work_format(listing: dict[str, object]) -> str | None:
         work_format = _mapped_list(raw.get("workFormats"), _HH_WORK_FORMAT_TEXT)
         if work_format:
             return work_format
+    work_formats = listing_work_formats(listing)
+    if work_formats:
+        return ", ".join(work_formats)
+    if isinstance(raw, dict):
+        source_work_format = _optional_text(raw.get("work_format"))
+        if source_work_format:
+            return source_work_format
     remote_global = _optional_bool(listing.get("remote_global"))
     remote_in_country = _optional_bool(listing.get("remote_in_country"))
     relocation = _optional_bool(listing.get("relocation"))
@@ -280,41 +326,55 @@ def _native_query_attempts(source_attempts: tuple[dict[str, object], ...]) -> fr
     return frozenset(native_attempts)
 
 
-def _removal_reason(
+def _removal_reasons(
     row: dict[str, object],
     request: SearchRequest,
     native_query_attempts: frozenset[tuple[str, str]],
-) -> str | None:
+) -> tuple[str, ...]:
+    reasons: list[str] = []
     if _query_postprocess_required(row, native_query_attempts) and not _query_matches(row):
-        return "query_mismatch"
+        reasons.append("query_mismatch")
     if request.exclude_companies and _company_excluded(row, request.exclude_companies):
-        return "excluded_company"
+        reasons.append("excluded_company")
     if request.exclude_text and _text_excluded(row, request.exclude_text):
-        return "excluded_text"
+        reasons.append("excluded_text")
     if request.grades and _text(row["native_grade"]) not in {grade.value for grade in request.grades}:
-        return "grade_mismatch"
+        reasons.append("grade_mismatch")
     if request.salary_from is not None and not _salary_matches(row, request.salary_from):
-        return "salary_below_requested_minimum"
+        reasons.append("salary_below_requested_minimum")
     if request.published_since is not None and not _published_since(row, request.published_since):
-        return "published_before_requested_date"
-    if (
-        request.remote_in_country is not None
-        and _optional_bool(row["remote_in_country"]) != request.remote_in_country
-    ):
-        return "remote_in_country_mismatch"
-    if request.remote_global is not None and _optional_bool(row["remote_global"]) != request.remote_global:
-        return "remote_global_mismatch"
+        reasons.append("published_before_requested_date")
+    work_format_outcome = work_format_policy_outcome(
+        request=request,
+        work_formats=row_work_formats(row),
+        countries=row_countries(row),
+    )
+    reasons.extend(work_format_outcome.reasons)
+    if not work_format_outcome.handles_remote_filter:
+        reasons.extend(
+            remote_filter_reasons(
+                remote_mode=request.remote_mode,
+                remote_scopes=row_remote_scopes(row),
+                work_from_geographies=request.work_from_geographies,
+            )
+        )
     if request.relocation is not None and _optional_bool(row["relocation"]) != request.relocation:
-        return "relocation_mismatch"
-    if request.countries and _text(row["country"]).upper() not in request.countries:
-        return "country_mismatch"
+        reasons.append("relocation_mismatch")
+    reasons.extend(
+        vacancy_geography_reasons(
+            row_countries(row),
+            request.vacancy_geographies,
+            remote_mode=request.remote_mode,
+            remote_scopes=row_remote_scopes(row),
+        )
+    )
     if request.cities and not fuzzy_any_match(
         request.cities,
         _text(row["city"]),
         bounds=_CITY_FUZZY_BOUNDS,
     ):
-        return "city_mismatch"
-    return None
+        reasons.append("city_mismatch")
+    return tuple(dict.fromkeys(reasons))
 
 
 def _query_postprocess_required(
@@ -330,15 +390,7 @@ def _query_matches(row: dict[str, object]) -> bool:
     if not query:
         return True
     tokens = _query_tokens(query)
-    fields = (
-        ("title", "skills")
-        if tokens and all(len(token) <= _SHORT_QUERY_TOKEN_LENGTH for token in tokens)
-        else _TEXT_FIELDS
-    )
-    haystack = "\n".join(
-        _field_text(row, field)
-        for field in fields
-    )
+    haystack = "\n".join(_field_text(row, field) for field in _QUERY_TEXT_FIELDS)
     return _query_text_matches(tokens=tokens, haystack=haystack)
 
 
@@ -448,8 +500,4 @@ def _text_mapping(value: object) -> dict[str, str]:
         return {}
     if not isinstance(value, dict):
         raise ValueError("expected additional_sections object")
-    return {
-        _text(key): _text(item)
-        for key, item in value.items()
-        if _text(key).strip() and _text(item).strip()
-    }
+    return {_text(key): _text(item) for key, item in value.items() if _text(key).strip() and _text(item).strip()}

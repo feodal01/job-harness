@@ -14,12 +14,14 @@ from job_harness.v2.contracts import (
     ParserFixtureCase,
     ParserFixtureKind,
     RawListing,
+    RemoteMode,
     SearchRequest,
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
     SourceScraper,
 )
+from job_harness.v2.geography import normalize_source_geographies
 from job_harness.v2.persistence import SqliteRunStore
 from job_harness.v2.runtime import (
     ClassifiedSourceError,
@@ -54,6 +56,33 @@ _PLUGIN_ROOT_PARENT_INDEX = 2
 _PLUGIN_ROOT = Path(__file__).resolve().parents[_PLUGIN_ROOT_PARENT_INDEX]
 _FIXTURES = Path(__file__).parent / "fixtures" / "scrapers"
 _E2E_SUCCESS_QUERY = "QA"
+_GLOBAL_REMOTE_EVIDENCE_MARKERS = ("global", "worldwide", "anywhere", "весь мир")
+_GLOBAL_REMOTE_EVIDENCE_RAW_KEYS = frozenset(
+    {
+        "eligible_locations",
+        "location",
+        "locations",
+        "remote_locations",
+        "remote_restrictions",
+        "remote_scope",
+        "remote_type",
+        "work_format",
+    }
+)
+_REMOTE_IN_COUNTRY_EVIDENCE_RAW_KEYS = frozenset(
+    {
+        "city",
+        "country",
+        "country_text",
+        "eligible_locations",
+        "location",
+        "locations",
+        "region",
+        "regions",
+        "remote_locations",
+        "remote_restrictions",
+    }
+)
 
 
 class FixtureFetcher:
@@ -290,6 +319,143 @@ def _assert_listing_matches(test: unittest.TestCase, listing: Any, expected: dic
         test.assertEqual(tuple(expected["skills"]), listing.skills)
 
 
+def _has_explicit_global_remote_evidence(listing: RawListing) -> bool:
+    if _value_mentions_global_remote((listing.location_text, listing.country, listing.city)):
+        return True
+    raw = listing.raw
+    for key, value in raw.items():
+        if key in _GLOBAL_REMOTE_EVIDENCE_RAW_KEYS and _value_mentions_global_remote(value):
+            return True
+    return False
+
+
+def _value_mentions_global_remote(value: object) -> bool:
+    if isinstance(value, str):
+        text = value.casefold()
+        return any(marker in text for marker in _GLOBAL_REMOTE_EVIDENCE_MARKERS)
+    if isinstance(value, dict):
+        return any(_value_mentions_global_remote(item) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_value_mentions_global_remote(item) for item in value)
+    return False
+
+
+def _has_remote_in_country_scope_evidence(listing: RawListing) -> bool:
+    if _value_mentions_source_geography((listing.location_text, listing.country, listing.city)):
+        return True
+    raw = listing.raw
+    for key, value in raw.items():
+        if key in _REMOTE_IN_COUNTRY_EVIDENCE_RAW_KEYS and _value_mentions_source_geography(value):
+            return True
+    return False
+
+
+def _value_mentions_source_geography(value: object) -> bool:
+    if isinstance(value, str):
+        return bool(normalize_source_geographies(value))
+    if isinstance(value, dict):
+        return any(_value_mentions_source_geography(item) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_value_mentions_source_geography(item) for item in value)
+    return False
+
+
+class RemoteGlobalEvidenceContractTest(unittest.TestCase):
+    def test_success_fixtures_only_set_global_remote_with_explicit_source_evidence(self) -> None:
+        # Arrange
+        cases = (
+            ("habr_career", HabrCareerSource()),
+            ("hh_ru", HhRuSource()),
+            ("career_vk", VKCareerSource()),
+            ("career_ibs", IBSCareerSource()),
+            ("talanto", TalantoSource()),
+            ("geekjob", GeekJobSource()),
+            ("talento", TalentoSource()),
+            ("finder_work", FinderWorkSource()),
+            ("getmatch", GetmatchSource()),
+            ("it_jobs_uz", ItJobsUzSource()),
+            ("hirify", HirifySource()),
+            ("jobturbo", JobTurboSource()),
+            ("hirehi", HireHiSource()),
+            ("staff_am", StaffAmSource()),
+            ("career_jetbrains", JetBrainsCareerSource()),
+        )
+
+        for fixture_folder, source in cases:
+            with self.subTest(source=source.descriptor.source_id):
+                fixture_case = _required_fixture_case(
+                    source.descriptor.source_id,
+                    ParserFixtureKind.SUCCESS_NON_EMPTY,
+                )
+                parsed = source.parse_search_response(
+                    _fixture_response(fixture_folder, "success"),
+                    SourceFetchRequest(
+                        source_id=source.descriptor.source_id,
+                        query_variant="QA",
+                        url=_fixture_captured_url(fixture_case),
+                    ),
+                )
+
+                # Assert
+                for listing in parsed.listings:
+                    if listing.remote_global is True:
+                        self.assertTrue(
+                            _has_explicit_global_remote_evidence(listing),
+                            (
+                                f"{listing.source}:{listing.source_listing_id} "
+                                "sets remote_global without explicit evidence"
+                            ),
+                        )
+
+
+class RemoteInCountryEvidenceContractTest(unittest.TestCase):
+    def test_success_fixtures_only_set_remote_in_country_with_geography_evidence(self) -> None:
+        # Arrange
+        cases = (
+            ("habr_career", HabrCareerSource()),
+            ("hh_ru", HhRuSource()),
+            ("career_vk", VKCareerSource()),
+            ("career_ibs", IBSCareerSource()),
+            ("talanto", TalantoSource()),
+            ("geekjob", GeekJobSource()),
+            ("talento", TalentoSource()),
+            ("finder_work", FinderWorkSource()),
+            ("getmatch", GetmatchSource()),
+            ("it_jobs_uz", ItJobsUzSource()),
+            ("hirify", HirifySource()),
+            ("jobturbo", JobTurboSource()),
+            ("hirehi", HireHiSource()),
+            ("staff_am", StaffAmSource()),
+            ("career_jetbrains", JetBrainsCareerSource()),
+        )
+
+        for fixture_folder, source in cases:
+            with self.subTest(source=source.descriptor.source_id):
+                fixture_case = _required_fixture_case(
+                    source.descriptor.source_id,
+                    ParserFixtureKind.SUCCESS_NON_EMPTY,
+                )
+                parsed = source.parse_search_response(
+                    _fixture_response(fixture_folder, "success"),
+                    SourceFetchRequest(
+                        source_id=source.descriptor.source_id,
+                        query_variant="QA",
+                        url=_fixture_captured_url(fixture_case),
+                    ),
+                )
+
+                # Assert
+                for listing in parsed.listings:
+                    if listing.remote_in_country is True:
+                        self.assertTrue(
+                            _has_remote_in_country_scope_evidence(listing),
+                            (
+                                f"{listing.source}:{listing.source_listing_id} "
+                                "sets remote_in_country without geography evidence"
+                            ),
+                        )
+
+
 class HabrCareerSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
@@ -488,6 +654,24 @@ class HhRuSourceTest(unittest.TestCase):
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
 
+    def test_success_fixture_preserves_hybrid_work_format(self) -> None:
+        # Arrange
+        source = HhRuSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("hh_ru", "success"),
+            SourceFetchRequest(
+                source_id="hh_ru",
+                query_variant="QA",
+                url="https://hh.ru/search/vacancy?text=QA&area=113&search_field=name",
+            ),
+        )
+
+        # Assert
+        hybrid_listing = _listing_by_id(parsed.listings, "134064926")
+        self.assertEqual(("HYBRID",), hybrid_listing.raw["workFormats"])
+
     def test_pagination_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
         source = HhRuSource()
@@ -641,7 +825,11 @@ class VKCareerSourceTest(unittest.TestCase):
         qa_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
         developer_request = source.build_search_requests(SearchRequest(query_variants=("backend developer",)))[0]
         remote_request = source.build_search_requests(
-            SearchRequest(query_variants=("backend developer",), remote_in_country=True)
+            SearchRequest(
+                query_variants=("backend developer",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("RU",),
+            )
         )[0]
 
         # Assert
@@ -696,6 +884,26 @@ class VKCareerSourceTest(unittest.TestCase):
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
 
+    def test_pagination_fixture_preserves_structured_work_format(self) -> None:
+        # Arrange
+        source = VKCareerSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("career_vk", "pagination_offset_50"),
+            SourceFetchRequest(
+                source_id="career:vk",
+                query_variant="QA",
+                url="https://team.vk.company/career/api/v2/vacancies/?limit=25&offset=50",
+            ),
+        )
+
+        # Assert
+        combined = _listing_by_id(parsed.listings, "45736")
+        flexible = _listing_by_id(parsed.listings, "45681")
+        self.assertEqual("Комбинированный", combined.raw["work_format"])
+        self.assertEqual("гибкий", flexible.raw["work_format"])
+
     def test_detail_fixture_extracts_full_description_text(self) -> None:
         # Arrange
         source = VKCareerSource()
@@ -727,7 +935,11 @@ class IBSCareerSourceTest(unittest.TestCase):
         # Act
         qa_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
         remote_request = source.build_search_requests(
-            SearchRequest(query_variants=("QA",), remote_in_country=True)
+            SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("RU",),
+            )
         )[0]
         parsed_remote = source.parse_search_response(_fixture_response("career_ibs", "success"), remote_request)
 
@@ -764,6 +976,34 @@ class IBSCareerSourceTest(unittest.TestCase):
         self.assertEqual(expected["next_url"], parsed.next_request.url if parsed.next_request else None)
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_success_fixture_preserves_work_format_tags_under_common_key(self) -> None:
+        # Arrange
+        source = IBSCareerSource()
+
+        # Act
+        success = source.parse_search_response(
+            _fixture_response("career_ibs", "success"),
+            SourceFetchRequest(
+                source_id="career:ibs",
+                query_variant="QA",
+                url="https://ibs.ru/career/vacancies/",
+            ),
+        )
+        pagination = source.parse_search_response(
+            _fixture_response("career_ibs", "pagination"),
+            SourceFetchRequest(
+                source_id="career:ibs",
+                query_variant="QA",
+                url="https://ibs.ru/career/vacancies/?PAGEN_1=2",
+            ),
+        )
+
+        # Assert
+        office_listing = _listing_by_id(success.listings, "84616")
+        remote_listing = _listing_by_id(pagination.listings, "83747")
+        self.assertEqual("В офисе", office_listing.raw["work_format"])
+        self.assertEqual("Удаленно", remote_listing.raw["work_format"])
 
     def test_pagination_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
@@ -932,6 +1172,26 @@ class TalantoSourceTest(unittest.TestCase):
         self.assertEqual(expected["expected_count"], len(parsed.listings))
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_success_fixture_preserves_remote_type_as_work_format(self) -> None:
+        # Arrange
+        source = TalantoSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("talanto", "success"),
+            SourceFetchRequest(
+                source_id="talanto",
+                query_variant="QA",
+                url="https://talanto.work/?q=QA",
+            ),
+        )
+
+        # Assert
+        hybrid_listing = _listing_by_id(parsed.listings, "f8f67364-d103-4564-8549-c6f8baca96ff")
+        remote_listing = _listing_by_id(parsed.listings, "6d924d5b-af3e-4259-8ec3-69d0d53904fd")
+        self.assertEqual("hybrid", hybrid_listing.raw["work_format"])
+        self.assertEqual("remote", remote_listing.raw["work_format"])
 
     def test_no_results_fixture_is_explicit_no_results(self) -> None:
         # Arrange
@@ -1276,6 +1536,28 @@ class GetmatchSourceTest(unittest.TestCase):
         )
         self.assertIn("О компании", listing_with_sections.additional_sections)
 
+    def test_success_fixture_extracts_work_format_from_location_metadata(self) -> None:
+        # Arrange
+        source = GetmatchSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("getmatch", "success"),
+            SourceFetchRequest(
+                source_id="getmatch",
+                query_variant="QA",
+                url=self.QA_AUTO_OFFERS_URL,
+            ),
+        )
+
+        # Assert
+        mixed_format = _listing_by_id(parsed.listings, "34397")
+        self.assertEqual("remote, hybrid", mixed_format.raw["work_format"])
+        hybrid_only = _listing_by_id(parsed.listings, "34245")
+        self.assertEqual("hybrid", hybrid_only.raw["work_format"])
+        self.assertIsNone(hybrid_only.remote_in_country)
+        self.assertIsNone(hybrid_only.remote_global)
+
     def test_no_results_fixture_is_explicit_no_results(self) -> None:
         # Arrange
         source = GetmatchSource()
@@ -1414,6 +1696,26 @@ class ItJobsUzSourceTest(unittest.TestCase):
         self.assertIn("responsibilities", listing_with_sections.additional_sections)
         self.assertIn("benefits", listing_with_sections.additional_sections)
 
+    def test_success_fixture_preserves_work_type_as_work_format(self) -> None:
+        # Arrange
+        source = ItJobsUzSource()
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("it_jobs_uz", "success"),
+            SourceFetchRequest(
+                source_id="it_jobs_uz",
+                query_variant="QA",
+                url=self.QA_URL,
+            ),
+        )
+
+        # Assert
+        hybrid_listing = _listing_by_id(parsed.listings, "cmmqnouqw000fdm3r19ht6u69")
+        remote_listing = _listing_by_id(parsed.listings, "cmq9caz82000ldce2h3nxr6db")
+        self.assertEqual("hybrid", hybrid_listing.raw["work_format"])
+        self.assertEqual("remote", remote_listing.raw["work_format"])
+
     def test_success_fixture_merges_split_description_fields(self) -> None:
         # Arrange
         source = ItJobsUzSource()
@@ -1531,6 +1833,65 @@ class HirifySourceTest(unittest.TestCase):
         self.assertEqual(expected["expected_count"], len(parsed.listings))
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+        hybrid_listing = _listing_by_id(parsed.listings, "670332")
+        self.assertIn("hybrid", hybrid_listing.raw["work_format"])
+
+    def test_search_card_metadata_extracts_country_grade_work_format_and_skills(self) -> None:
+        # Arrange
+        source = HirifySource()
+        payload = {
+            "data": [
+                {
+                    "id": 673690,
+                    "slug": "673690-qa-analyst-gamedev",
+                    "title": "QA Analyst (Gamedev)",
+                    "company_title": "%hirify_global%",
+                    "work_format": ["hybrid"],
+                    "remote_type": None,
+                    "remote_restrictions": [],
+                    "excluded_locations": [],
+                    "work_type": "fulltime",
+                    "grades": [{"id": 3, "name": "middle"}],
+                    "regions": [{"id": 8, "code": "argentina", "name": None, "name_en": None}],
+                    "tags": [
+                        {"id": 25, "name": "qa"},
+                        {"id": 149, "name": "gamedev"},
+                        {"id": 234, "name": "jira"},
+                    ],
+                    "specializations": [{"id": 9, "code": "qa_testing", "name_en": "QA Testing"}],
+                    "updated_at": "2026-06-23T19:08:28.000000Z",
+                }
+            ],
+            "total": 1,
+            "current_page": 1,
+            "last_page": 1,
+        }
+
+        # Act
+        parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="hirify",
+                url=self.QA_URL,
+                media_type="application/json",
+                body=json.dumps(payload),
+            ),
+            SourceFetchRequest(
+                source_id="hirify",
+                query_variant="QA",
+                url=self.QA_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(1, len(parsed.listings))
+        listing = parsed.listings[0]
+        self.assertEqual("argentina", listing.country)
+        self.assertEqual("middle", listing.native_grade)
+        self.assertFalse(listing.remote_in_country)
+        self.assertFalse(listing.remote_global)
+        self.assertEqual(("qa", "gamedev", "jira"), listing.skills)
+        self.assertEqual("hybrid", listing.raw["work_format"])
 
     def test_no_results_fixture_is_explicit_no_results(self) -> None:
         # Arrange
@@ -1774,6 +2135,54 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
         self.assertEqual("QA", fetch_request.query_variant)
         self.assertEqual(self.GREENHOUSE_BOARD_URL, fetch_request.url)
 
+    def test_bare_remote_location_does_not_mean_global_remote(self) -> None:
+        # Arrange
+        source = JetBrainsCareerSource()
+        response = SourceResponseArtifact(
+            source_id="career:jetbrains",
+            url=self.GREENHOUSE_BOARD_URL,
+            media_type="application/json",
+            body=json.dumps(
+                {
+                    "jobs": [
+                        {
+                            "id": 4696941101,
+                            "title": "Campus Ambassador (Universities in Europe)",
+                            "absolute_url": "https://job-boards.eu.greenhouse.io/jetbrains/jobs/4696941101",
+                            "company_name": "JetBrains",
+                            "first_published": "2025-10-30T14:30:59-04:00",
+                            "location": {"name": "Remote"},
+                            "content": "<p>Represent JetBrains at the university campus.</p>",
+                            "departments": [{"name": "University Relations"}],
+                            "offices": [{"name": "Amsterdam"}, {"name": "London"}],
+                            "metadata": [{"name": "Team", "value": "Education"}],
+                            "internal_job_id": 4391016101,
+                            "requisition_id": None,
+                            "updated_at": "2026-06-15T10:53:26-04:00",
+                        }
+                    ],
+                    "meta": {"total": 1},
+                }
+            ),
+        )
+
+        # Act
+        parsed = source.parse_search_response(
+            response,
+            SourceFetchRequest(
+                source_id="career:jetbrains",
+                query_variant="QA",
+                url=self.GREENHOUSE_BOARD_URL,
+            ),
+        )
+
+        # Assert
+        listing = parsed.listings[0]
+        self.assertEqual("Remote", listing.location_text)
+        self.assertIsNone(listing.remote_in_country)
+        self.assertIsNone(listing.remote_global)
+        self.assertEqual(("Amsterdam", "London"), listing.raw["offices"])
+
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
         source = JetBrainsCareerSource()
@@ -1805,6 +2214,10 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
         sectioned_listing = parsed.listings[0]
         self.assertIn("In this role, you will", sectioned_listing.additional_sections)
         self.assertIn("We offer", sectioned_listing.additional_sections)
+        hybrid_listing = _listing_by_id(parsed.listings, "4884023101")
+        self.assertNotIn("work_format", hybrid_listing.raw)
+        self.assertEqual(("#LI-HYBRID",), hybrid_listing.raw["linkedin_workplace_tags"])
+        self.assertNotIn("#LI-HYBRID", hybrid_listing.description or "")
 
 
 def _e2e_success_fixture_mapping(catalog: SourceCatalog, request: SearchRequest) -> dict[str, Path]:

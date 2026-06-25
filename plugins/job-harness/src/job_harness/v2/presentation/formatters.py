@@ -96,6 +96,7 @@ def _render_listing(index: int, item: dict[str, object], *, description_limit: i
 
     lines.extend(_listing_skills_lines(item))
     lines.extend(_listing_body_lines(item, description_limit=description_limit))
+    lines.extend(_listing_diagnostic_lines(item))
     return lines
 
 
@@ -108,8 +109,6 @@ def _listing_meta_lines(item: dict[str, object]) -> list[str]:
         ("salary_text", "**Salary:** {}"),
         ("posted_at", "**Posted:** {}"),
         ("query_variant", "**Query variant:** `{}`"),
-        ("description_availability", "**Description status:** `{}`"),
-        ("detail_parse_error", "**Detail parse error:** {}"),
     ):
         value = _text(item.get(key))
         if value:
@@ -157,6 +156,20 @@ def _listing_body_lines(item: dict[str, object], *, description_limit: int) -> l
     return lines
 
 
+def _listing_diagnostic_lines(item: dict[str, object]) -> list[str]:
+    diagnostics: list[str] = []
+    for key, label in (
+        ("description_availability", "**Description status:** `{}`"),
+        ("detail_parse_error", "**Detail parse error:** {}"),
+    ):
+        value = _text(item.get(key))
+        if value:
+            diagnostics.append(label.format(value))
+    if not diagnostics:
+        return []
+    return ["**Diagnostics**", "", *diagnostics, ""]
+
+
 def _append_body_section(
     lines: list[str],
     heading: str,
@@ -173,12 +186,12 @@ def _append_body_section(
 
 
 def _work_mode(item: dict[str, object]) -> str | None:
-    if item.get("remote_global") is True:
-        return "remote (global)"
-    if item.get("remote_in_country") is True:
-        return "remote"
-    if item.get("remote_in_country") is False and item.get("remote_global") is False:
-        return "on-site / hybrid"
+    display_work_format = _text(item.get("display_work_format"))
+    if display_work_format:
+        return display_work_format
+    remote_scope = _text(item.get("remote_scope"))
+    if remote_scope:
+        return remote_scope
     if item.get("relocation") is True:
         return "relocation"
     return None
