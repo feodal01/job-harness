@@ -1,0 +1,60 @@
+{
+  "outcome": "success",
+  "expected_count": 6,
+  "sample_listings": [
+    {
+      "source_listing_id": "junior-php-developer",
+      "title": "Junior/Junior+ PHP Разработчик",
+      "url": "https://www.amocrm.ru/jobs/production/junior-php-developer/",
+      "company": "amoCRM",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "technical-support",
+      "title": "Специалист технической поддержки",
+      "url": "https://www.amocrm.ru/jobs/support/technical-support/",
+      "company": "amoCRM",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "middle-senior-backend-developer",
+      "title": "Middle PHP Backend разработчик",
+      "url": "https://www.amocrm.ru/jobs/xteam/middle-senior-backend-developer/",
+      "company": "amoCRM",
+      "country": "RU",
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ]
+}
