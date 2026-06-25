@@ -1,0 +1,11 @@
+{
+  "source": "career:amocrm",
+  "captured_url": "https://www.amocrm.ru/jobs/",
+  "capture_date": "2026-06-25",
+  "capture_method": "curl -L with browser User-Agent",
+  "country": "RU",
+  "fixture_kind": "success_non_empty",
+  "real_capture": true,
+  "redactions": [],
+  "notes": "Real server-rendered amoCRM jobs page with six visible vacancy cards."
+}

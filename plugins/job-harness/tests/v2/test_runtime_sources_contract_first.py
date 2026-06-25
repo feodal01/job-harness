@@ -33,6 +33,7 @@ from job_harness.v2.runtime import (
     build_supported_source_catalog,
 )
 from job_harness.v2.runtime.sources import (
+    AmoCRMCareerSource,
     FinderWorkSource,
     GeekJobSource,
     GetmatchSource,
@@ -137,6 +138,8 @@ def _source_id(source: str) -> str:
         return "career:jetbrains"
     if source == "career_ibs":
         return "career:ibs"
+    if source == "career_amocrm":
+        return "career:amocrm"
     return source
 
 
@@ -1038,6 +1041,92 @@ class IBSCareerSourceTest(unittest.TestCase):
         self.assertEqual(set(expected["additional_sections"]), set(detailed.additional_sections))
         for text in expected["requirements_contains"]:
             self.assertIn(text, detailed.requirements or "")
+
+
+class AmoCRMCareerSourceTest(unittest.TestCase):
+    JOBS_URL = "https://www.amocrm.ru/jobs/"
+
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=AmoCRMCareerSource(),
+            fixture_suite=source_fixture_suite("career:amocrm"),
+        )
+
+        # Assert
+        self.assertEqual("career:amocrm", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_fetches_server_rendered_jobs_page_for_all_queries(self) -> None:
+        # Arrange
+        source = AmoCRMCareerSource()
+
+        # Act
+        support_request = source.build_search_requests(SearchRequest(query_variants=("техническая поддержка",)))[0]
+        developer_request = source.build_search_requests(SearchRequest(query_variants=("PHP разработчик",)))[0]
+
+        # Assert
+        self.assertEqual("career:amocrm", support_request.source_id)
+        self.assertEqual("техническая поддержка", support_request.query_variant)
+        self.assertEqual(self.JOBS_URL, support_request.url)
+        self.assertEqual(self.JOBS_URL, developer_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = AmoCRMCareerSource()
+        expected = _expected("career_amocrm", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("career_amocrm", "success"),
+            SourceFetchRequest(
+                source_id="career:amocrm",
+                query_variant="техническая поддержка",
+                url=self.JOBS_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+    def test_detail_fixture_extracts_full_description_text(self) -> None:
+        # Arrange
+        source = AmoCRMCareerSource()
+        listing = _detail_listing_from_input("career_amocrm")
+        expected = _expected("career_amocrm", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("career_amocrm", "detail"), listing)
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+        self.assertEqual(set(expected["additional_sections"]), set(detailed.additional_sections))
+        for label, phrases in expected["section_contains"].items():
+            for phrase in phrases:
+                self.assertIn(phrase, detailed.additional_sections[label])
+
+    def test_detail_sections_fixture_keeps_tasks_and_requirements_separate(self) -> None:
+        # Arrange
+        source = AmoCRMCareerSource()
+        listing = _detail_listing_from_input("career_amocrm", case="detail_sections")
+        expected = _expected("career_amocrm", "detail_sections")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("career_amocrm", "detail_sections"), listing)
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+        self.assertEqual(set(expected["additional_sections"]), set(detailed.additional_sections))
+        for text in expected["requirements_contains"]:
+            self.assertIn(text, detailed.requirements or "")
+        for label, phrases in expected["section_contains"].items():
+            for phrase in phrases:
+                self.assertIn(phrase, detailed.additional_sections[label])
+        for label, phrases in expected["section_not_contains"].items():
+            for phrase in phrases:
+                self.assertNotIn(phrase, detailed.additional_sections[label])
 
 
 class TalantoSourceTest(unittest.TestCase):

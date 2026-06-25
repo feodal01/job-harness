@@ -106,7 +106,8 @@ VALUES
     (11, 'jobturbo', 'aggregator', 'http', 50),
     (12, 'hirehi', 'aggregator', 'http', 50),
     (13, 'staff_am', 'aggregator', 'http', 100),
-    (14, 'career:ibs', 'company_career', 'http', 100);
+    (14, 'career:ibs', 'company_career', 'http', 100),
+    (15, 'career:amocrm', 'company_career', 'http', 50);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -119,6 +120,7 @@ VALUES
     ('hh_ru', 0, 'RU'),
     ('career:vk', 0, 'RU'),
     ('career:ibs', 0, 'RU'),
+    ('career:amocrm', 0, 'RU'),
     ('hirehi', 0, 'RU'),
     ('staff_am', 0, 'AM');
 
@@ -258,7 +260,16 @@ VALUES
     ('staff_am', 5, 'remote_mode', 'structured_output'),
     ('staff_am', 6, 'work_from_geographies', 'structured_output'),
     ('staff_am', 7, 'vacancy_geographies', 'structured_output'),
-    ('staff_am', 8, 'cities', 'structured_output');
+    ('staff_am', 8, 'cities', 'structured_output'),
+    ('career:amocrm', 0, 'query', 'structured_output'),
+    ('career:amocrm', 1, 'grades', 'unsupported'),
+    ('career:amocrm', 2, 'salary_from', 'unsupported'),
+    ('career:amocrm', 3, 'published_since', 'unsupported'),
+    ('career:amocrm', 4, 'relocation', 'unsupported'),
+    ('career:amocrm', 5, 'remote_mode', 'unsupported'),
+    ('career:amocrm', 6, 'work_from_geographies', 'unsupported'),
+    ('career:amocrm', 7, 'vacancy_geographies', 'structured_output'),
+    ('career:amocrm', 8, 'cities', 'unsupported');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -290,7 +301,8 @@ VALUES
     ('staff_am', 'no_results'),
     ('staff_am', 'detail'),
     ('career:ibs', 'pagination'),
-    ('career:ibs', 'detail');
+    ('career:ibs', 'detail'),
+    ('career:amocrm', 'detail');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -939,6 +951,39 @@ VALUES
         'tests/v2/fixtures/scrapers/career_ibs/detail/response.html',
         'tests/v2/fixtures/scrapers/career_ibs/detail/meta.json',
         'tests/v2/fixtures/scrapers/career_ibs/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:amocrm',
+        0,
+        'career:amocrm-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/career_amocrm/success/response.html',
+        'tests/v2/fixtures/scrapers/career_amocrm/success/meta.json',
+        'tests/v2/fixtures/scrapers/career_amocrm/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:amocrm',
+        1,
+        'career:amocrm-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_amocrm/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_amocrm/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_amocrm/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:amocrm',
+        2,
+        'career:amocrm-detail-sections',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_amocrm/detail_sections/response.html',
+        'tests/v2/fixtures/scrapers/career_amocrm/detail_sections/meta.json',
+        'tests/v2/fixtures/scrapers/career_amocrm/detail_sections/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );
