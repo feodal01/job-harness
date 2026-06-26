@@ -34,6 +34,7 @@ from job_harness.v2.runtime import (
 )
 from job_harness.v2.runtime.sources import (
     AmoCRMCareerSource,
+    CoinsPaidCareerSource,
     FinderWorkSource,
     GeekJobSource,
     GetmatchSource,
@@ -140,6 +141,8 @@ def _source_id(source: str) -> str:
         return "career:ibs"
     if source == "career_amocrm":
         return "career:amocrm"
+    if source == "career_coinspaid":
+        return "career:coinspaid"
     return source
 
 
@@ -379,6 +382,7 @@ class RemoteGlobalEvidenceContractTest(unittest.TestCase):
             ("hirehi", HireHiSource()),
             ("staff_am", StaffAmSource()),
             ("career_jetbrains", JetBrainsCareerSource()),
+            ("career_coinspaid", CoinsPaidCareerSource()),
         )
 
         for fixture_folder, source in cases:
@@ -427,6 +431,7 @@ class RemoteInCountryEvidenceContractTest(unittest.TestCase):
             ("hirehi", HireHiSource()),
             ("staff_am", StaffAmSource()),
             ("career_jetbrains", JetBrainsCareerSource()),
+            ("career_coinspaid", CoinsPaidCareerSource()),
         )
 
         for fixture_folder, source in cases:
@@ -2218,6 +2223,80 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
         self.assertNotIn("work_format", hybrid_listing.raw)
         self.assertEqual(("#LI-HYBRID",), hybrid_listing.raw["linkedin_workplace_tags"])
         self.assertNotIn("#LI-HYBRID", hybrid_listing.description or "")
+
+
+class CoinsPaidCareerSourceTest(unittest.TestCase):
+    LEVER_BOARD_URL = "https://api.eu.lever.co/v0/postings/coinspaid?mode=json"
+
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=CoinsPaidCareerSource(),
+            fixture_suite=source_fixture_suite("career:coinspaid"),
+        )
+
+        # Assert
+        self.assertEqual("career:coinspaid", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_fetches_the_real_lever_board(self) -> None:
+        # Arrange
+        source = CoinsPaidCareerSource()
+
+        # Act
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+
+        # Assert
+        self.assertEqual("career:coinspaid", fetch_request.source_id)
+        self.assertEqual("QA", fetch_request.query_variant)
+        self.assertEqual(self.LEVER_BOARD_URL, fetch_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = CoinsPaidCareerSource()
+        expected = _expected("career_coinspaid", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("career_coinspaid", "success"),
+            SourceFetchRequest(
+                source_id="career:coinspaid",
+                query_variant="QA",
+                url=self.LEVER_BOARD_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+        for source_listing_id, phrases in expected["description_contains"].items():
+            with self.subTest(source_listing_id=source_listing_id):
+                listing = _listing_by_id(parsed.listings, source_listing_id)
+                self.assertIsNotNone(listing.description)
+                for phrase in phrases:
+                    self.assertIn(phrase, listing.description or "")
+
+        for source_listing_id, phrases in expected["requirements_contains"].items():
+            with self.subTest(source_listing_id=source_listing_id):
+                listing = _listing_by_id(parsed.listings, source_listing_id)
+                self.assertIsNotNone(listing.requirements)
+                for phrase in phrases:
+                    self.assertIn(phrase, listing.requirements or "")
+
+        qa_lead = _listing_by_id(parsed.listings, "4fe7b350-5cec-4fd4-926f-800f99535e01")
+        for label in expected["section_labels"]:
+            self.assertIn(label, qa_lead.additional_sections)
+
+        for source_listing_id, raw_fields in expected.get("raw_contains", {}).items():
+            with self.subTest(source_listing_id=source_listing_id, raw_fields=raw_fields):
+                listing = _listing_by_id(parsed.listings, source_listing_id)
+                for key, expected_value in raw_fields.items():
+                    actual_value = listing.raw.get(key)
+                    if isinstance(actual_value, tuple):
+                        actual_value = list(actual_value)
+                    self.assertEqual(expected_value, actual_value, key)
 
 
 def _e2e_success_fixture_mapping(catalog: SourceCatalog, request: SearchRequest) -> dict[str, Path]:

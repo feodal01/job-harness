@@ -274,11 +274,59 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["office", "hybrid, remote", "office"], [
+        self.assertEqual(["office", "hybrid", "office"], [
             row["display_work_format"] for row in payload["results"]
         ])
-        self.assertEqual([["office"], ["hybrid", "remote"], ["office"]], [
+        self.assertEqual([["office"], ["hybrid"], ["office"]], [
             row["work_formats"] for row in payload["results"]
+        ])
+
+    def test_conflicting_work_formats_show_most_restrictive_source_fact(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("europe",),
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="CoinsPaid",
+                    source="career:coinspaid",
+                    country=None,
+                    location_text="Remote - European Region",
+                    remote_in_country=True,
+                    remote_global=False,
+                    raw={"work_format": ["remote", "hybrid"], "remote_locations": ["Europe"]},
+                ),
+                _raw_record(
+                    "2",
+                    company="Acme",
+                    source="career:acme",
+                    country="US",
+                    remote_in_country=True,
+                    remote_global=False,
+                    raw={"work_format": ["remote", "office"], "remote_locations": ["US"]},
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:coinspaid"),),
+        )
+
+        # Assert
+        self.assertEqual([], payload["results"])
+        self.assertEqual(
+            [["remote_eligibility_mismatch"], ["remote_eligibility_mismatch"]],
+            [row["decision_reasons"] for row in payload["filtered_out_results"]],
+        )
+        self.assertEqual(["hybrid", "office"], [
+            row["display_work_format"] for row in payload["filtered_out_results"]
+        ])
+        self.assertEqual([["hybrid"], ["office"]], [
+            row["work_formats"] for row in payload["filtered_out_results"]
+        ])
+        self.assertEqual(["hybrid", "onsite"], [
+            row["remote_scope"] for row in payload["filtered_out_results"]
         ])
 
     def test_linkedin_remote_tag_drives_remote_scope_before_onsite_booleans(self) -> None:

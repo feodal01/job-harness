@@ -8,6 +8,7 @@ from job_harness.v2.contracts import SourceScraper
 from job_harness.v2.runtime.catalog import SourceCatalog, SupportedSource
 from job_harness.v2.runtime.sources import (
     AmoCRMCareerSource,
+    CoinsPaidCareerSource,
     FinderWorkSource,
     GeekJobSource,
     GetmatchSource,
@@ -43,6 +44,7 @@ _SOURCE_FACTORIES: dict[str, Callable[[], SourceScraper]] = {
     "hirehi": HireHiSource,
     "staff_am": StaffAmSource,
     "career:amocrm": AmoCRMCareerSource,
+    "career:coinspaid": CoinsPaidCareerSource,
 }
 
 
