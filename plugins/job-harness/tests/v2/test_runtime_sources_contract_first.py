@@ -33,6 +33,7 @@ from job_harness.v2.runtime import (
     build_supported_source_catalog,
 )
 from job_harness.v2.runtime.sources import (
+    AirSlateCareerSource,
     AmoCRMCareerSource,
     AppFollowCareerSource,
     CoinsPaidCareerSource,
@@ -146,6 +147,8 @@ def _source_id(source: str) -> str:
         return "career:appfollow"
     if source == "career_coinspaid":
         return "career:coinspaid"
+    if source == "career_airslate":
+        return "career:airslate"
     return source
 
 
@@ -387,6 +390,7 @@ class RemoteGlobalEvidenceContractTest(unittest.TestCase):
             ("career_jetbrains", JetBrainsCareerSource()),
             ("career_appfollow", AppFollowCareerSource()),
             ("career_coinspaid", CoinsPaidCareerSource()),
+            ("career_airslate", AirSlateCareerSource()),
         )
 
         for fixture_folder, source in cases:
@@ -437,6 +441,7 @@ class RemoteInCountryEvidenceContractTest(unittest.TestCase):
             ("career_jetbrains", JetBrainsCareerSource()),
             ("career_appfollow", AppFollowCareerSource()),
             ("career_coinspaid", CoinsPaidCareerSource()),
+            ("career_airslate", AirSlateCareerSource()),
         )
 
         for fixture_folder, source in cases:
@@ -2478,6 +2483,72 @@ class CoinsPaidCareerSourceTest(unittest.TestCase):
                     self.assertIn(phrase, listing.requirements or "")
 
         qa_lead = _listing_by_id(parsed.listings, "4fe7b350-5cec-4fd4-926f-800f99535e01")
+        for label in expected["section_labels"]:
+            self.assertIn(label, qa_lead.additional_sections)
+
+        for source_listing_id, raw_fields in expected.get("raw_contains", {}).items():
+            with self.subTest(source_listing_id=source_listing_id, raw_fields=raw_fields):
+                listing = _listing_by_id(parsed.listings, source_listing_id)
+                for key, expected_value in raw_fields.items():
+                    actual_value = listing.raw.get(key)
+                    if isinstance(actual_value, tuple):
+                        actual_value = list(actual_value)
+                    self.assertEqual(expected_value, actual_value, key)
+
+
+class AirSlateCareerSourceTest(unittest.TestCase):
+    LEVER_BOARD_URL = "https://api.lever.co/v0/postings/airslate?mode=json"
+
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        source = SupportedSource(
+            scraper=AirSlateCareerSource(),
+            fixture_suite=source_fixture_suite("career:airslate"),
+        )
+
+        self.assertEqual("career:airslate", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_fetches_the_real_lever_board(self) -> None:
+        source = AirSlateCareerSource()
+
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
+
+        self.assertEqual("career:airslate", fetch_request.source_id)
+        self.assertEqual("QA", fetch_request.query_variant)
+        self.assertEqual(self.LEVER_BOARD_URL, fetch_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        source = AirSlateCareerSource()
+        expected = _expected("career_airslate", "success")
+
+        parsed = source.parse_search_response(
+            _fixture_response("career_airslate", "success"),
+            SourceFetchRequest(
+                source_id="career:airslate",
+                query_variant="QA",
+                url=self.LEVER_BOARD_URL,
+            ),
+        )
+
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+
+        for source_listing_id, phrases in expected["description_contains"].items():
+            with self.subTest(source_listing_id=source_listing_id):
+                listing = _listing_by_id(parsed.listings, source_listing_id)
+                self.assertIsNotNone(listing.description)
+                for phrase in phrases:
+                    self.assertIn(phrase, listing.description or "")
+
+        for source_listing_id, phrases in expected["requirements_contains"].items():
+            with self.subTest(source_listing_id=source_listing_id):
+                listing = _listing_by_id(parsed.listings, source_listing_id)
+                self.assertIsNotNone(listing.requirements)
+                for phrase in phrases:
+                    self.assertIn(phrase, listing.requirements or "")
+
+        qa_lead = _listing_by_id(parsed.listings, "1fe1bfc3-12bc-482f-8cd6-102651e0a1f8")
         for label in expected["section_labels"]:
             self.assertIn(label, qa_lead.additional_sections)
 

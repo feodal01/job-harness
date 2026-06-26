@@ -109,7 +109,8 @@ VALUES
     (14, 'career:ibs', 'company_career', 'http', 100),
     (15, 'career:amocrm', 'company_career', 'http', 50),
     (16, 'career:coinspaid', 'company_career', 'http', 100),
-    (17, 'career:appfollow', 'company_career', 'http', 20);
+    (17, 'career:appfollow', 'company_career', 'http', 20),
+    (18, 'career:airslate', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -289,7 +290,16 @@ VALUES
     ('career:appfollow', 5, 'remote_mode', 'structured_output'),
     ('career:appfollow', 6, 'work_from_geographies', 'structured_output'),
     ('career:appfollow', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:appfollow', 8, 'cities', 'unsupported');
+    ('career:appfollow', 8, 'cities', 'unsupported'),
+    ('career:airslate', 0, 'query', 'structured_output'),
+    ('career:airslate', 1, 'grades', 'unsupported'),
+    ('career:airslate', 2, 'salary_from', 'unsupported'),
+    ('career:airslate', 3, 'published_since', 'structured_output'),
+    ('career:airslate', 4, 'relocation', 'unsupported'),
+    ('career:airslate', 5, 'remote_mode', 'structured_output'),
+    ('career:airslate', 6, 'work_from_geographies', 'structured_output'),
+    ('career:airslate', 7, 'vacancy_geographies', 'structured_output'),
+    ('career:airslate', 8, 'cities', 'unsupported');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -1061,6 +1071,17 @@ VALUES
         'tests/v2/fixtures/scrapers/career_appfollow/detail_backend/response.html',
         'tests/v2/fixtures/scrapers/career_appfollow/detail_backend/meta.json',
         'tests/v2/fixtures/scrapers/career_appfollow/detail_backend/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:airslate',
+        0,
+        'career:airslate-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/career_airslate/success/response.json',
+        'tests/v2/fixtures/scrapers/career_airslate/success/meta.json',
+        'tests/v2/fixtures/scrapers/career_airslate/success/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

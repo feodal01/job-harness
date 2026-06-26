@@ -7,6 +7,7 @@ from collections.abc import Callable
 from job_harness.v2.contracts import SourceScraper
 from job_harness.v2.runtime.catalog import SourceCatalog, SupportedSource
 from job_harness.v2.runtime.sources import (
+    AirSlateCareerSource,
     AmoCRMCareerSource,
     AppFollowCareerSource,
     CoinsPaidCareerSource,
@@ -47,6 +48,7 @@ _SOURCE_FACTORIES: dict[str, Callable[[], SourceScraper]] = {
     "career:amocrm": AmoCRMCareerSource,
     "career:appfollow": AppFollowCareerSource,
     "career:coinspaid": CoinsPaidCareerSource,
+    "career:airslate": AirSlateCareerSource,
 }
 
 

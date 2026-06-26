@@ -12,6 +12,7 @@ from job_harness.v2.runtime.sources.aggregators.jobturbo import JobTurboSource
 from job_harness.v2.runtime.sources.aggregators.staff_am import StaffAmSource
 from job_harness.v2.runtime.sources.aggregators.talanto import TalantoSource
 from job_harness.v2.runtime.sources.aggregators.talento import TalentoSource
+from job_harness.v2.runtime.sources.companies.airslate import AirSlateCareerSource
 from job_harness.v2.runtime.sources.companies.amocrm import AmoCRMCareerSource
 from job_harness.v2.runtime.sources.companies.appfollow import AppFollowCareerSource
 from job_harness.v2.runtime.sources.companies.coinspaid import CoinsPaidCareerSource
@@ -22,6 +23,7 @@ from job_harness.v2.runtime.sources.companies.vk import VKCareerSource
 __all__ = [
     "AmoCRMCareerSource",
     "AppFollowCareerSource",
+    "AirSlateCareerSource",
     "CoinsPaidCareerSource",
     "ItJobsUzSource",
     "HireHiSource",

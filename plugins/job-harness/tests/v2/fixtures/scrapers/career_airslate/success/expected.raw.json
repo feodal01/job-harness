@@ -1,0 +1,168 @@
+{
+  "outcome": "success",
+  "expected_count": 4,
+  "sample_listings": [
+    {
+      "source_listing_id": "1fe1bfc3-12bc-482f-8cd6-102651e0a1f8",
+      "title": "Automation QE Lead: Quality Architecture & Agentic Testing",
+      "url": "https://jobs.lever.co/airslate/1fe1bfc3-12bc-482f-8cd6-102651e0a1f8",
+      "company": "airSlate",
+      "country": "PL",
+      "city": null,
+      "location_text": "Poland, Barcelona, Budapest, Romania, Bucharest",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-11-18T10:11:00.521000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "64698782-e3b3-48aa-82e1-5315c0ce5da0",
+      "title": "Sales Development Representative",
+      "url": "https://jobs.lever.co/airslate/64698782-e3b3-48aa-82e1-5315c0ce5da0",
+      "company": "airSlate",
+      "country": "PH",
+      "city": null,
+      "location_text": "Manila",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-17T16:22:03.380000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "998971b5-5826-41e3-884f-cf54d9cc4b09",
+      "title": "Senior Data Engineer",
+      "url": "https://jobs.lever.co/airslate/998971b5-5826-41e3-884f-cf54d9cc4b09",
+      "company": "airSlate",
+      "country": "PL",
+      "city": null,
+      "location_text": "Wroclaw, Poland, Kyiv",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-02-13T11:16:05.107000Z",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "ad1346b2-a88c-4c83-95fa-f104d6916526",
+      "title": "Senior Director of Marketing",
+      "url": "https://jobs.lever.co/airslate/ad1346b2-a88c-4c83-95fa-f104d6916526",
+      "company": "airSlate",
+      "country": "GB",
+      "city": null,
+      "location_text": "London, Boston",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-24T18:48:47.730000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "description_contains": {
+    "1fe1bfc3-12bc-482f-8cd6-102651e0a1f8": [
+      "global SaaS technology company",
+      "quality architecture"
+    ],
+    "998971b5-5826-41e3-884f-cf54d9cc4b09": [
+      "If you're seeking a dynamic environment"
+    ]
+  },
+  "requirements_contains": {
+    "1fe1bfc3-12bc-482f-8cd6-102651e0a1f8": [
+      "7+ years in software engineering",
+      "Strong automation architecture chops"
+    ],
+    "64698782-e3b3-48aa-82e1-5315c0ce5da0": [
+      "Bachelor's degree",
+      "Proficiency with sales tools"
+    ],
+    "998971b5-5826-41e3-884f-cf54d9cc4b09": [
+      "Data Processing(Apache Spark/Apache Flink/Apache Beam, etc.)",
+      "Git/Docker/Kubernetes/Jira/etc"
+    ],
+    "ad1346b2-a88c-4c83-95fa-f104d6916526": [
+      "10+ years of progressive marketing leadership experience",
+      "performance marketing with deep fluency in SaaS unit economics"
+    ]
+  },
+  "raw_contains": {
+    "1fe1bfc3-12bc-482f-8cd6-102651e0a1f8": {
+      "workplace_type": "remote",
+      "work_format": [
+        "remote"
+      ],
+      "all_locations": [
+        "Poland",
+        "Barcelona",
+        "Budapest",
+        "Romania",
+        "Bucharest"
+      ],
+      "remote_locations": [
+        "Poland",
+        "Barcelona",
+        "Budapest",
+        "Romania",
+        "Bucharest"
+      ]
+    },
+    "64698782-e3b3-48aa-82e1-5315c0ce5da0": {
+      "workplace_type": "remote",
+      "work_format": [
+        "remote"
+      ],
+      "all_locations": [
+        "Manila"
+      ],
+      "remote_locations": [
+        "Manila"
+      ]
+    },
+    "998971b5-5826-41e3-884f-cf54d9cc4b09": {
+      "workplace_type": "hybrid",
+      "work_format": [
+        "hybrid"
+      ],
+      "all_locations": [
+        "Wroclaw",
+        "Poland",
+        "Kyiv"
+      ]
+    },
+    "ad1346b2-a88c-4c83-95fa-f104d6916526": {
+      "workplace_type": "remote",
+      "work_format": [
+        "remote"
+      ],
+      "all_locations": [
+        "London",
+        "Boston"
+      ],
+      "remote_locations": [
+        "London",
+        "Boston"
+      ]
+    }
+  },
+  "section_labels": [
+    "What you'll own",
+    "What you'll need"
+  ]
+}
