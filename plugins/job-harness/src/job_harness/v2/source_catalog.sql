@@ -107,7 +107,8 @@ VALUES
     (12, 'hirehi', 'aggregator', 'http', 50),
     (13, 'staff_am', 'aggregator', 'http', 100),
     (14, 'career:ibs', 'company_career', 'http', 100),
-    (15, 'career:amocrm', 'company_career', 'http', 50);
+    (15, 'career:amocrm', 'company_career', 'http', 50),
+    (16, 'career:coinspaid', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -269,7 +270,16 @@ VALUES
     ('career:amocrm', 5, 'remote_mode', 'unsupported'),
     ('career:amocrm', 6, 'work_from_geographies', 'unsupported'),
     ('career:amocrm', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:amocrm', 8, 'cities', 'unsupported');
+    ('career:amocrm', 8, 'cities', 'unsupported'),
+    ('career:coinspaid', 0, 'query', 'structured_output'),
+    ('career:coinspaid', 1, 'grades', 'unsupported'),
+    ('career:coinspaid', 2, 'salary_from', 'unsupported'),
+    ('career:coinspaid', 3, 'published_since', 'structured_output'),
+    ('career:coinspaid', 4, 'relocation', 'unsupported'),
+    ('career:coinspaid', 5, 'remote_mode', 'structured_output'),
+    ('career:coinspaid', 6, 'work_from_geographies', 'structured_output'),
+    ('career:coinspaid', 7, 'vacancy_geographies', 'structured_output'),
+    ('career:coinspaid', 8, 'cities', 'structured_output');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -984,6 +994,17 @@ VALUES
         'tests/v2/fixtures/scrapers/career_amocrm/detail_sections/response.html',
         'tests/v2/fixtures/scrapers/career_amocrm/detail_sections/meta.json',
         'tests/v2/fixtures/scrapers/career_amocrm/detail_sections/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:coinspaid',
+        0,
+        'career:coinspaid-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/career_coinspaid/success/response.json',
+        'tests/v2/fixtures/scrapers/career_coinspaid/success/meta.json',
+        'tests/v2/fixtures/scrapers/career_coinspaid/success/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

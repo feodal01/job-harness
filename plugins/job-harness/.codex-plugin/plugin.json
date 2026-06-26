@@ -1,6 +1,6 @@
 {
   "name": "job-harness",
-  "version": "0.2.50",
+  "version": "0.2.51",
   "description": "Agent-first job search runtime with MCP tools, skills, employer resolution, and bundled company directory.",
   "author": {
     "name": "Local developer"

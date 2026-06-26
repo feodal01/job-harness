@@ -1,0 +1,157 @@
+{
+  "outcome": "success",
+  "expected_count": 6,
+  "sample_listings": [
+    {
+      "source_listing_id": "4fe7b350-5cec-4fd4-926f-800f99535e01",
+      "title": "QA Technical Lead (Python)",
+      "url": "https://jobs.eu.lever.co/coinspaid/4fe7b350-5cec-4fd4-926f-800f99535e01",
+      "company": "CoinsPaid",
+      "country": null,
+      "city": null,
+      "location_text": "Remote - European Region",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-05T13:41:05.891000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "1b255ea9-1c0a-47b1-ba62-8fbaeb817e2f",
+      "title": "Senior FullStack QA Engineer with Python (Programming language)",
+      "url": "https://jobs.eu.lever.co/coinspaid/1b255ea9-1c0a-47b1-ba62-8fbaeb817e2f",
+      "company": "CoinsPaid",
+      "country": null,
+      "city": null,
+      "location_text": "Remote - European Region",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2024-04-08T08:11:18.212000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "565ae94f-400f-4026-a739-9ae88b957efc",
+      "title": "Senior Golang Engineer",
+      "url": "https://jobs.eu.lever.co/coinspaid/565ae94f-400f-4026-a739-9ae88b957efc",
+      "company": "CoinsPaid",
+      "country": null,
+      "city": null,
+            "location_text": "Remote - Worldwide",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-01-16T20:17:39.974000Z",
+            "remote_in_country": null,
+            "remote_global": true,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "3d311307-c6b9-44f8-b238-6392eee5f40f",
+      "title": "Lead Compliance Officer",
+      "url": "https://jobs.eu.lever.co/coinspaid/3d311307-c6b9-44f8-b238-6392eee5f40f",
+      "company": "CoinsPaid",
+            "country": "Estonia",
+      "city": null,
+      "location_text": "Estonia",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-19T08:59:28.092000Z",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "a26c0b6e-dc42-4cb1-8e67-37c7e6254ce4",
+      "title": "Senior Account Sales Executive (USA)",
+      "url": "https://jobs.eu.lever.co/coinspaid/a26c0b6e-dc42-4cb1-8e67-37c7e6254ce4",
+      "company": "CoinsPaid",
+            "country": null,
+      "city": "New York",
+      "location_text": "New York",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-16T13:58:37.530000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "description_contains": {
+    "4fe7b350-5cec-4fd4-926f-800f99535e01": [
+      "FullStack QA Tech Lead",
+      "quality engineering across the Back Office Domain"
+    ]
+  },
+  "requirements_contains": {
+    "4fe7b350-5cec-4fd4-926f-800f99535e01": [
+      "6+ years of experience in Quality Assurance",
+      "Python-based test automation"
+    ],
+    "1b255ea9-1c0a-47b1-ba62-8fbaeb817e2f": [
+      "5+ years of experience in Quality Assurance",
+      "test automation frameworks"
+    ]
+  },
+  "raw_contains": {
+    "4fe7b350-5cec-4fd4-926f-800f99535e01": {
+      "workplace_type": "hybrid",
+      "work_format": [
+        "remote",
+        "hybrid"
+      ],
+      "remote_locations": [
+        "Europe"
+      ]
+    },
+    "1b255ea9-1c0a-47b1-ba62-8fbaeb817e2f": {
+      "workplace_type": "hybrid",
+      "work_format": [
+        "remote",
+        "hybrid"
+      ],
+      "remote_locations": [
+        "Europe"
+      ]
+    },
+    "565ae94f-400f-4026-a739-9ae88b957efc": {
+      "workplace_type": "hybrid",
+      "work_format": [
+        "remote",
+        "hybrid"
+      ]
+    },
+    "3d311307-c6b9-44f8-b238-6392eee5f40f": {
+      "workplace_type": "hybrid",
+      "work_format": [
+        "hybrid"
+      ]
+    },
+    "a26c0b6e-dc42-4cb1-8e67-37c7e6254ce4": {
+      "workplace_type": "remote",
+      "work_format": [
+        "remote"
+      ]
+    }
+  },
+  "section_labels": [
+    "Responsibilities",
+    "Requirements"
+  ]
+}

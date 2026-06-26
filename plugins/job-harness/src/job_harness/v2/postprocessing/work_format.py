@@ -33,6 +33,11 @@ _LINKEDIN_WORKPLACE_TAGS = {
     "#li-onsite": OFFICE_FORMAT,
     "#li-remote": REMOTE_FORMAT,
 }
+_WORK_FORMAT_RESTRICTIVENESS = {
+    REMOTE_FORMAT: 0,
+    HYBRID_FORMAT: 1,
+    OFFICE_FORMAT: 2,
+}
 
 
 @dataclass(frozen=True)
@@ -49,10 +54,10 @@ def listing_work_formats(listing: dict[str, object]) -> tuple[str, ...]:
         for key in ("work_format", "remote_type", "employment_type"):
             _append_work_format_text(formats, raw.get(key))
         if formats:
-            return tuple(formats)
+            return _most_restrictive_formats(formats)
         _append_linkedin_workplace_tags(formats, raw.get("linkedin_workplace_tags"))
         if formats:
-            return tuple(formats)
+            return _most_restrictive_formats(formats)
 
     remote_global = _optional_bool(listing.get("remote_global"))
     remote_in_country = _optional_bool(listing.get("remote_in_country"))
@@ -60,7 +65,7 @@ def listing_work_formats(listing: dict[str, object]) -> tuple[str, ...]:
         _append_unique(formats, REMOTE_FORMAT)
     if remote_global is False and remote_in_country is False:
         _append_unique(formats, OFFICE_FORMAT)
-    return tuple(formats)
+    return _most_restrictive_formats(formats)
 
 
 def work_format_policy_outcome(
@@ -164,6 +169,17 @@ def _format_tokens(value: str) -> frozenset[str]:
 def _append_unique(values: list[str], value: str) -> None:
     if value not in values:
         values.append(value)
+
+
+def _most_restrictive_formats(values: list[str]) -> tuple[str, ...]:
+    if not values:
+        return ()
+    return (
+        max(
+            values,
+            key=lambda value: _WORK_FORMAT_RESTRICTIVENESS.get(value, -1),
+        ),
+    )
 
 
 def _optional_bool(value: object) -> bool | None:
