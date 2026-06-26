@@ -36,12 +36,23 @@ _JSON_LD_RE = re.compile(
     re.I | re.S,
 )
 _REQUIREMENTS_MARKERS = (
+    "about you",
     "experience",
     "languages",
+    "nice to have",
     "qualification",
     "requirements",
     "skills",
     "tools",
+)
+_STRONG_SECTION_LABELS = frozenset(
+    {
+        "about the role",
+        "about you",
+        "benefits we offer",
+        "hiring process",
+        "it would be nice to have",
+    }
 )
 
 
@@ -282,7 +293,12 @@ def _section_label(match: re.Match[str]) -> str | None:
     label = (_html_to_text(match.group("label")) or "").rstrip(":").strip()
     if not label:
         return None
-    if tag == "strong" and not match.group("label").strip().endswith(":"):
+    normalized = label.casefold()
+    if (
+        tag == "strong"
+        and not match.group("label").strip().endswith(":")
+        and normalized not in _STRONG_SECTION_LABELS
+    ):
         return None
     return label
 

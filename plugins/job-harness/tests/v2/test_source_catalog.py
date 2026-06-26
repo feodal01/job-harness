@@ -225,6 +225,7 @@ class SourceCatalogTableTest(unittest.TestCase):
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.DETAIL,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )

@@ -1052,4 +1052,15 @@ VALUES
         'tests/v2/fixtures/scrapers/career_appfollow/detail/expected.raw.json',
         1,
         'codex_direct_fixture_review'
+    ),
+    (
+        'career:appfollow',
+        2,
+        'career:appfollow-detail-backend',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_appfollow/detail_backend/response.html',
+        'tests/v2/fixtures/scrapers/career_appfollow/detail_backend/meta.json',
+        'tests/v2/fixtures/scrapers/career_appfollow/detail_backend/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
     );

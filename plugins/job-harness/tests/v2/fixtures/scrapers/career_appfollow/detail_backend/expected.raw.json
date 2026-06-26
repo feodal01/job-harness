@@ -1,0 +1,40 @@
+{
+  "outcome": "success",
+  "posted_at": "2026-06-11",
+  "location_text": "Europe",
+  "min_description_length": 2500,
+  "description_contains": [
+    "AppFollow is an App review management and ASO platform",
+    "Senior Backend Engineer",
+    "About the Role",
+    "About you"
+  ],
+  "additional_sections": [
+    "About the Role",
+    "About you",
+    "It would be nice to have",
+    "Benefits we offer",
+    "Hiring process",
+    "Expected timeline"
+  ],
+  "section_contains": {
+    "About the Role": [
+      "Develop and optimize the functionality of AppFollow product",
+      "public API"
+    ],
+    "About you": [
+      "software development",
+      "FastAPI",
+      "English"
+    ],
+    "It would be nice to have": [
+      "Experience with ML projects",
+      "Experience with integration with big LLMs"
+    ]
+  },
+  "requirements_contains": [
+    "software development",
+    "FastAPI",
+    "Experience with ML projects"
+  ]
+}

@@ -1271,6 +1271,29 @@ class AppFollowCareerSourceTest(unittest.TestCase):
         for text in expected["requirements_contains"]:
             self.assertIn(text, detailed.requirements or "")
 
+    def test_backend_detail_fixture_extracts_strong_heading_requirements(self) -> None:
+        # Arrange
+        source = AppFollowCareerSource()
+        listing = _detail_listing_from_input("career_appfollow", case="detail_backend")
+        expected = _expected("career_appfollow", "detail_backend")
+
+        # Act
+        detailed = source.parse_detail_response(
+            _fixture_response("career_appfollow", "detail_backend"),
+            listing,
+        )
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+        self.assertEqual(expected["posted_at"], detailed.posted_at)
+        self.assertEqual(expected["location_text"], detailed.location_text)
+        self.assertEqual(set(expected["additional_sections"]), set(detailed.additional_sections))
+        for label, phrases in expected["section_contains"].items():
+            for phrase in phrases:
+                self.assertIn(phrase, detailed.additional_sections[label])
+        for text in expected["requirements_contains"]:
+            self.assertIn(text, detailed.requirements or "")
+
 
 class TalantoSourceTest(unittest.TestCase):
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
