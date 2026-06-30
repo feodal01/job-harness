@@ -357,6 +357,56 @@ class SqliteRunStore:
                 self._connection.rollback()
                 raise
 
+    def update_raw_record_listing(
+        self,
+        *,
+        raw_record_id: int,
+        listing: RawListing,
+    ) -> None:
+        if raw_record_id < 1:
+            raise ValueError("raw_record_id must be >= 1")
+        listing_json = to_jsonable(listing)
+        if not isinstance(listing_json, dict):
+            raise ValueError("listing payload must be a JSON object")
+        with self._lock:
+            self._ensure_open()
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                row = self._connection.execute(
+                    """
+                    SELECT record_json
+                    FROM raw_listings
+                    WHERE id = ? AND run_id = ?
+                    """,
+                    (raw_record_id, self._run_id),
+                ).fetchone()
+                if row is None:
+                    raise KeyError(f"raw listing row does not exist: {raw_record_id}")
+                record_json = _json_object(row["record_json"], "raw_listings.record_json")
+                record_json["listing"] = listing_json
+                cursor = self._connection.execute(
+                    """
+                    UPDATE raw_listings
+                    SET
+                        listing_json = ?,
+                        record_json = ?
+                    WHERE id = ? AND run_id = ?
+                    """,
+                    (
+                        _json_dumps(listing_json),
+                        _json_dumps(record_json),
+                        raw_record_id,
+                        self._run_id,
+                    ),
+                )
+                if cursor.rowcount != 1:
+                    raise RuntimeError("raw listing row was not updated")
+                self._touch_run()
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
+
     def close(self) -> None:
         with self._lock:
             if self._closed:

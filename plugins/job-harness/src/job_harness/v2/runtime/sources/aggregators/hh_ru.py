@@ -48,6 +48,21 @@ _CURRENCY_MAP = {
 }
 _REMOTE_WORK_FORMAT = "REMOTE"
 _HH_DESCRIPTION_QA = "vacancy-description"
+_COMPANY_FACT_KEYS = (
+    "id",
+    "name",
+    "visibleName",
+    "companySiteUrl",
+    "@trusted",
+    "@state",
+    "@category",
+    "@countryId",
+    "@showSimilarVacancies",
+    "accreditedITEmployer",
+    "employerOnAdditionalCheck",
+    "employerOrganizationFormId",
+    "employerReviews",
+)
 _VOID_TAGS = {
     "area",
     "base",
@@ -204,6 +219,21 @@ def _hh_listing(vacancy: dict[str, Any]) -> RawListing:
     compensation = _compensation(vacancy.get("compensation"))
     raw_work_formats = _work_formats(vacancy.get("workFormats"))
     work_experience = _text_or_none(vacancy.get("workExperience"))
+    raw: dict[str, object] = {
+        "vacancyId": vacancy.get("vacancyId"),
+        "area": vacancy.get("area"),
+        "address": vacancy.get("address"),
+        "workExperience": vacancy.get("workExperience"),
+        "workFormats": raw_work_formats,
+        "employment": vacancy.get("employment"),
+        "publicationTime": vacancy.get("publicationTime"),
+        "compensation": vacancy.get("compensation"),
+        "creationSite": vacancy.get("creationSite"),
+        "searchRid": vacancy.get("searchRid"),
+    }
+    company_facts = _company_facts(vacancy.get("company"))
+    if company_facts:
+        raw["company"] = company_facts
 
     return RawListing(
         source_listing_id=source_listing_id or None,
@@ -234,19 +264,18 @@ def _hh_listing(vacancy: dict[str, Any]) -> RawListing:
             work_experience,
             " ".join(raw_work_formats),
         ),
-        raw={
-            "vacancyId": vacancy.get("vacancyId"),
-            "area": vacancy.get("area"),
-            "address": vacancy.get("address"),
-            "workExperience": vacancy.get("workExperience"),
-            "workFormats": raw_work_formats,
-            "employment": vacancy.get("employment"),
-            "publicationTime": vacancy.get("publicationTime"),
-            "compensation": vacancy.get("compensation"),
-            "creationSite": vacancy.get("creationSite"),
-            "searchRid": vacancy.get("searchRid"),
-        },
+        raw=raw,
     )
+
+
+def _company_facts(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    facts = {key: value[key] for key in _COMPANY_FACT_KEYS if key in value}
+    company_id = _int_or_none(value.get("id"))
+    if company_id is not None:
+        facts["employerUrl"] = absolute_url(_DETAIL_BASE_URL, f"/employer/{company_id}")
+    return facts
 
 
 class _Location:

@@ -2,6 +2,25 @@
   "outcome": "success",
   "expected_count": 50,
   "next_url": "https://hh.ru/search/vacancy?text=QA&area=113&search_field=name&page=1",
+  "company_resolution_seed_listing_id": "134371846",
+  "company_resolution_seed": {
+    "id": 5174681,
+    "name": "MANGO FZCO",
+    "visibleName": "MANGO FZCO",
+    "companySiteUrl": "https://windi.com",
+    "employerUrl": "https://hh.ru/employer/5174681",
+    "@trusted": true,
+    "@state": "APPROVED",
+    "@category": "COMPANY",
+    "@countryId": 1,
+    "@showSimilarVacancies": true,
+    "accreditedITEmployer": false,
+    "employerOnAdditionalCheck": false,
+    "employerReviews": {
+      "reviewsCount": 3,
+      "totalRating": "4.8"
+    }
+  },
   "sample_listings": [
     {
       "source_listing_id": "134371846",

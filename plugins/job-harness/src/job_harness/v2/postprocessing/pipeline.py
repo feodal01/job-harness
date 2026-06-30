@@ -9,6 +9,7 @@ from enum import StrEnum
 
 from job_harness.v2.contracts import SearchRequest, TextExclusion, TextExclusionMode
 from job_harness.v2.matching import FuzzyBounds, fuzzy_any_match, fuzzy_tokens_match
+from job_harness.v2.postprocessing.application_channels import application_channels
 from job_harness.v2.postprocessing.criteria_plan import CriteriaProcessingPlanner
 from job_harness.v2.postprocessing.remote_scope import (
     country_text,
@@ -102,6 +103,7 @@ class ResultTablePostProcessor:
         raw_records: tuple[JsonObject, ...],
         source_attempts: tuple[JsonObject, ...],
         detail_summary: dict[str, object] | None = None,
+        application_channel_summary: dict[str, object] | None = None,
     ) -> ProcessedResults:
         rows = _dedupe_rows(_listing_rows(raw_records))
         source_criteria_plan = CriteriaProcessingPlanner().build_plan(
@@ -140,6 +142,8 @@ class ResultTablePostProcessor:
         )
         if detail_summary is not None:
             payload["detail_summary"] = to_jsonable(detail_summary)
+        if application_channel_summary is not None:
+            payload["application_channel_summary"] = to_jsonable(application_channel_summary)
         if not isinstance(payload, dict):
             raise TypeError("processed results payload must be a JSON object")
         return ProcessedResults(
@@ -193,6 +197,7 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
             "requirements": _optional_text(listing.get("requirements")),
             "additional_sections": _text_mapping(listing.get("additional_sections")),
             "skills": _text_tuple(listing.get("skills")),
+            "application_channels": application_channels(listing),
             "source_facts": _source_facts(listing),
             "raw_text": _optional_text(listing.get("raw_text")),
             "description_availability": _optional_text(record.get("description_availability")),

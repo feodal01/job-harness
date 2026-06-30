@@ -48,6 +48,16 @@ class DetailRecordWriter(Protocol):
         """Update detail enrichment fields for one stored raw listing row."""
 
 
+class RawRecordListingWriter(Protocol):
+    def update_raw_record_listing(
+        self,
+        *,
+        raw_record_id: int,
+        listing: RawListing,
+    ) -> None:
+        """Update the stored listing payload for one raw listing row."""
+
+
 @dataclass(frozen=True)
 class StoredRawRecord:
     raw_record_id: int
@@ -58,7 +68,7 @@ class StoredRawRecord:
             raise ValueError("raw_record_id must be >= 1")
 
 
-class RunStore(CorpusWriter, DetailRecordWriter, Protocol):
+class RunStore(CorpusWriter, DetailRecordWriter, RawRecordListingWriter, Protocol):
     @property
     def database_path(self) -> Path:
         """Path to the backing run database."""

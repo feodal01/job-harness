@@ -94,6 +94,7 @@ def _render_listing(index: int, item: dict[str, object], *, description_limit: i
         lines.extend(meta)
         lines.append("")
 
+    lines.extend(_listing_application_channel_lines(item))
     lines.extend(_listing_skills_lines(item))
     lines.extend(_listing_body_lines(item, description_limit=description_limit))
     lines.extend(_listing_diagnostic_lines(item))
@@ -136,6 +137,27 @@ def _listing_skills_lines(item: dict[str, object]) -> list[str]:
     if not skill_text:
         return []
     return [f"**Skills:** {skill_text}", ""]
+
+
+def _listing_application_channel_lines(item: dict[str, object]) -> list[str]:
+    channels = item.get("application_channels")
+    if not isinstance(channels, list) or not channels:
+        return []
+    lines = ["**Apply channels**", ""]
+    has_channel_lines = False
+    for channel in channels:
+        if not isinstance(channel, dict):
+            continue
+        label = _text(channel.get("label"))
+        url = _text(channel.get("url"))
+        if not label or not url:
+            continue
+        lines.append(f"- [{label}]({url})")
+        has_channel_lines = True
+    if not has_channel_lines:
+        return []
+    lines.append("")
+    return lines
 
 
 def _listing_body_lines(item: dict[str, object], *, description_limit: int) -> list[str]:
