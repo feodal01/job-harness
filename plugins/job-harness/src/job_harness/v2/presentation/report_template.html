@@ -223,6 +223,33 @@
       gap: 6px;
       padding-top: 2px;
     }
+    .apply-channels {
+      display: grid;
+      gap: 6px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+    .apply-channels-title {
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .apply-channel-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .apply-channel {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      font-weight: 650;
+    }
     .skill {
       display: inline-flex;
       align-items: center;
@@ -489,6 +516,8 @@
       );
       head.append(grid);
       article.append(head);
+      const applicationChannels = applicationChannelsElement(row);
+      if (applicationChannels) article.append(applicationChannels);
       const skillTags = skillsElement(row);
       if (skillTags) article.append(skillTags);
 
@@ -601,6 +630,34 @@
         item.textContent = skill;
         container.append(item);
       }
+      return container;
+    }
+
+    function applicationChannelsElement(row) {
+      const channels = Array.isArray(row.application_channels) ? row.application_channels : [];
+      const links = channels
+        .filter((channel) => channel && typeof channel === "object" && text(channel.url) && text(channel.label))
+        .map((channel) => {
+          const link = document.createElement("a");
+          link.className = "apply-channel";
+          link.href = text(channel.url);
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          link.textContent = text(channel.label);
+          const details = [text(channel.status), text(channel.source)].filter(Boolean).join(" · ");
+          if (details) link.title = details;
+          return link;
+        });
+      if (!links.length) return null;
+      const container = document.createElement("div");
+      container.className = "apply-channels";
+      const title = document.createElement("div");
+      title.className = "apply-channels-title";
+      title.textContent = "Apply channels";
+      const linkRow = document.createElement("div");
+      linkRow.className = "apply-channel-links";
+      linkRow.replaceChildren(...links);
+      container.replaceChildren(title, linkRow);
       return container;
     }
 

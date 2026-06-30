@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
@@ -103,9 +104,11 @@ class HabrCareerSource(DetailEnrichmentScraper):
         description = _habr_detail_description(response.body)
         if description is None:
             raise ValueError("Habr detail page does not contain vacancy description")
+        company_facts = _habr_detail_company_facts(response.body)
         return replace(
             listing,
             description=description,
+            raw=_merge_company_facts(listing.raw, company_facts),
             raw_text=_join_text(listing.raw_text, description),
         )
 
@@ -132,6 +135,72 @@ def _habr_detail_description(body: str) -> str | None:
     )
     dom_collector.feed(body)
     return dom_collector.text()
+
+
+def _habr_detail_company_facts(body: str) -> dict[str, object]:
+    facts = _habr_vacancy_company_facts(body)
+    linked_data_site_url = _hiring_organization_site_url(body)
+    block_facts = _habr_company_block_facts(body)
+    if linked_data_site_url:
+        facts["companySiteUrl"] = linked_data_site_url
+    for key, value in block_facts.items():
+        facts.setdefault(key, value)
+    return facts
+
+
+def _habr_vacancy_company_facts(body: str) -> dict[str, object]:
+    collector = ScriptCollector()
+    collector.feed(body)
+    for _attrs, text in collector.scripts:
+        if not text.startswith("{") or '"vacancy"' not in text:
+            continue
+        data = json.loads(text)
+        vacancy = data.get("vacancy")
+        if not isinstance(vacancy, dict):
+            continue
+        company = vacancy.get("company")
+        if isinstance(company, dict):
+            return _company_facts(company)
+    return {}
+
+
+def _hiring_organization_site_url(body: str) -> str | None:
+    collector = ScriptCollector()
+    collector.feed(body)
+    for attrs, text in collector.scripts:
+        if attrs.get("type") != "application/ld+json" or not text.startswith("{"):
+            continue
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            continue
+        organization = data.get("hiringOrganization")
+        if not isinstance(organization, dict):
+            continue
+        same_as = _str_value(organization.get("sameAs")).strip()
+        if same_as:
+            return absolute_url(_DETAIL_BASE_URL, same_as)
+    return None
+
+
+def _habr_company_block_facts(body: str) -> dict[str, object]:
+    collector = _HabrCompanyBlockCollector()
+    collector.feed(body)
+    facts: dict[str, object] = {}
+    for anchor in collector.anchors:
+        href = anchor.href.strip()
+        if not href:
+            continue
+        absolute = absolute_url(_DETAIL_BASE_URL, href)
+        parsed = urlparse(absolute)
+        if parsed.netloc == "career.habr.com" and parsed.path.startswith("/companies/"):
+            if parsed.path.endswith("/vacancies") or anchor.text.casefold().startswith("все вакансии"):
+                facts["companyVacanciesUrl"] = absolute
+            else:
+                facts.setdefault("companyProfileUrl", absolute)
+            continue
+        if parsed.scheme in {"http", "https"} and parsed.netloc:
+            facts.setdefault("companySiteUrl", absolute)
+    return facts
 
 
 _MIN_PARSED_DESCRIPTION_CHARS = 120
@@ -164,6 +233,53 @@ def _image_urls_from_html(value: str) -> tuple[str, ...]:
     return tuple(urls)
 
 
+class _HabrCompanyBlockCollector(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.anchors: list[_Anchor] = []
+        self._depth: int | None = None
+        self._href: str | None = None
+        self._text_parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr_map = {key: value or "" for key, value in attrs}
+        classes = attr_map.get("class", "").split()
+        if self._depth is None:
+            if tag == "div" and "vacancy-company" in classes:
+                self._depth = 1
+            return
+        if tag not in _VOID_TAGS:
+            self._depth += 1
+        if tag == "a":
+            self._href = attr_map.get("href", "").strip()
+            self._text_parts = []
+
+    def handle_data(self, data: str) -> None:
+        if self._href is None:
+            return
+        text = " ".join(data.split())
+        if text:
+            self._text_parts.append(text)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._depth is None:
+            return
+        if tag == "a" and self._href is not None:
+            self.anchors.append(_Anchor(href=self._href, text=" ".join(self._text_parts)))
+            self._href = None
+            self._text_parts = []
+        if tag not in _VOID_TAGS:
+            self._depth -= 1
+        if self._depth == 0:
+            self._depth = None
+
+
+@dataclass(frozen=True)
+class _Anchor:
+    href: str
+    text: str
+
+
 def _extract_habr_payload(body: str) -> dict[str, Any]:
     collector = ScriptCollector()
     collector.feed(body)
@@ -180,6 +296,7 @@ def _habr_listing(item: dict[str, Any]) -> RawListing:
     href = _str_value(item.get("href"))
     title = _str_value(item.get("title")).strip()
     company = _nested_str(item, "company", "title")
+    company_facts = _company_facts(item.get("company"))
     salary = item.get("salary") if isinstance(item.get("salary"), dict) else {}
     raw_locations = item.get("locations")
     locations = raw_locations if isinstance(raw_locations, list) else []
@@ -199,6 +316,15 @@ def _habr_listing(item: dict[str, Any]) -> RawListing:
     posted_at = _nested_str(item, "publishedDate", "date") or None
     salary_text = _str_value(salary.get("formatted")).strip() if isinstance(salary, dict) else ""
     salary_currency = _currency(_str_value(salary.get("currency"))) if isinstance(salary, dict) else None
+
+    raw: dict[str, object] = {
+        "id": item.get("id"),
+        "href": href,
+        "publishedDate": item.get("publishedDate"),
+        "qualification": item.get("qualification"),
+    }
+    if company_facts:
+        raw["company"] = company_facts
 
     return RawListing(
         source_listing_id=source_listing_id or None,
@@ -222,13 +348,39 @@ def _habr_listing(item: dict[str, Any]) -> RawListing:
         requirements=None,
         skills=skills,
         raw_text=_join_text(title, company, ", ".join(city_values), salary_text, " ".join(skills)),
-        raw={
-            "id": item.get("id"),
-            "href": href,
-            "publishedDate": item.get("publishedDate"),
-            "qualification": item.get("qualification"),
-        },
+        raw=raw,
     )
+
+
+def _company_facts(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    facts: dict[str, object] = {}
+    company_id = _int_value(value.get("id"))
+    if company_id is not None:
+        facts["id"] = company_id
+    for source_key, fact_key in (
+        ("alias_name", "aliasName"),
+        ("title", "title"),
+        ("accredited", "accredited"),
+    ):
+        source_value = value.get(source_key)
+        if isinstance(source_value, bool | str):
+            facts[fact_key] = source_value
+    href = _str_value(value.get("href")).strip()
+    if href:
+        facts["companyProfileUrl"] = absolute_url(_DETAIL_BASE_URL, href)
+        facts["companyVacanciesUrl"] = absolute_url(_DETAIL_BASE_URL, f"{href.rstrip('/')}/vacancies")
+    return facts
+
+
+def _merge_company_facts(raw: dict[str, object], company_facts: dict[str, object]) -> dict[str, object]:
+    if not company_facts:
+        return raw
+    existing_company = raw.get("company")
+    company = dict(existing_company) if isinstance(existing_company, dict) else {}
+    company.update(company_facts)
+    return {**raw, "company": company}
 
 
 def _next_page_request(
@@ -296,3 +448,21 @@ def _int_value(value: object) -> int | None:
 def _join_text(*parts: str | None) -> str | None:
     text = " ".join(part.strip() for part in parts if part and part.strip())
     return text or None
+
+
+_VOID_TAGS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+}

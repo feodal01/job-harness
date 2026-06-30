@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -26,6 +27,9 @@ class HttpArtifactFetcher:
         self._timeout_seconds = timeout_seconds
 
     async def fetch(self, request: SourceFetchRequest) -> SourceResponseArtifact:
+        return await asyncio.to_thread(self._fetch_sync, request)
+
+    def _fetch_sync(self, request: SourceFetchRequest) -> SourceResponseArtifact:
         headers = {"User-Agent": _USER_AGENT, **request.headers}
         http_request = Request(
             request.url,

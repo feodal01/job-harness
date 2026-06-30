@@ -131,6 +131,37 @@ class SqliteRunStoreTest(unittest.TestCase):
             self.assertEqual("Full detail description", raw_records[0]["listing"]["description"])
             self.assertEqual("Full detail requirements", raw_records[0]["listing"]["requirements"])
 
+    def test_updates_raw_record_listing_metadata_without_touching_detail_status(self) -> None:
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp, SqliteRunStore(Path(tmp) / "run.sqlite", run_id="r-test") as store:
+            store.reserve_append_attempt({"query_variants": ["QA"]})
+            store.append_raw_record(_raw_record(1))
+            raw_record_id = store.read_raw_record_rows()[0].raw_record_id
+            enriched = replace(
+                listing("hh_ru", "1"),
+                raw={
+                    "application_channels": [
+                        {
+                            "type": "company_career_page",
+                            "label": "Careers",
+                            "url": "https://example.test/careers",
+                        }
+                    ]
+                },
+            )
+
+            # Act
+            store.update_raw_record_listing(raw_record_id=raw_record_id, listing=enriched)
+
+            # Assert
+            raw_records = store.read_raw_records()
+            self.assertEqual("not_requested", raw_records[0]["description_availability"])
+            self.assertFalse(raw_records[0]["detail_fetched"])
+            self.assertEqual(
+                "https://example.test/careers",
+                raw_records[0]["listing"]["raw"]["application_channels"][0]["url"],
+            )
+
     def test_concurrent_raw_writes_preserve_records(self) -> None:
         # Arrange
         with tempfile.TemporaryDirectory() as tmp, SqliteRunStore(Path(tmp) / "run.sqlite", run_id="r-test") as store:

@@ -7,7 +7,7 @@
     "backoff_seconds": 0.0
   },
   "detail": {
-    "per_source_concurrency": 1,
+    "per_source_concurrency": 2,
     "default_request_delay_seconds": 0.75,
     "request_delay_seconds_by_source": {
       "hh_ru": 1.5,
@@ -15,5 +15,8 @@
     },
     "stop_on_blocked": true,
     "stop_on_rate_limited": true
+  },
+  "application_channels": {
+    "enabled": true
   }
 }

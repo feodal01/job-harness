@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import tempfile
 import unittest
 from dataclasses import replace
@@ -29,6 +30,9 @@ from job_harness.v2.persistence import SqliteRunStore
 from job_harness.v2.ports import RunStore
 from job_harness.v2.postprocessing import ResultTablePostProcessor
 from job_harness.v2.runtime import (
+    ApplicationChannelEnrichmentRunner,
+    ApplicationChannelServiceConfig,
+    ApplicationChannelWorkItem,
     ClassifiedSourceError,
     DetailEnrichmentRunner,
     DetailServiceConfig,
@@ -42,6 +46,7 @@ from job_harness.v2.runtime import (
     SearchServiceConfig,
     SourceCatalog,
 )
+from job_harness.v2.runtime.application_channels import application_channel_work_items
 
 
 def _store(run_dir: Path, *, query_variants: tuple[str, ...] = ("QA",)) -> SqliteRunStore:
@@ -133,6 +138,50 @@ class FakeDetailScraper(FakeScraper, DetailEnrichmentScraper):
             requirements="Full detail requirements",
             raw_text=f"{listing.raw_text or listing.title} Full detail description Full detail requirements",
         )
+
+
+class FakeApplicationChannelFetcher:
+    def __init__(self, body_by_url: dict[str, str] | None = None) -> None:
+        self.body_by_url = body_by_url or {}
+        self.calls: list[SourceFetchRequest] = []
+
+    async def fetch(self, request: SourceFetchRequest) -> SourceResponseArtifact:
+        self.calls.append(request)
+        if request.url not in self.body_by_url:
+            raise AssertionError(f"unexpected fetch: {request.url}")
+        return SourceResponseArtifact(
+            source_id=request.source_id,
+            url=request.url,
+            media_type="text/html",
+            body=self.body_by_url[request.url],
+        )
+
+
+class ConcurrentFetcher:
+    def __init__(self) -> None:
+        self.active = 0
+        self.max_active = 0
+
+    async def fetch(self, request: SourceFetchRequest) -> SourceResponseArtifact:
+        self.active += 1
+        self.max_active = max(self.max_active, self.active)
+        await asyncio.sleep(0.01)
+        self.active -= 1
+        return SourceResponseArtifact(
+            source_id=request.source_id,
+            url=request.url,
+            media_type="text/html",
+            body="<html></html>",
+        )
+
+
+class SearchServiceConfigTest(unittest.TestCase):
+    def test_packaged_config_uses_two_detail_workers_per_source(self) -> None:
+        # Act
+        config = SearchServiceConfig.from_package_resource()
+
+        # Assert
+        self.assertEqual(2, config.detail.per_source_concurrency)
 
 
 class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
@@ -551,6 +600,416 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             raw_records = _read_raw_records(Path(tmp))
             self.assertEqual("detail_rate_limited", raw_records[0]["description_availability"])
             self.assertEqual("HTTP Error 429: Too Many Requests", raw_records[0]["detail_parse_error"])
+
+    async def test_detail_runner_uses_configured_per_source_concurrency(self) -> None:
+        # Arrange
+        raw_listings = (listing("detail_jobs", "1"), listing("detail_jobs", "2"))
+        scraper = FakeDetailScraper(
+            source_descriptor=descriptor("detail_jobs"),
+        )
+        fetcher = ConcurrentFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            work_items = _append_detail_work_items(writer, raw_listings)
+            runner = DetailEnrichmentRunner(
+                catalog=SourceCatalog((supported(scraper),)),
+                fetcher=fetcher,
+                writer=writer,
+                config=DetailServiceConfig(
+                    per_source_concurrency=2,
+                    default_request_delay_seconds=0.0,
+                    request_delay_seconds_by_source={},
+                    stop_on_blocked=True,
+                    stop_on_rate_limited=True,
+                ),
+            )
+
+            # Act
+            result = await runner.run(work_items)
+
+        # Assert
+        self.assertEqual(2, result.attempted)
+        self.assertEqual(2, result.enriched)
+        self.assertEqual(2, fetcher.max_active)
+
+    async def test_application_channel_runner_resolves_career_link_from_company_site(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("hh_ru", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://acme.test",
+                    "employerUrl": "https://hh.ru/employer/1",
+                }
+            },
+        )
+
+        fetcher = FakeApplicationChannelFetcher({"https://acme.test/": '<a href="/careers">Careers</a>'})
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            self.assertEqual(1, result.attempted)
+            self.assertEqual(1, result.resolved)
+            self.assertEqual(0, result.failed)
+            self.assertEqual(1, result.updated)
+            raw_records = writer.read_raw_records()
+
+            self.assertEqual(["https://acme.test/"], [call.url for call in fetcher.calls])
+            self.assertEqual(["hh_ru"], [call.source_id for call in fetcher.calls])
+            channels = raw_records[0]["listing"]["raw"]["application_channels"]
+            self.assertEqual("company_career_page", channels[0]["type"])
+            self.assertEqual("Careers", channels[0]["label"])
+            self.assertEqual("https://acme.test/careers", channels[0]["url"])
+            self.assertEqual("resolved", channels[0]["status"])
+            self.assertEqual("aggregator_company_profile", channels[1]["type"])
+            self.assertEqual("Profile", channels[1]["label"])
+            self.assertEqual("hh_ru.company_profile_url", channels[1]["source"])
+
+    async def test_application_channel_runner_uses_source_provided_career_site_directly(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("hh_ru", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://rabota.example.test",
+                    "employerUrl": "https://hh.ru/employer/1",
+                }
+            },
+        )
+
+        fetcher = FakeApplicationChannelFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with _store(Path(tmp)) as writer:
+                writer.append_raw_record(_raw_search_record(raw_listing))
+                raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+                runner = ApplicationChannelEnrichmentRunner(
+                    fetcher=fetcher,
+                    writer=writer,
+                    config=ApplicationChannelServiceConfig(),
+                )
+
+                # Act
+                result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+                # Assert
+                self.assertEqual(0, result.attempted)
+                self.assertEqual(1, result.resolved)
+                self.assertEqual(0, result.failed)
+                self.assertEqual(1, result.updated)
+                raw_records = writer.read_raw_records()
+
+            self.assertEqual([], fetcher.calls)
+            channels = raw_records[0]["listing"]["raw"]["application_channels"]
+            self.assertEqual("company_career_page", channels[0]["type"])
+            self.assertEqual("Careers", channels[0]["label"])
+            self.assertEqual("https://rabota.example.test/", channels[0]["url"])
+            self.assertEqual("source_provided", channels[0]["status"])
+
+    async def test_application_channel_runner_resolves_hh_profile_official_site(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("hh_ru", "1"),
+            raw={
+                "company": {
+                    "employerUrl": "https://hh.ru/employer/9498112",
+                }
+            },
+        )
+        profile_html = (
+            Path(__file__).parent
+            / "fixtures"
+            / "scrapers"
+            / "hh_ru"
+            / "employer_profile_official_site"
+            / "response.html"
+        ).read_text(encoding="utf-8")
+        fetcher = FakeApplicationChannelFetcher(
+            {"https://hh.ru/employer/9498112": profile_html}
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            self.assertEqual(1, result.attempted)
+            self.assertEqual(1, result.resolved)
+            self.assertEqual(0, result.failed)
+            self.assertEqual(1, result.updated)
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual(["https://hh.ru/employer/9498112"], [call.url for call in fetcher.calls])
+        channels = raw_records[0]["listing"]["raw"]["application_channels"]
+        self.assertEqual("company_career_page", channels[0]["type"])
+        self.assertEqual("Careers", channels[0]["label"])
+        self.assertEqual("https://crowd.yandex.ru/vacancies", channels[0]["url"])
+        self.assertEqual("source_provided", channels[0]["status"])
+        self.assertEqual("hh_ru.company_profile_official_site", channels[0]["source"])
+        self.assertEqual("aggregator_company_profile", channels[1]["type"])
+        self.assertEqual("Profile", channels[1]["label"])
+
+    async def test_application_channel_runner_resolves_habr_company_site(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("habr_career", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://simbirsoft.com",
+                    "companyProfileUrl": "https://career.habr.com/companies/simbirsoft",
+                }
+            },
+        )
+        fetcher = FakeApplicationChannelFetcher(
+            {"https://simbirsoft.com/": '<a href="/career">Карьера</a>'}
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            self.assertEqual(1, result.attempted)
+            self.assertEqual(1, result.resolved)
+            self.assertEqual(0, result.failed)
+            self.assertEqual(1, result.updated)
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual(["https://simbirsoft.com/"], [call.url for call in fetcher.calls])
+        channels = raw_records[0]["listing"]["raw"]["application_channels"]
+        self.assertEqual("company_career_page", channels[0]["type"])
+        self.assertEqual("Careers", channels[0]["label"])
+        self.assertEqual("https://simbirsoft.com/career", channels[0]["url"])
+        self.assertEqual("resolved", channels[0]["status"])
+        self.assertEqual("aggregator_company_profile", channels[1]["type"])
+        self.assertEqual("Profile", channels[1]["label"])
+        self.assertEqual("https://career.habr.com/companies/simbirsoft", channels[1]["url"])
+        self.assertEqual("habr_career.company_profile_url", channels[1]["source"])
+
+    async def test_application_channel_runner_rejects_generic_work_substrings(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("hh_ru", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://cloud.test",
+                    "employerUrl": "https://hh.ru/employer/1",
+                }
+            },
+        )
+
+        fetcher = FakeApplicationChannelFetcher(
+            {
+                "https://cloud.test/": """
+                <a href="/politika-obrabotki--personalnyh-dannyh">
+                  Политика обработки персональных данных
+                </a>
+                <a href="/portfolio/razrabotka-platformy">Разработка платформы</a>
+                """
+            }
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with _store(Path(tmp)) as writer:
+                writer.append_raw_record(_raw_search_record(raw_listing))
+                raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+                runner = ApplicationChannelEnrichmentRunner(
+                    fetcher=fetcher,
+                    writer=writer,
+                    config=ApplicationChannelServiceConfig(),
+                )
+
+                # Act
+                result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+                # Assert
+                self.assertEqual(1, result.attempted)
+                self.assertEqual(0, result.resolved)
+                self.assertEqual(0, result.failed)
+                self.assertEqual(1, result.updated)
+                raw_records = writer.read_raw_records()
+
+            channels = raw_records[0]["listing"]["raw"]["application_channels"]
+            self.assertEqual("company_site", channels[0]["type"])
+            self.assertEqual("Site", channels[0]["label"])
+            self.assertEqual("https://cloud.test/", channels[0]["url"])
+
+    async def test_application_channel_runner_rejects_aggregator_links_as_career_pages(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("hh_ru", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://company.test",
+                    "employerUrl": "https://hh.ru/employer/1",
+                }
+            },
+        )
+
+        fetcher = FakeApplicationChannelFetcher(
+            {"https://company.test/": '<a href="https://spb.hh.ru/employer/1">Вакансии</a>'}
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with _store(Path(tmp)) as writer:
+                writer.append_raw_record(_raw_search_record(raw_listing))
+                raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+                runner = ApplicationChannelEnrichmentRunner(
+                    fetcher=fetcher,
+                    writer=writer,
+                    config=ApplicationChannelServiceConfig(),
+                )
+
+                # Act
+                result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+                # Assert
+                self.assertEqual(1, result.attempted)
+                self.assertEqual(0, result.resolved)
+                self.assertEqual(0, result.failed)
+                self.assertEqual(1, result.updated)
+                raw_records = writer.read_raw_records()
+
+            channels = raw_records[0]["listing"]["raw"]["application_channels"]
+            self.assertEqual("company_site", channels[0]["type"])
+            self.assertEqual("Site", channels[0]["label"])
+            self.assertEqual("aggregator_company_profile", channels[1]["type"])
+            self.assertEqual("Profile", channels[1]["label"])
+
+    async def test_application_channel_runner_attempts_every_interesting_company_site(self) -> None:
+        # Arrange
+        raw_listings = tuple(
+            replace(
+                listing("hh_ru", str(index)),
+                raw={
+                    "company": {
+                        "companySiteUrl": f"https://company-{index}.test",
+                        "employerUrl": f"https://hh.ru/employer/{index}",
+                    }
+                },
+            )
+            for index in range(25)
+        )
+        fetcher = FakeApplicationChannelFetcher(
+            {f"https://company-{index}.test/": "<html></html>" for index in range(25)}
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            work_items = []
+            for raw_listing in raw_listings:
+                writer.append_raw_record(_raw_search_record(raw_listing))
+            for index, row in enumerate(writer.read_raw_record_rows()):
+                work_items.append(ApplicationChannelWorkItem(row.raw_record_id, raw_listings[index]))
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run(tuple(work_items))
+
+            # Assert
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual(25, result.attempted)
+        self.assertEqual(0, result.resolved)
+        self.assertEqual(0, result.failed)
+        self.assertEqual(25, result.updated)
+        self.assertEqual(25, len(fetcher.calls))
+        self.assertEqual(25, len(raw_records))
+        self.assertTrue(
+            all(record["listing"]["raw"]["application_channels"][0]["type"] == "company_site" for record in raw_records)
+        )
+
+    async def test_application_channel_runner_limits_requests_by_source(self) -> None:
+        # Arrange
+        raw_listings = tuple(
+            replace(
+                listing("hh_ru", str(index)),
+                raw={
+                    "company": {
+                        "companySiteUrl": f"https://company-{index}.test",
+                        "employerUrl": f"https://hh.ru/employer/{index}",
+                    }
+                },
+            )
+            for index in range(3)
+        )
+        fetcher = ConcurrentFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            work_items = []
+            for raw_listing in raw_listings:
+                writer.append_raw_record(_raw_search_record(raw_listing))
+            for index, row in enumerate(writer.read_raw_record_rows()):
+                work_items.append(ApplicationChannelWorkItem(row.raw_record_id, raw_listings[index]))
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+                request_concurrency_by_source=2,
+            )
+
+            # Act
+            result = await runner.run(tuple(work_items))
+
+        self.assertEqual(3, result.attempted)
+        self.assertEqual(0, result.resolved)
+        self.assertEqual(0, result.failed)
+        self.assertEqual(2, fetcher.max_active)
+
+    async def test_application_channel_work_items_ignore_unregistered_aggregator_company_metadata(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("getmatch", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://acme.test",
+                    "employerUrl": "https://getmatch.ru/companies/acme",
+                }
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+
+            # Act
+            work_items = application_channel_work_items(
+                processed_payload={"results": [{"raw_record_id": raw_record_id}]},
+                raw_rows=writer.read_raw_record_rows(),
+            )
+
+        # Assert
+        self.assertEqual((), work_items)
 
     async def test_pipeline_fetches_detail_only_for_pre_enrichment_kept_rows(self) -> None:
         # Arrange

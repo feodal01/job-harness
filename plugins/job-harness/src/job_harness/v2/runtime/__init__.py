@@ -1,8 +1,18 @@
 """Strict runtime layer built on the search contracts."""
 
 from job_harness.v2.ports import ArtifactFetcher, CorpusWriter
+from job_harness.v2.runtime.application_channels import (
+    ApplicationChannelEnrichmentRunner,
+    ApplicationChannelRunResult,
+    ApplicationChannelWorkItem,
+)
 from job_harness.v2.runtime.catalog import SourceCatalog, SupportedSource
-from job_harness.v2.runtime.config import DetailServiceConfig, RetryServiceConfig, SearchServiceConfig
+from job_harness.v2.runtime.config import (
+    ApplicationChannelServiceConfig,
+    DetailServiceConfig,
+    RetryServiceConfig,
+    SearchServiceConfig,
+)
 from job_harness.v2.runtime.detail_enrichment import DetailEnrichmentRunner, DetailRunResult, DetailWorkItem
 from job_harness.v2.runtime.errors import ClassifiedSourceError
 from job_harness.v2.runtime.http import HttpArtifactFetcher
@@ -18,6 +28,10 @@ from job_harness.v2.runtime.source_registry import build_supported_source_catalo
 
 __all__ = [
     "ArtifactFetcher",
+    "ApplicationChannelEnrichmentRunner",
+    "ApplicationChannelRunResult",
+    "ApplicationChannelServiceConfig",
+    "ApplicationChannelWorkItem",
     "build_supported_source_catalog",
     "ClassifiedSourceError",
     "CorpusWriter",

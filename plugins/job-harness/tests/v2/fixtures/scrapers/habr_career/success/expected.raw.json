@@ -75,5 +75,14 @@
         "Langgraph"
       ]
     }
-  ]
+  ],
+  "company_resolution_seed_listing_id": "1000165585",
+  "company_resolution_seed": {
+    "id": 1000086865,
+    "aliasName": "cbr",
+    "title": "Банк России",
+    "accredited": false,
+    "companyProfileUrl": "https://career.habr.com/companies/cbr",
+    "companyVacanciesUrl": "https://career.habr.com/companies/cbr/vacancies"
+  }
 }

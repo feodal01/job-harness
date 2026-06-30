@@ -18,7 +18,12 @@ from job_harness.v2.contracts import (
     SourceResponseArtifact,
 )
 from job_harness.v2.persistence import SqliteRunStore
-from job_harness.v2.runtime import DetailServiceConfig, RetryServiceConfig, SearchServiceConfig
+from job_harness.v2.runtime import (
+    ApplicationChannelServiceConfig,
+    DetailServiceConfig,
+    RetryServiceConfig,
+    SearchServiceConfig,
+)
 from job_harness.v2.source_catalog import country_catalog_entries, source_catalog_entries, source_fixture_suite
 
 _PLUGIN_ROOT_PARENT_INDEX = 2
@@ -52,6 +57,7 @@ def _test_service_config() -> SearchServiceConfig:
             stop_on_blocked=True,
             stop_on_rate_limited=True,
         ),
+        application_channels=ApplicationChannelServiceConfig(enabled=False),
     )
 
 

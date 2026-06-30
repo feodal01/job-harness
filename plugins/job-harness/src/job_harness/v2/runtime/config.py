@@ -54,12 +54,18 @@ class DetailServiceConfig:
 
 
 @dataclass(frozen=True)
+class ApplicationChannelServiceConfig:
+    enabled: bool = True
+
+
+@dataclass(frozen=True)
 class SearchServiceConfig:
     source_attempt_timeout_seconds: float
     run_timeout_seconds: float
     fetch_timeout_seconds: float
     retry: RetryServiceConfig
     detail: DetailServiceConfig
+    application_channels: ApplicationChannelServiceConfig = ApplicationChannelServiceConfig()
 
     def __post_init__(self) -> None:
         if self.source_attempt_timeout_seconds <= 0:
@@ -81,6 +87,7 @@ class SearchServiceConfig:
     def from_json_object(cls, payload: JsonObject) -> SearchServiceConfig:
         retry = _required_object(payload, "retry")
         detail = _required_object(payload, "detail")
+        application_channels = _optional_object(payload, "application_channels")
         return cls(
             source_attempt_timeout_seconds=_required_float(payload, "source_attempt_timeout_seconds"),
             run_timeout_seconds=_required_float(payload, "run_timeout_seconds"),
@@ -99,11 +106,23 @@ class SearchServiceConfig:
                 stop_on_blocked=_required_bool(detail, "stop_on_blocked"),
                 stop_on_rate_limited=_required_bool(detail, "stop_on_rate_limited"),
             ),
+            application_channels=ApplicationChannelServiceConfig(
+                enabled=_optional_bool(application_channels, "enabled", default=True),
+            ),
         )
 
 
 def _required_object(payload: JsonObject, key: str) -> JsonObject:
     value = payload.get(key)
+    if not isinstance(value, dict):
+        raise ValueError(f"{key} must be a JSON object")
+    return value
+
+
+def _optional_object(payload: JsonObject, key: str) -> JsonObject:
+    value = payload.get(key)
+    if value is None:
+        return {}
     if not isinstance(value, dict):
         raise ValueError(f"{key} must be a JSON object")
     return value
@@ -125,6 +144,15 @@ def _required_int(payload: JsonObject, key: str) -> int:
 
 def _required_bool(payload: JsonObject, key: str) -> bool:
     value = payload.get(key)
+    if not isinstance(value, bool):
+        raise ValueError(f"{key} must be a boolean")
+    return value
+
+
+def _optional_bool(payload: JsonObject, key: str, *, default: bool) -> bool:
+    value = payload.get(key)
+    if value is None:
+        return default
     if not isinstance(value, bool):
         raise ValueError(f"{key} must be a boolean")
     return value

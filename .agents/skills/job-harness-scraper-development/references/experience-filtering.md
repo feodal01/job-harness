@@ -1,162 +1,92 @@
-# Experience Filtering
+# Grade Filtering
 
-job-harness filters grade by exact requested levels, not by minimum seniority.
-The public filter is `experience_levels`, a list containing any of:
+job-harness v2 filters grade by exact requested values, not by minimum
+seniority. The public v2 request field is `SearchRequest.grades`; the CLI flag
+is repeatable `--grade`.
 
+Supported values are defined by `job_harness.v2.contracts.Grade`:
+
+- `intern`
 - `junior`
 - `middle`
 - `senior`
+- `lead`
 
-For example, `experience_levels=["middle"]` means exactly middle. It does not
-include senior-only listings as matches.
+For example, `--grade middle` means exactly middle. It does not include
+senior-only listings. Multi-grade searches repeat the flag, for example
+`--grade middle --grade senior`.
 
 ## Public API
 
-MCP tools:
-
-- `search_start(..., experience_levels=["middle"])`
-- `search_refine(..., experience_levels=["middle", "senior"])`
-
 CLI:
 
-- `job-harness search --experience-levels middle`
-- `job-harness search --experience-levels middle,senior`
+- `job-harness-v2 search --queries "QA | SDET" --grade middle`
+- `job-harness-v2 search --queries "QA" --grade middle --grade senior`
 
-Invalid levels such as `midle` are rejected. An explicit empty list is rejected
-by MCP. Omitting `experience_levels` means no grade filter.
+Contract:
 
-## Grade Assessment Fields
+- `SearchRequest(grades=(Grade.MIDDLE,))`
+- `SearchRequest(grades=(Grade.MIDDLE, Grade.SENIOR))`
 
-Every returned listing has explicit grade assessment fields:
+Omitting `grades` means no grade filter. Invalid grade values are rejected by
+the CLI enum parser or by `SearchRequest` construction.
 
-- `experience_levels`: assessed exact levels, such as `["middle"]`;
-- `experience_origin`: `native`, `estimated`, or `unknown`;
-- `experience_confidence`: `high`, `medium`, `low`, or `none`;
-- `experience_evidence`: short deterministic evidence strings.
+## Source Capability Contract
 
-`native` means the source supplied a structured/server-side grade and the
-parsed value is valid. `estimated` means job-harness inferred grade from vacancy
-text using deterministic rules. `unknown` means there was not enough reliable
-evidence.
+Each v2 source declares grade support in `source_catalog.sql` through the
+`grades` `SearchCriterion` row:
 
-The old single-value `experience` request parameter is not part of the public
-API. Public results use the assessment fields above.
+- `native_request`: the source can enforce the requested grade before returning
+  listings, for example a URL/API qualification parameter.
+- `structured_output`: the source exposes a stable structured grade field that
+  post-processing can filter.
+- `unsupported`: the source does not expose grade as a reliable structured
+  source fact. Text still remains available for query matching and future
+  enrichment, but the source must not claim native grade support.
 
-Internally, `JobListing.experience` is reserved for native structured/server
-grade input from sources with `FilterSupport.SERVER` or `FilterSupport.CLIENT`.
-Best-effort and unsupported scrapers must leave it empty; they should expose
-ordinary vacancy text through `title`, `description`, `requirements`, `skills`,
-or `raw`, and the grade engine owns all estimation.
+Source descriptors derive from the catalog. Do not keep source-local capability
+lists in scraper code.
+
+## Parser Responsibilities
+
+Scrapers may populate `RawListing.native_grade` only when the source exposes a
+structured grade or qualification value. Examples include Habr Career
+`qualification` and comparable platform-native grade fields.
+
+Scrapers must not estimate grade from ordinary prose inside source modules.
+Keep role text in `title`, `description`, `requirements`, `skills`, `raw_text`,
+or `raw`. Downstream post-processing owns filtering and any future text
+enrichment.
+
+When a source supports grade via a native request parameter, add request mapping
+tests proving that the requested `Grade` changes the outgoing URL/API payload.
+When a source supports grade through structured output, add real fixture tests
+proving `native_grade` is extracted from the captured source artifact.
 
 ## Filtering Semantics
 
-The filter predicate is `experience_in(levels)`.
+Current v2 post-processing keeps a listing for a grade-filtered request only
+when `row["native_grade"]` exactly matches one of the requested grades. A
+senior-only listing does not pass `grades=(Grade.MIDDLE,)`.
 
-- A native or estimated listing passes when its `experience_levels` intersects
-  the requested levels.
-- A senior-only listing does not pass `experience_levels=["middle"]`.
-- A listing with `experience_origin="unknown"` is kept inline, marked as
-  unknown, and ranked after matched listings.
-- Filter summaries report `native_matched`, `estimated_matched`,
-  `unknown_kept`, and `removed`.
-
-This keeps coverage broad without pretending that unknown-grade listings are
-strict matches.
-
-## Source Policy
-
-Source capabilities still declare native support through `FilterSupport`:
-
-- `server`: source can receive a URL/API grade parameter;
-- `client`: source exposes a structured grade field;
-- `best_effort`: source text can contain useful grade signals, but the scraper
-  does not normalize them into a grade;
-- `unsupported`: no native grade support.
-
-`experience_levels` no longer skips sources whose grade support is
-`unsupported`. Those listings go through the grade engine. Strict source skip
-still applies to other unsupported requested flags such as `remote_only` or
-`has_salary`.
-
-HH-family scrapers and Habr Career use their server-side grade parameter only
-for a single requested level. Multi-level requests are fetched more broadly and
-filtered locally by the grade engine.
-
-## Deterministic Estimation Rules
-
-The grade engine checks native structured values first. For estimated listings,
-it scores evidence from:
-
-- title;
-- raw platform fields;
-- requirements;
-- description;
-- skills.
-
-Recognized examples:
-
-- `Lead` -> `senior`;
-- `Intern` or `trainee` -> `junior`;
-- `No experience`, `без опыта`, `нет опыта` -> `junior`;
-- `1-3` years -> `middle`;
-- `3-6` years or `6+` -> `senior`;
-- explicit `Middle/Senior` style ranges -> multiple levels.
-
-Conflicting strong signals without an explicit range become `unknown`.
-
-For `best_effort` and `unsupported` sources, the engine ignores
-`JobListing.experience` even if it is accidentally populated, so scraper-level
-grade estimation cannot override centralized engine inference.
+If a source does not expose grade and a grade filter is requested, the source
+should still run unless a broader source-selection policy skips it. Its
+unsupported grade capability is recorded in criteria diagnostics. The
+post-processing plan can mark text enrichment as required when enough text was
+collected, but unsupported source capability must not fabricate grade facts.
 
 ## Source Notes
 
-Native/server or native/client sources include HH-family, Habr Career,
-Finder.work, and IT-Jobs.uz when they return valid grade data.
+HH-family sources and Habr Career can apply a native grade request when exactly
+one requested grade maps to the source's native parameter. Multi-grade behavior
+should be explicit in the source tests: either issue the source-supported
+request shape or fetch more broadly and filter locally through structured
+`native_grade`.
 
-Text-estimated sources include sources such as HireHi, Hirify, GeekJob,
-Talento, JobTurbo, getmatch, `company_careers`, and per-company career
-scrapers when they contain grade-like text. `career:vk` specialty names are not
-treated as grades.
+Company career sources often do not expose stable grade metadata. They should
+emit the exact source text and leave `native_grade=None` unless the ATS/API has a
+structured grade field.
 
-`company_directory` returns employer entrypoints, not confirmed vacancy grade
-data, so its entries usually remain `unknown`.
-
-## Company Directory And Career Lists
-
-The bundled company lists are not native grade sources.
-
-`data/company-directory.json` is a directory of company profiles. It stores
-company-level facts such as career URLs, countries, stack, industry, and remote
-signals. It does not store per-vacancy grade data.
-
-`data/company-careers-public.json` is a public career-page cache. It tells the
-runtime where to look for employer jobs, not what grade a specific vacancy has.
-
-The `search_company_jobs` MCP lookup returns matching company profiles from the
-directory. It does not scrape vacancies, does not accept `experience_levels`,
-and does not run grade assessment.
-
-The `company_careers` registered source performs a timeout-aware live crawl over
-known employer career URLs and returns normal `JobListing` records. It does not
-populate `JobListing.experience`; any grade is assigned later by the centralized
-grade engine from vacancy text such as title and matched link text. If the
-configured source timeout is not enough to finish every company target, the
-source reports `partial` instead of pretending the crawl was complete.
-
-The `company_directory` scraper can expose company profiles as ordinary search
-listings. Those listings declare `experience=unsupported` and do not populate
-`JobListing.experience`. If a grade filter is active, the centralized grade
-engine assesses their title, description, skills, and raw fields. Most directory
-entrypoints have no reliable vacancy-grade evidence and therefore remain
-`experience_origin="unknown"`; they are kept inline after matched listings.
-
-The live company-career probing code in `company_career_search.py` and
-`company_career_batch.py` produces `CompanyVacancyHit` records internally. Its
-role terms such as `lead` are used for vacancy-link relevance scoring, not as
-grade extraction. When `company_careers` promotes those hits into normal search
-listings, they pass through `experience_engine` instead of estimating grade
-inside the probing code.
-
-The separate company-live batch still exists for resumable 400+ company audit
-workflows and smoke verification. It writes JSONL checkpoints, while
-`company_careers` is the source used by ordinary `search_start` runs.
+Legacy v1 names such as `experience_levels`, `JobListing.experience`,
+`FilterSupport`, `search_start`, and `company_careers` belong to the v1 MCP/CLI
+surface. Do not use them as guidance for v2 scraper or post-processing changes.
