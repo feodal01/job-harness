@@ -42,12 +42,12 @@ def listing_remote_scopes(listing: dict[str, object]) -> tuple[str, ...]:
     if remote_in_country is True:
         return _limited_remote_scopes(listing) or ("unknown",)
 
-    if _raw_mentions_onsite(listing):
-        return ("onsite",)
     if _raw_mentions_global_remote(listing):
         return ("global",)
     if _raw_mentions_remote(listing) or REMOTE_FORMAT in work_formats:
         return _limited_remote_scopes(listing) or ("unknown",)
+    if _raw_mentions_onsite(listing):
+        return ("onsite",)
     if HYBRID_FORMAT in work_formats:
         return ("hybrid",)
     if remote_in_country is False and remote_global is False:
@@ -161,28 +161,38 @@ def _scope_matches_geography(scope: str, requested_geographies: tuple[str, ...])
 
 def _limited_remote_scopes(listing: dict[str, object]) -> tuple[str, ...]:
     scopes: list[str] = []
-    for candidate in _remote_scope_candidates(listing):
-        for scope in _scopes_from_geography(candidate):
-            if scope not in scopes:
-                scopes.append(scope)
+    for candidates in _remote_scope_candidate_groups(listing):
+        for candidate in candidates:
+            for scope in _scopes_from_geography(candidate):
+                if scope not in scopes:
+                    scopes.append(scope)
+        if scopes:
+            return tuple(scopes)
     return tuple(scopes)
 
 
-def _remote_scope_candidates(listing: dict[str, object]) -> tuple[str, ...]:
-    values: list[str] = []
+def _remote_scope_candidate_groups(listing: dict[str, object]) -> tuple[tuple[str, ...], ...]:
+    groups: list[tuple[str, ...]] = []
     raw = listing.get("raw")
     if isinstance(raw, dict):
+        explicit_values: list[str] = []
         for key in ("remote_restrictions", "remote_locations", "eligible_locations"):
-            _append_geography_candidate(values, raw.get(key))
-        if values:
-            return tuple(values)
+            _append_geography_candidate(explicit_values, raw.get(key))
+        if explicit_values:
+            groups.append(tuple(explicit_values))
+        raw_scope_values: list[str] = []
         for key in ("regions", "remote_type"):
-            _append_geography_candidate(values, raw.get(key))
+            _append_geography_candidate(raw_scope_values, raw.get(key))
+        if raw_scope_values:
+            groups.append(tuple(raw_scope_values))
+    listing_values: list[str] = []
     for key in ("location_text", "country", "city"):
         text = _optional_text(listing.get(key))
         if text:
-            values.append(text)
-    return tuple(values)
+            listing_values.append(text)
+    if listing_values:
+        groups.append(tuple(listing_values))
+    return tuple(groups)
 
 
 def _append_geography_candidate(values: list[str], value: object) -> None:

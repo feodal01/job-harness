@@ -89,6 +89,7 @@ class GeographyTest(unittest.TestCase):
             ("Минск", ("BY",)),
             ("Ереван", ("AM",)),
             ("London", ("GB",)),
+            ("Barcelona", ("ES",)),
         )
         for raw, expected in cases:
             with self.subTest(raw=raw):
@@ -99,11 +100,28 @@ class GeographyTest(unittest.TestCase):
                 self.assertEqual(expected, normalized)
 
     def test_does_not_normalize_ambiguous_city_without_dominant_match(self) -> None:
+        cases = ("Cambridge", "Valencia")
+        for raw in cases:
+            with self.subTest(raw=raw):
+                # Arrange / Act
+                normalized = normalize_source_geographies(raw)
+
+                # Assert
+                self.assertEqual((), normalized)
+
+    def test_does_not_infer_geography_from_remote_timezone_text(self) -> None:
         # Arrange / Act
-        normalized = normalize_source_geographies("Cambridge")
+        normalized = normalize_source_geographies("remote from GMT-7 to GMT+4 timezones")
 
         # Assert
         self.assertEqual((), normalized)
+
+    def test_normalizes_multiple_source_cities(self) -> None:
+        # Arrange / Act
+        normalized = normalize_source_geographies("Warsaw, Bucharest, Lisbon")
+
+        # Assert
+        self.assertEqual(("PL", "RO", "PT"), normalized)
 
     def test_matches_regions_through_member_countries(self) -> None:
         # Arrange / Act / Assert

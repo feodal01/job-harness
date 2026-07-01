@@ -54,10 +54,15 @@ def listing_work_formats(listing: dict[str, object]) -> tuple[str, ...]:
         for key in ("work_format", "remote_type", "employment_type"):
             _append_work_format_text(formats, raw.get(key))
         if formats:
-            return _most_restrictive_formats(formats)
+            return _preferred_work_formats(formats)
         _append_linkedin_workplace_tags(formats, raw.get("linkedin_workplace_tags"))
         if formats:
-            return _most_restrictive_formats(formats)
+            return _preferred_work_formats(formats)
+
+    _append_work_format_text(formats, listing.get("location_text"))
+    _append_title_remote_format(formats, listing.get("title"))
+    if formats:
+        return _preferred_work_formats(formats)
 
     remote_global = _optional_bool(listing.get("remote_global"))
     remote_in_country = _optional_bool(listing.get("remote_in_country"))
@@ -65,7 +70,7 @@ def listing_work_formats(listing: dict[str, object]) -> tuple[str, ...]:
         _append_unique(formats, REMOTE_FORMAT)
     if remote_global is False and remote_in_country is False:
         _append_unique(formats, OFFICE_FORMAT)
-    return _most_restrictive_formats(formats)
+    return _preferred_work_formats(formats)
 
 
 def work_format_policy_outcome(
@@ -158,6 +163,11 @@ def _append_linkedin_workplace_tags(formats: list[str], value: object) -> None:
             _append_linkedin_workplace_tags(formats, item)
 
 
+def _append_title_remote_format(formats: list[str], value: object) -> None:
+    if isinstance(value, str) and _REMOTE_MARKERS & _format_tokens(value):
+        _append_unique(formats, REMOTE_FORMAT)
+
+
 def _format_tokens(value: str) -> frozenset[str]:
     tokens: list[str] = []
     for key in geography_text_keys(value):
@@ -171,9 +181,11 @@ def _append_unique(values: list[str], value: str) -> None:
         values.append(value)
 
 
-def _most_restrictive_formats(values: list[str]) -> tuple[str, ...]:
+def _preferred_work_formats(values: list[str]) -> tuple[str, ...]:
     if not values:
         return ()
+    if REMOTE_FORMAT in values:
+        return (REMOTE_FORMAT,)
     return (
         max(
             values,
