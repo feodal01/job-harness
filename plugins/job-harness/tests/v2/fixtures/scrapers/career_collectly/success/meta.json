@@ -1,0 +1,7 @@
+{
+  "source_id": "career:collectly",
+  "captured_url": "https://api.lever.co/v0/postings/CollectlyInc?mode=json",
+  "captured_at": "2026-07-01",
+  "fixture_kind": "success_non_empty",
+  "notes": "Real lever public career board capture for Collectly."
+}

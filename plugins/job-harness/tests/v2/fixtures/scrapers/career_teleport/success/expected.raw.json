@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 25,
+  "sample_listings": [
+    {
+      "source_listing_id": "0a448299-d1f6-4eab-ac8e-efdfda2efc04",
+      "title": "Senior Backend Engineer",
+      "url": "https://jobs.ashbyhq.com/goteleport/0a448299-d1f6-4eab-ac8e-efdfda2efc04",
+      "company": "Teleport",
+      "country": "United States",
+      "city": null,
+      "location_text": "United States (Remote); United Kingdom (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-02-17T21:53:44.805+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "0acd4797-d5ae-48cf-b334-938e55505d62",
+      "title": "Threat Hunter",
+      "url": "https://jobs.ashbyhq.com/goteleport/0acd4797-d5ae-48cf-b334-938e55505d62",
+      "company": "Teleport",
+      "country": "United States",
+      "city": null,
+      "location_text": "United States (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-21T00:30:57.589+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "0c1d528c-e72b-4284-91d8-b33b5c75a667",
+      "title": "Senior Account Development Representative",
+      "url": "https://jobs.ashbyhq.com/goteleport/0c1d528c-e72b-4284-91d8-b33b5c75a667",
+      "company": "Teleport",
+      "country": "United States",
+      "city": null,
+      "location_text": "United States (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-10T15:24:51.279+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "0f9915b0-9794-4421-b05e-ea5f2b821f97",
+      "title": "Senior Backend Engineer - Machine & Workload Identity",
+      "url": "https://jobs.ashbyhq.com/goteleport/0f9915b0-9794-4421-b05e-ea5f2b821f97",
+      "company": "Teleport",
+      "country": "United Kingdom",
+      "city": null,
+      "location_text": "United Kingdom (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-17T19:35:00.420+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "317e01b3-fe64-4885-ba81-33ef988c21ab",
+      "title": "Senior Field Engineer",
+      "url": "https://jobs.ashbyhq.com/goteleport/317e01b3-fe64-4885-ba81-33ef988c21ab",
+      "company": "Teleport",
+      "country": "United States",
+      "city": null,
+      "location_text": "United States (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-02-09T05:01:23.699+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "0a448299-d1f6-4eab-ac8e-efdfda2efc04": {
+      "ats_platform": "ashby",
+      "career_url": "https://jobs.ashbyhq.com/goteleport"
+    }
+  }
+}

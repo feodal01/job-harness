@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "7712735",
+      "title": "Audit Partner (HK)",
+      "url": "https://careers.osome.com/jobs/7712735-audit-partner-hk",
+      "company": "Osome",
+      "country": null,
+      "city": null,
+      "location_text": "Hong Kong",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7840875",
+      "title": "Product Analyst",
+      "url": "https://careers.osome.com/jobs/7840875-product-analyst",
+      "company": "Osome",
+      "country": null,
+      "city": null,
+      "location_text": "Indonesia, Kuala Lumpur",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7739689",
+      "title": "Sales Enablement Manager",
+      "url": "https://careers.osome.com/jobs/7739689-sales-enablement-manager",
+      "company": "Osome",
+      "country": null,
+      "city": null,
+      "location_text": "Singapore, Kuala Lumpur , Hong Kong , China",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7686678",
+      "title": "Sales Development Representative (UK Region) - Expression of Interest",
+      "url": "https://careers.osome.com/jobs/7686678-sales-development-representative-uk-region-expression-of-interest",
+      "company": "Osome",
+      "country": null,
+      "city": null,
+      "location_text": "United Kingdom, Philippines",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7676299",
+      "title": "Senior Software Engineer - Fullstack",
+      "url": "https://careers.osome.com/jobs/7676299-senior-software-engineer-fullstack",
+      "company": "Osome",
+      "country": null,
+      "city": null,
+      "location_text": "Taiwan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7712735": {
+      "ats_platform": "teamtailor",
+      "career_url": "https://careers.osome.com/jobs"
+    }
+  }
+}

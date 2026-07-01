@@ -16,6 +16,12 @@ COUNTRY_CODE_PATTERN = re.compile(r"^[A-Z]{2}$")
 SOURCE_GEOGRAPHY_CANDIDATE_SEPARATORS = re.compile(r"[/(),;|]+")
 COUNTRY_NAME_SEPARATORS = re.compile(r"[_/(),;|-]+")
 COUNTRY_WORD_PATTERN = re.compile(r"[\w'-]+", re.UNICODE)
+SOURCE_LOCATION_DESCRIPTOR_EDGE_PATTERN = re.compile(
+    r"^(?:fully\s+remote|remote|hybrid|onsite|on-site|office)\s+"
+    r"|\s+(?:fully\s+remote|remote|hybrid|onsite|on-site|office)(?:\s+\d+)?$",
+    re.I,
+)
+SOURCE_US_PREFIX_PATTERN = re.compile(r"^(?:US|USA|United States)\s+-\s+", re.I)
 NON_COUNTRY_TOKENS = frozenset(
     {
         "anywhere",
@@ -23,102 +29,36 @@ NON_COUNTRY_TOKENS = frozenset(
         "cis",
         "emea",
         "global",
+        "iberia",
         "latam",
         "remote",
         "worldwide",
     }
 )
 NON_COUNTRY_CODES = frozenset({"EU", "EZ", "QO", "UN", "ZZ"})
+US_STATE_CODES = frozenset(
+    (
+        "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", "HI",
+        "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN",
+        "MO", "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH",
+        "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA",
+        "WI", "WV", "WY",
+    )
+)
 REGION_SCOPE_ALIASES = {
     "eu": "EU",
     "europe": "europe",
     "european union": "EU",
 }
+def _codes(value: str) -> frozenset[str]:
+    return frozenset(value.split())
+
+
 REGION_SCOPE_COUNTRIES = {
-    "eu": frozenset(
-        {
-            "AT",
-            "BE",
-            "BG",
-            "CY",
-            "CZ",
-            "DE",
-            "DK",
-            "EE",
-            "ES",
-            "FI",
-            "FR",
-            "GR",
-            "HR",
-            "HU",
-            "IE",
-            "IT",
-            "LT",
-            "LU",
-            "LV",
-            "MT",
-            "NL",
-            "PL",
-            "PT",
-            "RO",
-            "SE",
-            "SI",
-            "SK",
-        }
-    ),
-    "europe": frozenset(
-        {
-            "AD",
-            "AL",
-            "AT",
-            "AX",
-            "BA",
-            "BE",
-            "BG",
-            "BY",
-            "CH",
-            "CY",
-            "CZ",
-            "DE",
-            "DK",
-            "EE",
-            "ES",
-            "FI",
-            "FO",
-            "FR",
-            "GG",
-            "GI",
-            "GR",
-            "HR",
-            "HU",
-            "IE",
-            "IM",
-            "IS",
-            "IT",
-            "JE",
-            "LI",
-            "LT",
-            "LU",
-            "LV",
-            "MC",
-            "MD",
-            "ME",
-            "MK",
-            "MT",
-            "NL",
-            "NO",
-            "PL",
-            "PT",
-            "RO",
-            "RS",
-            "SE",
-            "SI",
-            "SJ",
-            "SK",
-            "SM",
-            "UA",
-            "VA",
-        }
+    "eu": _codes("AT BE BG CY CZ DE DK EE ES FI FR GR HR HU IE IT LT LU LV MT NL PL PT RO SE SI SK"),
+    "europe": _codes(
+        "AD AL AT AX BA BE BG BY CH CY CZ DE DK EE ES FI FO FR GG GI GR HR HU IE IM IS IT JE "
+        "LI LT LU LV MC MD ME MK MT NL NO PL PT RO RS SE SI SJ SK SM UA VA"
     ),
 }
 
@@ -210,9 +150,28 @@ def _source_geography_candidates(value: str) -> tuple[str, ...]:
     text = value.strip()
     if not text:
         return ()
+    has_us_context = _has_us_context(text)
     parts = [text]
     parts.extend(part.strip() for part in SOURCE_GEOGRAPHY_CANDIDATE_SEPARATORS.split(text))
-    return tuple(dict.fromkeys(part for part in parts if part))
+    candidates: list[str] = []
+    for part in parts:
+        if not part:
+            continue
+        if has_us_context and part.upper() in US_STATE_CODES:
+            continue
+        candidates.append(part)
+        if SOURCE_US_PREFIX_PATTERN.search(part):
+            candidates.append("US")
+        cleaned = SOURCE_LOCATION_DESCRIPTOR_EDGE_PATTERN.sub("", part).strip()
+        if cleaned and cleaned != part:
+            candidates.append(cleaned)
+    return tuple(dict.fromkeys(candidates))
+
+
+def _has_us_context(value: str) -> bool:
+    keys = geography_text_keys(value)
+    words = {word for key in keys for word in key.split()}
+    return "us" in words or "usa" in words or "united states" in keys
 
 
 @lru_cache(maxsize=1)
@@ -238,7 +197,7 @@ def _country_lookup() -> _GeographyLookup:
 
 
 def _country_code_aliases(codes: frozenset[str]) -> dict[str, str]:
-    aliases = {"UK": "GB"}
+    aliases = {"THE NETHERLANDS": "NL", "UK": "GB"}
     territory_aliases = get_global("territory_aliases")
     for alias, replacements in territory_aliases.items():
         if not isinstance(alias, str) or not COUNTRY_CODE_PATTERN.fullmatch(alias):

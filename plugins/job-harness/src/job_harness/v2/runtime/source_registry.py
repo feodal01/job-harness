@@ -35,7 +35,19 @@ from job_harness.v2.runtime.sources import (
     WintermuteCareerSource,
     ZeroAviaCareerSource,
 )
+from job_harness.v2.runtime.sources.companies.configured_platforms import (
+    CONFIGURED_COMPANY_SOURCE_CONFIGS,
+    configured_company_source,
+)
 from job_harness.v2.source_catalog import source_catalog_entries, source_fixture_suite
+
+
+def _configured_source_factory(source_id: str) -> Callable[[], SourceScraper]:
+    def factory() -> SourceScraper:
+        return configured_company_source(source_id)
+
+    return factory
+
 
 _SOURCE_FACTORIES: dict[str, Callable[[], SourceScraper]] = {
     "habr_career": HabrCareerSource,
@@ -65,6 +77,7 @@ _SOURCE_FACTORIES: dict[str, Callable[[], SourceScraper]] = {
     "career:wallarm": WallarmCareerSource,
     "career:chainstack": ChainstackCareerSource,
     "career:3commas": ThreeCommasCareerSource,
+    **{source_id: _configured_source_factory(source_id) for source_id in CONFIGURED_COMPANY_SOURCE_CONFIGS},
 }
 
 

@@ -1,0 +1,84 @@
+{
+  "outcome": "success",
+  "expected_count": 4,
+  "sample_listings": [
+    {
+      "source_listing_id": "7750843",
+      "title": "Senior AI/Agentic Engineer",
+      "url": "https://synthesized.teamtailor.com/jobs/7750843-senior-ai-agentic-engineer",
+      "company": "Synthesized",
+      "country": null,
+      "city": null,
+      "location_text": "London",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7634610",
+      "title": "Account Executive - APAC",
+      "url": "https://synthesized.teamtailor.com/jobs/7634610-account-executive-apac",
+      "company": "Synthesized",
+      "country": null,
+      "city": null,
+      "location_text": "Tokyo",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6702656",
+      "title": "Account Executive - Americas",
+      "url": "https://synthesized.teamtailor.com/jobs/6702656-account-executive-americas",
+      "company": "Synthesized",
+      "country": null,
+      "city": null,
+      "location_text": "New York",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6702304",
+      "title": "Account Executive - DACH",
+      "url": "https://synthesized.teamtailor.com/jobs/6702304-account-executive-dach",
+      "company": "Synthesized",
+      "country": null,
+      "city": null,
+      "location_text": "DACH, London",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7750843": {
+      "ats_platform": "teamtailor",
+      "career_url": "https://synthesized.teamtailor.com/jobs"
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "outcome": "success",
+  "expected_count": 4,
+  "sample_listings": [
+    {
+      "source_listing_id": "A2DC5B8403",
+      "title": "Character Animator (Spine), Freelance",
+      "url": "https://apply.workable.com/zeptolab/j/A2DC5B8403",
+      "company": "ZeptoLab",
+      "country": "Georgia",
+      "city": null,
+      "location_text": "Georgia (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-10",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "2E83D879EA",
+      "title": "Marketing Video Artist",
+      "url": "https://apply.workable.com/zeptolab/j/2E83D879EA",
+      "company": "ZeptoLab",
+      "country": "Cyprus",
+      "city": null,
+      "location_text": "Cyprus (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-12",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "582766C4EB",
+      "title": "Legal Counsel",
+      "url": "https://apply.workable.com/zeptolab/j/582766C4EB",
+      "company": "ZeptoLab",
+      "country": "Poland",
+      "city": null,
+      "location_text": "Poland (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-22",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4BB602E1A6",
+      "title": "Open application",
+      "url": "https://apply.workable.com/zeptolab/j/4BB602E1A6",
+      "company": "ZeptoLab",
+      "country": "Georgia",
+      "city": null,
+      "location_text": "Georgia (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2023-03-30",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "A2DC5B8403": {
+      "ats_platform": "workable",
+      "career_url": "https://apply.workable.com/zeptolab/"
+    }
+  }
+}

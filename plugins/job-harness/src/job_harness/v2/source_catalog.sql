@@ -118,7 +118,29 @@ VALUES
     (23, 'career:zeroavia', 'company_career', 'http', 100),
     (24, 'career:wallarm', 'company_career', 'http', 100),
     (25, 'career:chainstack', 'company_career', 'http', 100),
-    (26, 'career:3commas', 'company_career', 'http', 100);
+    (26, 'career:3commas', 'company_career', 'http', 100),
+    (27, 'career:collectly', 'company_career', 'http', 100),
+    (28, 'career:planner5d', 'company_career', 'http', 100),
+    (29, 'career:superannotate', 'company_career', 'http', 100),
+    (30, 'career:xsolla', 'company_career', 'http', 200),
+    (31, 'career:clickhouse', 'company_career', 'http', 200),
+    (32, 'career:datafold', 'company_career', 'http', 100),
+    (33, 'career:inworld', 'company_career', 'http', 100),
+    (34, 'career:luminai', 'company_career', 'http', 100),
+    (35, 'career:teleport', 'company_career', 'http', 100),
+    (36, 'career:joom', 'company_career', 'http', 100),
+    (37, 'career:zeptolab', 'company_career', 'http', 100),
+    (38, 'career:abbyy', 'company_career', 'http', 100),
+    (39, 'career:ahrefs', 'company_career', 'http', 100),
+    (40, 'career:eqvilent', 'company_career', 'http', 100),
+    (41, 'career:humansignal', 'company_career', 'http', 100),
+    (42, 'career:altenar', 'company_career', 'http', 100),
+    (43, 'career:synder', 'company_career', 'http', 100),
+    (44, 'career:crystal', 'company_career', 'http', 100),
+    (45, 'career:synthesized', 'company_career', 'http', 100),
+    (46, 'career:tradingview', 'company_career', 'http', 100),
+    (47, 'career:osome', 'company_career', 'http', 100),
+    (48, 'career:sumsub', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -381,6 +403,148 @@ VALUES
     ('career:3commas', 7, 'vacancy_geographies', 'structured_output'),
     ('career:3commas', 8, 'cities', 'structured_output');
 
+WITH lever_sources(source_id) AS (
+    VALUES
+        ('career:collectly'),
+        ('career:planner5d'),
+        ('career:superannotate'),
+        ('career:xsolla')
+),
+lever_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'unsupported')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT lever_sources.source_id, lever_criteria.criterion_order, lever_criteria.criterion, lever_criteria.capability
+FROM lever_sources
+CROSS JOIN lever_criteria;
+
+WITH ashby_sources(source_id) AS (
+    VALUES
+        ('career:clickhouse'),
+        ('career:datafold'),
+        ('career:inworld'),
+        ('career:luminai'),
+        ('career:teleport')
+),
+ashby_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT ashby_sources.source_id, ashby_criteria.criterion_order, ashby_criteria.criterion, ashby_criteria.capability
+FROM ashby_sources
+CROSS JOIN ashby_criteria;
+
+WITH workable_sources(source_id) AS (
+    VALUES
+        ('career:joom'),
+        ('career:zeptolab')
+),
+workable_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'unsupported'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT workable_sources.source_id, workable_criteria.criterion_order, workable_criteria.criterion, workable_criteria.capability
+FROM workable_sources
+CROSS JOIN workable_criteria;
+
+WITH greenhouse_sources(source_id) AS (
+    VALUES
+        ('career:abbyy'),
+        ('career:ahrefs'),
+        ('career:eqvilent'),
+        ('career:humansignal')
+),
+greenhouse_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'unsupported')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT greenhouse_sources.source_id, greenhouse_criteria.criterion_order, greenhouse_criteria.criterion, greenhouse_criteria.capability
+FROM greenhouse_sources
+CROSS JOIN greenhouse_criteria;
+
+WITH bamboohr_sources(source_id) AS (
+    VALUES
+        ('career:altenar'),
+        ('career:synder')
+),
+bamboohr_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'unsupported'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'unsupported'),
+        (7, 'vacancy_geographies', 'unsupported'),
+        (8, 'cities', 'unsupported')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT bamboohr_sources.source_id, bamboohr_criteria.criterion_order, bamboohr_criteria.criterion, bamboohr_criteria.capability
+FROM bamboohr_sources
+CROSS JOIN bamboohr_criteria;
+
+WITH teamtailor_sources(source_id) AS (
+    VALUES
+        ('career:crystal'),
+        ('career:synthesized'),
+        ('career:tradingview'),
+        ('career:osome'),
+        ('career:sumsub')
+),
+teamtailor_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'unsupported'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'unsupported')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT teamtailor_sources.source_id, teamtailor_criteria.criterion_order, teamtailor_criteria.criterion, teamtailor_criteria.capability
+FROM teamtailor_sources
+CROSS JOIN teamtailor_criteria;
+
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
     ('habr_career', 'no_results'),
@@ -414,7 +578,10 @@ VALUES
     ('career:ibs', 'pagination'),
     ('career:ibs', 'detail'),
     ('career:amocrm', 'detail'),
-    ('career:appfollow', 'detail');
+    ('career:appfollow', 'detail'),
+    ('career:tradingview', 'pagination'),
+    ('career:osome', 'pagination'),
+    ('career:sumsub', 'pagination');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -1253,3 +1420,122 @@ VALUES
         1,
         'codex_direct_fixture_review'
     );
+
+WITH configured_company_success_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:collectly', 'career_collectly'),
+        ('career:planner5d', 'career_planner5d'),
+        ('career:superannotate', 'career_superannotate'),
+        ('career:xsolla', 'career_xsolla'),
+        ('career:clickhouse', 'career_clickhouse'),
+        ('career:datafold', 'career_datafold'),
+        ('career:inworld', 'career_inworld'),
+        ('career:luminai', 'career_luminai'),
+        ('career:teleport', 'career_teleport'),
+        ('career:joom', 'career_joom'),
+        ('career:zeptolab', 'career_zeptolab'),
+        ('career:abbyy', 'career_abbyy'),
+        ('career:ahrefs', 'career_ahrefs'),
+        ('career:eqvilent', 'career_eqvilent'),
+        ('career:humansignal', 'career_humansignal'),
+        ('career:altenar', 'career_altenar'),
+        ('career:synder', 'career_synder'),
+        ('career:crystal', 'career_crystal'),
+        ('career:synthesized', 'career_synthesized'),
+        ('career:tradingview', 'career_tradingview'),
+        ('career:osome', 'career_osome'),
+        ('career:sumsub', 'career_sumsub')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    0,
+    source_id || '-success',
+    'success_non_empty',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/response.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM configured_company_success_fixtures
+WHERE source_id NOT IN (
+    'career:joom',
+    'career:zeptolab',
+    'career:crystal',
+    'career:synthesized',
+    'career:tradingview',
+    'career:osome',
+    'career:sumsub'
+);
+
+WITH configured_company_success_html_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:joom', 'career_joom'),
+        ('career:zeptolab', 'career_zeptolab'),
+        ('career:crystal', 'career_crystal'),
+        ('career:synthesized', 'career_synthesized'),
+        ('career:tradingview', 'career_tradingview'),
+        ('career:osome', 'career_osome'),
+        ('career:sumsub', 'career_sumsub')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    0,
+    source_id || '-success',
+    'success_non_empty',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/response.html',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM configured_company_success_html_fixtures;
+
+WITH configured_company_pagination_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:tradingview', 'career_tradingview'),
+        ('career:osome', 'career_osome'),
+        ('career:sumsub', 'career_sumsub')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    1,
+    source_id || '-pagination',
+    'pagination',
+    'tests/v2/fixtures/scrapers/' || folder || '/pagination/response.html',
+    'tests/v2/fixtures/scrapers/' || folder || '/pagination/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/pagination/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM configured_company_pagination_fixtures;

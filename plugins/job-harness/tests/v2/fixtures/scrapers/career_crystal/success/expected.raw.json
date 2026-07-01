@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 11,
+  "sample_listings": [
+    {
+      "source_listing_id": "7815777",
+      "title": "Senior Python Engineer (DevEx Team, Remote)",
+      "url": "https://crystalintelligence.teamtailor.com/jobs/7815777-senior-python-engineer-devex-team-remote",
+      "company": "Crystal Blockchain",
+      "country": null,
+      "city": null,
+      "location_text": "Warsaw, Bucharest, Lisbon",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7815763",
+      "title": "Senior Python Engineer (Remote)",
+      "url": "https://crystalintelligence.teamtailor.com/jobs/7815763-senior-python-engineer-remote",
+      "company": "Crystal Blockchain",
+      "country": null,
+      "city": null,
+      "location_text": "Warsaw, Bucharest, Lisbon",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7757461",
+      "title": "VP of Engineering (Remote)",
+      "url": "https://crystalintelligence.teamtailor.com/jobs/7757461-vp-of-engineering-remote",
+      "company": "Crystal Blockchain",
+      "country": null,
+      "city": null,
+      "location_text": "Austin",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7757454",
+      "title": "VP of Engineering (Remote)",
+      "url": "https://crystalintelligence.teamtailor.com/jobs/7757454-vp-of-engineering-remote",
+      "company": "Crystal Blockchain",
+      "country": null,
+      "city": null,
+      "location_text": "San Francisco",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7757449",
+      "title": "VP of Engineering (Remote)",
+      "url": "https://crystalintelligence.teamtailor.com/jobs/7757449-vp-of-engineering-remote",
+      "company": "Crystal Blockchain",
+      "country": null,
+      "city": null,
+      "location_text": "Miami",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7815777": {
+      "ats_platform": "teamtailor",
+      "career_url": "https://crystalintelligence.teamtailor.com/jobs"
+    }
+  }
+}

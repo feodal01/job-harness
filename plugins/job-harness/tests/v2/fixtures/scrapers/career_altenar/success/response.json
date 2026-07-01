@@ -1,0 +1,368 @@
+{
+  "meta": {
+    "totalCount": 19
+  },
+  "result": [
+    {
+      "id": "88",
+      "jobOpeningName": "Senior Go Developer",
+      "departmentId": "18502",
+      "departmentLabel": "Platform and Portals",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "150",
+      "jobOpeningName": "Service Management Coordinator",
+      "departmentId": "18445",
+      "departmentLabel": "Technology Operations",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "185",
+      "jobOpeningName": "Database Developer (MongoDB)",
+      "departmentId": "18445",
+      "departmentLabel": "Technology Operations",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "186",
+      "jobOpeningName": "HR Assistant",
+      "departmentId": "18569",
+      "departmentLabel": "HR",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "Gerakas",
+        "state": "Athens"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "214",
+      "jobOpeningName": "Infrastructure System Engineer",
+      "departmentId": "18443",
+      "departmentLabel": "Technology",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "216",
+      "jobOpeningName": "Account Manager",
+      "departmentId": "18442",
+      "departmentLabel": "Account Management and Service Delivery",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "São Paulo",
+        "state": null
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "221",
+      "jobOpeningName": "Senior DevOps Build/CI Engineer",
+      "departmentId": null,
+      "departmentLabel": null,
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "222",
+      "jobOpeningName": "Social Media Content Creator",
+      "departmentId": "18432",
+      "departmentLabel": "Marketing",
+      "employmentStatusLabel": "Contractor",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "224",
+      "jobOpeningName": "Data Warehouse Modelling Engineer (Data Vault 2.0 + dbt)",
+      "departmentId": "18445",
+      "departmentLabel": "Technology Operations",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "227",
+      "jobOpeningName": "Legal Counsel",
+      "departmentId": "18434",
+      "departmentLabel": "Legal",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "Douglas",
+        "state": null
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "229",
+      "jobOpeningName": "Legal Counsel",
+      "departmentId": "18434",
+      "departmentLabel": "Legal",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": null,
+        "state": null
+      },
+      "atsLocation": {
+        "country": "United Kingdom",
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "1"
+    },
+    {
+      "id": "232",
+      "jobOpeningName": "Content Creator",
+      "departmentId": "18432",
+      "departmentLabel": "Marketing",
+      "employmentStatusLabel": "Contractor",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "234",
+      "jobOpeningName": "Corporate IT Systems Administrator",
+      "departmentId": "19073",
+      "departmentLabel": "Corporate IT",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "Gerakas",
+        "state": "Athens"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "235",
+      "jobOpeningName": "Global Sales Director",
+      "departmentId": "18431",
+      "departmentLabel": "Sales",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "236",
+      "jobOpeningName": "Business Analyst",
+      "departmentId": "18445",
+      "departmentLabel": "Technology Operations",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "237",
+      "jobOpeningName": "Application Security Engineer",
+      "departmentId": "18888",
+      "departmentLabel": "Information Security",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "238",
+      "jobOpeningName": "Compliance Certification Officer ",
+      "departmentId": "18906",
+      "departmentLabel": "Other",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "239",
+      "jobOpeningName": "Finance Associate",
+      "departmentId": "18433",
+      "departmentLabel": "Finance",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "Gerakas",
+        "state": "Athens"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "240",
+      "jobOpeningName": "Technical AIP Data Analyst ",
+      "departmentId": "18445",
+      "departmentLabel": "Technology Operations",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": "St Julians",
+        "state": "Malta"
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "0"
+    }
+  ]
+}

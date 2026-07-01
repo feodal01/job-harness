@@ -1,0 +1,1345 @@
+"""Configured company career sources backed by common public ATS surfaces."""
+
+from __future__ import annotations
+
+import html
+import json
+import re
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any, Literal
+from urllib.parse import urljoin
+
+from job_harness.v2.contracts import (
+    AttemptEvidence,
+    RawListing,
+    RequiredParserFixtures,
+    SearchRequest,
+    SourceDescriptor,
+    SourceFetchRequest,
+    SourceOutcome,
+    SourceResponseArtifact,
+    SourceScraper,
+    SourceSearchParseResult,
+)
+from job_harness.v2.runtime.sources._html import html_to_text
+from job_harness.v2.runtime.sources._url import strip_query
+from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
+
+Platform = Literal["lever", "ashby", "workable", "greenhouse", "bamboohr", "teamtailor"]
+
+_SECTION_LABEL_RE = re.compile(
+    r"<(?P<tag>h[1-6]|strong|b)[^>]*>(?P<label>.*?)</(?P=tag)>",
+    re.I | re.S,
+)
+_REMOTE_SCOPE_RE = re.compile(r"remote\s*\((?P<scope>[^)]+)\)", re.I)
+_SALARY_AMOUNT_RE = re.compile(r"([$£€]\s?\d|\b(?:USD|GBP|EUR)\b|\b\d[\d,]*(?:k|K)?\s?(?:USD|GBP|EUR)\b)")
+_SALARY_MARKER_RE = re.compile(r"(\$|CAD|USD|EUR|GBP|hourly rate|compensation)", re.I)
+_REMOTE_TITLE_MARKER_RE = re.compile(r"(?:\(\s*remote\s*\)|[-\u2013\u2014]\s*remote\s*$)", re.I)
+_TEAMTAILOR_ITEM_RE = re.compile(r"<li\b[^>]*>(?P<body>.*?)</li>", re.S)
+_TEAMTAILOR_LINK_RE = re.compile(
+    r'<a[^>]+href="(?P<url>https://[^"]+/jobs/(?P<id>\d+)-[^"]+)"[^>]*>(?P<title>.*?)</a>',
+    re.S,
+)
+_TEAMTAILOR_SHOW_MORE_RE = re.compile(r'href="(?P<href>[^"]*/jobs/show_more\?page=\d+)"')
+_TEAMTAILOR_SPAN_RE = re.compile(r'<span(?P<attrs>[^>]*)>(?P<body>.*?)</span>', re.S)
+_TITLE_ATTR_RE = re.compile(r'title="(?P<title>[^"]+)"')
+_DEFAULT_REQUIREMENTS_LABEL_MARKERS = ("requirements", "looking for", "what you bring", "who you are", "about you")
+_GREENHOUSE_SALARY_LABEL_MARKERS = ("compensation", "pay", "salary")
+_SALARY_STOP_LINE_MARKERS = (
+    "we use covey",
+    "please see the independent bias audit",
+    "benefits & culture",
+    "equal opportunity",
+)
+_DEPARTMENT_AND_LOCATION_VALUE_COUNT = 2
+
+
+@dataclass(frozen=True)
+class ConfiguredCompanySourceConfig:
+    source_id: str
+    company: str
+    platform: Platform
+    board_url: str
+    career_url: str
+    requirements_label_markers: tuple[str, ...] = _DEFAULT_REQUIREMENTS_LABEL_MARKERS
+    workable_slug: str | None = None
+    bamboohr_detail_url_template: str | None = None
+
+
+CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
+    "career:collectly": ConfiguredCompanySourceConfig(
+        source_id="career:collectly",
+        company="Collectly",
+        platform="lever",
+        board_url="https://api.lever.co/v0/postings/CollectlyInc?mode=json",
+        career_url="https://jobs.lever.co/CollectlyInc",
+    ),
+    "career:planner5d": ConfiguredCompanySourceConfig(
+        source_id="career:planner5d",
+        company="Planner 5D",
+        platform="lever",
+        board_url="https://api.lever.co/v0/postings/planner5d?mode=json",
+        career_url="https://jobs.lever.co/planner5d",
+    ),
+    "career:superannotate": ConfiguredCompanySourceConfig(
+        source_id="career:superannotate",
+        company="SuperAnnotate",
+        platform="lever",
+        board_url="https://api.lever.co/v0/postings/superannotate?mode=json",
+        career_url="https://jobs.lever.co/superannotate",
+    ),
+    "career:xsolla": ConfiguredCompanySourceConfig(
+        source_id="career:xsolla",
+        company="Xsolla",
+        platform="lever",
+        board_url="https://api.lever.co/v0/postings/xsolla?mode=json",
+        career_url="https://jobs.lever.co/xsolla",
+    ),
+    "career:clickhouse": ConfiguredCompanySourceConfig(
+        source_id="career:clickhouse",
+        company="ClickHouse",
+        platform="ashby",
+        board_url="https://api.ashbyhq.com/posting-api/job-board/clickhouse",
+        career_url="https://jobs.ashbyhq.com/clickhouse",
+    ),
+    "career:datafold": ConfiguredCompanySourceConfig(
+        source_id="career:datafold",
+        company="Datafold",
+        platform="ashby",
+        board_url="https://api.ashbyhq.com/posting-api/job-board/datafold",
+        career_url="https://jobs.ashbyhq.com/datafold",
+    ),
+    "career:inworld": ConfiguredCompanySourceConfig(
+        source_id="career:inworld",
+        company="Inworld AI",
+        platform="ashby",
+        board_url="https://api.ashbyhq.com/posting-api/job-board/inworld-ai",
+        career_url="https://jobs.ashbyhq.com/inworld-ai",
+    ),
+    "career:luminai": ConfiguredCompanySourceConfig(
+        source_id="career:luminai",
+        company="Luminai",
+        platform="ashby",
+        board_url="https://api.ashbyhq.com/posting-api/job-board/luminai",
+        career_url="https://jobs.ashbyhq.com/luminai",
+    ),
+    "career:teleport": ConfiguredCompanySourceConfig(
+        source_id="career:teleport",
+        company="Teleport",
+        platform="ashby",
+        board_url="https://api.ashbyhq.com/posting-api/job-board/goteleport",
+        career_url="https://jobs.ashbyhq.com/goteleport",
+    ),
+    "career:joom": ConfiguredCompanySourceConfig(
+        source_id="career:joom",
+        company="Joom",
+        platform="workable",
+        board_url="https://apply.workable.com/joom/jobs.md",
+        career_url="https://apply.workable.com/joom/",
+        workable_slug="joom",
+    ),
+    "career:zeptolab": ConfiguredCompanySourceConfig(
+        source_id="career:zeptolab",
+        company="ZeptoLab",
+        platform="workable",
+        board_url="https://apply.workable.com/zeptolab/jobs.md",
+        career_url="https://apply.workable.com/zeptolab/",
+        workable_slug="zeptolab",
+    ),
+    "career:abbyy": ConfiguredCompanySourceConfig(
+        source_id="career:abbyy",
+        company="ABBYY",
+        platform="greenhouse",
+        board_url="https://boards-api.greenhouse.io/v1/boards/abbyy/jobs?content=true",
+        career_url="https://job-boards.greenhouse.io/abbyy",
+    ),
+    "career:ahrefs": ConfiguredCompanySourceConfig(
+        source_id="career:ahrefs",
+        company="Ahrefs",
+        platform="greenhouse",
+        board_url="https://boards-api.greenhouse.io/v1/boards/ahrefsjobs/jobs?content=true",
+        career_url="https://job-boards.greenhouse.io/ahrefsjobs",
+    ),
+    "career:eqvilent": ConfiguredCompanySourceConfig(
+        source_id="career:eqvilent",
+        company="Eqvilent",
+        platform="greenhouse",
+        board_url="https://boards-api.greenhouse.io/v1/boards/eqvilentjobs/jobs?content=true",
+        career_url="https://job-boards.greenhouse.io/eqvilentjobs",
+    ),
+    "career:humansignal": ConfiguredCompanySourceConfig(
+        source_id="career:humansignal",
+        company="HumanSignal",
+        platform="greenhouse",
+        board_url="https://boards-api.greenhouse.io/v1/boards/humansignal/jobs?content=true",
+        career_url="https://job-boards.greenhouse.io/humansignal",
+    ),
+    "career:altenar": ConfiguredCompanySourceConfig(
+        source_id="career:altenar",
+        company="Altenar",
+        platform="bamboohr",
+        board_url="https://altenar.bamboohr.com/careers/list",
+        career_url="https://altenar.bamboohr.com/careers/list",
+        bamboohr_detail_url_template="https://altenar.bamboohr.com/careers/{id}",
+    ),
+    "career:synder": ConfiguredCompanySourceConfig(
+        source_id="career:synder",
+        company="Synder",
+        platform="bamboohr",
+        board_url="https://synder.bamboohr.com/careers/list",
+        career_url="https://synder.bamboohr.com/careers/list",
+        bamboohr_detail_url_template="https://synder.bamboohr.com/careers/{id}",
+    ),
+    "career:crystal": ConfiguredCompanySourceConfig(
+        source_id="career:crystal",
+        company="Crystal Blockchain",
+        platform="teamtailor",
+        board_url="https://crystalintelligence.teamtailor.com/jobs",
+        career_url="https://crystalintelligence.teamtailor.com/jobs",
+    ),
+    "career:synthesized": ConfiguredCompanySourceConfig(
+        source_id="career:synthesized",
+        company="Synthesized",
+        platform="teamtailor",
+        board_url="https://synthesized.teamtailor.com/jobs",
+        career_url="https://synthesized.teamtailor.com/jobs",
+    ),
+    "career:tradingview": ConfiguredCompanySourceConfig(
+        source_id="career:tradingview",
+        company="TradingView",
+        platform="teamtailor",
+        board_url="https://tradingview.teamtailor.com/jobs",
+        career_url="https://tradingview.teamtailor.com/jobs",
+    ),
+    "career:osome": ConfiguredCompanySourceConfig(
+        source_id="career:osome",
+        company="Osome",
+        platform="teamtailor",
+        board_url="https://careers.osome.com/jobs",
+        career_url="https://careers.osome.com/jobs",
+    ),
+    "career:sumsub": ConfiguredCompanySourceConfig(
+        source_id="career:sumsub",
+        company="Sumsub",
+        platform="teamtailor",
+        board_url="https://careers.sumsub.com/jobs",
+        career_url="https://careers.sumsub.com/jobs",
+    ),
+}
+
+
+def configured_company_source(source_id: str) -> SourceScraper:
+    try:
+        config = CONFIGURED_COMPANY_SOURCE_CONFIGS[source_id]
+    except KeyError as exc:
+        raise ValueError(f"unknown configured company source: {source_id}") from exc
+    return ConfiguredCompanyCareerSource(config)
+
+
+def configured_company_career_urls() -> dict[str, str]:
+    return {
+        source_id: config.career_url
+        for source_id, config in CONFIGURED_COMPANY_SOURCE_CONFIGS.items()
+    }
+
+
+class ConfiguredCompanyCareerSource(SourceScraper):
+    def __init__(self, config: ConfiguredCompanySourceConfig) -> None:
+        self._config = config
+
+    @property
+    def descriptor(self) -> SourceDescriptor:
+        return source_descriptor(self._config.source_id)
+
+    @property
+    def required_fixture_kinds(self) -> RequiredParserFixtures:
+        return source_required_fixture_kinds(self._config.source_id)
+
+    def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
+        return tuple(
+            SourceFetchRequest(
+                source_id=self.descriptor.source_id,
+                query_variant=query_variant,
+                url=self._config.board_url,
+            )
+            for query_variant in request.query_variants
+        )
+
+    def parse_search_response(
+        self,
+        response: SourceResponseArtifact,
+        _request: SourceFetchRequest,
+    ) -> SourceSearchParseResult:
+        if self._config.platform == "lever":
+            return _parse_lever(response.body, self._config)
+        if self._config.platform == "ashby":
+            return _parse_ashby(response.body, self._config)
+        if self._config.platform == "workable":
+            return _parse_workable(response.body, self._config)
+        if self._config.platform == "greenhouse":
+            return _parse_greenhouse(response.body, self._config)
+        if self._config.platform == "bamboohr":
+            return _parse_bamboohr(response.body, self._config)
+        if self._config.platform == "teamtailor":
+            return _parse_teamtailor(response.body, self._config, _request)
+        raise ValueError(f"unsupported configured company platform: {self._config.platform}")
+
+
+def _parse_lever(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
+    postings = _json_array(body, f"{config.company} Lever response")
+    if not postings:
+        return _no_results()
+    listings = tuple(_lever_listing(posting, config) for posting in postings if isinstance(posting, dict))
+    return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+
+def _lever_listing(posting: dict[str, Any], config: ConfiguredCompanySourceConfig) -> RawListing:
+    posting_id = _required_text(posting.get("id"), "id", config)
+    title = _required_text(posting.get("text"), "text", config)
+    categories = _dict_value(posting.get("categories"))
+    all_locations = _text_values(categories.get("allLocations"))
+    location_text = _lever_location_text(categories.get("location"), all_locations)
+    workplace_type = _text(posting.get("workplaceType")).strip().casefold() or None
+    work_formats = _work_formats_from_workplace_type(workplace_type)
+    remote_locations = _lever_remote_locations(workplace_type=workplace_type, all_locations=all_locations)
+    sections = _lever_sections(posting.get("lists"))
+    requirements = _requirements(sections, config.requirements_label_markers)
+    description = _join_text(
+        _plain_text(posting.get("openingPlain")),
+        _plain_text(posting.get("descriptionBodyPlain")),
+        _plain_text(posting.get("additionalPlain")),
+    )
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "id": posting_id,
+            "apply_url": _text(posting.get("applyUrl")).strip() or None,
+            "created_at": posting.get("createdAt"),
+            "department": _text(categories.get("department")).strip() or None,
+            "team": _text(categories.get("team")).strip() or None,
+            "commitment": _text(categories.get("commitment")).strip() or None,
+            "all_locations": all_locations,
+            "lever_country": _text(posting.get("country")).strip() or None,
+            "workplace_type": workplace_type,
+        }
+    )
+    if work_formats:
+        raw["work_format"] = work_formats
+    if remote_locations:
+        raw["remote_locations"] = remote_locations
+
+    return RawListing(
+        source_listing_id=posting_id,
+        title=title,
+        url=strip_query(_required_text(posting.get("hostedUrl"), "hostedUrl", config)),
+        source=config.source_id,
+        company=config.company,
+        country=None,
+        city=None,
+        location_text=location_text,
+        salary_text=None,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=_posted_at_from_millis(posting.get("createdAt")),
+        remote_in_country=_remote_in_country(
+            work_format=_single_format(work_formats),
+            remote_locations=remote_locations,
+        ),
+        remote_global=_remote_global(work_format=_single_format(work_formats), remote_locations=remote_locations),
+        relocation=None,
+        native_grade=None,
+        description=description,
+        requirements=requirements,
+        additional_sections=sections,
+        skills=(),
+        raw_text=_join_text(
+            title,
+            _text(categories.get("department")),
+            _text(categories.get("team")),
+            location_text,
+            " ".join(all_locations),
+            description,
+            requirements,
+        ),
+        raw=raw,
+    )
+
+
+def _parse_ashby(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
+    payload = _json_object(body, f"{config.company} Ashby response")
+    jobs = payload.get("jobs")
+    if not isinstance(jobs, list):
+        raise ValueError(f"{config.company} Ashby response jobs field is not a JSON array")
+    visible_jobs = tuple(job for job in jobs if isinstance(job, dict) and job.get("isListed") is not False)
+    if not visible_jobs:
+        return _no_results()
+    listings = tuple(_ashby_listing(job, config) for job in visible_jobs)
+    return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+
+def _ashby_listing(job: dict[str, Any], config: ConfiguredCompanySourceConfig) -> RawListing:
+    source_listing_id = _text(job.get("id")).strip()
+    title = _text(job.get("title")).strip()
+    url = _text(job.get("jobUrl")).strip()
+    if not source_listing_id or not title or not url:
+        raise ValueError(f"{config.company} Ashby job is missing id, title, or jobUrl")
+
+    description_html = _text(job.get("descriptionHtml"))
+    description = html_to_text(description_html)
+    additional_sections = _html_sections(description_html)
+    primary_location = _ashby_primary_location(job)
+    secondary_locations = _ashby_secondary_locations(job.get("secondaryLocations"))
+    locations = (primary_location, *secondary_locations)
+    location_text = _location_text(locations)
+    workplace_type = _text(job.get("workplaceType")).strip()
+    work_format = _work_format_from_workplace_type(workplace_type)
+    if work_format is None and job.get("isRemote") is True:
+        work_format = "remote"
+    if work_format is None and _title_has_remote_marker(title):
+        work_format = "remote"
+    remote_locations = _ashby_remote_locations(locations, work_format)
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "id": source_listing_id,
+            "job_id": _text(job.get("jobId")).strip() or None,
+            "department": _text(job.get("department")).strip() or None,
+            "team": _text(job.get("team")).strip() or None,
+            "employment_type": _text(job.get("employmentType")).strip() or None,
+            "workplace_type": workplace_type or None,
+            "is_remote": job.get("isRemote"),
+            "locations": tuple(location.raw for location in locations),
+            "should_display_compensation": job.get("shouldDisplayCompensationOnJobBoard"),
+            "compensation_tier_summary": job.get("compensationTierSummary"),
+        }
+    )
+    if work_format:
+        raw["work_format"] = work_format
+    if remote_locations:
+        raw["remote_locations"] = remote_locations
+
+    return RawListing(
+        source_listing_id=source_listing_id,
+        title=title,
+        url=url,
+        source=config.source_id,
+        company=config.company,
+        country=primary_location.country,
+        city=primary_location.city,
+        location_text=location_text,
+        salary_text=None,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=_text(job.get("publishedAt")).strip() or None,
+        remote_in_country=_remote_in_country(work_format=work_format, remote_locations=remote_locations),
+        remote_global=_remote_global(work_format=work_format, remote_locations=remote_locations),
+        relocation=None,
+        native_grade=None,
+        description=description,
+        requirements=_requirements(additional_sections, config.requirements_label_markers),
+        additional_sections=additional_sections,
+        skills=(),
+        raw_text=_join_text(
+            title,
+            _text(job.get("department")),
+            _text(job.get("team")),
+            _text(job.get("employmentType")),
+            workplace_type,
+            location_text,
+            description,
+        ),
+        raw=raw,
+    )
+
+
+def _parse_workable(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
+    rows = _workable_table_rows(body)
+    if not rows:
+        return _no_results()
+    listings = tuple(_workable_listing(row, config) for row in rows)
+    return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+
+def _workable_listing(row: dict[str, str], config: ConfiguredCompanySourceConfig) -> RawListing:
+    title = _required_cell(row, "Title", config)
+    detail_url, source_listing_id = _workable_detail_url_and_id(_required_cell(row, "Details", config), config)
+    location = _workable_location(_required_cell(row, "Location", config))
+    work_format = _work_format_from_location_marker(location.workplace)
+    salary_text = _salary_text_from_workable(row.get("Salary", ""))
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "detail_markdown_url": detail_url,
+            "department": _normalized_cell(row.get("Department", "")),
+            "employment_type": _normalized_cell(row.get("Type", "")),
+            "salary": _normalized_cell(row.get("Salary", "")),
+            "workplace": location.workplace,
+            "work_format": (work_format,),
+            "location": row["Location"],
+        }
+    )
+    if location.workplace == "remote" and location.cleaned_location:
+        raw["remote_locations"] = (location.cleaned_location,)
+
+    return RawListing(
+        source_listing_id=source_listing_id,
+        title=title,
+        url=f"https://apply.workable.com/{config.workable_slug}/j/{source_listing_id}",
+        source=config.source_id,
+        company=config.company,
+        country=location.country,
+        city=location.city,
+        location_text=location.location_text,
+        salary_text=salary_text,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=_normalized_cell(row.get("Posted", "")),
+        remote_in_country=bool(location.workplace == "remote" and location.cleaned_location),
+        remote_global=False,
+        relocation=None,
+        native_grade=None,
+        description=None,
+        requirements=None,
+        additional_sections={},
+        skills=(),
+        raw_text=_join_text(
+            title,
+            raw["department"],
+            location.location_text,
+            raw["employment_type"],
+            location.workplace,
+        ),
+        raw=raw,
+    )
+
+
+def _parse_greenhouse(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
+    payload = _json_object(body, f"{config.company} Greenhouse response")
+    raw_jobs = payload.get("jobs")
+    meta = payload.get("meta")
+    if not isinstance(raw_jobs, list):
+        raise ValueError(f"{config.company} Greenhouse payload jobs field is malformed")
+    if not raw_jobs and isinstance(meta, dict) and meta.get("total") == 0:
+        return _no_results()
+    if not raw_jobs:
+        return _no_results()
+    listings = tuple(_greenhouse_listing(job, config) for job in raw_jobs if isinstance(job, dict))
+    return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+
+def _greenhouse_listing(job: dict[str, Any], config: ConfiguredCompanySourceConfig) -> RawListing:
+    source_listing_id = str(job.get("id") or "")
+    title = _required_text(job.get("title"), "title", config)
+    location_text = _nested_text(job, "location", "name")
+    content = _text(job.get("content"))
+    visible_content = html.unescape(content)
+    description = html_to_text(visible_content)
+    additional_sections = _html_sections(visible_content)
+    requirements = _requirements(additional_sections, config.requirements_label_markers)
+    salary_text = _greenhouse_salary_text(additional_sections)
+    departments = _names(job.get("departments"))
+    offices = _names(job.get("offices"))
+    remote_locations = _greenhouse_remote_locations(location_text)
+    work_formats = _greenhouse_work_formats(location_text)
+    country, city = _greenhouse_country_city(location_text)
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "id": job.get("id"),
+            "internal_job_id": job.get("internal_job_id"),
+            "requisition_id": job.get("requisition_id"),
+            "updated_at": job.get("updated_at"),
+            "departments": departments,
+            "offices": offices,
+            "location": location_text,
+        }
+    )
+    if remote_locations:
+        raw["remote_locations"] = remote_locations
+    if work_formats:
+        raw["work_format"] = work_formats
+
+    return RawListing(
+        source_listing_id=source_listing_id or None,
+        title=title,
+        url=_required_text(job.get("absolute_url"), "absolute_url", config),
+        source=config.source_id,
+        company=_text(job.get("company_name")).strip() or config.company,
+        country=country,
+        city=city,
+        location_text=location_text or None,
+        salary_text=salary_text,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=_text(job.get("first_published")).strip() or _text(job.get("updated_at")).strip() or None,
+        remote_in_country=_greenhouse_remote_in_country(location_text),
+        remote_global=_greenhouse_remote_global(location_text),
+        relocation=None,
+        native_grade=None,
+        description=description,
+        requirements=requirements,
+        additional_sections=additional_sections,
+        skills=(),
+        raw_text=_join_text(title, location_text, " ".join(departments), description, requirements, salary_text),
+        raw=raw,
+    )
+
+
+def _parse_bamboohr(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
+    payload = _json_object(body, f"{config.company} BambooHR response")
+    items = payload.get("result")
+    if not isinstance(items, list):
+        raise ValueError(f"{config.company} BambooHR response result is not a JSON array")
+    total_count = _int_value(payload.get("meta"), "totalCount")
+    if not items and total_count == 0:
+        return _no_results()
+    if not items:
+        raise ValueError(f"{config.company} BambooHR response has no result rows without an explicit empty count")
+    listings = tuple(_bamboohr_listing(item, config) for item in items if isinstance(item, dict))
+    return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+
+def _bamboohr_listing(item: dict[str, Any], config: ConfiguredCompanySourceConfig) -> RawListing:
+    listing_id = str(item.get("id") or "").strip()
+    title = _text(item.get("jobOpeningName")).strip()
+    if not listing_id or not title:
+        raise ValueError(f"{config.company} BambooHR listing is missing id or jobOpeningName")
+
+    department = _text(item.get("departmentLabel")).strip() or None
+    employment_status = _text(item.get("employmentStatusLabel")).strip() or None
+    work_format = _bamboohr_work_format(item, employment_status)
+    location_text = _bamboohr_location_text(item)
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "department": department,
+            "employment_status": employment_status,
+            "location": item.get("location"),
+            "ats_location": item.get("atsLocation"),
+            "is_remote": item.get("isRemote"),
+            "location_type": item.get("locationType"),
+        }
+    )
+    if work_format:
+        raw["work_format"] = (work_format,)
+
+    detail_template = config.bamboohr_detail_url_template
+    if not detail_template:
+        raise ValueError(f"{config.company} BambooHR config is missing detail URL template")
+
+    return RawListing(
+        source_listing_id=listing_id,
+        title=title,
+        url=detail_template.format(id=listing_id),
+        source=config.source_id,
+        company=config.company,
+        country=None,
+        city=None,
+        location_text=location_text,
+        salary_text=None,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=None,
+        remote_in_country=None,
+        remote_global=None,
+        relocation=None,
+        native_grade=None,
+        description=None,
+        requirements=None,
+        additional_sections={},
+        skills=(),
+        raw_text=_join_text(title, department, employment_status, location_text),
+        raw=raw,
+    )
+
+
+def _parse_teamtailor(
+    body: str,
+    config: ConfiguredCompanySourceConfig,
+    request: SourceFetchRequest,
+) -> SourceSearchParseResult:
+    listings = tuple(
+        listing
+        for item in _TEAMTAILOR_ITEM_RE.finditer(body)
+        for listing in (_teamtailor_listing(item.group("body"), config),)
+        if listing is not None
+    )
+    if not listings:
+        return _no_results()
+    return SourceSearchParseResult(
+        outcome=SourceOutcome.SUCCESS,
+        listings=listings,
+        next_request=_teamtailor_next_request(body, config, request),
+    )
+
+
+def _teamtailor_listing(item_html: str, config: ConfiguredCompanySourceConfig) -> RawListing | None:
+    link_match = _TEAMTAILOR_LINK_RE.search(item_html)
+    if link_match is None:
+        return None
+    title = _teamtailor_title(link_match.group("title"))
+    if not title:
+        return None
+    metadata = _teamtailor_metadata(item_html)
+    work_format = _teamtailor_work_format(metadata.workplace)
+    remote_locations = _teamtailor_remote_locations(metadata.location_text, work_format)
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "department": metadata.department,
+            "location": metadata.location_text,
+            "workplace": metadata.workplace,
+        }
+    )
+    if work_format:
+        raw["work_format"] = (work_format,)
+    if remote_locations:
+        raw["remote_locations"] = remote_locations
+
+    return RawListing(
+        source_listing_id=link_match.group("id"),
+        title=title,
+        url=link_match.group("url"),
+        source=config.source_id,
+        company=config.company,
+        country=None,
+        city=None,
+        location_text=metadata.location_text,
+        salary_text=None,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=None,
+        remote_in_country=True if work_format == "remote" and remote_locations else None,
+        remote_global=False if work_format == "remote" and remote_locations else None,
+        relocation=None,
+        native_grade=None,
+        description=None,
+        requirements=None,
+        additional_sections={},
+        skills=(),
+        raw_text=_join_text(title, metadata.department, metadata.location_text, metadata.workplace),
+        raw=raw,
+    )
+
+
+@dataclass(frozen=True)
+class _Location:
+    name: str | None
+    country: str | None
+    city: str | None
+
+    @property
+    def raw(self) -> dict[str, str | None]:
+        return {
+            "name": self.name,
+            "country": self.country,
+            "city": self.city,
+        }
+
+
+@dataclass(frozen=True)
+class _WorkableLocation:
+    city: str | None
+    country: str | None
+    location_text: str
+    cleaned_location: str | None
+    workplace: str
+
+
+@dataclass(frozen=True)
+class _TeamtailorMetadata:
+    department: str | None
+    location_text: str | None
+    workplace: str | None
+
+
+def _json_array(body: str, label: str) -> list[Any]:
+    value = json.loads(body)
+    if not isinstance(value, list):
+        raise ValueError(f"{label} is not a JSON array")
+    return value
+
+
+def _json_object(body: str, label: str) -> dict[str, Any]:
+    value = json.loads(body)
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} is not a JSON object")
+    return value
+
+
+def _no_results() -> SourceSearchParseResult:
+    return SourceSearchParseResult(
+        outcome=SourceOutcome.NO_RESULTS,
+        listings=(),
+        evidence=AttemptEvidence(no_results=True),
+    )
+
+
+def _source_raw(config: ConfiguredCompanySourceConfig) -> dict[str, object]:
+    return {
+        "ats_platform": config.platform,
+        "board_url": config.board_url,
+        "career_url": config.career_url,
+    }
+
+
+def _dict_value(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    return dict(value)
+
+
+def _lever_sections(value: object) -> dict[str, str]:
+    if not isinstance(value, list):
+        return {}
+    sections: dict[str, str] = {}
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        label = _text(item.get("text")).strip().rstrip(":")
+        content = html_to_text(_text(item.get("content")))
+        if label and content:
+            sections[label] = content
+    return sections
+
+
+def _requirements(sections: dict[str, str], markers: tuple[str, ...]) -> str | None:
+    parts = [body for label, body in sections.items() if any(marker in label.casefold() for marker in markers)]
+    return "\n".join(parts) or None
+
+
+def _work_formats_from_workplace_type(workplace_type: str | None) -> tuple[str, ...]:
+    work_format = _work_format_from_workplace_type(workplace_type or "")
+    return (work_format,) if work_format else ()
+
+
+def _work_format_from_workplace_type(value: str) -> str | None:
+    normalized = value.casefold()
+    if normalized == "remote":
+        return "remote"
+    if normalized == "hybrid":
+        return "hybrid"
+    if normalized in {"onsite", "on-site", "office"}:
+        return "office"
+    return None
+
+
+def _title_has_remote_marker(title: str) -> bool:
+    return bool(_REMOTE_TITLE_MARKER_RE.search(title))
+
+
+def _single_format(values: tuple[str, ...]) -> str | None:
+    return values[0] if len(values) == 1 else None
+
+
+def _lever_remote_locations(*, workplace_type: str | None, all_locations: tuple[str, ...]) -> tuple[str, ...]:
+    if workplace_type != "remote":
+        return ()
+    return tuple(
+        cleaned
+        for location in all_locations
+        for cleaned in (_clean_remote_scope(location),)
+        if cleaned is not None
+    )
+
+
+def _lever_location_text(primary_location: object, all_locations: tuple[str, ...]) -> str | None:
+    if all_locations:
+        return ", ".join(all_locations)
+    return _text(primary_location).strip() or None
+
+
+def _remote_in_country(*, work_format: str | None, remote_locations: tuple[str, ...]) -> bool | None:
+    if work_format != "remote":
+        return None
+    return True if any(_has_structured_remote_scope(location) for location in remote_locations) else None
+
+
+def _remote_global(*, work_format: str | None, remote_locations: tuple[str, ...]) -> bool | None:
+    if work_format != "remote":
+        return None
+    return False if remote_locations else None
+
+
+def _posted_at_from_millis(value: object) -> str | None:
+    if not isinstance(value, int):
+        return None
+    return datetime.fromtimestamp(value / 1000, tz=UTC).isoformat().replace("+00:00", "Z")
+
+
+def _ashby_primary_location(job: dict[str, Any]) -> _Location:
+    return _ashby_location(
+        name=_text(job.get("location")).strip() or None,
+        address=job.get("address"),
+    )
+
+
+def _ashby_secondary_locations(value: object) -> tuple[_Location, ...]:
+    if not isinstance(value, list):
+        return ()
+    locations: list[_Location] = []
+    for item in value:
+        if isinstance(item, dict):
+            locations.append(
+                _ashby_location(
+                    name=_text(item.get("location")).strip() or None,
+                    address=item.get("address"),
+                )
+            )
+    return tuple(locations)
+
+
+def _ashby_location(*, name: str | None, address: object) -> _Location:
+    postal_address = _postal_address(address)
+    country = _text(postal_address.get("addressCountry")).strip() or None
+    city = _text(postal_address.get("addressLocality")).strip() or None
+    cleaned_name = _strip_workplace_marker(name)
+    country = _ashby_visible_country(cleaned_name=cleaned_name, address_country=country)
+    if cleaned_name and _is_region_label(cleaned_name):
+        city = None
+    if city is None and country and cleaned_name and cleaned_name != country and not _is_region_label(cleaned_name):
+        city = cleaned_name
+    return _Location(name=name, country=country, city=city)
+
+
+def _ashby_visible_country(*, cleaned_name: str | None, address_country: str | None) -> str | None:
+    if not cleaned_name:
+        return address_country
+    if _is_region_label(cleaned_name):
+        return None
+    if address_country and _has_hidden_country_conflict(cleaned_name=cleaned_name, address_country=address_country):
+        return cleaned_name
+    if address_country:
+        return address_country
+    if _is_single_location_label(cleaned_name):
+        return cleaned_name
+    return None
+
+
+def _postal_address(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    postal_address = value.get("postalAddress")
+    return postal_address if isinstance(postal_address, dict) else {}
+
+
+def _location_text(locations: tuple[_Location, ...]) -> str | None:
+    values: list[str] = []
+    for location in locations:
+        text = location.name or location.country or location.city
+        if text and text not in values:
+            values.append(text)
+    return "; ".join(values) or None
+
+
+def _ashby_remote_locations(locations: tuple[_Location, ...], work_format: str | None) -> tuple[str, ...]:
+    if work_format != "remote":
+        return ()
+    values: list[str] = []
+    for location in locations:
+        value = location.country or location.name
+        if value and value not in values:
+            values.append(value)
+    return tuple(values)
+
+
+def _html_sections(value: str) -> dict[str, str]:
+    raw_html = html.unescape(value)
+    labels = tuple(match for match in _SECTION_LABEL_RE.finditer(raw_html) if _section_label(match))
+    sections: dict[str, str] = {}
+    for index, match in enumerate(labels):
+        label = _section_label(match)
+        if label is None:
+            continue
+        body_start = match.end()
+        body_end = labels[index + 1].start() if index + 1 < len(labels) else len(raw_html)
+        body = html_to_text(raw_html[body_start:body_end])
+        if body:
+            sections[label] = body
+    return sections
+
+
+def _section_label(match: re.Match[str]) -> str | None:
+    tag = match.group("tag").casefold()
+    label = (html_to_text(match.group("label")) or "").rstrip(":").strip()
+    if not label:
+        return None
+    if tag == "strong" and not match.group("label").strip().endswith(":"):
+        return None
+    return label
+
+
+def _workable_table_rows(body: str) -> tuple[dict[str, str], ...]:
+    rows: list[dict[str, str]] = []
+    headers: tuple[str, ...] = ()
+    for raw_line in body.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("|") or not line.endswith("|"):
+            continue
+        cells = tuple(cell.strip() for cell in line.strip("|").split("|"))
+        if not headers:
+            headers = cells
+            continue
+        if all(set(cell) <= {"-"} for cell in cells):
+            continue
+        if len(cells) != len(headers):
+            continue
+        rows.append(dict(zip(headers, cells, strict=True)))
+    return tuple(rows)
+
+
+def _workable_detail_url_and_id(value: str, config: ConfiguredCompanySourceConfig) -> tuple[str, str]:
+    if config.workable_slug is None:
+        raise ValueError(f"{config.company} Workable config is missing workable_slug")
+    pattern = re.compile(
+        r"\[View\]\((?P<url>https://apply\.workable\.com/"
+        + re.escape(config.workable_slug)
+        + r"/jobs/view/(?P<id>[^/)]+)\.md)\)"
+    )
+    match = pattern.fullmatch(value)
+    if match is None:
+        raise ValueError(f"{config.company} Workable row has malformed detail link: {value}")
+    return match.group("url"), match.group("id")
+
+
+def _workable_location(value: str) -> _WorkableLocation:
+    marker = "office"
+    if "(Remote)" in value:
+        marker = "remote"
+    elif "(Hybrid)" in value:
+        marker = "hybrid"
+    cleaned = value.replace("(Remote)", "").replace("(Hybrid)", "").strip()
+    if "," in cleaned:
+        city, country = (part.strip() for part in cleaned.rsplit(",", 1))
+        return _WorkableLocation(
+            city=city or None,
+            country=country or None,
+            location_text=value,
+            cleaned_location=cleaned or None,
+            workplace=marker,
+        )
+    if marker == "remote":
+        return _WorkableLocation(
+            city=None,
+            country=cleaned or None,
+            location_text=value,
+            cleaned_location=cleaned or None,
+            workplace=marker,
+        )
+    return _WorkableLocation(
+        city=cleaned or None,
+        country=None,
+        location_text=value,
+        cleaned_location=cleaned or None,
+        workplace=marker,
+    )
+
+
+def _work_format_from_location_marker(marker: str) -> str:
+    if marker == "remote":
+        return "remote"
+    if marker == "hybrid":
+        return "hybrid"
+    return "office"
+
+
+def _salary_text_from_workable(value: str) -> str | None:
+    normalized = _normalized_cell(value)
+    if normalized is None or not _SALARY_AMOUNT_RE.search(normalized):
+        return None
+    return normalized
+
+
+def _greenhouse_salary_text(sections: dict[str, str]) -> str | None:
+    parts: list[str] = []
+    for label, body in sections.items():
+        if not any(marker in label.casefold() for marker in _GREENHOUSE_SALARY_LABEL_MARKERS):
+            continue
+        salary_body = _salary_body(body)
+        if salary_body and _SALARY_MARKER_RE.search(salary_body):
+            parts.append(f"{label}\n{salary_body}")
+    return "\n\n".join(parts) or None
+
+
+def _salary_body(body: str) -> str | None:
+    lines: list[str] = []
+    for line in body.splitlines():
+        normalized = line.strip().casefold()
+        if any(normalized.startswith(marker) for marker in _SALARY_STOP_LINE_MARKERS):
+            break
+        lines.append(line)
+    text = "\n".join(lines).strip()
+    return text or None
+
+
+def _greenhouse_work_formats(location_text: str) -> tuple[str, ...]:
+    work_formats: list[str] = []
+    normalized = location_text.casefold()
+    if "remote" in normalized:
+        work_formats.append("remote")
+    if "hybrid" in normalized:
+        work_formats.append("hybrid")
+    if "office" in normalized or "on-site" in normalized or "onsite" in normalized:
+        work_formats.append("office")
+    return tuple(work_formats)
+
+
+def _greenhouse_remote_locations(location_text: str) -> tuple[str, ...]:
+    locations: list[str] = []
+    for match in _REMOTE_SCOPE_RE.finditer(location_text):
+        locations.extend(_split_remote_scope(match.group("scope")))
+    normalized = location_text.casefold()
+    for separator in (" - ", " \u2013 ", " \u2014 "):
+        marker = f"remote{separator}"
+        if normalized.startswith(marker):
+            locations.extend(_split_remote_scope(location_text[len(marker) :]))
+    return tuple(locations)
+
+
+def _split_remote_scope(value: str) -> tuple[str, ...]:
+    normalized = value.replace("&", ",").replace("/", ",")
+    return tuple(_normalize_remote_scope_part(part) for part in normalized.split(",") if part.strip())
+
+
+def _clean_remote_scope(value: str) -> str | None:
+    stripped = value.strip()
+    if not stripped or stripped.casefold() == "remote":
+        return None
+    cleaned = re.sub(r"^remote\s*[-:]*\s*", "", stripped, flags=re.I).strip()
+    return cleaned or None
+
+
+def _normalize_remote_scope_part(value: str) -> str:
+    part = value.strip()
+    if part.casefold().replace(".", "") in {"us", "usa"}:
+        return "US"
+    return part
+
+
+def _greenhouse_remote_in_country(location_text: str) -> bool | None:
+    if "remote" not in location_text.casefold():
+        return False
+    if _greenhouse_remote_locations(location_text):
+        return True
+    return None
+
+
+def _greenhouse_remote_global(location_text: str) -> bool | None:
+    if "remote" not in location_text.casefold():
+        return False
+    return False if _greenhouse_remote_locations(location_text) else None
+
+
+def _greenhouse_country_city(location_text: str) -> tuple[str | None, str | None]:
+    cleaned = _strip_workplace_marker(location_text)
+    if cleaned is None or _is_region_label(cleaned):
+        return None, None
+    if ";" in cleaned or "remote" in cleaned.casefold():
+        return None, None
+    if "," not in cleaned:
+        return None, cleaned or None
+    city, country = (part.strip() for part in cleaned.rsplit(",", 1))
+    return country or None, city or None
+
+
+def _bamboohr_location_text(item: dict[str, Any]) -> str | None:
+    values: list[str] = []
+    for container_key in ("atsLocation", "location"):
+        container = item.get(container_key)
+        if not isinstance(container, dict):
+            continue
+        for key in ("city", "state", "province", "country"):
+            value = _text(container.get(key)).strip()
+            if value and value not in values:
+                values.append(value)
+    return ", ".join(values) or None
+
+
+def _bamboohr_work_format(item: dict[str, Any], employment_status: str | None) -> str | None:
+    if item.get("isRemote") is True:
+        return "remote"
+    normalized = (employment_status or "").casefold()
+    if "remote" in normalized:
+        return "remote"
+    return None
+
+
+def _teamtailor_metadata(item_html: str) -> _TeamtailorMetadata:
+    values: list[str] = []
+    titled_locations: list[str] = []
+    for match in _TEAMTAILOR_SPAN_RE.finditer(item_html):
+        attrs = match.group("attrs")
+        if "company-link-style" in attrs or "text-block-base-link" in attrs:
+            continue
+        text = html_to_text(match.group("body"))
+        if not text or text == "·":
+            continue
+        title_match = _TITLE_ATTR_RE.search(attrs)
+        if title_match is not None:
+            titled_locations.append(html.unescape(title_match.group("title")).strip())
+        values.append(text.strip())
+
+    workplace = next((value for value in values if _teamtailor_work_format(value) is not None), None)
+    candidates = [value for value in values if value not in {workplace, "·"}]
+    location_text: str | None = None
+    department: str | None = None
+    if titled_locations:
+        location_text = titled_locations[0]
+        if candidates and candidates[0] != "Multiple locations":
+            department = candidates[0]
+    elif len(candidates) >= _DEPARTMENT_AND_LOCATION_VALUE_COUNT:
+        department = candidates[0]
+        location_text = candidates[1]
+    elif candidates:
+        location_text = candidates[0]
+    return _TeamtailorMetadata(
+        department=department,
+        location_text=location_text,
+        workplace=workplace,
+    )
+
+
+def _teamtailor_title(anchor_html: str) -> str | None:
+    title_match = _TITLE_ATTR_RE.search(anchor_html)
+    if title_match is not None:
+        return html.unescape(title_match.group("title")).strip() or None
+    return html_to_text(anchor_html)
+
+
+def _teamtailor_next_request(
+    body: str,
+    config: ConfiguredCompanySourceConfig,
+    request: SourceFetchRequest,
+) -> SourceFetchRequest | None:
+    match = _TEAMTAILOR_SHOW_MORE_RE.search(body)
+    if match is None:
+        return None
+    next_url = urljoin(config.board_url, html.unescape(match.group("href")))
+    return SourceFetchRequest(
+        source_id=config.source_id,
+        query_variant=request.query_variant,
+        url=next_url,
+    )
+
+
+def _teamtailor_work_format(value: str | None) -> str | None:
+    normalized = (value or "").casefold()
+    if "fully remote" in normalized or normalized == "remote":
+        return "remote"
+    if "hybrid" in normalized:
+        return "hybrid"
+    return None
+
+
+def _teamtailor_remote_locations(location_text: str | None, work_format: str | None) -> tuple[str, ...]:
+    if work_format != "remote" or not location_text:
+        return ()
+    if "," not in location_text:
+        return ()
+    return tuple(
+        part.strip()
+        for part in location_text.split(",")
+        if part.strip() and part.strip() != "Multiple locations"
+    )
+
+
+def _strip_workplace_marker(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = re.sub(r"\s*\((?:Remote|Hybrid|On-site|Onsite|Office)\)\s*", " ", value, flags=re.I)
+    text = " ".join(cleaned.split())
+    return text or None
+
+
+def _is_region_label(value: str) -> bool:
+    return value.casefold() in {"apac", "asia", "emea", "eu", "europe", "european union", "latam", "mena"}
+
+
+def _has_structured_remote_scope(value: str) -> bool:
+    return "," in value
+
+
+def _has_hidden_country_conflict(*, cleaned_name: str, address_country: str) -> bool:
+    if not _is_single_location_label(cleaned_name):
+        return False
+    if cleaned_name.casefold() == address_country.casefold():
+        return False
+    return {cleaned_name.casefold(), address_country.casefold()} == {"switzerland", "swaziland"}
+
+
+def _is_single_location_label(value: str) -> bool:
+    return "," not in value and ";" not in value
+
+
+def _names(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    return tuple(
+        name
+        for item in value
+        if isinstance(item, dict)
+        for name in (_text(item.get("name")).strip(),)
+        if name
+    )
+
+
+def _nested_text(value: dict[str, Any], key: str, nested_key: str) -> str:
+    nested = value.get(key)
+    if not isinstance(nested, dict):
+        return ""
+    return _text(nested.get(nested_key)).strip()
+
+
+def _int_value(value: object, key: str) -> int | None:
+    if not isinstance(value, dict):
+        return None
+    item = value.get(key)
+    return item if isinstance(item, int) else None
+
+
+def _required_text(value: object, field_name: str, config: ConfiguredCompanySourceConfig) -> str:
+    text = _text(value).strip()
+    if not text:
+        raise ValueError(f"{config.company} {config.platform} posting is missing {field_name}")
+    return text
+
+
+def _required_cell(row: dict[str, str], key: str, config: ConfiguredCompanySourceConfig) -> str:
+    value = _normalized_cell(row.get(key, ""))
+    if value is None:
+        raise ValueError(f"{config.company} Workable row is missing {key}")
+    return value
+
+
+def _normalized_cell(value: str) -> str | None:
+    stripped = value.strip()
+    if not stripped or stripped == "—":
+        return None
+    return stripped
+
+
+def _plain_text(value: object) -> str | None:
+    text = _text(value).strip()
+    return text or None
+
+
+def _text(value: object) -> str:
+    return value if isinstance(value, str) else ""
+
+
+def _text_values(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    return tuple(item.strip() for item in value if isinstance(item, str) and item.strip())
+
+
+def _join_text(*parts: object) -> str | None:
+    text = "\n".join(str(part).strip() for part in parts if part and str(part).strip())
+    return text or None

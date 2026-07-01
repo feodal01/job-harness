@@ -18,6 +18,7 @@ _NON_COUNTRY_TOKENS = frozenset(
         "cis",
         "emea",
         "global",
+        "iberia",
         "latam",
         "remote",
         "worldwide",

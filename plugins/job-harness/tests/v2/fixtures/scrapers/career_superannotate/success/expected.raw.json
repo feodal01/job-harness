@@ -1,0 +1,84 @@
+{
+  "outcome": "success",
+  "expected_count": 4,
+  "sample_listings": [
+    {
+      "source_listing_id": "a988f827-9b9f-463d-b739-bb17c1e77fcf",
+      "title": "Director of Operations",
+      "url": "https://jobs.lever.co/superannotate/a988f827-9b9f-463d-b739-bb17c1e77fcf",
+      "company": "SuperAnnotate",
+      "country": null,
+      "city": null,
+      "location_text": "San Francisco",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-18T13:45:24.238000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "3c0ebae5-3a26-4f61-9af4-5e8e041441d2",
+      "title": "Global Account Director",
+      "url": "https://jobs.lever.co/superannotate/3c0ebae5-3a26-4f61-9af4-5e8e041441d2",
+      "company": "SuperAnnotate",
+      "country": null,
+      "city": null,
+      "location_text": "San Francisco",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-24T21:04:05.169000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "a52b011c-da07-473e-8590-27a93bfb66cc",
+      "title": "Strategic Projects Lead (Technical)",
+      "url": "https://jobs.lever.co/superannotate/a52b011c-da07-473e-8590-27a93bfb66cc",
+      "company": "SuperAnnotate",
+      "country": null,
+      "city": null,
+      "location_text": "San Francisco",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-24T17:28:00.456000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "cfd8a7ee-36b4-4815-b410-ade115ccc867",
+      "title": "Test Engineer",
+      "url": "https://jobs.lever.co/superannotate/cfd8a7ee-36b4-4815-b410-ade115ccc867",
+      "company": "SuperAnnotate",
+      "country": null,
+      "city": null,
+      "location_text": "Yerevan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-30T11:58:41.283000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "a988f827-9b9f-463d-b739-bb17c1e77fcf": {
+      "ats_platform": "lever",
+      "career_url": "https://jobs.lever.co/superannotate"
+    }
+  }
+}

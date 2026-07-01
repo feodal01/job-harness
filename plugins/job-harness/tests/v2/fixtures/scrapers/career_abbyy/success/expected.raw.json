@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 31,
+  "sample_listings": [
+    {
+      "source_listing_id": "4873313101",
+      "title": "Backend Developer",
+      "url": "https://job-boards.eu.greenhouse.io/abbyy/jobs/4873313101",
+      "company": "ABBYY",
+      "country": "Hungary",
+      "city": "Budapest",
+      "location_text": "Budapest, Hungary (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-21T14:04:35-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4866826101",
+      "title": "Data Engineer",
+      "url": "https://job-boards.eu.greenhouse.io/abbyy/jobs/4866826101",
+      "company": "ABBYY",
+      "country": "Hungary",
+      "city": "Budapest",
+      "location_text": "Budapest, Hungary (Hybrid)",
+      "salary_text": "Salary Range\nThe anticipated base salary range for this position is between\n20,000,000 HUF and 26,000,000 HUF annually\n. Base salary ranges may vary by geographic location and relevant experience, education, certifications, and seniority compared to others performing substantially similar work. There is no guarantee that an offer will be at the top of the posted range, as compensation decisions are based on a variety of factors including, but not limited to, skills, qualifications, and internal equity.",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-19T09:06:34-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4823909101",
+      "title": "Demand Generation and Field Marketing (6 - 8 months contract)",
+      "url": "https://job-boards.eu.greenhouse.io/abbyy/jobs/4823909101",
+      "company": "ABBYY",
+      "country": null,
+      "city": "Singapore",
+      "location_text": "Singapore (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-26T11:39:35-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4820876101",
+      "title": "Demand Generation and Field Marketing (6 -8 months contract)",
+      "url": "https://job-boards.eu.greenhouse.io/abbyy/jobs/4820876101",
+      "company": "ABBYY",
+      "country": "India",
+      "city": "Bangalore",
+      "location_text": "Bangalore, India (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-26T11:34:37-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4902595101",
+      "title": "Developer Relations Manager",
+      "url": "https://job-boards.eu.greenhouse.io/abbyy/jobs/4902595101",
+      "company": "ABBYY",
+      "country": "United Kingdom",
+      "city": "London",
+      "location_text": "London, United Kingdom (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-24T08:04:35-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "4873313101": {
+      "ats_platform": "greenhouse",
+      "career_url": "https://job-boards.greenhouse.io/abbyy"
+    }
+  }
+}

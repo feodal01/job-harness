@@ -1,0 +1,48 @@
+{
+  "outcome": "success",
+  "expected_count": 2,
+  "sample_listings": [
+    {
+      "source_listing_id": "121",
+      "title": "Head of Product (B2B SaaS | EU)",
+      "url": "https://synder.bamboohr.com/careers/121",
+      "company": "Synder",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "122",
+      "title": "Senior SEO / LLM Optimization Specialist",
+      "url": "https://synder.bamboohr.com/careers/122",
+      "company": "Synder",
+      "country": null,
+      "city": null,
+      "location_text": "Poland",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "121": {
+      "ats_platform": "bamboohr",
+      "career_url": "https://synder.bamboohr.com/careers/list"
+    }
+  }
+}

@@ -17,6 +17,7 @@ class GeographyTest(unittest.TestCase):
             ("Турция", "TR"),
             ("UK", "GB"),
             ("United Kingdom", "GB"),
+            ("The Netherlands", "NL"),
             ("EU", "EU"),
             ("Europe", "europe"),
         )
@@ -29,7 +30,7 @@ class GeographyTest(unittest.TestCase):
                 self.assertEqual(expected, normalized)
 
     def test_ignores_non_country_source_markers(self) -> None:
-        cases = ("global", "remote", "worldwide")
+        cases = ("global", "iberia", "remote", "worldwide")
         for raw in cases:
             with self.subTest(raw=raw):
                 # Arrange / Act
@@ -53,6 +54,33 @@ class GeographyTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(("RU", "BY"), normalized)
+
+    def test_does_not_treat_iberia_region_marker_as_us_city(self) -> None:
+        # Arrange / Act
+        normalized = normalize_source_geographies("Iberia, Spain")
+
+        # Assert
+        self.assertEqual(("ES",), normalized)
+
+    def test_normalizes_source_locations_with_workplace_descriptors(self) -> None:
+        # Arrange / Act
+        normalized = normalize_source_geographies("EU, Remote US, London Office, Multiple locations")
+
+        # Assert
+        self.assertEqual(("EU", "US", "GB"), normalized)
+
+    def test_does_not_treat_us_state_abbreviations_as_countries_in_us_office_names(self) -> None:
+        cases = (
+            "US - Cambridge, MA",
+            "US - Palo Alto CA",
+        )
+        for raw in cases:
+            with self.subTest(raw=raw):
+                # Arrange / Act
+                normalized = normalize_source_geographies(raw)
+
+                # Assert
+                self.assertEqual(("US",), normalized)
 
     def test_normalizes_country_from_known_source_city(self) -> None:
         cases = (

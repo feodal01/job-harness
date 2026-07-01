@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 11,
+  "sample_listings": [
+    {
+      "source_listing_id": "1578ff90-a405-401c-ac0e-fe4f60b6e27f",
+      "title": "AI / Machine Learning Researcher",
+      "url": "https://jobs.lever.co/planner5d/1578ff90-a405-401c-ac0e-fe4f60b6e27f",
+      "company": "Planner 5D",
+      "country": null,
+      "city": null,
+      "location_text": "Warsaw, Amsterdam, Barcelona",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-06T12:45:57.264000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7c412d2d-957a-4432-ad7c-4d3e40fd2ab8",
+      "title": "AI / Machine Learning Researcher",
+      "url": "https://jobs.lever.co/planner5d/7c412d2d-957a-4432-ad7c-4d3e40fd2ab8",
+      "company": "Planner 5D",
+      "country": null,
+      "city": null,
+      "location_text": "Tbilisi, Belgrade, Berlin, Budapest, Madrid, Riga, Tallinn, Valencia, Vilnius, Yerevan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-16T13:51:15.651000Z",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "323ec23b-5df8-43c7-96ec-66661b1fe264",
+      "title": "Android Team Lead",
+      "url": "https://jobs.lever.co/planner5d/323ec23b-5df8-43c7-96ec-66661b1fe264",
+      "company": "Planner 5D",
+      "country": null,
+      "city": null,
+      "location_text": "Belgrade, Tbilisi, Madrid, Riga, Valencia, Yerevan, Poland",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-14T14:22:55.160000Z",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6c66176c-8e4e-4e73-b13a-2ec4f5c4e92d",
+      "title": "Android Team Lead",
+      "url": "https://jobs.lever.co/planner5d/6c66176c-8e4e-4e73-b13a-2ec4f5c4e92d",
+      "company": "Planner 5D",
+      "country": null,
+      "city": null,
+      "location_text": "Warsaw, Amsterdam, Barcelona",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-14T12:35:16.955000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "30fb22b6-d9ef-4dde-8496-ca80ef4ca524",
+      "title": "Frontend Engineer (3D Graphics)",
+      "url": "https://jobs.lever.co/planner5d/30fb22b6-d9ef-4dde-8496-ca80ef4ca524",
+      "company": "Planner 5D",
+      "country": null,
+      "city": null,
+      "location_text": "Warsaw, Amsterdam, Barcelona",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2024-07-15T11:32:11.288000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "1578ff90-a405-401c-ac0e-fe4f60b6e27f": {
+      "ats_platform": "lever",
+      "career_url": "https://jobs.lever.co/planner5d"
+    }
+  }
+}
