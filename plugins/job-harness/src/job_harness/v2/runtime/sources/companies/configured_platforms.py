@@ -7,8 +7,9 @@ import json
 import re
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from html.parser import HTMLParser
 from typing import Any, Literal
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urljoin, urlparse
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
@@ -28,7 +29,18 @@ from job_harness.v2.runtime.sources._html import html_to_text
 from job_harness.v2.runtime.sources._url import strip_query
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
-Platform = Literal["lever", "ashby", "workable", "greenhouse", "bamboohr", "teamtailor", "workday", "personio", "join"]
+Platform = Literal[
+    "lever",
+    "ashby",
+    "workable",
+    "greenhouse",
+    "bamboohr",
+    "teamtailor",
+    "workday",
+    "personio",
+    "join",
+    "dreamjob",
+]
 
 _SECTION_LABEL_RE = re.compile(
     r"<(?P<tag>h[1-6]|strong|b)[^>]*>(?P<label>.*?)</(?P=tag)>",
@@ -58,7 +70,28 @@ _JOIN_JSON_LD_RE = re.compile(
     r'<script[^>]+type="application/ld\+json"[^>]*>(?P<body>.*?)</script>',
     re.I | re.S,
 )
+_DREAMJOB_VACANCIES_PATH_RE = re.compile(r"/employers/(?P<employer_id>\d+)/vakansii(?:/(?P<id>\d+))?")
+_DREAMJOB_REMOTE_TAGS = frozenset({"можно удаленно", "можно удалённо"})
+_DREAMJOB_RUB_CURRENCY_MARKERS = frozenset({"₽", "руб", "rub"})
 _TITLE_ATTR_RE = re.compile(r'title="(?P<title>[^"]+)"')
+_HTML_VOID_TAGS = frozenset(
+    {
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+    }
+)
 _WORKDAY_PAGE_LIMIT = 20
 _WORKDAY_SEARCH_HEADERS = {"Accept": "application/json", "Content-Type": "application/json"}
 _DEFAULT_REQUIREMENTS_LABEL_MARKERS = ("requirements", "looking for", "what you bring", "who you are", "about you")
@@ -72,6 +105,7 @@ _SALARY_STOP_LINE_MARKERS = (
 _DEPARTMENT_AND_LOCATION_VALUE_COUNT = 2
 _PERSONIO_EMPLOYMENT_TYPE_INDEX = 1
 _PERSONIO_CONTRACT_TYPE_INDEX = 2
+_SALARY_RANGE_VALUE_COUNT = 2
 
 
 @dataclass(frozen=True)
@@ -361,6 +395,41 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         board_url="https://join.com/companies/sidestream",
         career_url="https://sidestream.tech/jobs",
     ),
+    "career:sbk-parus": ConfiguredCompanySourceConfig(
+        source_id="career:sbk-parus",
+        company="ООО СБК Парус",
+        platform="dreamjob",
+        board_url="https://dreamjob.ru/employers/6225686/vakansii",
+        career_url="https://dreamjob.ru/employers/6225686/vakansii",
+    ),
+    "career:softmall": ConfiguredCompanySourceConfig(
+        source_id="career:softmall",
+        company="ООО СофтМолл",
+        platform="dreamjob",
+        board_url="https://dreamjob.ru/employers/133227/vakansii",
+        career_url="https://dreamjob.ru/employers/133227/vakansii",
+    ),
+    "career:retnnet": ConfiguredCompanySourceConfig(
+        source_id="career:retnnet",
+        company="РетнНет",
+        platform="dreamjob",
+        board_url="https://dreamjob.ru/employers/43931/vakansii",
+        career_url="https://dreamjob.ru/employers/43931/vakansii",
+    ),
+    "career:znanie": ConfiguredCompanySourceConfig(
+        source_id="career:znanie",
+        company="Российское общество Знание",
+        platform="dreamjob",
+        board_url="https://dreamjob.ru/employers/198144/vakansii",
+        career_url="https://dreamjob.ru/employers/198144/vakansii",
+    ),
+    "career:nii-spetsvuzavtomatika": ConfiguredCompanySourceConfig(
+        source_id="career:nii-spetsvuzavtomatika",
+        company="ФГАНУ НИИ Спецвузавтоматика",
+        platform="dreamjob",
+        board_url="https://dreamjob.ru/employers/121279/vakansii",
+        career_url="https://dreamjob.ru/employers/121279/vakansii",
+    ),
 }
 
 
@@ -375,6 +444,8 @@ def configured_company_source(source_id: str) -> SourceScraper:
         return ConfiguredPersonioCompanyCareerSource(config)
     if config.platform == "join":
         return ConfiguredJoinCompanyCareerSource(config)
+    if config.platform == "dreamjob":
+        return ConfiguredDreamJobCompanyCareerSource(config)
     return ConfiguredCompanyCareerSource(config)
 
 
@@ -570,6 +641,53 @@ class ConfiguredJoinCompanyCareerSource(DetailEnrichmentScraper):
         listing: RawListing,
     ) -> RawListing:
         return _join_detail_listing(response.body, listing, self._config)
+
+
+class ConfiguredDreamJobCompanyCareerSource(DetailEnrichmentScraper):
+    def __init__(self, config: ConfiguredCompanySourceConfig) -> None:
+        self._config = config
+
+    @property
+    def descriptor(self) -> SourceDescriptor:
+        return source_descriptor(self._config.source_id)
+
+    @property
+    def required_fixture_kinds(self) -> RequiredParserFixtures:
+        return source_required_fixture_kinds(self._config.source_id)
+
+    def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
+        return tuple(
+            SourceFetchRequest(
+                source_id=self.descriptor.source_id,
+                query_variant=query_variant,
+                url=self._config.board_url,
+            )
+            for query_variant in request.query_variants
+        )
+
+    def parse_search_response(
+        self,
+        response: SourceResponseArtifact,
+        request: SourceFetchRequest,
+    ) -> SourceSearchParseResult:
+        return _parse_dreamjob(response.body, self._config, request)
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        detail_url = _text(listing.raw.get("dreamjob_detail_url")).strip()
+        if not detail_url:
+            raise ValueError(f"{self._config.company} DreamJob listing is missing detail URL")
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=detail_url,
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        return _dreamjob_detail_listing(response.body, listing, self._config)
 
 
 def _parse_lever(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
@@ -1312,6 +1430,19 @@ class _TeamtailorMetadata:
     workplace: str | None
 
 
+@dataclass(frozen=True)
+class _DreamJobCard:
+    source_listing_id: str
+    title: str
+    url: str
+    salary_text: str | None
+    city: str | None
+    location_text: str | None
+    posted_text: str | None
+    tags: tuple[str, ...]
+    snippet: str | None
+
+
 def _personio_no_results(body: str) -> bool:
     return "no positions at the moment" in (html_to_text(body) or "").casefold()
 
@@ -1791,6 +1922,373 @@ def _join_remote_global(
     if normalized_remote_type in {"worldwide", "global"}:
         return True
     return False if remote_locations else None
+
+
+def _parse_dreamjob(
+    body: str,
+    config: ConfiguredCompanySourceConfig,
+    request: SourceFetchRequest,
+) -> SourceSearchParseResult:
+    parser = _DreamJobListParser(config=config)
+    parser.feed(body)
+    cards = parser.cards()
+    if not cards:
+        raise ValueError(f"{config.company} DreamJob response contains no vacancy cards")
+    listings = tuple(_dreamjob_listing(card, config) for card in cards)
+    return SourceSearchParseResult(
+        outcome=SourceOutcome.SUCCESS,
+        listings=listings,
+        next_request=_dreamjob_next_request(parser.page_links, config, request),
+    )
+
+
+def _dreamjob_listing(card: _DreamJobCard, config: ConfiguredCompanySourceConfig) -> RawListing:
+    salary_min, salary_max, salary_currency = _dreamjob_salary_parts(card.salary_text)
+    work_format = _dreamjob_work_format(card)
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "id": card.source_listing_id,
+            "dreamjob_detail_url": card.url,
+            "city": card.city,
+            "published_text": card.posted_text,
+            "tags": card.tags,
+            "snippet": card.snippet,
+            "salary_text": card.salary_text,
+        }
+    )
+    if work_format:
+        raw["work_format"] = work_format
+
+    return RawListing(
+        source_listing_id=card.source_listing_id,
+        title=card.title,
+        url=card.url,
+        source=config.source_id,
+        company=config.company,
+        country=None,
+        city=card.city,
+        location_text=card.location_text,
+        salary_text=card.salary_text,
+        salary_min=salary_min,
+        salary_max=salary_max,
+        salary_currency=salary_currency,
+        posted_at=None,
+        remote_in_country=None,
+        remote_global=None,
+        relocation=None,
+        native_grade=None,
+        description=card.snippet,
+        requirements=None,
+        additional_sections={},
+        skills=(),
+        raw_text=_join_text(
+            card.title,
+            card.salary_text,
+            card.location_text,
+            card.posted_text,
+            " ".join(card.tags),
+            card.snippet,
+        ),
+        raw=raw,
+    )
+
+
+def _dreamjob_detail_listing(
+    body: str,
+    listing: RawListing,
+    config: ConfiguredCompanySourceConfig,
+) -> RawListing:
+    posting = _dreamjob_job_posting(body, config)
+    title = _text(posting.get("title")).strip() or listing.title
+    description_html = _text(posting.get("description")).strip()
+    description = html_to_text(description_html)
+    if not description:
+        raise ValueError(f"{config.company} DreamJob detail response is missing description")
+    sections = _html_sections(description_html)
+    city, country = _dreamjob_job_location(posting)
+    date_posted = _text(posting.get("datePosted")).strip() or listing.posted_at
+    hiring_organization = posting.get("hiringOrganization")
+    raw = {
+        **listing.raw,
+        "detail": {
+            "date_posted": date_posted,
+            "job_location": posting.get("jobLocation"),
+            "hiring_organization": hiring_organization,
+        },
+    }
+    if city:
+        raw["city"] = city
+    if country:
+        raw["country"] = country
+
+    return replace(
+        listing,
+        title=title,
+        country=country or listing.country,
+        city=city or listing.city,
+        location_text=_dreamjob_location_text(city=city or listing.city, country=country or listing.country)
+        or listing.location_text,
+        posted_at=date_posted,
+        description=description,
+        requirements=_requirements(sections, config.requirements_label_markers),
+        additional_sections=sections,
+        raw_text=_join_text(listing.raw_text, city, country, date_posted, description),
+        raw=raw,
+    )
+
+
+class _DreamJobListParser(HTMLParser):
+    def __init__(self, *, config: ConfiguredCompanySourceConfig) -> None:
+        super().__init__(convert_charrefs=True)
+        self.page_links: list[str] = []
+        self._config = config
+        self._cards: list[_DreamJobCard] = []
+        self._card: dict[str, object] | None = None
+        self._card_depth = 0
+        self._capture_field: str | None = None
+        self._capture_depth = 0
+        self._capture_buffer: list[str] = []
+
+    def cards(self) -> tuple[_DreamJobCard, ...]:
+        return tuple(self._cards)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attrs_dict = {key: value or "" for key, value in attrs}
+        self._collect_page_link(tag, attrs_dict)
+        classes = set(attrs_dict.get("class", "").split())
+        if self._card is None:
+            if tag == "div" and "vacancy" in classes:
+                self._card = {"tags": []}
+                self._card_depth = 1
+            return
+
+        if tag not in _HTML_VOID_TAGS:
+            self._card_depth += 1
+
+        if self._capture_field is not None:
+            if tag not in _HTML_VOID_TAGS:
+                self._capture_depth += 1
+            return
+
+        if tag == "h3" and "vacancy__head" in classes:
+            self._card["detail_path"] = attrs_dict.get("data-link", "")
+            self._start_capture("title")
+        elif tag == "div" and "vacancy__salary" in classes:
+            self._start_capture("salary")
+        elif tag == "div" and "tags__item" in classes:
+            self._start_capture("tag")
+        elif tag == "p" and "line-clamp-3" in classes:
+            self._start_capture("snippet")
+        elif tag == "div" and "vacancy__city" in classes:
+            self._start_capture("city")
+        elif tag == "div" and "vacancy__date" in classes:
+            self._start_capture("date")
+
+    def handle_data(self, data: str) -> None:
+        if self._capture_field is not None:
+            self._capture_buffer.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._card is None:
+            return
+        if self._capture_field is not None and tag not in _HTML_VOID_TAGS:
+            self._capture_depth -= 1
+            if self._capture_depth == 0:
+                self._finish_capture()
+
+        if tag not in _HTML_VOID_TAGS:
+            self._card_depth -= 1
+        if self._card_depth == 0:
+            self._finish_card()
+
+    def _collect_page_link(self, tag: str, attrs: dict[str, str]) -> None:
+        if tag != "a":
+            return
+        href = attrs.get("href", "")
+        if "/vakansii?page=" not in href:
+            return
+        url = urljoin(self._config.board_url, html.unescape(href))
+        if url not in self.page_links:
+            self.page_links.append(url)
+
+    def _start_capture(self, field: str) -> None:
+        self._capture_field = field
+        self._capture_depth = 1
+        self._capture_buffer = []
+
+    def _finish_capture(self) -> None:
+        assert self._card is not None
+        assert self._capture_field is not None
+        text = _normalize_space(" ".join(self._capture_buffer))
+        if self._capture_field == "tag":
+            tags = self._card.get("tags")
+            if isinstance(tags, list) and text:
+                tags.append(text)
+        elif text:
+            self._card[self._capture_field] = text
+        self._capture_field = None
+        self._capture_buffer = []
+
+    def _finish_card(self) -> None:
+        assert self._card is not None
+        detail_path = _text(self._card.get("detail_path")).strip()
+        title = _text(self._card.get("title")).strip()
+        match = _DREAMJOB_VACANCIES_PATH_RE.search(detail_path)
+        if not match or not title:
+            self._card = None
+            return
+        city_raw = _text(self._card.get("city")).strip()
+        city = _dreamjob_city(city_raw)
+        location_text = _dreamjob_location_text(city=city, country=None) or _normalize_city_text(city_raw)
+        raw_tags = self._card.get("tags")
+        tags = tuple(
+            _text(tag).strip()
+            for tag in (raw_tags if isinstance(raw_tags, list) else [])
+            if _text(tag).strip()
+        )
+        card = _DreamJobCard(
+            source_listing_id=match.group("id") or "",
+            title=title,
+            url=strip_query(urljoin(self._config.board_url, html.unescape(detail_path))),
+            salary_text=_normalize_salary_text(_text(self._card.get("salary"))),
+            city=city,
+            location_text=location_text,
+            posted_text=_normalize_dreamjob_posted_text(_text(self._card.get("date"))),
+            tags=tags,
+            snippet=_normalize_space(_text(self._card.get("snippet"))) or None,
+        )
+        if card.source_listing_id:
+            self._cards.append(card)
+        self._card = None
+
+
+def _dreamjob_next_request(
+    page_links: list[str],
+    config: ConfiguredCompanySourceConfig,
+    request: SourceFetchRequest,
+) -> SourceFetchRequest | None:
+    current_page = _dreamjob_page_number(request.url)
+    candidates = [
+        (page, link)
+        for link in page_links
+        for page in (_dreamjob_page_number(link),)
+        if page > current_page
+    ]
+    if not candidates:
+        return None
+    _page, url = min(candidates, key=lambda item: item[0])
+    return SourceFetchRequest(
+        source_id=config.source_id,
+        query_variant=request.query_variant,
+        url=url,
+    )
+
+
+def _dreamjob_page_number(url: str) -> int:
+    parsed = urlparse(url)
+    values = parse_qs(parsed.query).get("page", [])
+    for value in values:
+        try:
+            page = int(value)
+        except ValueError:
+            continue
+        return page
+    return 1
+
+
+def _dreamjob_salary_parts(salary_text: str | None) -> tuple[int | None, int | None, str | None]:
+    if not salary_text:
+        return None, None, None
+    currency = "RUB" if any(marker in salary_text.casefold() for marker in _DREAMJOB_RUB_CURRENCY_MARKERS) else None
+    values = [_int_from_salary_token(token) for token in re.findall(r"\d[\d\s]*", salary_text)]
+    values = [value for value in values if value is not None]
+    if not values:
+        return None, None, currency
+    normalized = salary_text.casefold()
+    if normalized.startswith("от "):
+        return values[0], None, currency
+    if normalized.startswith("до "):
+        return None, values[0], currency
+    if len(values) >= _SALARY_RANGE_VALUE_COUNT:
+        return values[0], values[1], currency
+    return values[0], values[0], currency
+
+
+def _int_from_salary_token(value: str) -> int | None:
+    digits = "".join(char for char in value if char.isdigit())
+    return int(digits) if digits else None
+
+
+def _dreamjob_work_format(card: _DreamJobCard) -> str | None:
+    tag_keys = {tag.casefold() for tag in card.tags}
+    if tag_keys & _DREAMJOB_REMOTE_TAGS:
+        return "remote"
+    if card.location_text and card.location_text.casefold() in {"удаленно", "удалённо", "remote"}:
+        return "remote"
+    return None
+
+
+def _dreamjob_job_posting(body: str, config: ConfiguredCompanySourceConfig) -> dict[str, Any]:
+    for match in _JOIN_JSON_LD_RE.finditer(body):
+        try:
+            value = json.loads(match.group("body").strip())
+        except json.JSONDecodeError:
+            continue
+        posting = _personio_job_posting_from_json(value)
+        if posting is not None:
+            return posting
+    raise ValueError(f"{config.company} DreamJob detail response is missing JobPosting JSON-LD")
+
+
+def _dreamjob_job_location(posting: dict[str, Any]) -> tuple[str | None, str | None]:
+    locations = posting.get("jobLocation")
+    items = locations if isinstance(locations, list) else [locations]
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        address = item.get("address")
+        if not isinstance(address, dict):
+            continue
+        city = _text(address.get("addressLocality")).strip() or None
+        country = _text(address.get("addressCountry")).strip() or None
+        if city or country:
+            return city, country
+    return None, None
+
+
+def _dreamjob_city(value: str) -> str | None:
+    normalized = _normalize_city_text(value)
+    if not normalized:
+        return None
+    if normalized.casefold() in {"удаленно", "удалённо", "remote"}:
+        return None
+    return normalized
+
+
+def _dreamjob_location_text(*, city: str | None, country: str | None) -> str | None:
+    if city and country:
+        return f"{city}, {country}"
+    return city or country
+
+
+def _normalize_city_text(value: str) -> str | None:
+    text = _normalize_space(value).rstrip(",")
+    return text or None
+
+
+def _normalize_salary_text(value: str) -> str | None:
+    text = _normalize_space(value)
+    return text or None
+
+
+def _normalize_dreamjob_posted_text(value: str) -> str | None:
+    text = _normalize_space(value)
+    return text or None
+
+
+def _normalize_space(value: str) -> str:
+    return " ".join(value.replace("\xa0", " ").split())
 
 
 def _json_array(body: str, label: str) -> list[Any]:
