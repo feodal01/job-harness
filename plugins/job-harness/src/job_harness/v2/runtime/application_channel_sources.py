@@ -144,6 +144,18 @@ IT_JOBS_UZ_APPLICATION_CHANNEL_POLICY = ApplicationChannelResolutionPolicy(
     ats_domains=_ATS_DOMAINS,
     non_career_link_domains=_AGGREGATOR_CAREER_DOMAINS,
 )
+_COMPANY_CAREER_URLS = {
+    "career:3commas": "https://jobs.ashbyhq.com/3commas",
+    "career:airslate": "https://jobs.lever.co/airslate",
+    "career:appfollow": "https://jobs.lever.co/appfollow",
+    "career:chainstack": "https://chainstack.bamboohr.com/careers/list",
+    "career:outschool": "https://job-boards.greenhouse.io/outschool",
+    "career:termius": "https://jobs.lever.co/Termius",
+    "career:truv": "https://jobs.lever.co/truv",
+    "career:wallarm": "https://wallarm.recruitee.com/",
+    "career:wintermute": "https://jobs.lever.co/wintermute-trading",
+    "career:zeroavia": "https://apply.workable.com/zeroavia/",
+}
 
 
 def application_channel_seed(listing: RawListing) -> ApplicationChannelSeed:
@@ -176,6 +188,11 @@ def application_channel_seed(listing: RawListing) -> ApplicationChannelSeed:
             listing,
             aggregator_source="it_jobs_uz",
             policy=IT_JOBS_UZ_APPLICATION_CHANNEL_POLICY,
+        )
+    if listing.source in _COMPANY_CAREER_URLS:
+        return ApplicationChannelSeed(
+            company_career_url=_COMPANY_CAREER_URLS[listing.source],
+            aggregator_source=listing.source,
         )
     return ApplicationChannelSeed()
 

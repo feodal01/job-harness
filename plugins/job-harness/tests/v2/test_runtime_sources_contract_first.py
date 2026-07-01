@@ -36,6 +36,7 @@ from job_harness.v2.runtime.sources import (
     AirSlateCareerSource,
     AmoCRMCareerSource,
     AppFollowCareerSource,
+    ChainstackCareerSource,
     CoinsPaidCareerSource,
     FinderWorkSource,
     GeekJobSource,
@@ -48,10 +49,17 @@ from job_harness.v2.runtime.sources import (
     ItJobsUzSource,
     JetBrainsCareerSource,
     JobTurboSource,
+    OutschoolCareerSource,
     StaffAmSource,
     TalantoSource,
     TalentoSource,
+    TermiusCareerSource,
+    ThreeCommasCareerSource,
+    TruvCareerSource,
     VKCareerSource,
+    WallarmCareerSource,
+    WintermuteCareerSource,
+    ZeroAviaCareerSource,
 )
 from job_harness.v2.source_catalog import source_fixture_suite
 
@@ -135,21 +143,23 @@ def _fixture_response_path(source: str, case: str) -> Path:
 
 
 def _source_id(source: str) -> str:
-    if source == "career_vk":
-        return "career:vk"
-    if source == "career_jetbrains":
-        return "career:jetbrains"
-    if source == "career_ibs":
-        return "career:ibs"
-    if source == "career_amocrm":
-        return "career:amocrm"
-    if source == "career_appfollow":
-        return "career:appfollow"
-    if source == "career_coinspaid":
-        return "career:coinspaid"
-    if source == "career_airslate":
-        return "career:airslate"
-    return source
+    return {
+        "career_3commas": "career:3commas",
+        "career_airslate": "career:airslate",
+        "career_amocrm": "career:amocrm",
+        "career_appfollow": "career:appfollow",
+        "career_chainstack": "career:chainstack",
+        "career_coinspaid": "career:coinspaid",
+        "career_ibs": "career:ibs",
+        "career_jetbrains": "career:jetbrains",
+        "career_outschool": "career:outschool",
+        "career_termius": "career:termius",
+        "career_truv": "career:truv",
+        "career_vk": "career:vk",
+        "career_wallarm": "career:wallarm",
+        "career_wintermute": "career:wintermute",
+        "career_zeroavia": "career:zeroavia",
+    }.get(source, source)
 
 
 def _expected(source: str, case: str) -> dict[str, Any]:
@@ -328,6 +338,14 @@ def _assert_listing_matches(test: unittest.TestCase, listing: Any, expected: dic
         test.assertEqual(tuple(expected["skills"]), listing.skills)
 
 
+def _jsonish(value: object) -> object:
+    if isinstance(value, tuple):
+        return [_jsonish(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _jsonish(item) for key, item in value.items()}
+    return value
+
+
 def _has_explicit_global_remote_evidence(listing: RawListing) -> bool:
     if _value_mentions_global_remote((listing.location_text, listing.country, listing.city)):
         return True
@@ -391,6 +409,14 @@ class RemoteGlobalEvidenceContractTest(unittest.TestCase):
             ("career_appfollow", AppFollowCareerSource()),
             ("career_coinspaid", CoinsPaidCareerSource()),
             ("career_airslate", AirSlateCareerSource()),
+            ("career_wintermute", WintermuteCareerSource()),
+            ("career_truv", TruvCareerSource()),
+            ("career_termius", TermiusCareerSource()),
+            ("career_outschool", OutschoolCareerSource()),
+            ("career_zeroavia", ZeroAviaCareerSource()),
+            ("career_wallarm", WallarmCareerSource()),
+            ("career_chainstack", ChainstackCareerSource()),
+            ("career_3commas", ThreeCommasCareerSource()),
         )
 
         for fixture_folder, source in cases:
@@ -442,6 +468,14 @@ class RemoteInCountryEvidenceContractTest(unittest.TestCase):
             ("career_appfollow", AppFollowCareerSource()),
             ("career_coinspaid", CoinsPaidCareerSource()),
             ("career_airslate", AirSlateCareerSource()),
+            ("career_wintermute", WintermuteCareerSource()),
+            ("career_truv", TruvCareerSource()),
+            ("career_termius", TermiusCareerSource()),
+            ("career_outschool", OutschoolCareerSource()),
+            ("career_zeroavia", ZeroAviaCareerSource()),
+            ("career_wallarm", WallarmCareerSource()),
+            ("career_chainstack", ChainstackCareerSource()),
+            ("career_3commas", ThreeCommasCareerSource()),
         )
 
         for fixture_folder, source in cases:
@@ -2556,10 +2590,105 @@ class AirSlateCareerSourceTest(unittest.TestCase):
             with self.subTest(source_listing_id=source_listing_id, raw_fields=raw_fields):
                 listing = _listing_by_id(parsed.listings, source_listing_id)
                 for key, expected_value in raw_fields.items():
-                    actual_value = listing.raw.get(key)
-                    if isinstance(actual_value, tuple):
-                        actual_value = list(actual_value)
-                    self.assertEqual(expected_value, actual_value, key)
+                    self.assertEqual(expected_value, _jsonish(listing.raw.get(key)), key)
+
+
+class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        for fixture_folder, source in _additional_company_sources():
+            with self.subTest(source=source.descriptor.source_id):
+                supported_source = SupportedSource(
+                    scraper=source,
+                    fixture_suite=source_fixture_suite(source.descriptor.source_id),
+                )
+
+                self.assertEqual(_source_id(fixture_folder), supported_source.scraper.descriptor.source_id)
+
+    def test_request_mapping_fetches_captured_source_board(self) -> None:
+        for _fixture_folder, source in _additional_company_sources():
+            with self.subTest(source=source.descriptor.source_id):
+                fixture_case = _required_fixture_case(
+                    source.descriptor.source_id,
+                    ParserFixtureKind.SUCCESS_NON_EMPTY,
+                )
+                fetch_requests = source.build_search_requests(SearchRequest(query_variants=("QA",)))
+
+                self.assertEqual(1, len(fetch_requests))
+                self.assertEqual(source.descriptor.source_id, fetch_requests[0].source_id)
+                self.assertEqual("QA", fetch_requests[0].query_variant)
+                self.assertEqual(_fixture_captured_url(fixture_case), fetch_requests[0].url)
+
+    def test_success_fixtures_match_manual_golden_samples(self) -> None:
+        for fixture_folder, source in _additional_company_sources():
+            with self.subTest(source=source.descriptor.source_id):
+                expected = _expected(fixture_folder, "success")
+                fixture_case = _required_fixture_case(
+                    source.descriptor.source_id,
+                    ParserFixtureKind.SUCCESS_NON_EMPTY,
+                )
+
+                parsed = source.parse_search_response(
+                    _fixture_response(fixture_folder, "success"),
+                    SourceFetchRequest(
+                        source_id=source.descriptor.source_id,
+                        query_variant="QA",
+                        url=_fixture_captured_url(fixture_case),
+                    ),
+                )
+
+                self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+                self.assertEqual(expected["expected_count"], len(parsed.listings))
+                for sample in expected["sample_listings"]:
+                    _assert_listing_matches(
+                        self,
+                        _listing_by_id(parsed.listings, sample["source_listing_id"]),
+                        sample,
+                    )
+
+                for source_listing_id, phrases in expected.get("description_contains", {}).items():
+                    listing = _listing_by_id(parsed.listings, source_listing_id)
+                    self.assertIsNotNone(listing.description)
+                    for phrase in phrases:
+                        self.assertIn(phrase, listing.description or "")
+
+                for source_listing_id, phrases in expected.get("requirements_contains", {}).items():
+                    listing = _listing_by_id(parsed.listings, source_listing_id)
+                    self.assertIsNotNone(listing.requirements)
+                    for phrase in phrases:
+                        self.assertIn(phrase, listing.requirements or "")
+
+                for source_listing_id, phrases in expected.get("salary_contains", {}).items():
+                    listing = _listing_by_id(parsed.listings, source_listing_id)
+                    self.assertIsNotNone(listing.salary_text)
+                    for phrase in phrases:
+                        self.assertIn(phrase, listing.salary_text or "")
+
+                section_labels = expected.get("section_labels", [])
+                if isinstance(section_labels, list) and section_labels:
+                    parsed_labels = {
+                        label
+                        for listing in parsed.listings
+                        for label in listing.additional_sections
+                    }
+                    self.assertTrue(set(section_labels) <= parsed_labels)
+
+                for source_listing_id, raw_fields in expected.get("raw_contains", {}).items():
+                    listing = _listing_by_id(parsed.listings, source_listing_id)
+                    for key, expected_value in raw_fields.items():
+                        self.assertEqual(expected_value, _jsonish(listing.raw.get(key)), key)
+
+
+def _additional_company_sources() -> tuple[tuple[str, SourceScraper], ...]:
+    return (
+        ("career_wintermute", WintermuteCareerSource()),
+        ("career_truv", TruvCareerSource()),
+        ("career_termius", TermiusCareerSource()),
+        ("career_outschool", OutschoolCareerSource()),
+        ("career_zeroavia", ZeroAviaCareerSource()),
+        ("career_wallarm", WallarmCareerSource()),
+        ("career_chainstack", ChainstackCareerSource()),
+        ("career_3commas", ThreeCommasCareerSource()),
+    )
 
 
 def _e2e_success_fixture_mapping(catalog: SourceCatalog, request: SearchRequest) -> dict[str, Path]:

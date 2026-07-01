@@ -1,0 +1,140 @@
+{
+  "outcome": "success",
+  "expected_count": 7,
+  "sample_listings": [
+    {
+      "source_listing_id": "128",
+      "title": "Account Executive",
+      "url": "https://chainstack.bamboohr.com/careers/128",
+      "company": "Chainstack",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "138",
+      "title": "Infrastructure Engineer (LATAM time zone)",
+      "url": "https://chainstack.bamboohr.com/careers/138",
+      "company": "Chainstack",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "143",
+      "title": "Senior Software Engineer (Golang)",
+      "url": "https://chainstack.bamboohr.com/careers/143",
+      "company": "Chainstack",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "144",
+      "title": "Product Engineer (Platform)",
+      "url": "https://chainstack.bamboohr.com/careers/144",
+      "company": "Chainstack",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "128": {
+      "department": "Sales Team",
+      "employment_status": "Full-Time Remote",
+      "location": {
+        "city": null,
+        "state": null
+      },
+      "ats_location": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "is_remote": null,
+      "location_type": "1",
+      "work_format": [
+        "remote"
+      ]
+    },
+    "138": {
+      "department": "Infrastructure Team",
+      "employment_status": "Full-Time Remote",
+      "location": {
+        "city": null,
+        "state": null
+      },
+      "ats_location": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "is_remote": null,
+      "location_type": "1",
+      "work_format": [
+        "remote"
+      ]
+    },
+    "143": {
+      "department": "Software Engineering Team",
+      "employment_status": "Full-Time Remote",
+      "location": {
+        "city": null,
+        "state": null
+      },
+      "ats_location": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "is_remote": null,
+      "location_type": "1",
+      "work_format": [
+        "remote"
+      ]
+    }
+  },
+  "description_contains": {},
+  "requirements_contains": {},
+  "section_labels": []
+}

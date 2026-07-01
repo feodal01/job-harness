@@ -1,0 +1,186 @@
+{
+  "outcome": "success",
+  "expected_count": 4,
+  "sample_listings": [
+    {
+      "source_listing_id": "8908ed58-0430-4585-941a-fdd5194f9613",
+      "title": "Customer Success Manager",
+      "url": "https://jobs.lever.co/truv/8908ed58-0430-4585-941a-fdd5194f9613",
+      "company": "Truv",
+      "country": "US",
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-26T15:31:41.408000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "b523092e-714e-49f7-bea1-c1edef7bf6b7",
+      "title": "Data Analyst",
+      "url": "https://jobs.lever.co/truv/b523092e-714e-49f7-bea1-c1edef7bf6b7",
+      "company": "Truv",
+      "country": "FR",
+      "city": null,
+      "location_text": "France",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2022-01-03T17:50:47.557000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "8e8eb5ff-0344-420b-a0e5-a2f1c1d4171f",
+      "title": "QA Engineer",
+      "url": "https://jobs.lever.co/truv/8e8eb5ff-0344-420b-a0e5-a2f1c1d4171f",
+      "company": "Truv",
+      "country": "ES",
+      "city": null,
+      "location_text": "Spain, Cyprus, Georgia, Italy, Montenegro, Portugal, Serbia",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-30T08:45:38.821000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "3c350a95-c889-472a-b7b4-85435feee510",
+      "title": "Senior Software Engineer - Integrations, Crawler",
+      "url": "https://jobs.lever.co/truv/3c350a95-c889-472a-b7b4-85435feee510",
+      "company": "Truv",
+      "country": "ES",
+      "city": null,
+      "location_text": "Spain, Georgia, Montenegro, Portugal, Serbia, Buenos Aires, Cyprus, UAE",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2022-01-03T17:36:46.441000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "description_contains": {
+    "8e8eb5ff-0344-420b-a0e5-a2f1c1d4171f": [
+      "secure and real-time API platform",
+      "ensure product quality through comprehensive testing"
+    ],
+    "3c350a95-c889-472a-b7b4-85435feee510": [
+      "streamlines income and employment verification"
+    ]
+  },
+  "requirements_contains": {
+    "8908ed58-0430-4585-941a-fdd5194f9613": [
+      "3-5+ years of experience in customer success",
+      "Prior account management or customer management"
+    ],
+    "b523092e-714e-49f7-bea1-c1edef7bf6b7": [
+      "5+ years experience in analytics",
+      "Proficient at both SQL and Python"
+    ],
+    "8e8eb5ff-0344-420b-a0e5-a2f1c1d4171f": [
+      "2+ years QA experience",
+      "Experience with Agile/Scrum environments"
+    ],
+    "3c350a95-c889-472a-b7b4-85435feee510": [
+      "Strong knowledge of Python",
+      "5+ years of experience in backend development"
+    ]
+  },
+  "raw_contains": {
+    "8908ed58-0430-4585-941a-fdd5194f9613": {
+      "workplace_type": "remote",
+      "work_format": [
+        "remote"
+      ],
+      "all_locations": [
+        "Remote"
+      ],
+      "remote_locations": [
+        "Remote"
+      ]
+    },
+    "b523092e-714e-49f7-bea1-c1edef7bf6b7": {
+      "workplace_type": "remote",
+      "work_format": [
+        "remote"
+      ],
+      "all_locations": [
+        "France"
+      ],
+      "remote_locations": [
+        "France"
+      ]
+    },
+    "8e8eb5ff-0344-420b-a0e5-a2f1c1d4171f": {
+      "workplace_type": "remote",
+      "work_format": [
+        "remote"
+      ],
+      "all_locations": [
+        "Spain",
+        "Cyprus",
+        "Georgia",
+        "Italy",
+        "Montenegro",
+        "Portugal",
+        "Serbia"
+      ],
+      "remote_locations": [
+        "Spain",
+        "Cyprus",
+        "Georgia",
+        "Italy",
+        "Montenegro",
+        "Portugal",
+        "Serbia"
+      ]
+    },
+    "3c350a95-c889-472a-b7b4-85435feee510": {
+      "workplace_type": "remote",
+      "work_format": [
+        "remote"
+      ],
+      "all_locations": [
+        "Spain",
+        "Georgia",
+        "Montenegro",
+        "Portugal",
+        "Serbia",
+        "Buenos Aires",
+        "Cyprus",
+        "UAE"
+      ],
+      "remote_locations": [
+        "Spain",
+        "Georgia",
+        "Montenegro",
+        "Portugal",
+        "Serbia",
+        "Buenos Aires",
+        "Cyprus",
+        "UAE"
+      ]
+    }
+  },
+  "section_labels": [
+    "What You’ll Do",
+    "Who You Are",
+    "Preferred skills"
+  ]
+}

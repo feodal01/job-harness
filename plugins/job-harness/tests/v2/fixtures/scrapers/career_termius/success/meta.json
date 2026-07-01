@@ -1,0 +1,7 @@
+{
+  "source_id": "career:termius",
+  "captured_url": "https://api.lever.co/v0/postings/Termius?mode=json",
+  "captured_at": "2026-06-27",
+  "fixture_kind": "success_non_empty",
+  "notes": "Real Lever postings JSON containing all three live Termius postings at capture time."
+}

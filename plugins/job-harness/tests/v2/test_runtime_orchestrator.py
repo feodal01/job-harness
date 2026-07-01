@@ -717,25 +717,24 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
 
         fetcher = FakeApplicationChannelFetcher()
 
-        with tempfile.TemporaryDirectory() as tmp:
-            with _store(Path(tmp)) as writer:
-                writer.append_raw_record(_raw_search_record(raw_listing))
-                raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
-                runner = ApplicationChannelEnrichmentRunner(
-                    fetcher=fetcher,
-                    writer=writer,
-                    config=ApplicationChannelServiceConfig(),
-                )
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
 
-                # Act
-                result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
 
-                # Assert
-                self.assertEqual(0, result.attempted)
-                self.assertEqual(1, result.resolved)
-                self.assertEqual(0, result.failed)
-                self.assertEqual(1, result.updated)
-                raw_records = writer.read_raw_records()
+            # Assert
+            self.assertEqual(0, result.attempted)
+            self.assertEqual(1, result.resolved)
+            self.assertEqual(0, result.failed)
+            self.assertEqual(1, result.updated)
+            raw_records = writer.read_raw_records()
 
             self.assertEqual([], fetcher.calls)
             channels = raw_records[0]["listing"]["raw"]["application_channels"]
@@ -743,6 +742,40 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual("Careers", channels[0]["label"])
             self.assertEqual("https://rabota.example.test/", channels[0]["url"])
             self.assertEqual("source_provided", channels[0]["status"])
+
+    async def test_application_channel_runner_adds_company_career_source_board(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("career:appfollow", "1"),
+            url="https://jobs.lever.co/appfollow/f3e97cf3-9777-4e54-be7a-29525fe67b86",
+        )
+        fetcher = FakeApplicationChannelFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            self.assertEqual(0, result.attempted)
+            self.assertEqual(1, result.resolved)
+            self.assertEqual(0, result.failed)
+            self.assertEqual(1, result.updated)
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual([], fetcher.calls)
+        channels = raw_records[0]["listing"]["raw"]["application_channels"]
+        self.assertEqual("company_career_page", channels[0]["type"])
+        self.assertEqual("Careers", channels[0]["label"])
+        self.assertEqual("https://jobs.lever.co/appfollow", channels[0]["url"])
+        self.assertEqual("career:appfollow.company_vacancies_url", channels[0]["source"])
 
     async def test_application_channel_runner_resolves_hh_profile_official_site(self) -> None:
         # Arrange

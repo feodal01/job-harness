@@ -10,6 +10,7 @@ from job_harness.v2.runtime.sources import (
     AirSlateCareerSource,
     AmoCRMCareerSource,
     AppFollowCareerSource,
+    ChainstackCareerSource,
     CoinsPaidCareerSource,
     FinderWorkSource,
     GeekJobSource,
@@ -22,10 +23,17 @@ from job_harness.v2.runtime.sources import (
     ItJobsUzSource,
     JetBrainsCareerSource,
     JobTurboSource,
+    OutschoolCareerSource,
     StaffAmSource,
     TalantoSource,
     TalentoSource,
+    TermiusCareerSource,
+    ThreeCommasCareerSource,
+    TruvCareerSource,
     VKCareerSource,
+    WallarmCareerSource,
+    WintermuteCareerSource,
+    ZeroAviaCareerSource,
 )
 from job_harness.v2.source_catalog import source_catalog_entries, source_fixture_suite
 
@@ -49,6 +57,14 @@ _SOURCE_FACTORIES: dict[str, Callable[[], SourceScraper]] = {
     "career:appfollow": AppFollowCareerSource,
     "career:coinspaid": CoinsPaidCareerSource,
     "career:airslate": AirSlateCareerSource,
+    "career:wintermute": WintermuteCareerSource,
+    "career:truv": TruvCareerSource,
+    "career:termius": TermiusCareerSource,
+    "career:outschool": OutschoolCareerSource,
+    "career:zeroavia": ZeroAviaCareerSource,
+    "career:wallarm": WallarmCareerSource,
+    "career:chainstack": ChainstackCareerSource,
+    "career:3commas": ThreeCommasCareerSource,
 }
 
 

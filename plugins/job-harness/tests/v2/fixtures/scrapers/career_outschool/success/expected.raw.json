@@ -1,0 +1,196 @@
+{
+  "outcome": "success",
+  "expected_count": 5,
+  "sample_listings": [
+    {
+      "source_listing_id": "4690260006",
+      "title": "Director of Data",
+      "url": "https://job-boards.greenhouse.io/outschool/jobs/4690260006",
+      "company": "Outschool",
+      "country": null,
+      "city": null,
+      "location_text": "Remote (U.S. & Canada)",
+      "salary_text": "Compensation\nOutschool recruits across the US and Canada, and sets employee salaries to reflect local compensation and cost of living. In addition to base compensation, this role is eligible for equity and benefits. Additional details are provided during the interview process.\nFor Canadian-based candidates, compensation range for this role is $220,000 - $275,000 CAD annually.\nThis role is available in the following US Pay Zones:\n\nUS Pay Zones\nUS Tier 1: $260,000 - $357,500\nUS Tier 2: $221,000 - $303,875\nUS Tier 3: $195,000 - $268,125",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-18T13:43:08-04:00",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4684688006",
+      "title": "Director of Engineering",
+      "url": "https://job-boards.greenhouse.io/outschool/jobs/4684688006",
+      "company": "Outschool",
+      "country": null,
+      "city": null,
+      "location_text": "Remote (U.S. & Canada)",
+      "salary_text": "Compensation\nOutschool recruits across the US and Canada, and sets employee salaries to reflect local compensation and cost of living. In addition to base compensation, this role is eligible for equity and benefits. Additional details are provided during the interview process.\nFor Canadian-based candidates, compensation range for this role is $220,000 - $275,000 CAD annually.\nThis role is available in the following US Pay Zones:\n\nUS Pay Zones\nUS Tier 1: $260,000 - $357,500\nUS Tier 2: $221,000 - $303,875\nUS Tier 3: $195,000 - $268,125",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-27T12:42:22-04:00",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4685596006",
+      "title": "Senior Software Engineer, Infrastructure",
+      "url": "https://job-boards.greenhouse.io/outschool/jobs/4685596006",
+      "company": "Outschool",
+      "country": "South Korea",
+      "city": "Haeundae-gu, Busan",
+      "location_text": "Haeundae-gu, Busan, South Korea",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-30T13:04:27-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4683198006",
+      "title": "Staff Software Engineer",
+      "url": "https://job-boards.greenhouse.io/outschool/jobs/4683198006",
+      "company": "Outschool",
+      "country": null,
+      "city": null,
+      "location_text": "Remote (U.S. & Canada)",
+      "salary_text": "Compensation\nOutschool recruits across the US and Canada, and sets employee salaries to reflect local compensation and cost of living. In addition to base compensation, this role is eligible for equity and benefits. Additional details are provided during the interview process.\nFor Canadian-based candidates, compensation range for this role is $148,000 - $203,500 CAD annually.\nThis role is available in the following US Pay Zones:\n\nUS Pay Zones\nUS Tier 1: $186,400 - $256,300\nUS Tier 2: $158,440 - $217,855\nUS Tier 3: $139,800 - $192,225\nWe use Covey as part of our hiring and / or promotional process for jobs in NYC and certain features may qualify it as an AEDT. As part of the evaluation process we provide Covey with job requirements and candidate submitted applications. We began using\nCovey Scout for Inbound\non March 21, 2024.\nPlease see the independent bias audit report covering our use of Covey\nhere\n.",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-20T16:37:19-04:00",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4675567006",
+      "title": "Support Escalations Specialist (6-Month Contract)",
+      "url": "https://job-boards.greenhouse.io/outschool/jobs/4675567006",
+      "company": "Outschool",
+      "country": null,
+      "city": null,
+      "location_text": "Remote (U.S.); San Francisco",
+      "salary_text": "Hours and Compensation\nOutschool recruits across the U.S. and Canada. This role is anticipated to work 35-40 hours per week, with an anticipated hourly rate of $25.00.",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-22T18:15:07-04:00",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "description_contains": {
+    "4690260006": [
+      "Outschool’s mission is to inspire kids to love learning",
+      "Director of Data"
+    ],
+    "4685596006": [
+      "Senior Software Engineer, Infrastructure",
+      "South Korea"
+    ]
+  },
+  "requirements_contains": {
+    "4690260006": [
+      "10+ years of experience in data engineering",
+      "5+ years of management experience"
+    ],
+    "4684688006": [
+      "10+ years of software engineering experience",
+      "5+ years of engineering management experience"
+    ],
+    "4685596006": [
+      "7+ years of software or infrastructure engineering experience",
+      "Strong Kubernetes fundamentals"
+    ],
+    "4683198006": [
+      "7+ years of software engineering experience",
+      "Proficiency in full-stack development"
+    ],
+    "4675567006": [
+      "Strong written communication",
+      "Judgment under ambiguity"
+    ]
+  },
+  "salary_contains": {
+    "4690260006": [
+      "For Canadian-based candidates, compensation range for this role is $220,000 - $275,000 CAD annually.",
+      "US Tier 1: $260,000 - $357,500"
+    ],
+    "4683198006": [
+      "For Canadian-based candidates, compensation range for this role is $148,000 - $203,500 CAD annually.",
+      "US Tier 3: $139,800 - $192,225"
+    ],
+    "4675567006": [
+      "anticipated hourly rate of $25.00"
+    ]
+  },
+  "raw_contains": {
+    "4690260006": {
+      "location": "Remote (U.S. & Canada)",
+      "work_format": [
+        "remote"
+      ],
+      "remote_locations": [
+        "US",
+        "Canada"
+      ]
+    },
+    "4684688006": {
+      "location": "Remote (U.S. & Canada)",
+      "work_format": [
+        "remote"
+      ],
+      "remote_locations": [
+        "US",
+        "Canada"
+      ]
+    },
+    "4685596006": {
+      "location": "Haeundae-gu, Busan, South Korea",
+      "work_format": [
+        "office"
+      ]
+    },
+    "4683198006": {
+      "location": "Remote (U.S. & Canada)",
+      "work_format": [
+        "remote"
+      ],
+      "remote_locations": [
+        "US",
+        "Canada"
+      ]
+    },
+    "4675567006": {
+      "location": "Remote (U.S.); San Francisco",
+      "work_format": [
+        "remote",
+        "office"
+      ],
+      "remote_locations": [
+        "US"
+      ]
+    }
+  },
+  "section_labels": [
+    "The Company",
+    "The Role",
+    "Core Responsibilities",
+    "Desired Experience & Skills",
+    "Compensation"
+  ]
+}

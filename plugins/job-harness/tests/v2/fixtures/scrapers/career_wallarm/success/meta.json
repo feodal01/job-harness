@@ -1,0 +1,6 @@
+{
+  "captured_url": "https://wallarm.recruitee.com/api/offers",
+  "captured_at": "2026-06-27",
+  "source": "live Recruitee offers JSON",
+  "notes": "Captured after comparing the public Wallarm Recruitee page and detail page. The current offer is remote but restricted to listed Recruitee locations, not global remote."
+}

@@ -1,0 +1,72 @@
+{
+  "outcome": "success",
+  "expected_count": 1,
+  "sample_listings": [
+    {
+      "source_listing_id": "2412507",
+      "title": "Senior Rust Developer",
+      "url": "https://wallarm.recruitee.com/o/senior-rust-developer",
+      "company": "Wallarm",
+      "country": "BG",
+      "city": "Sofia, Belgrade, Barcelona, Lisbon",
+      "location_text": "Remote job",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-01-13T11:54:47Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "description_contains": {
+    "2412507": [
+      "high-performing AI/API Management Platform on Rust",
+      "first production-ready version"
+    ]
+  },
+  "requirements_contains": {
+    "2412507": [
+      "5+ years of overall software development experience",
+      "high-load, distributed systems"
+    ]
+  },
+  "raw_contains": {
+    "2412507": {
+      "department": "Engineering",
+      "employment_type_code": "fulltime_permanent",
+      "experience_code": "experienced",
+      "location": "Remote job",
+      "country": "Bulgaria",
+      "country_code": "BG",
+      "city": "Sofia",
+      "cities": [
+        "Sofia",
+        "Belgrade",
+        "Barcelona",
+        "Lisbon"
+      ],
+      "remote": true,
+      "hybrid": false,
+      "on_site": false,
+      "work_format": [
+        "remote"
+      ],
+      "remote_locations": [
+        "BG",
+        "RS",
+        "ES",
+        "PT"
+      ],
+      "salary": {
+        "min": null,
+        "max": null,
+        "currency": null,
+        "period": null
+      }
+    }
+  },
+  "section_labels": []
+}
