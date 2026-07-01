@@ -140,7 +140,13 @@ VALUES
     (45, 'career:synthesized', 'company_career', 'http', 100),
     (46, 'career:tradingview', 'company_career', 'http', 100),
     (47, 'career:osome', 'company_career', 'http', 100),
-    (48, 'career:sumsub', 'company_career', 'http', 100);
+    (48, 'career:sumsub', 'company_career', 'http', 100),
+    (49, 'career:unlimint', 'company_career', 'http', 100),
+    (50, 'career:mapbox', 'company_career', 'http', 100),
+    (51, 'career:homebuddy', 'company_career', 'http', 100),
+    (52, 'career:lyka', 'company_career', 'http', 100),
+    (53, 'career:lokalise', 'company_career', 'http', 100),
+    (54, 'career:adtech-holding', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -408,7 +414,8 @@ WITH lever_sources(source_id) AS (
         ('career:collectly'),
         ('career:planner5d'),
         ('career:superannotate'),
-        ('career:xsolla')
+        ('career:xsolla'),
+        ('career:unlimint')
 ),
 lever_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -433,7 +440,8 @@ WITH ashby_sources(source_id) AS (
         ('career:datafold'),
         ('career:inworld'),
         ('career:luminai'),
-        ('career:teleport')
+        ('career:teleport'),
+        ('career:mapbox')
 ),
 ashby_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -455,7 +463,9 @@ CROSS JOIN ashby_criteria;
 WITH workable_sources(source_id) AS (
     VALUES
         ('career:joom'),
-        ('career:zeptolab')
+        ('career:zeptolab'),
+        ('career:homebuddy'),
+        ('career:lyka')
 ),
 workable_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -479,7 +489,8 @@ WITH greenhouse_sources(source_id) AS (
         ('career:abbyy'),
         ('career:ahrefs'),
         ('career:eqvilent'),
-        ('career:humansignal')
+        ('career:humansignal'),
+        ('career:lokalise')
 ),
 greenhouse_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -500,6 +511,7 @@ CROSS JOIN greenhouse_criteria;
 
 WITH bamboohr_sources(source_id) AS (
     VALUES
+        ('career:adtech-holding'),
         ('career:altenar'),
         ('career:synder')
 ),
@@ -1427,17 +1439,21 @@ WITH configured_company_success_fixtures(source_id, folder) AS (
         ('career:planner5d', 'career_planner5d'),
         ('career:superannotate', 'career_superannotate'),
         ('career:xsolla', 'career_xsolla'),
+        ('career:unlimint', 'career_unlimint'),
         ('career:clickhouse', 'career_clickhouse'),
         ('career:datafold', 'career_datafold'),
         ('career:inworld', 'career_inworld'),
         ('career:luminai', 'career_luminai'),
         ('career:teleport', 'career_teleport'),
+        ('career:mapbox', 'career_mapbox'),
         ('career:joom', 'career_joom'),
         ('career:zeptolab', 'career_zeptolab'),
         ('career:abbyy', 'career_abbyy'),
         ('career:ahrefs', 'career_ahrefs'),
         ('career:eqvilent', 'career_eqvilent'),
         ('career:humansignal', 'career_humansignal'),
+        ('career:lokalise', 'career_lokalise'),
+        ('career:adtech-holding', 'career_adtech-holding'),
         ('career:altenar', 'career_altenar'),
         ('career:synder', 'career_synder'),
         ('career:crystal', 'career_crystal'),
@@ -1471,6 +1487,8 @@ FROM configured_company_success_fixtures
 WHERE source_id NOT IN (
     'career:joom',
     'career:zeptolab',
+    'career:homebuddy',
+    'career:lyka',
     'career:crystal',
     'career:synthesized',
     'career:tradingview',
@@ -1482,6 +1500,8 @@ WITH configured_company_success_html_fixtures(source_id, folder) AS (
     VALUES
         ('career:joom', 'career_joom'),
         ('career:zeptolab', 'career_zeptolab'),
+        ('career:homebuddy', 'career_homebuddy'),
+        ('career:lyka', 'career_lyka'),
         ('career:crystal', 'career_crystal'),
         ('career:synthesized', 'career_synthesized'),
         ('career:tradingview', 'career_tradingview'),

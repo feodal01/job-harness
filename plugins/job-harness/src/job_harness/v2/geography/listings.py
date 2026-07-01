@@ -16,8 +16,12 @@ def listing_country_codes(listing: dict[str, object]) -> tuple[str, ...]:
 
 def _listing_country_candidates(listing: dict[str, object]) -> tuple[str, ...]:
     values: list[str] = []
-    for key in ("location_text", "country", "city"):
+    for key in ("location_text", "country"):
         text = _optional_text(listing.get(key))
+        if text:
+            values.append(text)
+    if not _optional_text(listing.get("country")):
+        text = _optional_text(listing.get("city"))
         if text:
             values.append(text)
     raw = listing.get("raw")

@@ -96,6 +96,13 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         board_url="https://api.lever.co/v0/postings/xsolla?mode=json",
         career_url="https://jobs.lever.co/xsolla",
     ),
+    "career:unlimint": ConfiguredCompanySourceConfig(
+        source_id="career:unlimint",
+        company="Unlimint",
+        platform="lever",
+        board_url="https://api.lever.co/v0/postings/unlimit?mode=json",
+        career_url="https://jobs.lever.co/unlimit",
+    ),
     "career:clickhouse": ConfiguredCompanySourceConfig(
         source_id="career:clickhouse",
         company="ClickHouse",
@@ -131,6 +138,13 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         board_url="https://api.ashbyhq.com/posting-api/job-board/goteleport",
         career_url="https://jobs.ashbyhq.com/goteleport",
     ),
+    "career:mapbox": ConfiguredCompanySourceConfig(
+        source_id="career:mapbox",
+        company="Mapbox",
+        platform="ashby",
+        board_url="https://api.ashbyhq.com/posting-api/job-board/Mapbox",
+        career_url="https://jobs.ashbyhq.com/Mapbox",
+    ),
     "career:joom": ConfiguredCompanySourceConfig(
         source_id="career:joom",
         company="Joom",
@@ -146,6 +160,22 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         board_url="https://apply.workable.com/zeptolab/jobs.md",
         career_url="https://apply.workable.com/zeptolab/",
         workable_slug="zeptolab",
+    ),
+    "career:homebuddy": ConfiguredCompanySourceConfig(
+        source_id="career:homebuddy",
+        company="HomeBuddy",
+        platform="workable",
+        board_url="https://apply.workable.com/homebuddy/jobs.md",
+        career_url="https://apply.workable.com/homebuddy/",
+        workable_slug="homebuddy",
+    ),
+    "career:lyka": ConfiguredCompanySourceConfig(
+        source_id="career:lyka",
+        company="Lyka",
+        platform="workable",
+        board_url="https://apply.workable.com/lyka/jobs.md",
+        career_url="https://apply.workable.com/lyka/",
+        workable_slug="lyka",
     ),
     "career:abbyy": ConfiguredCompanySourceConfig(
         source_id="career:abbyy",
@@ -174,6 +204,21 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         platform="greenhouse",
         board_url="https://boards-api.greenhouse.io/v1/boards/humansignal/jobs?content=true",
         career_url="https://job-boards.greenhouse.io/humansignal",
+    ),
+    "career:lokalise": ConfiguredCompanySourceConfig(
+        source_id="career:lokalise",
+        company="Lokalise",
+        platform="greenhouse",
+        board_url="https://boards-api.greenhouse.io/v1/boards/lokalise/jobs?content=true",
+        career_url="https://job-boards.greenhouse.io/lokalise",
+    ),
+    "career:adtech-holding": ConfiguredCompanySourceConfig(
+        source_id="career:adtech-holding",
+        company="AdTech Holding",
+        platform="bamboohr",
+        board_url="https://adtechholding.bamboohr.com/careers/list",
+        career_url="https://adtechholding.bamboohr.com/careers/list",
+        bamboohr_detail_url_template="https://adtechholding.bamboohr.com/careers/{id}",
     ),
     "career:altenar": ConfiguredCompanySourceConfig(
         source_id="career:altenar",
@@ -918,8 +963,6 @@ def _ashby_visible_country(*, cleaned_name: str | None, address_country: str | N
         return cleaned_name
     if address_country:
         return address_country
-    if _is_single_location_label(cleaned_name):
-        return cleaned_name
     return None
 
 
@@ -1093,6 +1136,10 @@ def _greenhouse_work_formats(location_text: str) -> tuple[str, ...]:
 
 def _greenhouse_remote_locations(location_text: str) -> tuple[str, ...]:
     locations: list[str] = []
+    for part in location_text.split(";"):
+        cleaned_part = _remote_role_scope(part)
+        if cleaned_part:
+            locations.extend(_split_remote_scope(cleaned_part))
     for match in _REMOTE_SCOPE_RE.finditer(location_text):
         locations.extend(_split_remote_scope(match.group("scope")))
     normalized = location_text.casefold()
@@ -1101,6 +1148,15 @@ def _greenhouse_remote_locations(location_text: str) -> tuple[str, ...]:
         if normalized.startswith(marker):
             locations.extend(_split_remote_scope(location_text[len(marker) :]))
     return tuple(locations)
+
+
+def _remote_role_scope(value: str) -> str | None:
+    stripped = value.strip()
+    match = re.match(r"remote\s+role\s+(?P<scope>.+)", stripped, re.I)
+    if match is None:
+        return None
+    scope = match.group("scope").strip()
+    return scope or None
 
 
 def _split_remote_scope(value: str) -> tuple[str, ...]:

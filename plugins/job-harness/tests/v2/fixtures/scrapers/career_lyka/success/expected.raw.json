@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 9,
+  "sample_listings": [
+    {
+      "source_listing_id": "6B7AF47E6F",
+      "title": "Chief of Staff (Operations)",
+      "url": "https://apply.workable.com/lyka/j/6B7AF47E6F",
+      "company": "Lyka",
+      "country": "Australia",
+      "city": "Dandenong South",
+      "location_text": "Dandenong South, Australia (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-21",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "61C03D0C8F",
+      "title": "Customer Care Specialist - Vet (full-time or part-time)",
+      "url": "https://apply.workable.com/lyka/j/61C03D0C8F",
+      "company": "Lyka",
+      "country": "Australia",
+      "city": "Alexandria",
+      "location_text": "Alexandria, Australia (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-11",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "12D5EC642F",
+      "title": "Expression of Interest - Software Engineers (Mid, Senior & Staff)",
+      "url": "https://apply.workable.com/lyka/j/12D5EC642F",
+      "company": "Lyka",
+      "country": "Australia",
+      "city": "Alexandria",
+      "location_text": "Alexandria, Australia (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-08",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6130A61F5B",
+      "title": "IT Analyst",
+      "url": "https://apply.workable.com/lyka/j/6130A61F5B",
+      "company": "Lyka",
+      "country": "Australia",
+      "city": "Dandenong",
+      "location_text": "Dandenong, Australia (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-23",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "AE39BD31CF",
+      "title": "Business Operations Senior Associate",
+      "url": "https://apply.workable.com/lyka/j/AE39BD31CF",
+      "company": "Lyka",
+      "country": "Australia",
+      "city": "Dandenong South",
+      "location_text": "Dandenong South, Australia (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-20",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "6B7AF47E6F": {
+      "ats_platform": "workable",
+      "career_url": "https://apply.workable.com/lyka/"
+    }
+  }
+}
