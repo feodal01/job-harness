@@ -601,13 +601,13 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                 "US",
                 "CZ",
                 "CY",
-                "europe",
+                "EU",
                 "TR",
                 "CZ",
                 "GB",
                 "CI",
                 "EU",
-                "europe",
+                "EU",
                 "RU",
                 None,
                 "US",
@@ -668,7 +668,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["europe", "EU"], [row["country"] for row in payload["results"]])
+        self.assertEqual(["EU", "EU"], [row["country"] for row in payload["results"]])
         self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
         self.assertEqual("US", payload["filtered_out_results"][0]["country"])
 
@@ -686,7 +686,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         # Assert
         self.assertEqual(["RU"], [row["country"] for row in payload["results"]])
         self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
-        self.assertEqual("europe", payload["filtered_out_results"][0]["country"])
+        self.assertEqual("EU", payload["filtered_out_results"][0]["country"])
 
     def test_compatible_remote_matches_global_and_intersecting_work_from_scope(self) -> None:
         # Arrange / Act
@@ -934,7 +934,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             payload["removed_counts"],
         )
         self.assertEqual(
-            ["country:PL", "region:europe", "hybrid", "onsite", "hybrid"],
+            ["country:PL", "region:EU", "hybrid", "onsite", "hybrid"],
             [row["remote_scope"] for row in payload["filtered_out_results"]],
         )
 

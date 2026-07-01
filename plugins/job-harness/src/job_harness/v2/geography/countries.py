@@ -64,19 +64,17 @@ US_STATE_CODES = frozenset(
 )
 REGION_SCOPE_ALIASES = {
     "eu": "EU",
-    "europe": "europe",
+    "europe": "EU",
     "european union": "EU",
 }
 def _codes(value: str) -> frozenset[str]:
     return frozenset(value.split())
 
 
+_EU_COUNTRIES = _codes("AT BE BG CY CZ DE DK EE ES FI FR GR HR HU IE IT LT LU LV MT NL PL PT RO SE SI SK")
 REGION_SCOPE_COUNTRIES = {
-    "eu": _codes("AT BE BG CY CZ DE DK EE ES FI FR GR HR HU IE IT LT LU LV MT NL PL PT RO SE SI SK"),
-    "europe": _codes(
-        "AD AL AT AX BA BE BG BY CH CY CZ DE DK EE ES FI FO FR GG GI GR HR HU IE IM IS IT JE "
-        "LI LT LU LV MC MD ME MK MT NL NO PL PT RO RS SE SI SJ SK SM UA VA"
-    ),
+    "eu": _EU_COUNTRIES,
+    "europe": _EU_COUNTRIES,
 }
 
 

@@ -19,7 +19,7 @@ class GeographyTest(unittest.TestCase):
             ("United Kingdom", "GB"),
             ("The Netherlands", "NL"),
             ("EU", "EU"),
-            ("Europe", "europe"),
+            ("Europe", "EU"),
         )
         for raw, expected in cases:
             with self.subTest(raw=raw):
