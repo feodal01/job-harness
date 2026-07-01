@@ -805,6 +805,61 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual("unknown", row["remote_scope"])
         self.assertEqual(["remote_eligibility_unknown"], row["decision_reasons"])
 
+    def test_lever_country_contributes_to_specific_locations_only(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("Engineer",)),
+            raw_records=(
+                _raw_record(
+                    "barcelona",
+                    company="Collectly",
+                    source="career:collectly",
+                    query_variant="Engineer",
+                    title="Senior DevOps Engineer",
+                    location_text="Barcelona",
+                    remote_in_country=None,
+                    remote_global=False,
+                    raw={"lever_country": "ES", "remote_locations": ["Barcelona"]},
+                ),
+                _raw_record(
+                    "remote",
+                    company="Termius",
+                    source="career:termius",
+                    query_variant="Engineer",
+                    title="Senior Software Engineer",
+                    location_text="Remote",
+                    remote_in_country=None,
+                    remote_global=None,
+                    raw={"lever_country": "GE"},
+                ),
+            ),
+            source_attempts=(
+                _attempt_record(
+                    source="career:collectly",
+                    source_type=SourceType.COMPANY_CAREER,
+                    query_variant="Engineer",
+                    structured=frozenset({SearchCriterion.QUERY}),
+                    native=frozenset(),
+                    postprocess=frozenset({SearchCriterion.QUERY}),
+                ),
+                _attempt_record(
+                    source="career:termius",
+                    source_type=SourceType.COMPANY_CAREER,
+                    query_variant="Engineer",
+                    structured=frozenset({SearchCriterion.QUERY}),
+                    native=frozenset(),
+                    postprocess=frozenset({SearchCriterion.QUERY}),
+                ),
+            ),
+        )
+
+        # Assert
+        rows = {row["source_listing_id"]: row for row in payload["results"]}
+        self.assertEqual("ES", rows["barcelona"]["country"])
+        self.assertEqual("unknown", rows["barcelona"]["remote_scope"])
+        self.assertIsNone(rows["remote"]["country"])
+        self.assertEqual("unknown", rows["remote"]["remote_scope"])
+
     def test_vacancy_geography_keeps_global_remote_scope_for_remote_search(self) -> None:
         # Arrange / Act
         payload = _process_payload(

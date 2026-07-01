@@ -35,6 +35,23 @@ NON_COUNTRY_TOKENS = frozenset(
         "worldwide",
     }
 )
+GENERIC_LOCATION_WORDS = frozenset(
+    {
+        "amer",
+        "americas",
+        "anywhere",
+        "apac",
+        "apj",
+        "cis",
+        "emea",
+        "fully",
+        "global",
+        "locations",
+        "multiple",
+        "remote",
+        "worldwide",
+    }
+)
 NON_COUNTRY_CODES = frozenset({"EU", "EZ", "QO", "UN", "ZZ"})
 US_STATE_CODES = frozenset(
     (
@@ -89,6 +106,18 @@ def normalize_source_geographies(value: str) -> tuple[str, ...]:
         if geography and geography not in geographies:
             geographies.append(geography)
     return tuple(geographies)
+
+
+def has_specific_location_hint(value: str) -> bool:
+    for candidate in _source_geography_candidates(value):
+        keys = geography_text_keys(candidate)
+        words = {word for key in keys for word in key.split()}
+        if not keys or words & GENERIC_LOCATION_WORDS:
+            continue
+        if any(is_region_scope(geography) for geography in normalize_source_geographies(candidate)):
+            continue
+        return True
+    return False
 
 
 def _normalize_source_geography_candidate(value: str) -> str | None:

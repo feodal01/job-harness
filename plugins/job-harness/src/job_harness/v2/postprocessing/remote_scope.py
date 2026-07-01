@@ -7,6 +7,7 @@ from job_harness.v2.geography import (
     geography_matches_any,
     geography_text_keys,
     is_region_scope,
+    listing_country_codes,
     normalize_source_geographies,
 )
 from job_harness.v2.postprocessing.work_format import HYBRID_FORMAT, OFFICE_FORMAT, REMOTE_FORMAT, listing_work_formats
@@ -14,15 +15,8 @@ from job_harness.v2.postprocessing.work_format import HYBRID_FORMAT, OFFICE_FORM
 _GLOBAL_REMOTE_MARKERS = frozenset({"anywhere", "global", "worldwide"})
 _ONSITE_MARKERS = frozenset({"office", "on site", "on-site", "onsite", "офис"})
 _REMOTE_MARKERS = frozenset({"remote", "удаленно", "удалённо"})
-
-
 def listing_countries(listing: dict[str, object]) -> tuple[str, ...]:
-    countries: list[str] = []
-    for candidate in _country_candidates(listing):
-        for country_code in normalize_source_geographies(candidate):
-            if country_code not in countries:
-                countries.append(country_code)
-    return tuple(countries)
+    return listing_country_codes(listing)
 
 
 def country_text(countries: tuple[str, ...]) -> str | None:
@@ -163,22 +157,6 @@ def _scope_matches_geography(scope: str, requested_geographies: tuple[str, ...])
     if scope.startswith("region:"):
         return geography_matches_any(scope.removeprefix("region:"), requested_geographies)
     return False
-
-
-def _country_candidates(listing: dict[str, object]) -> tuple[str, ...]:
-    values: list[str] = []
-    for key in ("location_text", "country", "city"):
-        text = _optional_text(listing.get(key))
-        if text:
-            values.append(text)
-    raw = listing.get("raw")
-    if isinstance(raw, dict):
-        for key in (
-            "country", "country_text", "eligible_locations", "location", "locations", "offices",
-            "region", "regions", "remote_locations", "remote_restrictions", "remote_type",
-        ):
-            _append_geography_candidate(values, raw.get(key))
-    return tuple(values)
 
 
 def _limited_remote_scopes(listing: dict[str, object]) -> tuple[str, ...]:
