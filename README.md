@@ -1,141 +1,234 @@
 # job-harness
 
-Job Search OS — an agent-first approach to job hunting in 2026.
-
-A scalpel, not a shotgun. Precision vacancy search tailored to your request, not mass auto-apply spam.
+Job Search OS for AI agents. Tell the agent what kind of role you want; it
+searches job boards and company career pages, filters the results, and gives you
+a report you can actually review.
 
 ## Why
 
-Job aggregators are useful, but they create a search bubble: you only see the companies and vacancies that made it into that aggregator. Many companies also maintain their own career pages, and some roles never appear on job boards at all. Job-harness searches across available sources — aggregators and employer career pages — so the agent can find companies and vacancies outside the aggregator bubble.
+Most job searches get trapped inside one or two aggregators. That misses roles
+posted only on company career pages and creates a lot of repeated manual work:
+open a board, search, filter, dedupe, save links, repeat. Job-harness gives that
+work to an AI agent.
 
-## Who is this for
+## What You Get
 
-This repo is not designed for manual use. It's an OS where an AI agent works — searching for jobs on your behalf. You describe what you're looking for, the agent does the rest.
+- Broader search: aggregators plus employer career pages in one workflow.
+- Less noise: the agent applies your criteria instead of dumping every match.
+- Repeatable runs: results are saved with both raw evidence and a readable HTML
+  report.
+- Easy follow-up: the same run can be extended with more query variants instead
+  of starting over.
 
-Works best as an agent plugin for **Claude Code** or **OpenAI Codex**.
+## Where It Searches
 
-## Features (v2)
+Job-harness is useful because it looks outside the usual single-board search
+bubble. Today the v2 workflow searches 17 implemented sources:
 
-- Contract-first search engine under `src/job_harness/v2/`
-- **14 implemented sources** — Russian/CIS aggregators plus VK and JetBrains career pages
-- Strict source catalog via `job-harness-v2 list-sources` with per-source limits and criteria capabilities
-- Raw corpus + processed export separation in `run.sqlite`: `raw_listings` vs `processed_results`
-- Search criteria: query variants, grades, salary floor, freshness, remote/relocation, countries, cities, text exclusions
-- Append mode to accumulate multiple query variants in one run
-- Live verification gate: `python scripts/verify_v2.py` (full catalog e2e) or `python scripts/verify_v2.py --live-profile light` (bounded two-source e2e)
-- Runtime skill `job-search-workflow` documents the canonical v2 agent workflow
+- Major aggregators and job boards: HH.ru, Habr Career, GeekJob, GetMatch,
+  Finder, Hirify, HireHi, JobTurbo, Talanto, Talento, IT Jobs Uzbekistan, and
+  Staff.am.
+- Direct employer career pages: VK, JetBrains, IBS, amoCRM, and CoinsPaid.
 
-Legacy v1 (MCP async search, browser pool, employer resolution, company-live-batch) remains available under `src/job_harness/v1/` for maintenance but is not the primary search path.
+The agent searches the full catalog by default. You can narrow sources only when
+you explicitly want to.
+
+The source list is expected to grow. Keep the plugin updated so new boards,
+company career pages, parser fixes, and filtering improvements are available;
+see [Update](#update) after installation.
+
+## Where It Runs
+
+- **Codex**: install the plugin and ask Codex to run a job search.
+- **Claude Code**: install the plugin and use `/job-search`.
+- **Cursor**: clone this repository, open it in Cursor, and Cursor will use the
+  root `AGENTS.md` instructions for repository work.
 
 ## Installation
 
-The repository has one installable plugin root: `plugins/job-harness`. Codex and Claude Code marketplace files both point to that directory.
+Job-harness is updated actively because new sources and source fixes are added
+over time. After installing, configure updates in [Update](#update): enable
+Claude Code auto update, and use the Codex or Cursor update steps for those
+environments.
 
-### Local development
+Choose the app where you want to use job-harness and follow that section only.
+Before you start, check only the commands for your path:
+
+```bash
+codex --version   # Codex install
+claude --version  # Claude Code install
+git --version     # Cursor checkout
+uv --version      # job-harness runtime and local CLI
+```
+
+If a command for your path is missing, install that app first and then return to
+this section.
+
+### Codex
+
+Use this when you want Codex to run job searches as an installed plugin.
+
+1. Open a terminal.
+2. Add the job-harness marketplace:
+
+```bash
+codex plugin marketplace add https://github.com/feodal01/job-harness.git --ref main
+```
+
+3. Install the plugin from that marketplace:
+
+```bash
+codex plugin add job-harness@job-harness
+```
+
+4. Start a new Codex session.
+5. Ask Codex for a job search, for example:
+
+```text
+Find QA jobs matching my brief.
+```
+
+If Codex does not show the new skills or MCP tools right away, close the current
+session and start another one.
+
+### Claude Code
+
+Use this when you want Claude Code slash commands such as `/job-search`.
+
+1. Open a terminal.
+2. Add the job-harness marketplace:
+
+```bash
+claude plugin marketplace add feodal01/job-harness#main
+```
+
+3. Install the plugin:
+
+```bash
+claude plugin install job-harness@job-harness --scope user
+```
+
+4. Check that Claude Code sees it:
+
+```bash
+claude plugin list
+```
+
+5. Restart Claude Code.
+6. Run a search from Claude Code:
+
+```text
+/job-search Find QA jobs matching my brief
+```
+
+You can also open `/plugins` in Claude Code, browse the `job-harness`
+marketplace, and install or update the plugin from the UI.
+
+### Cursor
+
+Cursor uses this repository as a workspace. There is no separate Cursor plugin
+install step for job-harness.
+
+1. Open a terminal.
+2. Clone the repository:
 
 ```bash
 git clone https://github.com/feodal01/job-harness.git
 cd job-harness
+```
+
+3. Install the Python environment used by the job-harness CLI:
+
+```bash
 uv --directory plugins/job-harness sync
 ```
 
-### As a Claude Code / Codex plugin
-
-See marketplace install instructions in prior releases. The plugin ships runtime skills, commands, and (for v1) an MCP server config.
-
-### Cursor
-
-Cursor can use repository-level `AGENTS.md` for maintenance. The installable runtime is `plugins/job-harness`.
-
-## Usage (v2 CLI)
-
-All v2 commands run from the plugin directory:
+4. Open Cursor.
+5. Choose **File -> Open Folder...**.
+6. Select the cloned `job-harness` folder.
+7. Open Cursor Agent chat in that workspace. Cursor will pick up the root
+   `AGENTS.md` instructions for this repository.
+8. Use Cursor's terminal to confirm the CLI works:
 
 ```bash
 uv --directory plugins/job-harness run job-harness-v2 list-sources
 ```
 
-### Search
+After that, ask Cursor Agent to work in this repository, for example:
 
-```bash
-uv --directory plugins/job-harness run job-harness-v2 search \
-  --queries "QA | AQA | SDET | Quality Assurance" \
-  --grade middle \
-  --salary-from 150000 \
-  --country RU \
-  --max-results 20
+```text
+Use job-harness to inspect the v2 search workflow.
 ```
 
-Stdout is a single JSON object (`record_type: v2_search_execution`) with `run_id`, `run.sqlite` path, per-source `attempts`, and `processed_result_count`.
+## Update
 
-Default artifact root: `.job-harness/v2/runs/<run_id>/`
+The catalog changes over time. Update regularly so searches include the newest
+implemented sources and fixes.
 
-### Append another query to the same run
+### Claude Code
+
+Set up auto update first:
+
+1. Open `/plugins` in Claude Code.
+2. Go to **Marketplaces -> job-harness** and enable **Auto update**.
+3. Go to **Installed -> job-harness** and choose **Add to favorites**.
+4. Choose **Update now** when you want to update immediately.
+
+CLI update:
 
 ```bash
-uv --directory plugins/job-harness run job-harness-v2 search \
-  --queries "тестировщик | инженер по тестированию" \
-  --append-to-run-id "<run_id>" \
-  --max-results 20
+claude plugin update job-harness
 ```
 
-## v2 search parameters
+Restart Claude Code if newly installed skills, slash commands, agents, or MCP
+tools do not appear right away.
 
-| Flag | Description |
-|------|-------------|
-| `--query` | Search text; **repeatable** for multiple variants |
-| `--queries` | Pipe-separated query variants, for example `"QA \| AQA \| SDET"`; repeatable |
-| `--grade` | `intern`, `junior`, `middle`, `senior`, `lead`; repeatable |
-| `--salary-from` | Minimum salary (integer) |
-| `--published-since` | ISO date `YYYY-MM-DD` |
-| `--exclude-company` | Company name substring to exclude; repeatable |
-| `--exclude-text` | Substring exclusion applied in post-processing; repeatable |
-| `--exclude-regex` | Regex exclusion; repeatable |
-| `--relocation` | `true` or `false` |
-| `--remote-in-country` | `true` or `false` |
-| `--remote-global` | `true` or `false` |
-| `--country` | ISO country code (`RU`, `AM`); repeatable; filters catalog-eligible sources |
-| `--city` | City name; repeatable |
-| `--max-results` | Cap on **processed** export (default 20); does not cap raw scraping |
-| `--source` | Exact source id; repeatable; omit to search all implemented sources |
-| `--source-type` | `aggregator` or `company_career`; repeatable |
-| `--append-to-run-id` | Append to an existing run corpus |
-| `--run-id` | Optional explicit run id |
-| `--runs-dir` | Artifact directory (default `.job-harness/v2/runs`) |
-| `--source-attempt-timeout` | Per-source timeout in seconds (default 30) |
-| `--run-timeout` | Orchestrator timeout in seconds (default 120) |
-| `--fetch-timeout` | HTTP fetch timeout in seconds (default 15) |
-| `--retry-attempts` | Source retry count (default 1) |
+### Codex
 
-Run `list-sources` to see which criteria each source supports natively vs in post-processing.
+Codex updates from the configured Git marketplace snapshot. There is no
+auto-update step in the current Codex CLI; refresh the snapshot and reinstall
+the plugin when you want the latest version:
 
-## Supported v2 sources
+```bash
+codex plugin marketplace upgrade job-harness
+codex plugin add job-harness@job-harness
+```
 
-| source_id | type | raw limit | countries |
-|-----------|------|-----------|-----------|
-| `habr_career` | aggregator | 50 | RU |
-| `hh_ru` | aggregator | 100 | RU |
-| `talanto` | aggregator | 50 | — |
-| `career:vk` | company_career | 25 | RU |
-| `career:jetbrains` | company_career | 120 | — |
-| `geekjob` | aggregator | 50 | — |
-| `talento` | aggregator | 50 | — |
-| `finder_work` | aggregator | 100 | — |
-| `getmatch` | aggregator | 100 | — |
-| `it_jobs_uz` | aggregator | 100 | — |
-| `hirify` | aggregator | 100 | — |
-| `jobturbo` | aggregator | 50 | — |
-| `hirehi` | aggregator | 50 | RU |
-| `staff_am` | aggregator | 100 | AM |
+Start a new Codex session if newly installed skills or MCP tools do not appear
+right away.
 
-## Artifact layout
+### Cursor
 
-Each run under `.job-harness/v2/runs/<run_id>/`:
+Cursor uses the repository checkout directly. Update the checkout and reload
+Cursor:
 
-| File | Purpose |
-|------|---------|
-| `run.sqlite` | Durable run database with `raw_listings`, `source_attempts`, `run_manifest`, and `processed_results` tables |
-| `report.html` | Self-contained interactive report generated from `processed_results` |
+```bash
+git pull
+uv --directory plugins/job-harness sync
+```
+
+Then run **Developer: Reload Window** in Cursor so it reloads the updated
+`AGENTS.md` instructions and workspace files.
+
+If Cursor imports MCP servers from an installed Claude Code plugin, Claude Code
+auto update can keep those imported MCP entries current. It does not update this
+repository checkout; use `git pull` for Cursor workspace updates.
+
+## For Agents and Maintainers
+
+The user-facing README intentionally does not duplicate the v2 CLI reference.
+Keep operational details in the agent workflow docs:
+
+- Runtime search workflow:
+  `plugins/job-harness/skills/job-search-workflow/SKILL.md`
+- Current source catalog:
+  `uv --directory plugins/job-harness run job-harness-v2 list-sources`
+- Current search flags:
+  `uv --directory plugins/job-harness run job-harness-v2 search --help`
+- Primary run artifacts:
+  `.job-harness/v2/runs/<run_id>/run.sqlite` and `report.html`
+- Repository maintenance guidance:
+  `.agents/skills/job-harness-scraper-development/SKILL.md`
 
 ## Verification
 
@@ -149,30 +242,8 @@ python scripts/verify_v2.py --skip-live
 python scripts/verify_repo.py full
 ```
 
-## Agent workflow
-
-The canonical workflow for AI agents is `plugins/job-harness/skills/job-search-workflow/SKILL.md`. It describes briefing, `list-sources`, `search`, append, artifact handling, and presentation — all through **`job-harness-v2`**.
-
-Claude Code `/job-search` and `agents/job-searcher.md` are thin entrypoints that delegate to that skill.
-
-Scraper development guidance lives in `.agents/skills/job-harness-scraper-development` (repository maintenance only).
-
-## Repository layout
-
-```
-plugins/job-harness/
-├── src/job_harness/
-│   ├── v2/          # Contract-first search engine (primary)
-│   └── v1/          # Legacy MCP/browser/employer tooling
-├── skills/          # Runtime agent skills (v2 workflow)
-├── commands/        # Claude Code slash commands
-├── agents/          # Claude Code agent entrypoints
-├── scripts/         # MCP server (v1), helpers
-└── tests/
-    ├── v1/          # Legacy engine tests
-    └── v2/          # Contract-first engine tests
-```
-
 ## Status
 
-v2 is the primary search surface for new work: 14 contract-first sources, fixture-backed parsers, and full/light live e2e profiles. v1 remains for MCP compatibility and legacy tooling under `src/job_harness/v1/`.
+v2 is the primary search surface for new work: 17 contract-first sources,
+fixture-backed parsers, and full/light live e2e profiles. v1 remains for MCP
+compatibility and legacy tooling under `src/job_harness/v1/`.

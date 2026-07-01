@@ -688,7 +688,7 @@ wheels = [
 
 [[package]]
 name = "job-harness"
-version = "0.2.54"
+version = "0.2.55"
 source = { editable = "." }
 dependencies = [
     { name = "babel" },
