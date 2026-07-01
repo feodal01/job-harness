@@ -177,6 +177,14 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         career_url="https://apply.workable.com/lyka/",
         workable_slug="lyka",
     ),
+    "career:thesoul-publishing": ConfiguredCompanySourceConfig(
+        source_id="career:thesoul-publishing",
+        company="TheSoul Publishing",
+        platform="workable",
+        board_url="https://apply.workable.com/thesoul-publishing-1/jobs.md",
+        career_url="https://apply.workable.com/thesoul-publishing-1/",
+        workable_slug="thesoul-publishing-1",
+    ),
     "career:abbyy": ConfiguredCompanySourceConfig(
         source_id="career:abbyy",
         company="ABBYY",
@@ -212,6 +220,27 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         board_url="https://boards-api.greenhouse.io/v1/boards/lokalise/jobs?content=true",
         career_url="https://job-boards.greenhouse.io/lokalise",
     ),
+    "career:flo-health": ConfiguredCompanySourceConfig(
+        source_id="career:flo-health",
+        company="Flo Health",
+        platform="greenhouse",
+        board_url="https://boards-api.greenhouse.io/v1/boards/flohealth/jobs?content=true",
+        career_url="https://job-boards.greenhouse.io/flohealth",
+    ),
+    "career:pandadoc": ConfiguredCompanySourceConfig(
+        source_id="career:pandadoc",
+        company="PandaDoc",
+        platform="greenhouse",
+        board_url="https://boards-api.greenhouse.io/v1/boards/pandadoc/jobs?content=true",
+        career_url="https://job-boards.greenhouse.io/pandadoc",
+    ),
+    "career:wrike": ConfiguredCompanySourceConfig(
+        source_id="career:wrike",
+        company="Wrike",
+        platform="greenhouse",
+        board_url="https://boards-api.greenhouse.io/v1/boards/wrike/jobs?content=true",
+        career_url="https://job-boards.greenhouse.io/wrike",
+    ),
     "career:adtech-holding": ConfiguredCompanySourceConfig(
         source_id="career:adtech-holding",
         company="AdTech Holding",
@@ -235,6 +264,14 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         board_url="https://synder.bamboohr.com/careers/list",
         career_url="https://synder.bamboohr.com/careers/list",
         bamboohr_detail_url_template="https://synder.bamboohr.com/careers/{id}",
+    ),
+    "career:onemarketdata": ConfiguredCompanySourceConfig(
+        source_id="career:onemarketdata",
+        company="OneMarketData",
+        platform="bamboohr",
+        board_url="https://onemarketdata.bamboohr.com/careers/list",
+        career_url="https://onemarketdata.bamboohr.com/careers/list",
+        bamboohr_detail_url_template="https://onemarketdata.bamboohr.com/careers/{id}",
     ),
     "career:crystal": ConfiguredCompanySourceConfig(
         source_id="career:crystal",

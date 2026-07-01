@@ -944,6 +944,30 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual("unknown", row["remote_scope"])
         self.assertEqual(["remote_eligibility_unknown"], row["decision_reasons"])
 
+    def test_specific_location_does_not_merge_hidden_source_office_countries(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("Engineer",)),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="Wrike",
+                    source="career:wrike",
+                    title="AI-Enabled SW Engineer - Talent Pool",
+                    location_text="Prague",
+                    remote_in_country=False,
+                    remote_global=False,
+                    raw={"offices": ["Prague", "Nicosia", "Tallinn"]},
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:wrike"),),
+        )
+
+        # Assert
+        row = payload["results"][0]
+        self.assertEqual("CZ", row["country"])
+        self.assertEqual("onsite", row["remote_scope"])
+
     def test_lever_country_contributes_to_specific_locations_only(self) -> None:
         # Arrange / Act
         payload = _process_payload(

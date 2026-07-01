@@ -26,11 +26,19 @@ def _listing_country_candidates(listing: dict[str, object]) -> tuple[str, ...]:
             values.append(text)
     raw = listing.get("raw")
     if isinstance(raw, dict):
-        if any(has_specific_location_hint(value) for value in values):
+        has_listing_geography = any(normalize_source_geographies(value) for value in values)
+        has_specific_listing_location = any(has_specific_location_hint(value) for value in values)
+        if has_specific_listing_location:
             _append_geography_candidate(values, raw.get("lever_country"))
+        if not has_listing_geography:
+            for key in ("country", "country_text", "eligible_locations", "location", "locations", "offices"):
+                _append_geography_candidate(values, raw.get(key))
         for key in (
-            "country", "country_text", "eligible_locations", "location", "locations", "offices",
-            "region", "regions", "remote_locations", "remote_restrictions", "remote_type",
+            "region",
+            "regions",
+            "remote_locations",
+            "remote_restrictions",
+            "remote_type",
         ):
             _append_geography_candidate(values, raw.get(key))
     return tuple(values)

@@ -146,7 +146,12 @@ VALUES
     (51, 'career:homebuddy', 'company_career', 'http', 100),
     (52, 'career:lyka', 'company_career', 'http', 100),
     (53, 'career:lokalise', 'company_career', 'http', 100),
-    (54, 'career:adtech-holding', 'company_career', 'http', 100);
+    (54, 'career:adtech-holding', 'company_career', 'http', 100),
+    (55, 'career:onemarketdata', 'company_career', 'http', 100),
+    (56, 'career:flo-health', 'company_career', 'http', 100),
+    (57, 'career:pandadoc', 'company_career', 'http', 100),
+    (58, 'career:wrike', 'company_career', 'http', 100),
+    (59, 'career:thesoul-publishing', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -465,7 +470,8 @@ WITH workable_sources(source_id) AS (
         ('career:joom'),
         ('career:zeptolab'),
         ('career:homebuddy'),
-        ('career:lyka')
+        ('career:lyka'),
+        ('career:thesoul-publishing')
 ),
 workable_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -490,7 +496,10 @@ WITH greenhouse_sources(source_id) AS (
         ('career:ahrefs'),
         ('career:eqvilent'),
         ('career:humansignal'),
-        ('career:lokalise')
+        ('career:lokalise'),
+        ('career:flo-health'),
+        ('career:pandadoc'),
+        ('career:wrike')
 ),
 greenhouse_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -513,7 +522,8 @@ WITH bamboohr_sources(source_id) AS (
     VALUES
         ('career:adtech-holding'),
         ('career:altenar'),
-        ('career:synder')
+        ('career:synder'),
+        ('career:onemarketdata')
 ),
 bamboohr_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -1453,9 +1463,13 @@ WITH configured_company_success_fixtures(source_id, folder) AS (
         ('career:eqvilent', 'career_eqvilent'),
         ('career:humansignal', 'career_humansignal'),
         ('career:lokalise', 'career_lokalise'),
+        ('career:flo-health', 'career_flo-health'),
+        ('career:pandadoc', 'career_pandadoc'),
+        ('career:wrike', 'career_wrike'),
         ('career:adtech-holding', 'career_adtech-holding'),
         ('career:altenar', 'career_altenar'),
         ('career:synder', 'career_synder'),
+        ('career:onemarketdata', 'career_onemarketdata'),
         ('career:crystal', 'career_crystal'),
         ('career:synthesized', 'career_synthesized'),
         ('career:tradingview', 'career_tradingview'),
@@ -1489,6 +1503,7 @@ WHERE source_id NOT IN (
     'career:zeptolab',
     'career:homebuddy',
     'career:lyka',
+    'career:thesoul-publishing',
     'career:crystal',
     'career:synthesized',
     'career:tradingview',
@@ -1502,6 +1517,7 @@ WITH configured_company_success_html_fixtures(source_id, folder) AS (
         ('career:zeptolab', 'career_zeptolab'),
         ('career:homebuddy', 'career_homebuddy'),
         ('career:lyka', 'career_lyka'),
+        ('career:thesoul-publishing', 'career_thesoul-publishing'),
         ('career:crystal', 'career_crystal'),
         ('career:synthesized', 'career_synthesized'),
         ('career:tradingview', 'career_tradingview'),

@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 32,
+  "sample_listings": [
+    {
+      "source_listing_id": "7762297003",
+      "title": "Accountant",
+      "url": "https://job-boards.greenhouse.io/flohealth/jobs/7762297003",
+      "company": "Flo Health",
+      "country": null,
+      "city": "Vilnius",
+      "location_text": "Vilnius",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-03T09:23:08-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7686344003",
+      "title": "Cloud Security Engineer",
+      "url": "https://job-boards.greenhouse.io/flohealth/jobs/7686344003",
+      "company": "Flo Health",
+      "country": null,
+      "city": "Vilnius",
+      "location_text": "Vilnius",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-01T09:08:51-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7658117003",
+      "title": "Cloud Security Engineer",
+      "url": "https://job-boards.greenhouse.io/flohealth/jobs/7658117003",
+      "company": "Flo Health",
+      "country": null,
+      "city": "London",
+      "location_text": "London",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-23T12:52:02-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7712882003",
+      "title": "Content Strategist, Product",
+      "url": "https://job-boards.greenhouse.io/flohealth/jobs/7712882003",
+      "company": "Flo Health",
+      "country": null,
+      "city": "Warsaw",
+      "location_text": "Warsaw",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-29T08:24:52-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7720773003",
+      "title": "Content Strategist, Product",
+      "url": "https://job-boards.greenhouse.io/flohealth/jobs/7720773003",
+      "company": "Flo Health",
+      "country": null,
+      "city": "Ukraine",
+      "location_text": "Ukraine",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-30T10:30:51-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7762297003": {
+      "ats_platform": "greenhouse",
+      "career_url": "https://job-boards.greenhouse.io/flohealth"
+    }
+  }
+}
