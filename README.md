@@ -213,37 +213,3 @@ Then run **Developer: Reload Window** in Cursor so it reloads the updated
 If Cursor imports MCP servers from an installed Claude Code plugin, Claude Code
 auto update can keep those imported MCP entries current. It does not update this
 repository checkout; use `git pull` for Cursor workspace updates.
-
-## For Agents and Maintainers
-
-The user-facing README intentionally does not duplicate the v2 CLI reference.
-Keep operational details in the agent workflow docs:
-
-- Runtime search workflow:
-  `plugins/job-harness/skills/job-search-workflow/SKILL.md`
-- Current source catalog:
-  `uv --directory plugins/job-harness run job-harness-v2 list-sources`
-- Current search flags:
-  `uv --directory plugins/job-harness run job-harness-v2 search --help`
-- Primary run artifacts:
-  `.job-harness/v2/runs/<run_id>/run.sqlite` and `report.html`
-- Repository maintenance guidance:
-  `.agents/skills/job-harness-scraper-development/SKILL.md`
-
-## Verification
-
-```bash
-# v2 gate (deterministic + optional live e2e)
-python scripts/verify_v2.py
-python scripts/verify_v2.py --live-profile light
-python scripts/verify_v2.py --skip-live
-
-# Repository gate (lint, types, v1+v2 unit tests, optional v1 live smokes)
-python scripts/verify_repo.py full
-```
-
-## Status
-
-v2 is the primary search surface for new work: 17 contract-first sources,
-fixture-backed parsers, and full/light live e2e profiles. v1 remains for MCP
-compatibility and legacy tooling under `src/job_harness/v1/`.
