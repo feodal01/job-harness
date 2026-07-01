@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 18,
+  "sample_listings": [
+    {
+      "source_listing_id": "015709ff-b1df-4972-b19f-4d2df73e2725",
+      "title": "Senior / Lead Research Scientist - Serbia",
+      "url": "https://jobs.ashbyhq.com/inworld-ai/015709ff-b1df-4972-b19f-4d2df73e2725",
+      "company": "Inworld AI",
+      "country": "Serbia",
+      "city": null,
+      "location_text": "Serbia",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-18T21:05:07.709+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "0971c8b7-6246-4dd8-8a62-839eba6511ec",
+      "title": "Staff / Principal Research Scientist - UK",
+      "url": "https://jobs.ashbyhq.com/inworld-ai/0971c8b7-6246-4dd8-8a62-839eba6511ec",
+      "company": "Inworld AI",
+      "country": "UK",
+      "city": null,
+      "location_text": "UK",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-18T21:05:32.350+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "183e158a-df78-4bcb-a5ee-96ddcb61c306",
+      "title": "Senior / Lead Machine Learning Engineer, Serving - Germany",
+      "url": "https://jobs.ashbyhq.com/inworld-ai/183e158a-df78-4bcb-a5ee-96ddcb61c306",
+      "company": "Inworld AI",
+      "country": "Germany",
+      "city": null,
+      "location_text": "Germany",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-07T20:58:18.024+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "1c07ae0f-8d77-496a-8b28-b974075bdc85",
+      "title": "GTM Lead - USA",
+      "url": "https://jobs.ashbyhq.com/inworld-ai/1c07ae0f-8d77-496a-8b28-b974075bdc85",
+      "company": "Inworld AI",
+      "country": null,
+      "city": null,
+      "location_text": "Mountain View, California, USA",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-01-16T20:58:54.093+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "2eacea62-b50b-4792-b289-c8a4bbbb26b8",
+      "title": "Senior / Lead Research Scientist - Germany",
+      "url": "https://jobs.ashbyhq.com/inworld-ai/2eacea62-b50b-4792-b289-c8a4bbbb26b8",
+      "company": "Inworld AI",
+      "country": "Germany",
+      "city": null,
+      "location_text": "Germany",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-18T21:04:04.472+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "015709ff-b1df-4972-b19f-4d2df73e2725": {
+      "ats_platform": "ashby",
+      "career_url": "https://jobs.ashbyhq.com/inworld-ai"
+    }
+  }
+}

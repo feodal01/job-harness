@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 159,
+  "sample_listings": [
+    {
+      "source_listing_id": "77ebbc4c-1c17-4952-be8b-ed3517f8ccc5",
+      "title": "Account Executive - Gaming/AdTech Sales",
+      "url": "https://jobs.lever.co/xsolla/77ebbc4c-1c17-4952-be8b-ed3517f8ccc5",
+      "company": "Xsolla",
+      "country": null,
+      "city": null,
+      "location_text": "Beijing, China",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-16T05:36:00.473000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "227eb679-e57a-46a5-858a-726d243ce528",
+      "title": "AI Engineer (Infrastructure team)",
+      "url": "https://jobs.lever.co/xsolla/227eb679-e57a-46a5-858a-726d243ce528",
+      "company": "Xsolla",
+      "country": null,
+      "city": null,
+      "location_text": "Kuala Lumpur, Baku",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-30T08:45:21.566000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6165f29b-62d5-4f7b-bab5-413aece9d463",
+      "title": "AI Engineer (Infrastructure team)",
+      "url": "https://jobs.lever.co/xsolla/6165f29b-62d5-4f7b-bab5-413aece9d463",
+      "company": "Xsolla",
+      "country": null,
+      "city": null,
+      "location_text": "Montreal",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-26T06:02:30.655000Z",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6f070f97-4735-4afe-b9a1-c96c852b45e6",
+      "title": "AI Engineer (Infrastructure team)",
+      "url": "https://jobs.lever.co/xsolla/6f070f97-4735-4afe-b9a1-c96c852b45e6",
+      "company": "Xsolla",
+      "country": null,
+      "city": null,
+      "location_text": "Serbia",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-26T06:05:33.857000Z",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "66c95500-3c74-43e2-ab3d-d962cff1ff95",
+      "title": "AI Prototyping Expert (UI/UX)",
+      "url": "https://jobs.lever.co/xsolla/66c95500-3c74-43e2-ab3d-d962cff1ff95",
+      "company": "Xsolla",
+      "country": null,
+      "city": null,
+      "location_text": "Los Angeles, United States, Canada, California, Sao Paulo, Brazil, London, United Kingdom",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-30T10:29:19.321000Z",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "77ebbc4c-1c17-4952-be8b-ed3517f8ccc5": {
+      "ats_platform": "lever",
+      "career_url": "https://jobs.lever.co/xsolla"
+    }
+  }
+}

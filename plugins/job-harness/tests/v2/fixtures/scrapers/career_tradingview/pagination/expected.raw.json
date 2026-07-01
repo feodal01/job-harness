@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "7616433",
+      "title": "Deploy Engineer",
+      "url": "https://tradingview.teamtailor.com/jobs/7616433-deploy-engineer",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Tbilisi",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7593508",
+      "title": "Senior Frontend QA Engineer",
+      "url": "https://tradingview.teamtailor.com/jobs/7593508-senior-frontend-qa-engineer",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Paphos",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7593391",
+      "title": "Frontend Team Lead",
+      "url": "https://tradingview.teamtailor.com/jobs/7593391-frontend-team-lead",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Paphos",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7593150",
+      "title": "Engineering Manager",
+      "url": "https://tradingview.teamtailor.com/jobs/7593150-engineering-manager",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Paphos",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7593108",
+      "title": "Senior Backend Developer (Golang/Java)",
+      "url": "https://tradingview.teamtailor.com/jobs/7593108-senior-backend-developer-golang-java",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Paphos",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7616433": {
+      "ats_platform": "teamtailor",
+      "career_url": "https://tradingview.teamtailor.com/jobs"
+    }
+  }
+}

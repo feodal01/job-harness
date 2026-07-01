@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "7985789",
+      "title": "Solution Architect (EMEA)",
+      "url": "https://careers.sumsub.com/jobs/7985789-solution-architect-emea",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "Limassol Office 2",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7964007",
+      "title": "Sales Development Representative - Europe",
+      "url": "https://careers.sumsub.com/jobs/7964007-sales-development-representative-europe",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "EU",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7963603",
+      "title": "Product Research and Assessment Specialist",
+      "url": "https://careers.sumsub.com/jobs/7963603-product-research-and-assessment-specialist",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "Multiple locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7945436",
+      "title": "Senior Backend Developer - KYC",
+      "url": "https://careers.sumsub.com/jobs/7945436-senior-backend-developer-kyc",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "Multiple locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7929453",
+      "title": "UX Writer",
+      "url": "https://careers.sumsub.com/jobs/7929453-ux-writer",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "Multiple locations, EU, Tbilisi office, Limassol Office 2",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7985789": {
+      "ats_platform": "teamtailor",
+      "career_url": "https://careers.sumsub.com/jobs"
+    }
+  }
+}

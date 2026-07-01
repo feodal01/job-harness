@@ -317,7 +317,7 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(RemoteMode.COMPATIBLE_REMOTE, request.remote_mode)
         self.assertTrue(request.hybrid_ok)
         self.assertTrue(request.office_ok)
-        self.assertEqual(("europe",), request.work_from_geographies)
+        self.assertEqual(("EU",), request.work_from_geographies)
         self.assertEqual(("CY",), request.vacancy_geographies)
 
     async def test_cli_rejects_empty_pipe_separated_query_variant(self) -> None:

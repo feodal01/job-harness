@@ -18,13 +18,14 @@ _NON_COUNTRY_TOKENS = frozenset(
         "cis",
         "emea",
         "global",
+        "iberia",
         "latam",
         "remote",
         "worldwide",
     }
 )
 _NON_COUNTRY_CODES = frozenset({"EU", "EZ", "QO", "UN", "ZZ"})
-_CITY_DOMINANT_POPULATION_RATIO = 10.0
+_CITY_DOMINANT_POPULATION_RATIO = 1.98
 _CITY_DOMINANT_MIN_POPULATION = 100_000
 _MIN_CITY_COUNTRY_CANDIDATES = 2
 

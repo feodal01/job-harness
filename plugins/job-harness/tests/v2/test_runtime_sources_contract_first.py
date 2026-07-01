@@ -36,7 +36,6 @@ from job_harness.v2.runtime.sources import (
     AirSlateCareerSource,
     AmoCRMCareerSource,
     AppFollowCareerSource,
-    ChainstackCareerSource,
     CoinsPaidCareerSource,
     FinderWorkSource,
     GeekJobSource,
@@ -49,17 +48,11 @@ from job_harness.v2.runtime.sources import (
     ItJobsUzSource,
     JetBrainsCareerSource,
     JobTurboSource,
-    OutschoolCareerSource,
     StaffAmSource,
     TalantoSource,
     TalentoSource,
     TermiusCareerSource,
-    ThreeCommasCareerSource,
-    TruvCareerSource,
     VKCareerSource,
-    WallarmCareerSource,
-    WintermuteCareerSource,
-    ZeroAviaCareerSource,
 )
 from job_harness.v2.source_catalog import source_fixture_suite
 
@@ -143,7 +136,7 @@ def _fixture_response_path(source: str, case: str) -> Path:
 
 
 def _source_id(source: str) -> str:
-    return {
+    mapped = {
         "career_3commas": "career:3commas",
         "career_airslate": "career:airslate",
         "career_amocrm": "career:amocrm",
@@ -159,7 +152,16 @@ def _source_id(source: str) -> str:
         "career_wallarm": "career:wallarm",
         "career_wintermute": "career:wintermute",
         "career_zeroavia": "career:zeroavia",
-    }.get(source, source)
+    }.get(source)
+    if mapped is not None:
+        return mapped
+    if source.startswith("career_"):
+        return f"career:{source.removeprefix('career_')}"
+    return source
+
+
+def _fixture_folder_from_source_id(source_id: str) -> str:
+    return source_id.replace(":", "_")
 
 
 def _expected(source: str, case: str) -> dict[str, Any]:
@@ -377,6 +379,15 @@ def _has_remote_in_country_scope_evidence(listing: RawListing) -> bool:
     return False
 
 
+def _success_fixture_sources() -> tuple[tuple[str, SourceScraper], ...]:
+    catalog = build_supported_source_catalog()
+    return tuple(
+        (_fixture_folder_from_source_id(source_id), catalog.get(source_id))
+        for source_id in catalog.source_ids
+        if _fixture_case(source_id, ParserFixtureKind.SUCCESS_NON_EMPTY) is not None
+    )
+
+
 def _value_mentions_source_geography(value: object) -> bool:
     if isinstance(value, str):
         return bool(normalize_source_geographies(value))
@@ -390,34 +401,7 @@ def _value_mentions_source_geography(value: object) -> bool:
 class RemoteGlobalEvidenceContractTest(unittest.TestCase):
     def test_success_fixtures_only_set_global_remote_with_explicit_source_evidence(self) -> None:
         # Arrange
-        cases = (
-            ("habr_career", HabrCareerSource()),
-            ("hh_ru", HhRuSource()),
-            ("career_vk", VKCareerSource()),
-            ("career_ibs", IBSCareerSource()),
-            ("talanto", TalantoSource()),
-            ("geekjob", GeekJobSource()),
-            ("talento", TalentoSource()),
-            ("finder_work", FinderWorkSource()),
-            ("getmatch", GetmatchSource()),
-            ("it_jobs_uz", ItJobsUzSource()),
-            ("hirify", HirifySource()),
-            ("jobturbo", JobTurboSource()),
-            ("hirehi", HireHiSource()),
-            ("staff_am", StaffAmSource()),
-            ("career_jetbrains", JetBrainsCareerSource()),
-            ("career_appfollow", AppFollowCareerSource()),
-            ("career_coinspaid", CoinsPaidCareerSource()),
-            ("career_airslate", AirSlateCareerSource()),
-            ("career_wintermute", WintermuteCareerSource()),
-            ("career_truv", TruvCareerSource()),
-            ("career_termius", TermiusCareerSource()),
-            ("career_outschool", OutschoolCareerSource()),
-            ("career_zeroavia", ZeroAviaCareerSource()),
-            ("career_wallarm", WallarmCareerSource()),
-            ("career_chainstack", ChainstackCareerSource()),
-            ("career_3commas", ThreeCommasCareerSource()),
-        )
+        cases = _success_fixture_sources()
 
         for fixture_folder, source in cases:
             with self.subTest(source=source.descriptor.source_id):
@@ -449,34 +433,7 @@ class RemoteGlobalEvidenceContractTest(unittest.TestCase):
 class RemoteInCountryEvidenceContractTest(unittest.TestCase):
     def test_success_fixtures_only_set_remote_in_country_with_geography_evidence(self) -> None:
         # Arrange
-        cases = (
-            ("habr_career", HabrCareerSource()),
-            ("hh_ru", HhRuSource()),
-            ("career_vk", VKCareerSource()),
-            ("career_ibs", IBSCareerSource()),
-            ("talanto", TalantoSource()),
-            ("geekjob", GeekJobSource()),
-            ("talento", TalentoSource()),
-            ("finder_work", FinderWorkSource()),
-            ("getmatch", GetmatchSource()),
-            ("it_jobs_uz", ItJobsUzSource()),
-            ("hirify", HirifySource()),
-            ("jobturbo", JobTurboSource()),
-            ("hirehi", HireHiSource()),
-            ("staff_am", StaffAmSource()),
-            ("career_jetbrains", JetBrainsCareerSource()),
-            ("career_appfollow", AppFollowCareerSource()),
-            ("career_coinspaid", CoinsPaidCareerSource()),
-            ("career_airslate", AirSlateCareerSource()),
-            ("career_wintermute", WintermuteCareerSource()),
-            ("career_truv", TruvCareerSource()),
-            ("career_termius", TermiusCareerSource()),
-            ("career_outschool", OutschoolCareerSource()),
-            ("career_zeroavia", ZeroAviaCareerSource()),
-            ("career_wallarm", WallarmCareerSource()),
-            ("career_chainstack", ChainstackCareerSource()),
-            ("career_3commas", ThreeCommasCareerSource()),
-        )
+        cases = _success_fixture_sources()
 
         for fixture_folder, source in cases:
             with self.subTest(source=source.descriptor.source_id):
@@ -2677,6 +2634,25 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
                     for key, expected_value in raw_fields.items():
                         self.assertEqual(expected_value, _jsonish(listing.raw.get(key)), key)
 
+    def test_ashby_title_remote_marker_sets_work_format(self) -> None:
+        source = build_supported_source_catalog(("career:clickhouse",)).get("career:clickhouse")
+        parsed = source.parse_search_response(
+            _fixture_response("career_clickhouse", "success"),
+            SourceFetchRequest(
+                source_id="career:clickhouse",
+                query_variant="QA",
+                url="https://api.ashbyhq.com/posting-api/job-board/clickhouse",
+            ),
+        )
+
+        listing = _listing_by_id(parsed.listings, "1be86605-d940-4cdd-ada8-145056ed5bdc")
+
+        self.assertEqual("Senior Site Reliability Engineer- Remote", listing.title)
+        self.assertEqual("remote", listing.raw.get("work_format"))
+        self.assertEqual(("United States",), listing.raw.get("remote_locations"))
+        self.assertIsNone(listing.remote_in_country)
+        self.assertFalse(listing.remote_global)
+
 
 class TermiusCareerSourceTest(unittest.TestCase):
     def test_remote_only_listing_does_not_surface_hidden_lever_country(self) -> None:
@@ -2701,15 +2677,42 @@ class TermiusCareerSourceTest(unittest.TestCase):
 
 
 def _additional_company_sources() -> tuple[tuple[str, SourceScraper], ...]:
-    return (
-        ("career_wintermute", WintermuteCareerSource()),
-        ("career_truv", TruvCareerSource()),
-        ("career_termius", TermiusCareerSource()),
-        ("career_outschool", OutschoolCareerSource()),
-        ("career_zeroavia", ZeroAviaCareerSource()),
-        ("career_wallarm", WallarmCareerSource()),
-        ("career_chainstack", ChainstackCareerSource()),
-        ("career_3commas", ThreeCommasCareerSource()),
+    source_ids = (
+        "career:wintermute",
+        "career:truv",
+        "career:termius",
+        "career:outschool",
+        "career:zeroavia",
+        "career:wallarm",
+        "career:chainstack",
+        "career:3commas",
+        "career:collectly",
+        "career:planner5d",
+        "career:superannotate",
+        "career:xsolla",
+        "career:clickhouse",
+        "career:datafold",
+        "career:inworld",
+        "career:luminai",
+        "career:teleport",
+        "career:joom",
+        "career:zeptolab",
+        "career:abbyy",
+        "career:ahrefs",
+        "career:eqvilent",
+        "career:humansignal",
+        "career:altenar",
+        "career:synder",
+        "career:crystal",
+        "career:synthesized",
+        "career:tradingview",
+        "career:osome",
+        "career:sumsub",
+    )
+    catalog = build_supported_source_catalog(source_ids)
+    return tuple(
+        (_fixture_folder_from_source_id(source_id), catalog.get(source_id))
+        for source_id in catalog.source_ids
     )
 
 

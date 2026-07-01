@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "7123662",
+      "title": "Senior Product Manager",
+      "url": "https://tradingview.teamtailor.com/jobs/7123662-senior-product-manager",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Cyprus, Tbilisi",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7954472",
+      "title": "Senior IT Project Manager (Fintech)",
+      "url": "https://tradingview.teamtailor.com/jobs/7954472-senior-it-project-manager-fintech",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Cyprus, Tbilisi",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7942164",
+      "title": "Сustomer Support Specialist",
+      "url": "https://tradingview.teamtailor.com/jobs/7942164-ustomer-support-specialist",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Bangkok, Indonesia, Philippines, Vietnam",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7938073",
+      "title": "Accountant",
+      "url": "https://tradingview.teamtailor.com/jobs/7938073-accountant",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Muelle Uno, Málaga",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7919513",
+      "title": "Junior IT Support",
+      "url": "https://tradingview.teamtailor.com/jobs/7919513-junior-it-support",
+      "company": "TradingView",
+      "country": null,
+      "city": null,
+      "location_text": "Tbilisi",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7123662": {
+      "ats_platform": "teamtailor",
+      "career_url": "https://tradingview.teamtailor.com/jobs"
+    }
+  }
+}

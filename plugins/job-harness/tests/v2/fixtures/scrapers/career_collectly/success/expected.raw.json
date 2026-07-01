@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 9,
+  "sample_listings": [
+    {
+      "source_listing_id": "749d89fd-bd6c-4c2b-8895-d597b7cd511c",
+      "title": "Director of Enterprise Sales",
+      "url": "https://jobs.lever.co/CollectlyInc/749d89fd-bd6c-4c2b-8895-d597b7cd511c",
+      "company": "Collectly",
+      "country": null,
+      "city": null,
+      "location_text": "San Francisco, California",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-09T19:54:34.884000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6ed9cf99-8ad7-47fe-a56c-730deef57b42",
+      "title": "Enterprise Account Executive",
+      "url": "https://jobs.lever.co/CollectlyInc/6ed9cf99-8ad7-47fe-a56c-730deef57b42",
+      "company": "Collectly",
+      "country": null,
+      "city": null,
+      "location_text": "San Francisco, California",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-02-26T19:53:20.765000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "cd143f5f-1fb2-4e4e-bd4b-4922ed5ccc40",
+      "title": "Enterprise Account Executive (Healthcare Experience)",
+      "url": "https://jobs.lever.co/CollectlyInc/cd143f5f-1fb2-4e4e-bd4b-4922ed5ccc40",
+      "company": "Collectly",
+      "country": null,
+      "city": null,
+      "location_text": "United States",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-11-10T18:48:12.145000Z",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "5bd68929-b8d9-43f6-9820-ed5a558637c2",
+      "title": "Enterprise Customer Success Manager",
+      "url": "https://jobs.lever.co/CollectlyInc/5bd68929-b8d9-43f6-9820-ed5a558637c2",
+      "company": "Collectly",
+      "country": null,
+      "city": null,
+      "location_text": "San Francisco, California",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-08T19:06:20.289000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "65af32da-2b98-4709-bfde-25662669ddda",
+      "title": "Founding Product Marketing Manager",
+      "url": "https://jobs.lever.co/CollectlyInc/65af32da-2b98-4709-bfde-25662669ddda",
+      "company": "Collectly",
+      "country": null,
+      "city": null,
+      "location_text": "United States",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-08T19:13:46.442000Z",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "749d89fd-bd6c-4c2b-8895-d597b7cd511c": {
+      "ats_platform": "lever",
+      "career_url": "https://jobs.lever.co/CollectlyInc"
+    }
+  }
+}

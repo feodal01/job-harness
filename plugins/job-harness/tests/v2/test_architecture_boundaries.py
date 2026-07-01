@@ -18,6 +18,7 @@ _CLI_MODULE = "job_harness.v2.cli"
 _GEOGRAPHY_MODULE = "job_harness.v2.geography"
 _GEOGRAPHY_CITIES_MODULE = "job_harness.v2.geography.cities"
 _GEOGRAPHY_COUNTRIES_MODULE = "job_harness.v2.geography.countries"
+_GEOGRAPHY_LISTINGS_MODULE = "job_harness.v2.geography.listings"
 _MATCHING_MODULE = "job_harness.v2.matching"
 _PORTS_MODULE = "job_harness.v2.ports"
 _SERIALIZATION_MODULE = "job_harness.v2.serialization"
@@ -151,6 +152,7 @@ _PURE_HELPER_MODULES = {
 }
 _DIRECT_ALLOWED_PREFIXES = {
     _GEOGRAPHY_COUNTRIES_MODULE: (_GEOGRAPHY_CITIES_MODULE,),
+    _GEOGRAPHY_LISTINGS_MODULE: (_GEOGRAPHY_COUNTRIES_MODULE,),
 }
 
 

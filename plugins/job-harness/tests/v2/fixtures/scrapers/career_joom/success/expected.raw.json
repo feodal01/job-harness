@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 14,
+  "sample_listings": [
+    {
+      "source_listing_id": "9D01579E21",
+      "title": "Financial Reporting Specialist at Joom",
+      "url": "https://apply.workable.com/joom/j/9D01579E21",
+      "company": "Joom",
+      "country": "Portugal",
+      "city": "Lisbon",
+      "location_text": "Lisbon, Portugal (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-23",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "AF8DFB0F40",
+      "title": "Partner Program Manager at JoomPulse",
+      "url": "https://apply.workable.com/joom/j/AF8DFB0F40",
+      "company": "Joom",
+      "country": "Brazil",
+      "city": "São Paulo",
+      "location_text": "São Paulo, Brazil (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-08",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "8FB80B8F44",
+      "title": "Head of CRM",
+      "url": "https://apply.workable.com/joom/j/8FB80B8F44",
+      "company": "Joom",
+      "country": "Portugal",
+      "city": "Lisbon",
+      "location_text": "Lisbon, Portugal (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-04",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "AD7D567412",
+      "title": "Logistics Operations Specialist",
+      "url": "https://apply.workable.com/joom/j/AD7D567412",
+      "company": "Joom",
+      "country": "Brazil",
+      "city": "Consolação",
+      "location_text": "Consolação, Brazil (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-17",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "51B7E6C898",
+      "title": "Head of Payments",
+      "url": "https://apply.workable.com/joom/j/51B7E6C898",
+      "company": "Joom",
+      "country": "Portugal",
+      "city": "Lisbon",
+      "location_text": "Lisbon, Portugal (Hybrid)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-25",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "9D01579E21": {
+      "ats_platform": "workable",
+      "career_url": "https://apply.workable.com/joom/"
+    }
+  }
+}

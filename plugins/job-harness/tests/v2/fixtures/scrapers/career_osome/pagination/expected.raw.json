@@ -1,0 +1,30 @@
+{
+  "outcome": "success",
+  "expected_count": 1,
+  "sample_listings": [
+    {
+      "source_listing_id": "7111110",
+      "title": "Senior Software Engineer - Expression of Interest",
+      "url": "https://careers.osome.com/jobs/7111110-senior-software-engineer-expression-of-interest",
+      "company": "Osome",
+      "country": null,
+      "city": null,
+      "location_text": "Singapore, Indonesia, Kuala Lumpur , Philippines",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7111110": {
+      "ats_platform": "teamtailor",
+      "career_url": "https://careers.osome.com/jobs"
+    }
+  }
+}

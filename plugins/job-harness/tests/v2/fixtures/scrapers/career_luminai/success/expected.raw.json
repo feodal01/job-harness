@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 11,
+  "sample_listings": [
+    {
+      "source_listing_id": "2384bdd6-9a80-48b3-99b6-774cdc62400f",
+      "title": "Head of Talent",
+      "url": "https://jobs.ashbyhq.com/luminai/2384bdd6-9a80-48b3-99b6-774cdc62400f",
+      "company": "Luminai",
+      "country": "United States",
+      "city": "San Mateo",
+      "location_text": "SF Bay Area; New York",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-02-04T21:29:47.057+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "48abcc60-6f44-488a-acaa-4da40b81c937",
+      "title": "Forward Deployed Engineer",
+      "url": "https://jobs.ashbyhq.com/luminai/48abcc60-6f44-488a-acaa-4da40b81c937",
+      "company": "Luminai",
+      "country": "United States",
+      "city": "San Mateo",
+      "location_text": "SF Bay Area; New York",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-02-05T02:33:11.240+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4b580dd6-0675-4f55-86c7-6d694285b6d8",
+      "title": "Applied AI Engineer",
+      "url": "https://jobs.ashbyhq.com/luminai/4b580dd6-0675-4f55-86c7-6d694285b6d8",
+      "company": "Luminai",
+      "country": "United States",
+      "city": "San Mateo",
+      "location_text": "SF Bay Area; New York",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-01-09T20:34:32.395+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "769d2745-359a-41b7-a98f-a770f5ee2d4f",
+      "title": "Product Designer",
+      "url": "https://jobs.ashbyhq.com/luminai/769d2745-359a-41b7-a98f-a770f5ee2d4f",
+      "company": "Luminai",
+      "country": "United States",
+      "city": "San Mateo",
+      "location_text": "SF Bay Area; New York",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-02-04T22:19:36.108+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "a84e5f6a-c96c-4571-b2c6-2c724a02a507",
+      "title": "Senior Software Engineer, Product",
+      "url": "https://jobs.ashbyhq.com/luminai/a84e5f6a-c96c-4571-b2c6-2c724a02a507",
+      "company": "Luminai",
+      "country": "United States",
+      "city": "San Mateo",
+      "location_text": "SF Bay Area; New York",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-01-13T03:48:51.687+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "2384bdd6-9a80-48b3-99b6-774cdc62400f": {
+      "ats_platform": "ashby",
+      "career_url": "https://jobs.ashbyhq.com/luminai"
+    }
+  }
+}

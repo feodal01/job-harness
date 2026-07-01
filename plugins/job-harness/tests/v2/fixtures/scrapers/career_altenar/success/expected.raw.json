@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 19,
+  "sample_listings": [
+    {
+      "source_listing_id": "88",
+      "title": "Senior Go Developer",
+      "url": "https://altenar.bamboohr.com/careers/88",
+      "company": "Altenar",
+      "country": null,
+      "city": null,
+      "location_text": "St Julians, Malta",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "150",
+      "title": "Service Management Coordinator",
+      "url": "https://altenar.bamboohr.com/careers/150",
+      "company": "Altenar",
+      "country": null,
+      "city": null,
+      "location_text": "St Julians, Malta",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "185",
+      "title": "Database Developer (MongoDB)",
+      "url": "https://altenar.bamboohr.com/careers/185",
+      "company": "Altenar",
+      "country": null,
+      "city": null,
+      "location_text": "St Julians, Malta",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "186",
+      "title": "HR Assistant",
+      "url": "https://altenar.bamboohr.com/careers/186",
+      "company": "Altenar",
+      "country": null,
+      "city": null,
+      "location_text": "Gerakas, Athens",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "214",
+      "title": "Infrastructure System Engineer",
+      "url": "https://altenar.bamboohr.com/careers/214",
+      "company": "Altenar",
+      "country": null,
+      "city": null,
+      "location_text": "St Julians, Malta",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "88": {
+      "ats_platform": "bamboohr",
+      "career_url": "https://altenar.bamboohr.com/careers/list"
+    }
+  }
+}

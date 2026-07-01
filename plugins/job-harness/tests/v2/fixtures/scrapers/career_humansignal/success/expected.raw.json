@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 46,
+  "sample_listings": [
+    {
+      "source_listing_id": "6006505004",
+      "title": "AI Trainer - Automotive Expertise Required",
+      "url": "https://job-boards.greenhouse.io/humansignal/jobs/6006505004",
+      "company": "HumanSignal",
+      "country": null,
+      "city": null,
+      "location_text": "Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-26T21:17:44-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6006504004",
+      "title": "AI Trainer - Automotive Expertise Required",
+      "url": "https://job-boards.greenhouse.io/humansignal/jobs/6006504004",
+      "company": "HumanSignal",
+      "country": null,
+      "city": null,
+      "location_text": "Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-26T21:15:43-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6004661004",
+      "title": "AI Trainer - Automotive Expertise Required",
+      "url": "https://job-boards.greenhouse.io/humansignal/jobs/6004661004",
+      "company": "HumanSignal",
+      "country": null,
+      "city": null,
+      "location_text": "Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-22T14:53:24-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "5825271004",
+      "title": "Content Creator (Flexible Gig)",
+      "url": "https://job-boards.greenhouse.io/humansignal/jobs/5825271004",
+      "company": "HumanSignal",
+      "country": null,
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-11T18:56:56-04:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "5823725004",
+      "title": "Data Annotation Contributor",
+      "url": "https://job-boards.greenhouse.io/humansignal/jobs/5823725004",
+      "company": "HumanSignal",
+      "country": null,
+      "city": "International",
+      "location_text": "International",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-12T15:42:12-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "6006505004": {
+      "ats_platform": "greenhouse",
+      "career_url": "https://job-boards.greenhouse.io/humansignal"
+    }
+  }
+}

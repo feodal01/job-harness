@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 29,
+  "sample_listings": [
+    {
+      "source_listing_id": "4826475101",
+      "title": "Analyst (Exchanges)",
+      "url": "https://job-boards.eu.greenhouse.io/eqvilentjobs/jobs/4826475101",
+      "company": "Eqvilent",
+      "country": null,
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-09T05:09:42-04:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4705291101",
+      "title": "Compliance Officer (Malta)",
+      "url": "https://job-boards.eu.greenhouse.io/eqvilentjobs/jobs/4705291101",
+      "company": "Eqvilent",
+      "country": null,
+      "city": "Malta",
+      "location_text": "Malta",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-11-04T07:21:28-05:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4259350101",
+      "title": "Create your own role",
+      "url": "https://job-boards.eu.greenhouse.io/eqvilentjobs/jobs/4259350101",
+      "company": "Eqvilent",
+      "country": null,
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2024-12-11T03:33:38-05:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4100359101",
+      "title": "DL Researcher",
+      "url": "https://job-boards.eu.greenhouse.io/eqvilentjobs/jobs/4100359101",
+      "company": "Eqvilent",
+      "country": null,
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2022-11-29T04:06:02-05:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4811872101",
+      "title": "Financial Analyst",
+      "url": "https://job-boards.eu.greenhouse.io/eqvilentjobs/jobs/4811872101",
+      "company": "Eqvilent",
+      "country": null,
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-17T07:52:06-04:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "4826475101": {
+      "ats_platform": "greenhouse",
+      "career_url": "https://job-boards.greenhouse.io/eqvilentjobs"
+    }
+  }
+}

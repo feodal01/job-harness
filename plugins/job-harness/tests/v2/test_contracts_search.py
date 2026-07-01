@@ -71,7 +71,7 @@ class SearchRequestTest(unittest.TestCase):
         self.assertEqual(RemoteMode.COMPATIBLE_REMOTE, request.remote_mode)
         self.assertTrue(request.hybrid_ok)
         self.assertTrue(request.office_ok)
-        self.assertEqual(("europe", "EU", "PL"), request.work_from_geographies)
+        self.assertEqual(("EU", "PL"), request.work_from_geographies)
         self.assertEqual(("CY", "GB"), request.vacancy_geographies)
         self.assertEqual(("Москва", "Ереван"), request.cities)
         self.assertEqual(("hh_ru", "career:vk"), request.sources)

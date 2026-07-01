@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "totalCount": 2
+  },
+  "result": [
+    {
+      "id": "121",
+      "jobOpeningName": "Head of Product (B2B SaaS | EU)",
+      "departmentId": "18974",
+      "departmentLabel": "Product Team",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": null,
+        "state": null
+      },
+      "atsLocation": {
+        "country": null,
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "1"
+    },
+    {
+      "id": "122",
+      "jobOpeningName": "Senior SEO / LLM Optimization Specialist",
+      "departmentId": "18786",
+      "departmentLabel": "Marketing Team",
+      "employmentStatusLabel": "Full-Time",
+      "location": {
+        "city": null,
+        "state": null
+      },
+      "atsLocation": {
+        "country": "Poland",
+        "state": null,
+        "province": null,
+        "city": null
+      },
+      "isRemote": null,
+      "locationType": "1"
+    }
+  ]
+}

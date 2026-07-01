@@ -47,6 +47,7 @@ _ATS_DOMAINS = (
     "boards.greenhouse.io",
     "jobs.lever.co",
     "myworkdayjobs.com",
+    "teamtailor.com",
     "workable.com",
 )
 _AGGREGATOR_CAREER_DOMAINS = (
@@ -155,6 +156,28 @@ _COMPANY_CAREER_URLS = {
     "career:wallarm": "https://wallarm.recruitee.com/",
     "career:wintermute": "https://jobs.lever.co/wintermute-trading",
     "career:zeroavia": "https://apply.workable.com/zeroavia/",
+    "career:collectly": "https://jobs.lever.co/CollectlyInc",
+    "career:planner5d": "https://jobs.lever.co/planner5d",
+    "career:superannotate": "https://jobs.lever.co/superannotate",
+    "career:xsolla": "https://jobs.lever.co/xsolla",
+    "career:clickhouse": "https://jobs.ashbyhq.com/clickhouse",
+    "career:datafold": "https://jobs.ashbyhq.com/datafold",
+    "career:inworld": "https://jobs.ashbyhq.com/inworld-ai",
+    "career:luminai": "https://jobs.ashbyhq.com/luminai",
+    "career:teleport": "https://jobs.ashbyhq.com/goteleport",
+    "career:joom": "https://apply.workable.com/joom/",
+    "career:zeptolab": "https://apply.workable.com/zeptolab/",
+    "career:abbyy": "https://job-boards.greenhouse.io/abbyy",
+    "career:ahrefs": "https://job-boards.greenhouse.io/ahrefsjobs",
+    "career:eqvilent": "https://job-boards.greenhouse.io/eqvilentjobs",
+    "career:humansignal": "https://job-boards.greenhouse.io/humansignal",
+    "career:altenar": "https://altenar.bamboohr.com/careers/list",
+    "career:synder": "https://synder.bamboohr.com/careers/list",
+    "career:crystal": "https://crystalintelligence.teamtailor.com/jobs",
+    "career:synthesized": "https://synthesized.teamtailor.com/jobs",
+    "career:tradingview": "https://tradingview.teamtailor.com/jobs",
+    "career:osome": "https://careers.osome.com/jobs",
+    "career:sumsub": "https://careers.sumsub.com/jobs",
 }
 
 

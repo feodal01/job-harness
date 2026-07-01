@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 7,
+  "sample_listings": [
+    {
+      "source_listing_id": "7299398",
+      "title": "Product Sales Lead, Fraud Prevention",
+      "url": "https://careers.sumsub.com/jobs/7299398-product-sales-lead-fraud-prevention",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "Multiple locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7232843",
+      "title": "Technical Support Engineer (L3)",
+      "url": "https://careers.sumsub.com/jobs/7232843-technical-support-engineer-l3",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "APAC",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7193765",
+      "title": "Regional Marketing Manager North America",
+      "url": "https://careers.sumsub.com/jobs/7193765-regional-marketing-manager-north-america",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "Remote US",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7111900",
+      "title": "Senior Marketing Analyst",
+      "url": "https://careers.sumsub.com/jobs/7111900-senior-marketing-analyst",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "Multiple locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7068282",
+      "title": "Business Development Manager, Mexico",
+      "url": "https://careers.sumsub.com/jobs/7068282-business-development-manager-mexico",
+      "company": "Sumsub",
+      "country": null,
+      "city": null,
+      "location_text": "LATAM",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7299398": {
+      "ats_platform": "teamtailor",
+      "career_url": "https://careers.sumsub.com/jobs"
+    }
+  }
+}

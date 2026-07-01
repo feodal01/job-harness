@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 171,
+  "sample_listings": [
+    {
+      "source_listing_id": "00d30b77-5f95-4ae3-be98-b1c8319bcdce",
+      "title": "Senior Full Stack Engineer - ClickStack",
+      "url": "https://jobs.ashbyhq.com/clickhouse/00d30b77-5f95-4ae3-be98-b1c8319bcdce",
+      "company": "ClickHouse",
+      "country": "United States",
+      "city": null,
+      "location_text": "United States",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-01-05T20:11:16.997+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "03b2433e-6a7b-4f79-a75e-c7371365d527",
+      "title": "AI Product Engineer - ClickStack",
+      "url": "https://jobs.ashbyhq.com/clickhouse/03b2433e-6a7b-4f79-a75e-c7371365d527",
+      "company": "ClickHouse",
+      "country": "United States",
+      "city": null,
+      "location_text": "United States",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-05T17:35:31.499+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "05297574-eb4d-4971-9d2e-e1e954e0224b",
+      "title": "Creative Lead, Marketing",
+      "url": "https://jobs.ashbyhq.com/clickhouse/05297574-eb4d-4971-9d2e-e1e954e0224b",
+      "company": "ClickHouse",
+      "country": null,
+      "city": null,
+      "location_text": "EMEA",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-27T21:27:46.127+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "0712a227-f905-4ff8-9fdf-13ba4454ab44",
+      "title": "Partner Solutions Architect - India",
+      "url": "https://jobs.ashbyhq.com/clickhouse/0712a227-f905-4ff8-9fdf-13ba4454ab44",
+      "company": "ClickHouse",
+      "country": "India",
+      "city": null,
+      "location_text": "India",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-16T02:19:59.169+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "0783beef-b3db-4396-918a-cd8cc7758fde",
+      "title": "Senior Cloud Engineer",
+      "url": "https://jobs.ashbyhq.com/clickhouse/0783beef-b3db-4396-918a-cd8cc7758fde",
+      "company": "ClickHouse",
+      "country": "United States",
+      "city": null,
+      "location_text": "United States",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-04T18:44:10.863+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "00d30b77-5f95-4ae3-be98-b1c8319bcdce": {
+      "ats_platform": "ashby",
+      "career_url": "https://jobs.ashbyhq.com/clickhouse"
+    }
+  }
+}

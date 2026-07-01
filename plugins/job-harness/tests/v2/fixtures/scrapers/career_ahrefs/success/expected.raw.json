@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 8,
+  "sample_listings": [
+    {
+      "source_listing_id": "6005637004",
+      "title": "Events Marketing Executive",
+      "url": "https://job-boards.greenhouse.io/ahrefsjobs/jobs/6005637004",
+      "company": "Ahrefs",
+      "country": null,
+      "city": null,
+      "location_text": "Remote - Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-25T23:32:51-04:00",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "5774384004",
+      "title": "Marketing Manager, Indonesia Market",
+      "url": "https://job-boards.greenhouse.io/ahrefsjobs/jobs/5774384004",
+      "company": "Ahrefs",
+      "country": null,
+      "city": "Singapore",
+      "location_text": "Singapore",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-01-18T20:36:36-05:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "5063690004",
+      "title": "OCaml Developer",
+      "url": "https://job-boards.greenhouse.io/ahrefsjobs/jobs/5063690004",
+      "company": "Ahrefs",
+      "country": null,
+      "city": null,
+      "location_text": "Palo Alto, California, United States; Singapore",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2024-01-22T12:11:35-05:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "5696846004",
+      "title": "Product Designer",
+      "url": "https://job-boards.greenhouse.io/ahrefsjobs/jobs/5696846004",
+      "company": "Ahrefs",
+      "country": "United States",
+      "city": "Palo Alto, California",
+      "location_text": "Palo Alto, California, United States",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-11-05T01:41:26-05:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "5790235004",
+      "title": "Senior Product Marketing Manager",
+      "url": "https://job-boards.greenhouse.io/ahrefsjobs/jobs/5790235004",
+      "company": "Ahrefs",
+      "country": null,
+      "city": null,
+      "location_text": "Cambridge, Massachusetts, United States; Palo Alto, California, United States; Singapore",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-02-03T06:41:19-05:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "6005637004": {
+      "ats_platform": "greenhouse",
+      "career_url": "https://job-boards.greenhouse.io/ahrefsjobs"
+    }
+  }
+}

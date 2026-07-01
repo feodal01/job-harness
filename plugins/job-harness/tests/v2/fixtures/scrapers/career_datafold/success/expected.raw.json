@@ -1,0 +1,66 @@
+{
+  "outcome": "success",
+  "expected_count": 3,
+  "sample_listings": [
+    {
+      "source_listing_id": "21cad7b8-546a-40a1-9a37-cde266201821",
+      "title": "Forward Deployed Data Engineer",
+      "url": "https://jobs.ashbyhq.com/datafold/21cad7b8-546a-40a1-9a37-cde266201821",
+      "company": "Datafold",
+      "country": "USA",
+      "city": null,
+      "location_text": "USA",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-19T11:01:50.203+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "36b4dd33-35b0-41fb-83f6-84fd504ae1bc",
+      "title": "Enterprise Account Executive –  EU",
+      "url": "https://jobs.ashbyhq.com/datafold/36b4dd33-35b0-41fb-83f6-84fd504ae1bc",
+      "company": "Datafold",
+      "country": null,
+      "city": null,
+      "location_text": "Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-19T22:35:25.445+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "5b68673e-e56b-429e-918c-4fa652f668ca",
+      "title": "Forward Deployed Data Engineer - EU",
+      "url": "https://jobs.ashbyhq.com/datafold/5b68673e-e56b-429e-918c-4fa652f668ca",
+      "company": "Datafold",
+      "country": null,
+      "city": null,
+      "location_text": "Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-19T11:03:40.090+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "21cad7b8-546a-40a1-9a37-cde266201821": {
+      "ats_platform": "ashby",
+      "career_url": "https://jobs.ashbyhq.com/datafold"
+    }
+  }
+}
