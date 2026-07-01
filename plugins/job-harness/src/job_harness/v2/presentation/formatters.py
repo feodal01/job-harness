@@ -95,6 +95,7 @@ def _render_listing(index: int, item: dict[str, object], *, description_limit: i
         lines.append("")
 
     lines.extend(_listing_application_channel_lines(item))
+    lines.extend(_listing_company_contact_lines(item))
     lines.extend(_listing_skills_lines(item))
     lines.extend(_listing_body_lines(item, description_limit=description_limit))
     lines.extend(_listing_diagnostic_lines(item))
@@ -155,6 +156,31 @@ def _listing_application_channel_lines(item: dict[str, object]) -> list[str]:
         lines.append(f"- [{label}]({url})")
         has_channel_lines = True
     if not has_channel_lines:
+        return []
+    lines.append("")
+    return lines
+
+
+def _listing_company_contact_lines(item: dict[str, object]) -> list[str]:
+    contacts = item.get("company_contacts")
+    if not isinstance(contacts, list) or not contacts:
+        return []
+    lines = ["**Company contacts**", ""]
+    has_contact_lines = False
+    for contact in contacts:
+        if not isinstance(contact, dict):
+            continue
+        label = _text(contact.get("label"))
+        value = _text(contact.get("value"))
+        url = _text(contact.get("url"))
+        if not label or not value:
+            continue
+        if url:
+            lines.append(f"- {label}: [{value}]({url})")
+        else:
+            lines.append(f"- {label}: {value}")
+        has_contact_lines = True
+    if not has_contact_lines:
         return []
     lines.append("")
     return lines

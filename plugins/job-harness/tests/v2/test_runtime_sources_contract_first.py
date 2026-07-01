@@ -1362,6 +1362,30 @@ class GeekJobSourceTest(unittest.TestCase):
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
 
+    def test_detail_fixture_extracts_company_profile_url(self) -> None:
+        # Arrange
+        source = GeekJobSource()
+        listing = RawListing(
+            source_listing_id="6a395c834507443691036050",
+            title="Head of Marketing",
+            url="https://geekjob.ru/vacancy/6a395c834507443691036050",
+            source="geekjob",
+            raw={"href": "/vacancy/6a395c834507443691036050"},
+        )
+        expected = _expected("geekjob", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("geekjob", "detail"), listing)
+
+        # Assert
+        company = detailed.raw["company"]
+        self.assertIsInstance(company, dict)
+        assert isinstance(company, dict)
+        self.assertEqual(
+            expected["company_profile_url"],
+            company["companyProfileUrl"],
+        )
+
 
 class TalentoSourceTest(unittest.TestCase):
     QA_URL = "https://talento.works/?q=QA"
@@ -2116,6 +2140,13 @@ class HireHiSourceTest(unittest.TestCase):
 
         # Assert
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+        company = detailed.raw["company"]
+        self.assertIsInstance(company, dict)
+        assert isinstance(company, dict)
+        self.assertEqual(
+            "https://hirehi.ru/companies/magnit",
+            company["companyProfileUrl"],
+        )
 
 
 class StaffAmSourceTest(unittest.TestCase):

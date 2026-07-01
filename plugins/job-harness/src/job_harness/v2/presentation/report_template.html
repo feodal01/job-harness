@@ -223,7 +223,8 @@
       gap: 6px;
       padding-top: 2px;
     }
-    .apply-channels {
+    .apply-channels,
+    .company-contacts {
       display: grid;
       gap: 6px;
       padding: 9px 10px;
@@ -231,16 +232,19 @@
       border-radius: 8px;
       background: #f8fafc;
     }
-    .apply-channels-title {
+    .apply-channels-title,
+    .company-contacts-title {
       color: var(--ink);
       font-weight: 700;
     }
-    .apply-channel-links {
+    .apply-channel-links,
+    .company-contact-links {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
     }
-    .apply-channel {
+    .apply-channel,
+    .company-contact {
       display: inline-flex;
       align-items: center;
       min-height: 28px;
@@ -518,6 +522,8 @@
       article.append(head);
       const applicationChannels = applicationChannelsElement(row);
       if (applicationChannels) article.append(applicationChannels);
+      const companyContacts = companyContactsElement(row);
+      if (companyContacts) article.append(companyContacts);
       const skillTags = skillsElement(row);
       if (skillTags) article.append(skillTags);
 
@@ -658,6 +664,39 @@
       linkRow.className = "apply-channel-links";
       linkRow.replaceChildren(...links);
       container.replaceChildren(title, linkRow);
+      return container;
+    }
+
+    function companyContactsElement(row) {
+      const contacts = Array.isArray(row.company_contacts) ? row.company_contacts : [];
+      const items = contacts
+        .filter((contact) => contact && typeof contact === "object" && text(contact.label) && text(contact.value))
+        .map((contact) => {
+          const label = text(contact.label);
+          const value = text(contact.value);
+          const url = text(contact.url);
+          const item = url ? document.createElement("a") : document.createElement("span");
+          item.className = "company-contact";
+          item.textContent = `${label}: ${value}`;
+          if (url) {
+            item.href = url;
+            item.target = "_blank";
+            item.rel = "noreferrer";
+          }
+          const source = text(contact.source);
+          if (source) item.title = source;
+          return item;
+        });
+      if (!items.length) return null;
+      const container = document.createElement("div");
+      container.className = "company-contacts";
+      const title = document.createElement("div");
+      title.className = "company-contacts-title";
+      title.textContent = "Company contacts";
+      const itemRow = document.createElement("div");
+      itemRow.className = "company-contact-links";
+      itemRow.replaceChildren(...items);
+      container.replaceChildren(title, itemRow);
       return container;
     }
 

@@ -10,6 +10,7 @@ from job_harness.v2.contracts import SourceFetchRequest
 from job_harness.v2.ports import ArtifactFetcher
 from job_harness.v2.runtime.application_channel_resolver import clean_http_url
 from job_harness.v2.runtime.application_channel_sources import ApplicationChannelResolutionPolicy
+from job_harness.v2.runtime.company_contacts import profile_contacts_from_html
 from job_harness.v2.runtime.errors import ClassifiedSourceError
 
 _MAX_ANCHORS = 400
@@ -27,6 +28,7 @@ class ProfileSiteResolution:
     attempted: bool
     resolved: bool
     failed: bool
+    contacts: tuple[dict[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -71,8 +73,6 @@ async def resolve_profile_site(
     *,
     fetcher: ArtifactFetcher,
 ) -> ProfileSiteResolution:
-    if not request.policy.profile_site_text_markers:
-        return ProfileSiteResolution(site_url=None, attempted=False, resolved=False, failed=False)
     try:
         response = await fetcher.fetch(
             SourceFetchRequest(
@@ -89,11 +89,17 @@ async def resolve_profile_site(
         html=response.body,
         policy=request.policy,
     )
+    contacts = profile_contacts_from_html(
+        source_id=request.policy.source_id,
+        base_url=response.url,
+        html=response.body,
+    )
     return ProfileSiteResolution(
         site_url=site_url,
         attempted=True,
         resolved=site_url is not None,
         failed=False,
+        contacts=contacts,
     )
 
 
@@ -103,6 +109,8 @@ def official_site_url_from_profile(
     html: str,
     policy: ApplicationChannelResolutionPolicy,
 ) -> str | None:
+    if not policy.profile_site_text_markers:
+        return None
     collector = _AnchorCollector()
     collector.feed(html)
     for anchor in collector.anchors:

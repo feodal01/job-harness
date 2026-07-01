@@ -1,0 +1,8 @@
+{
+  "source": "habr_career",
+  "captured_url": "https://career.habr.com/companies/simbirsoft",
+  "captured_at": "2026-07-01T00:44:23+03:00",
+  "capture_method": "live HTML minimized from company profile contact section",
+  "why": "Proves source-specific company contact extraction from Habr Career company profiles.",
+  "redactions": []
+}

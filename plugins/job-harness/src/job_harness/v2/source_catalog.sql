@@ -297,6 +297,7 @@ VALUES
     ('career:vk', 'pagination'),
     ('career:vk', 'detail'),
     ('geekjob', 'no_results'),
+    ('geekjob', 'detail'),
     ('talento', 'no_results'),
     ('talento', 'detail'),
     ('finder_work', 'no_results'),
@@ -631,6 +632,17 @@ VALUES
         'tests/v2/fixtures/scrapers/geekjob/no_results/response.html',
         'tests/v2/fixtures/scrapers/geekjob/no_results/meta.json',
         'tests/v2/fixtures/scrapers/geekjob/no_results/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'geekjob',
+        2,
+        'geekjob-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/geekjob/detail/response.html',
+        'tests/v2/fixtures/scrapers/geekjob/detail/meta.json',
+        'tests/v2/fixtures/scrapers/geekjob/detail/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     ),

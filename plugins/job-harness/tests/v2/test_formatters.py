@@ -37,6 +37,21 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
                             "status": "resolved",
                         }
                     ],
+                    "company_contacts": [
+                        {
+                            "type": "email",
+                            "label": "Email",
+                            "value": "hr@example.com",
+                            "url": "mailto:hr@example.com",
+                            "source": "company_site_contact_page",
+                        },
+                        {
+                            "type": "phone",
+                            "label": "Phone",
+                            "value": "+7 (999) 111-22-33",
+                            "source": "company_site_homepage",
+                        },
+                    ],
                     "description": "Build test automation.",
                 }
             ],
@@ -52,6 +67,9 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
         self.assertIn("**Skills:** pytest, API", markdown)
         self.assertIn("**Apply channels**", markdown)
         self.assertIn("- [Careers](https://example.com/careers)", markdown)
+        self.assertIn("**Company contacts**", markdown)
+        self.assertIn("- Email: [hr@example.com](mailto:hr@example.com)", markdown)
+        self.assertIn("- Phone: +7 (999) 111-22-33", markdown)
         self.assertNotIn("— resolved", markdown)
 
     def test_render_processed_results_markdown_puts_detail_status_in_diagnostics(self) -> None:
@@ -260,6 +278,42 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertIn("if (!parts.length && rawText) parts.push(rawText)", html)
         self.assertIn('"QA Intern"', html)
         self.assertIn("Filtered out", html)
+
+    def test_render_processed_results_html_embeds_company_contacts(self) -> None:
+        payload = {
+            "record_type": "processed_results",
+            "run_id": "r-test",
+            "append_sequence": 0,
+            "raw_records_read": 1,
+            "result_count": 1,
+            "search_request": {"query_variants": ["QA"]},
+            "results": [
+                {
+                    "decision": "kept",
+                    "decision_reasons": ["matches_requested_filters"],
+                    "title": "QA Engineer",
+                    "company_contacts": [
+                        {
+                            "type": "email",
+                            "label": "Email",
+                            "value": "hr@example.com",
+                            "url": "mailto:hr@example.com",
+                            "source": "company_site_contact_page",
+                        }
+                    ],
+                }
+            ],
+            "filtered_out_results": [],
+        }
+
+        html = render_processed_results_html(payload)
+
+        self.assertIn("companyContactsElement(row)", html)
+        self.assertIn("className = \"company-contacts\"", html)
+        self.assertIn("Company contacts", html)
+        self.assertIn('"company_contacts"', html)
+        self.assertIn("item.textContent = `${label}: ${value}`", html)
+        self.assertIn("if (source) item.title = source", html)
 
     def test_render_processed_results_html_uses_na_for_unset_request_filters(self) -> None:
         # Arrange

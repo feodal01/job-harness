@@ -1,0 +1,9 @@
+{
+  "source_id": "geekjob",
+  "captured_url": "https://geekjob.ru/vacancy/6a395c834507443691036050",
+  "capture_date": "2026-07-01",
+  "capture_method": "live curl capture for company profile detail enrichment fixture",
+  "fixture_kind": "detail",
+  "redactions": [],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}
