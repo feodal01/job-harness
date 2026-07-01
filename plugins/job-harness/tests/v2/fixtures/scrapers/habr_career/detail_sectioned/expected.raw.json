@@ -4,5 +4,14 @@
     "Ожидания от кандидата",
     "habrastorage.org"
   ],
-  "min_description_length": 120
+  "min_description_length": 120,
+  "company_resolution_seed": {
+    "id": 1000108620,
+    "aliasName": "irlix",
+    "title": "IRLIX",
+    "accredited": true,
+    "companyProfileUrl": "https://career.habr.com/companies/irlix",
+    "companyVacanciesUrl": "https://career.habr.com/companies/irlix/vacancies",
+    "companySiteUrl": "http://irlix.com/"
+  }
 }

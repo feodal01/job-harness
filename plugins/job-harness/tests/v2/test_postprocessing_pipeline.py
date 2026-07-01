@@ -180,6 +180,154 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             payload["results"][0]["source_facts"],
         )
 
+    def test_extracts_application_channels_from_normalized_raw_listing(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",)),
+            raw_records=(
+                _raw_record(
+                    "134371846",
+                    company="MANGO FZCO",
+                    raw={
+                        "application_channels": [
+                            {
+                                "type": "company_site",
+                                "label": "Site",
+                                "url": "https://windi.com/",
+                                "status": "source_provided",
+                                "source": "hh_ru.company_site_url",
+                            },
+                            {
+                                "type": "aggregator_company_profile",
+                                "label": "Profile",
+                                "url": "https://hh.ru/employer/5174681",
+                                "status": "source_provided",
+                                "source": "hh_ru.company_profile_url",
+                            },
+                        ]
+                    },
+                ),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(
+            [
+                {
+                    "type": "company_site",
+                    "label": "Site",
+                    "url": "https://windi.com/",
+                    "status": "source_provided",
+                    "source": "hh_ru.company_site_url",
+                },
+                {
+                    "type": "aggregator_company_profile",
+                    "label": "Profile",
+                    "url": "https://hh.ru/employer/5174681",
+                    "status": "source_provided",
+                    "source": "hh_ru.company_profile_url",
+                },
+            ],
+            payload["results"][0]["application_channels"],
+        )
+
+    def test_extracts_company_contacts_from_normalized_raw_listing(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",)),
+            raw_records=(
+                _raw_record(
+                    "1000163567",
+                    source="habr_career",
+                    company="SimbirSoft",
+                    raw={
+                        "company_contacts": [
+                            {
+                                "type": "email",
+                                "label": "Email",
+                                "value": "hr@simbirsoft.com",
+                                "url": "mailto:hr@simbirsoft.com",
+                                "source": "habr_career.company_profile",
+                            },
+                            {
+                                "type": "telegram",
+                                "label": "Telegram",
+                                "value": "@simbirsoft_dev",
+                                "url": "https://telegram.me/simbirsoft_dev",
+                                "source": "habr_career.company_profile",
+                            },
+                            {"type": "broken", "label": "Broken"},
+                        ]
+                    },
+                ),
+            ),
+            source_attempts=(_attempt_record(source="habr_career"),),
+        )
+
+        # Assert
+        self.assertEqual(
+            [
+                {
+                    "type": "email",
+                    "label": "Email",
+                    "value": "hr@simbirsoft.com",
+                    "url": "mailto:hr@simbirsoft.com",
+                    "source": "habr_career.company_profile",
+                },
+                {
+                    "type": "telegram",
+                    "label": "Telegram",
+                    "value": "@simbirsoft_dev",
+                    "url": "https://telegram.me/simbirsoft_dev",
+                    "source": "habr_career.company_profile",
+                },
+            ],
+            payload["results"][0]["company_contacts"],
+        )
+
+    def test_prefers_resolved_application_channels_from_raw_listing(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",)),
+            raw_records=(
+                _raw_record(
+                    "134371846",
+                    company="MANGO FZCO",
+                    raw={
+                        "company": {
+                            "companySiteUrl": "https://windi.com",
+                            "employerUrl": "https://hh.ru/employer/5174681",
+                        },
+                        "application_channels": [
+                            {
+                                "type": "company_career_page",
+                                "label": "Careers",
+                                "url": "https://windi.com/careers",
+                                "status": "resolved",
+                                "source": "company_site_homepage",
+                            }
+                        ],
+                    },
+                ),
+            ),
+            source_attempts=(_attempt_record(),),
+        )
+
+        # Assert
+        self.assertEqual(
+            [
+                {
+                    "type": "company_career_page",
+                    "label": "Careers",
+                    "url": "https://windi.com/careers",
+                    "status": "resolved",
+                    "source": "company_site_homepage",
+                }
+            ],
+            payload["results"][0]["application_channels"],
+        )
+
     def test_uses_source_work_format_before_boolean_remote_fallback(self) -> None:
         # Arrange / Act
         payload = _process_payload(

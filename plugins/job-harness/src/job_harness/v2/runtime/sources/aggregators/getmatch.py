@@ -223,6 +223,9 @@ def _listing_from_offer(offer: dict[str, Any]) -> RawListing | None:
     additional_sections = _html_sections(offer_description)
     salary_text = _text(offer.get("salary_description")).strip() or _format_salary(offer)
     raw = {"id": offer_id, "analytics_id": offer.get("analytics_id")}
+    company_facts = _company_facts(company_data)
+    if company_facts:
+        raw["company"] = company_facts
     work_format = _work_format(location_requirements, location_items)
     if work_format:
         raw["work_format"] = work_format
@@ -262,6 +265,19 @@ def _json_object(body: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError("getmatch response is not a JSON object")
     return value
+
+
+def _company_facts(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    facts: dict[str, object] = {}
+    company_id = value.get("id")
+    if company_id is not None:
+        facts["id"] = company_id
+    profile_path = _text(value.get("url")).strip()
+    if profile_path:
+        facts["companyProfileUrl"] = _absolute_url(profile_path)
+    return facts
 
 
 def _json_array(body: str) -> list[Any]:

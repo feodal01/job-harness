@@ -590,6 +590,23 @@ class HabrCareerSourceTest(unittest.TestCase):
         # Assert
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
 
+    def test_detail_sectioned_fixture_preserves_company_resolution_seed(self) -> None:
+        # Arrange
+        source = HabrCareerSource()
+        listing = _detail_listing_from_input("habr_career", case="detail_sectioned")
+        expected = _expected("habr_career", "detail_sectioned")
+
+        # Act
+        detailed = source.parse_detail_response(
+            _fixture_response("habr_career", "detail_sectioned"),
+            listing,
+        )
+
+        # Assert
+        company = cast(dict[str, object], detailed.raw["company"])
+        for key, value in expected["company_resolution_seed"].items():
+            self.assertEqual(value, company.get(key), key)
+
     def test_optional_fields_are_preserved_as_source_facts(self) -> None:
         # Arrange
         source = HabrCareerSource()
@@ -610,6 +627,27 @@ class HabrCareerSourceTest(unittest.TestCase):
         self.assertIsNone(_listing_by_id(parsed.listings, expected["salary_absent_listing_id"]).salary_text)
         self.assertIsNotNone(_listing_by_id(parsed.listings, expected["location_present_listing_id"]).location_text)
         self.assertIsNone(_listing_by_id(parsed.listings, expected["location_absent_listing_id"]).location_text)
+
+    def test_success_fixture_preserves_company_resolution_seed(self) -> None:
+        # Arrange
+        source = HabrCareerSource()
+        expected = _expected("habr_career", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("habr_career", "success"),
+            SourceFetchRequest(
+                source_id="habr_career",
+                query_variant="QA",
+                url="https://career.habr.com/vacancies?q=QA&type=all",
+            ),
+        )
+
+        # Assert
+        listing = _listing_by_id(parsed.listings, expected["company_resolution_seed_listing_id"])
+        company = cast(dict[str, object], listing.raw["company"])
+        for key, value in expected["company_resolution_seed"].items():
+            self.assertEqual(value, company.get(key), key)
 
 
 class HhRuSourceTest(unittest.TestCase):
@@ -676,6 +714,27 @@ class HhRuSourceTest(unittest.TestCase):
         # Assert
         hybrid_listing = _listing_by_id(parsed.listings, "134064926")
         self.assertEqual(("HYBRID",), hybrid_listing.raw["workFormats"])
+
+    def test_success_fixture_preserves_company_resolution_seed(self) -> None:
+        # Arrange
+        source = HhRuSource()
+        expected = _expected("hh_ru", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("hh_ru", "success"),
+            SourceFetchRequest(
+                source_id="hh_ru",
+                query_variant="QA",
+                url="https://hh.ru/search/vacancy?text=QA&area=113&search_field=name",
+            ),
+        )
+
+        # Assert
+        listing = _listing_by_id(parsed.listings, expected["company_resolution_seed_listing_id"])
+        company = cast(dict[str, object], listing.raw["company"])
+        for key, value in expected["company_resolution_seed"].items():
+            self.assertEqual(value, company.get(key), key)
 
     def test_pagination_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
@@ -1302,6 +1361,30 @@ class GeekJobSourceTest(unittest.TestCase):
         self.assertEqual(SourceOutcome.NO_RESULTS, parsed.outcome)
         self.assertEqual((), parsed.listings)
         self.assertTrue(parsed.evidence.no_results)
+
+    def test_detail_fixture_extracts_company_profile_url(self) -> None:
+        # Arrange
+        source = GeekJobSource()
+        listing = RawListing(
+            source_listing_id="6a395c834507443691036050",
+            title="Head of Marketing",
+            url="https://geekjob.ru/vacancy/6a395c834507443691036050",
+            source="geekjob",
+            raw={"href": "/vacancy/6a395c834507443691036050"},
+        )
+        expected = _expected("geekjob", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("geekjob", "detail"), listing)
+
+        # Assert
+        company = detailed.raw["company"]
+        self.assertIsInstance(company, dict)
+        assert isinstance(company, dict)
+        self.assertEqual(
+            expected["company_profile_url"],
+            company["companyProfileUrl"],
+        )
 
 
 class TalentoSourceTest(unittest.TestCase):
@@ -2057,6 +2140,13 @@ class HireHiSourceTest(unittest.TestCase):
 
         # Assert
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+        company = detailed.raw["company"]
+        self.assertIsInstance(company, dict)
+        assert isinstance(company, dict)
+        self.assertEqual(
+            "https://hirehi.ru/companies/magnit",
+            company["companyProfileUrl"],
+        )
 
 
 class StaffAmSourceTest(unittest.TestCase):

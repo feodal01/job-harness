@@ -85,10 +85,15 @@ class HireHiSource(DetailEnrichmentScraper):
         description = json_ld_job_posting_description(response.body)
         if description is None:
             raise ValueError("HireHi detail page does not contain vacancy description")
+        company_profile_url = _company_profile_url(response.body)
         return replace(
             listing,
             description=description,
             raw_text=_join_text(listing.raw_text, description),
+            raw=_merge_company_facts(
+                listing.raw,
+                {"companyProfileUrl": company_profile_url} if company_profile_url is not None else {},
+            ),
         )
 
 
@@ -169,6 +174,15 @@ def _parse_listings(body: str) -> tuple[RawListing, ...]:
         if listing is not None:
             listings.append(listing)
     return tuple(listings)
+
+
+def _company_profile_url(body: str) -> str | None:
+    collector = _AnchorCollector()
+    collector.feed(body)
+    for anchor in collector.anchors:
+        if re.fullmatch(r"/companies/[^/?#]+", anchor.href):
+            return absolute_url(_BASE_URL, anchor.href)
+    return None
 
 
 def _listing_from_anchor(anchor: _Anchor) -> RawListing | None:
@@ -271,6 +285,15 @@ def _listing_matches_query(listing: RawListing, query: str) -> bool:
         )
     ).casefold()
     return any(token in searchable for token in tokens)
+
+
+def _merge_company_facts(raw: dict[str, object], facts: dict[str, object]) -> dict[str, object]:
+    if not facts:
+        return raw
+    existing = raw.get("company")
+    company = dict(existing) if isinstance(existing, dict) else {}
+    company.update(facts)
+    return {**raw, "company": company}
 
 
 def _query_tokens(query: str) -> set[str]:

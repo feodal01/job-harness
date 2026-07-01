@@ -29,6 +29,29 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
                     "city": "Moscow",
                     "remote_scope": "global",
                     "skills": ["pytest", "API"],
+                    "application_channels": [
+                        {
+                            "type": "company_career_page",
+                            "label": "Careers",
+                            "url": "https://example.com/careers",
+                            "status": "resolved",
+                        }
+                    ],
+                    "company_contacts": [
+                        {
+                            "type": "email",
+                            "label": "Email",
+                            "value": "hr@example.com",
+                            "url": "mailto:hr@example.com",
+                            "source": "company_site_contact_page",
+                        },
+                        {
+                            "type": "phone",
+                            "label": "Phone",
+                            "value": "+7 (999) 111-22-33",
+                            "source": "company_site_homepage",
+                        },
+                    ],
                     "description": "Build test automation.",
                 }
             ],
@@ -42,6 +65,12 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
         self.assertIn("[Open vacancy](https://example.com/jobs/1)", markdown)
         self.assertIn("**Company:** Acme", markdown)
         self.assertIn("**Skills:** pytest, API", markdown)
+        self.assertIn("**Apply channels**", markdown)
+        self.assertIn("- [Careers](https://example.com/careers)", markdown)
+        self.assertIn("**Company contacts**", markdown)
+        self.assertIn("- Email: [hr@example.com](mailto:hr@example.com)", markdown)
+        self.assertIn("- Phone: +7 (999) 111-22-33", markdown)
+        self.assertNotIn("— resolved", markdown)
 
     def test_render_processed_results_markdown_puts_detail_status_in_diagnostics(self) -> None:
         payload = {
@@ -169,6 +198,20 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
                     "remote_scope": "global",
                     "remote_in_country": True,
                     "remote_global": True,
+                    "application_channels": [
+                        {
+                            "type": "company_career_page",
+                            "label": "Careers",
+                            "url": "https://example.com/careers",
+                            "status": "resolved",
+                        },
+                        {
+                            "type": "aggregator_company_profile",
+                            "label": "Profile",
+                            "url": "https://hh.ru/employer/123",
+                            "status": "source_provided",
+                        },
+                    ],
                     "source_facts": [{"label": "Experience", "value": "1–3 года"}],
                 }
             ],
@@ -208,6 +251,13 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertIn('valueText || "not specified"', html)
         self.assertIn("field excluded-reason", html)
         self.assertIn("skillsElement(row)", html)
+        self.assertIn("applicationChannelsElement(row)", html)
+        self.assertIn("className = \"apply-channels\"", html)
+        self.assertIn("Apply channels", html)
+        self.assertIn('"application_channels"', html)
+        self.assertIn("link.textContent = text(channel.label)", html)
+        self.assertIn("if (details) link.title = details", html)
+        self.assertNotIn("`${text(channel.label)} · ${status}`", html)
         self.assertIn("className = \"skill\"", html)
         self.assertIn('debugField("Filter reason", removalReasonText(row))', html)
         self.assertIn('debugField("Raw remote in country", booleanText(row.remote_in_country))', html)
@@ -228,6 +278,42 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertIn("if (!parts.length && rawText) parts.push(rawText)", html)
         self.assertIn('"QA Intern"', html)
         self.assertIn("Filtered out", html)
+
+    def test_render_processed_results_html_embeds_company_contacts(self) -> None:
+        payload = {
+            "record_type": "processed_results",
+            "run_id": "r-test",
+            "append_sequence": 0,
+            "raw_records_read": 1,
+            "result_count": 1,
+            "search_request": {"query_variants": ["QA"]},
+            "results": [
+                {
+                    "decision": "kept",
+                    "decision_reasons": ["matches_requested_filters"],
+                    "title": "QA Engineer",
+                    "company_contacts": [
+                        {
+                            "type": "email",
+                            "label": "Email",
+                            "value": "hr@example.com",
+                            "url": "mailto:hr@example.com",
+                            "source": "company_site_contact_page",
+                        }
+                    ],
+                }
+            ],
+            "filtered_out_results": [],
+        }
+
+        html = render_processed_results_html(payload)
+
+        self.assertIn("companyContactsElement(row)", html)
+        self.assertIn("className = \"company-contacts\"", html)
+        self.assertIn("Company contacts", html)
+        self.assertIn('"company_contacts"', html)
+        self.assertIn("item.textContent = `${label}: ${value}`", html)
+        self.assertIn("if (source) item.title = source", html)
 
     def test_render_processed_results_html_uses_na_for_unset_request_filters(self) -> None:
         # Arrange

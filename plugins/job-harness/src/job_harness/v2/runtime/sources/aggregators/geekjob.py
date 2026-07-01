@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from html.parser import HTMLParser
 from typing import ClassVar
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    DetailEnrichmentScraper,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -16,7 +17,6 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
-    SourceScraper,
     SourceSearchParseResult,
 )
 from job_harness.v2.runtime.sources._url import absolute_url
@@ -35,7 +35,7 @@ _DATE_RE = re.compile(r"\b\d{1,2}\s+[а-яё]+\b", re.I)
 _MAX_UPPERCASE_LOCATION_TOKEN_LENGTH = 3
 
 
-class GeekJobSource(SourceScraper):
+class GeekJobSource(DetailEnrichmentScraper):
     @property
     def descriptor(self) -> SourceDescriptor:
         return source_descriptor("geekjob")
@@ -71,6 +71,26 @@ class GeekJobSource(SourceScraper):
                 evidence=AttemptEvidence(no_results=True),
             )
         return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=listing.url,
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        company_profile_url = _company_profile_url(response.body)
+        if company_profile_url is None:
+            return listing
+        return replace(
+            listing,
+            raw=_merge_company_facts(listing.raw, {"companyProfileUrl": company_profile_url}),
+        )
 
 
 @dataclass(frozen=True)
@@ -146,6 +166,15 @@ def _parse_listings(body: str) -> tuple[RawListing, ...]:
         if listing is not None:
             listings.append(listing)
     return tuple(listings)
+
+
+def _company_profile_url(body: str) -> str | None:
+    collector = _AnchorCollector()
+    collector.feed(body)
+    for anchor in collector.anchors:
+        if re.fullmatch(r"/company/[a-f0-9]+", anchor.href):
+            return absolute_url(_BASE_URL, anchor.href)
+    return None
 
 
 def _listing_from_texts(href: str, texts: list[str]) -> RawListing | None:
@@ -230,6 +259,13 @@ def _listing_matches_query(listing: RawListing, query: str) -> bool:
         )
     ).casefold()
     return any(token in searchable for token in tokens)
+
+
+def _merge_company_facts(raw: dict[str, object], facts: dict[str, object]) -> dict[str, object]:
+    existing = raw.get("company")
+    company = dict(existing) if isinstance(existing, dict) else {}
+    company.update(facts)
+    return {**raw, "company": company}
 
 
 def _query_tokens(query: str) -> set[str]:

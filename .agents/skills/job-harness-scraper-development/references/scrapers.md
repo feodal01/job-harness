@@ -162,6 +162,25 @@ Format:
 
 **Origin:** Getmatch ignores `q/search/query` on `/api/offers`; the working route is `/api/specializations` plus `/api/offers?sp=<specialization_slug>`.
 
+### Aggregator employer metadata for application channels
+
+**Pattern:** Aggregators often expose employer pages, official-site links, or
+"all company vacancies" links near a vacancy. The page shape is
+source-specific: HH employer profiles, Habr company blocks, and other
+aggregators will not share one generic parser contract.
+
+**Strategy:** Parse employer metadata inside the source-specific aggregator
+scraper and preserve it as raw source facts, usually under
+`RawListing.raw["company"]`. Keep shared application-channel resolution limited
+to source-agnostic work: normalizing supplied URLs, resolving a company homepage
+to a careers page, filtering non-employer domains, and presenting short channel
+labels. Add a source-specific seed policy only after real captured artifacts
+prove which raw fields are reliable.
+
+**Origin:** HH employer profiles expose "official site"; Habr Career vacancy
+pages expose company site, company profile, and all-company-vacancies links in
+the company block.
+
 ### LinkedIn Job Wrapping workplace tags
 
 **Pattern:** ATS-backed career sites may include LinkedIn Job Wrapping tags such as `#LI-Remote`, `#LI-Hybrid`, and `#LI-Onsite` in vacancy content. They may be visually hidden or stripped on LinkedIn, but they are structured workplace signals rather than ordinary prose. Non-workplace `#LI-*` tags usually identify recruiter or tracking metadata.

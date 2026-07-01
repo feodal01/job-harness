@@ -308,11 +308,13 @@ class SourceCatalogTableTest(unittest.TestCase):
             descriptor.structured_output_criteria,
         )
         self.assertTrue(required_fixture_kinds.no_results)
+        self.assertTrue(required_fixture_kinds.detail)
         self.assertFalse(required_fixture_kinds.pagination)
         self.assertEqual(
             (
                 ParserFixtureKind.SUCCESS_NON_EMPTY,
                 ParserFixtureKind.NO_RESULTS,
+                ParserFixtureKind.DETAIL,
             ),
             tuple(case.kind for case in fixture_suite.cases),
         )

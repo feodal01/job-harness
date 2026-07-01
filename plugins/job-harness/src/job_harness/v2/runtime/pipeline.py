@@ -11,6 +11,11 @@ from job_harness.v2.contracts import DetailEnrichmentScraper, RawListing, Search
 from job_harness.v2.ports import ArtifactFetcher, RunStore, RunStoreFactory, StoredRawRecord
 from job_harness.v2.postprocessing import ProcessedResults, ProcessingPhase, ResultTablePostProcessor
 from job_harness.v2.presentation import render_processed_results_html
+from job_harness.v2.runtime.application_channels import (
+    ApplicationChannelEnrichmentRunner,
+    application_channel_summary,
+    application_channel_work_items,
+)
 from job_harness.v2.runtime.catalog import SourceCatalog
 from job_harness.v2.runtime.config import SearchServiceConfig
 from job_harness.v2.runtime.detail_enrichment import DetailEnrichmentRunner, DetailRunResult, DetailWorkItem
@@ -40,6 +45,7 @@ class SearchPipelineExecution:
     raw_records_written: int
     processed_results: ProcessedResults
     detail_summary: JsonObject
+    application_channel_summary: JsonObject
 
 
 class SearchPipeline:
@@ -102,6 +108,21 @@ class SearchPipeline:
                     total_work_items=len(work_items),
                     result=detail_result,
                 )
+                application_channel_raw_rows = store.read_raw_record_rows()
+                channel_work_items = application_channel_work_items(
+                    processed_payload=pre_processed.payload,
+                    raw_rows=application_channel_raw_rows,
+                )
+                application_channel_result = await ApplicationChannelEnrichmentRunner(
+                    fetcher=fetcher,
+                    writer=store,
+                    config=service_config.application_channels,
+                    request_concurrency_by_source=service_config.detail.per_source_concurrency,
+                ).run(channel_work_items)
+                channel_summary = application_channel_summary(
+                    total_work_items=len(channel_work_items),
+                    result=application_channel_result,
+                )
 
                 final_processed = self._process_records(
                     request=request,
@@ -110,11 +131,13 @@ class SearchPipeline:
                     phase=ProcessingPhase.FINAL,
                     store=store,
                     detail_summary=detail_summary,
+                    application_channel_summary=channel_summary,
                 )
                 store.write_processed_results(final_processed.payload)
                 _update_run_manifest(
                     store=store,
                     detail_summary=detail_summary,
+                    application_channel_summary=channel_summary,
                     pre_result_count=pre_processed.result_count,
                     final_result_count=final_processed.result_count,
                 )
@@ -135,6 +158,7 @@ class SearchPipeline:
             raw_records_written=search_result.raw_records_written,
             processed_results=final_processed,
             detail_summary=detail_summary,
+            application_channel_summary=channel_summary,
         )
 
     async def _collect_search_records(
@@ -173,6 +197,7 @@ class SearchPipeline:
         phase: ProcessingPhase,
         store: RunStore,
         detail_summary: dict[str, object] | None = None,
+        application_channel_summary: dict[str, object] | None = None,
     ) -> ProcessedResults:
         return self._postprocessor.process(
             request=request,
@@ -182,6 +207,7 @@ class SearchPipeline:
             raw_records=_raw_records_for_processing(store.read_raw_record_rows()),
             source_attempts=store.read_source_attempts(),
             detail_summary=detail_summary,
+            application_channel_summary=application_channel_summary,
         )
 
 
@@ -297,11 +323,13 @@ def _update_run_manifest(
     *,
     store: RunStore,
     detail_summary: JsonObject,
+    application_channel_summary: JsonObject,
     pre_result_count: int,
     final_result_count: int,
 ) -> None:
     manifest = store.read_run_manifest()
     manifest["detail_enrichment"] = detail_summary
+    manifest["application_channel_enrichment"] = application_channel_summary
     manifest["pre_enrichment_result_count"] = pre_result_count
     manifest["final_result_count"] = final_result_count
     store.replace_run_manifest(manifest)

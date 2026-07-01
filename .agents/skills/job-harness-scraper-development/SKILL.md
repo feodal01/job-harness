@@ -15,8 +15,9 @@ Before changing scraper behavior or tests, read:
 
 - `references/testing-policy.md` for merge gates, fixture rules, canonical
   outcomes, and G2/G4/G5 ownership.
-- `references/experience-filtering.md` when changing `experience_levels`, grade
-  assessment, source experience capability, or scrapers that expose native grade.
+- `references/experience-filtering.md` when changing `--grade`,
+  `SearchRequest.grades`, source grade capability, `RawListing.native_grade`, or
+  post-processing grade filtering.
 - `references/scrapers.md` only when practical scraper patterns are relevant.
 
 ## Development Rules
@@ -45,6 +46,22 @@ Before changing scraper behavior or tests, read:
   host-specific file instead of putting a single-host assumption in a shared
   runtime skill.
 - Treat live runs as debugging, smoke, or drift evidence, not merge proof.
+- For v2 source work, treat `plugins/job-harness/src/job_harness/v2/source_catalog.sql`
+  as the source inventory and fixture manifest. Runtime implementations live
+  under `plugins/job-harness/src/job_harness/v2/runtime/sources/` and are wired
+  through `runtime/source_registry.py`; do not add new v2 scrapers under legacy
+  `job_harness.v1` paths.
+- Keep source-specific aggregator parsing in the source module. If an aggregator
+  exposes employer metadata such as company site, company profile, or company
+  vacancies links, parse those facts into `RawListing.raw["company"]` in that
+  aggregator scraper. Shared application-channel code may resolve and present
+  those source facts, but must not contain one-off parser assumptions for every
+  aggregator page shape.
+- Application-channel and company-contact enrichment reuse the runtime fetcher
+  and the detail service per-source concurrency. This includes extra requests
+  to aggregator company profiles and employer contact/about pages. Do not add
+  separate global request limits or independent concurrency knobs unless the
+  whole runtime request-management contract changes with tests.
 - After changing scraper behavior, parser output, result post-processing,
   filtering, dedupe, presentation fields, or report rendering, run a live query
   that exercises the changed behavior and manually audit at least 10 affected
@@ -68,17 +85,18 @@ Before changing scraper behavior or tests, read:
 
 ## Working Flow
 
-1. Inspect the source contract: id, countries, capabilities, source limit,
-   transport, and supported/unsupported criteria.
+1. Inspect the v2 source contract in `source_catalog.sql`: id, source type,
+   countries, transport, source limit, required fixtures, and
+   native/structured/unsupported criteria.
 2. Inspect existing tests and fixtures before editing scraper code.
 3. Prefer structured APIs, SSR payloads, JSON-LD, and stable DOM markers over
    brittle rendered text.
 4. Use live browser/debug runs only to understand or capture reality. Convert any
    parser-relevant finding into a deterministic G2 fixture before relying on it.
-5. For scraper, post-processing, filtering, or presentation changes, perform the
-   live affected-card audit from Development Rules before handoff. The audit must
-   include direct source-page checks, not only inspecting generated report rows
-   or SQLite payloads.
+5. For scraper, post-processing, filtering, presentation, or
+   application-channel changes, perform the live affected-card audit from
+   Development Rules before handoff. The audit must include direct source-page
+   checks, not only inspecting generated report rows or SQLite payloads.
 6. Put generic transport/runtime classification in shared detectors and G5 tests.
    Put source-specific parser/classifier behavior in G2 only when backed by real
    captured artifacts.
@@ -86,8 +104,13 @@ Before changing scraper behavior or tests, read:
 
 ## Adding Or Changing A Scraper
 
-- Add or update the scraper under `plugins/job-harness/src/job_harness/scrapers/`.
-- Register the source and declare explicit countries and capabilities.
+- Add or update the v2 scraper under
+  `plugins/job-harness/src/job_harness/v2/runtime/sources/aggregators/` or
+  `plugins/job-harness/src/job_harness/v2/runtime/sources/companies/`.
+- Register the source in `plugins/job-harness/src/job_harness/v2/source_catalog.sql`
+  and `plugins/job-harness/src/job_harness/v2/runtime/source_registry.py`.
+  Declare explicit countries, transport, source type, source limit, required
+  parser fixtures, and one capability value for every `SearchCriterion`.
 - Test request mapping for every supported native criterion.
 - Test real parser input for normal results and every real source state used by
   the parser.
@@ -98,6 +121,11 @@ Before changing scraper behavior or tests, read:
 - Strip tracking parameters from emitted vacancy URLs.
 - Keep raw source facts separate from downstream filtering, ranking, dedupe, and
   presentation.
+- For aggregator employer/application-channel/contact metadata, preserve source
+  facts in `raw["company"]` with source-specific field names such as
+  `companySiteUrl`, `companyProfileUrl`, or `companyVacanciesUrl`. Add or update
+  the source-specific seed/contact policy only after the scraper or enrichment
+  layer has captured real source evidence.
 - Treat LinkedIn Job Wrapping workplace tags (`#LI-Remote`, `#LI-Hybrid`,
   `#LI-Onsite`) as valid source-exposed workplace signals when they appear in a
   real captured source artifact. Preserve them as dedicated raw facts, not as
@@ -125,4 +153,5 @@ Use `references/scrapers.md` for:
 - browser isolated-world limitations;
 - country-aware source metadata;
 - LinkedIn Job Wrapping workplace tags;
+- aggregator employer metadata for application-channel resolution;
 - specialization/category APIs.
