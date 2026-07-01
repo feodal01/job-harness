@@ -160,7 +160,10 @@ VALUES
     (65, 'career:softmall', 'company_career', 'http', 100),
     (66, 'career:retnnet', 'company_career', 'http', 100),
     (67, 'career:znanie', 'company_career', 'http', 100),
-    (68, 'career:nii-spetsvuzavtomatika', 'company_career', 'http', 100);
+    (68, 'career:nii-spetsvuzavtomatika', 'company_career', 'http', 100),
+    (69, 'career:social-discovery-group', 'company_career', 'http', 100),
+    (70, 'career:prequel', 'company_career', 'http', 100),
+    (71, 'career:veryfi', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -669,6 +672,57 @@ INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT dreamjob_sources.source_id, dreamjob_criteria.criterion_order, dreamjob_criteria.criterion, dreamjob_criteria.capability
 FROM dreamjob_sources
 CROSS JOIN dreamjob_criteria;
+
+WITH jsonld_jobposting_sources(source_id) AS (
+    VALUES
+        ('career:social-discovery-group')
+),
+jsonld_jobposting_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    jsonld_jobposting_sources.source_id,
+    jsonld_jobposting_criteria.criterion_order,
+    jsonld_jobposting_criteria.criterion,
+    jsonld_jobposting_criteria.capability
+FROM jsonld_jobposting_sources
+CROSS JOIN jsonld_jobposting_criteria;
+
+WITH ycombinator_sources(source_id) AS (
+    VALUES
+        ('career:prequel'),
+        ('career:veryfi')
+),
+ycombinator_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'structured_output'),
+        (3, 'published_since', 'unsupported'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    ycombinator_sources.source_id,
+    ycombinator_criteria.criterion_order,
+    ycombinator_criteria.criterion,
+    ycombinator_criteria.capability
+FROM ycombinator_sources
+CROSS JOIN ycombinator_criteria;
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -1644,7 +1698,10 @@ WITH configured_company_success_html_fixtures(source_id, folder) AS (
         ('career:softmall', 'career_softmall'),
         ('career:retnnet', 'career_retnnet'),
         ('career:znanie', 'career_znanie'),
-        ('career:nii-spetsvuzavtomatika', 'career_nii-spetsvuzavtomatika')
+        ('career:nii-spetsvuzavtomatika', 'career_nii-spetsvuzavtomatika'),
+        ('career:social-discovery-group', 'career_social-discovery-group'),
+        ('career:prequel', 'career_prequel'),
+        ('career:veryfi', 'career_veryfi')
 )
 INSERT INTO parser_fixtures (
     source_id,

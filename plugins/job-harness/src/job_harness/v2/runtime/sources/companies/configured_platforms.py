@@ -40,6 +40,8 @@ Platform = Literal[
     "personio",
     "join",
     "dreamjob",
+    "jsonld_jobposting",
+    "ycombinator",
 ]
 
 _SECTION_LABEL_RE = re.compile(
@@ -70,9 +72,18 @@ _JOIN_JSON_LD_RE = re.compile(
     r'<script[^>]+type="application/ld\+json"[^>]*>(?P<body>.*?)</script>',
     re.I | re.S,
 )
+_JOB_POSTING_JSON_LD_RE = re.compile(
+    r'<script[^>]+type="application/ld\+json"[^>]*>(?P<body>.*?)</script>',
+    re.I | re.S,
+)
+_YCOMBINATOR_DATA_PAGE_RE = re.compile(
+    r'<div[^>]+id="WaasShowJobsPage[^"]*"[^>]+data-page="(?P<body>.*?)"',
+    re.I | re.S,
+)
 _DREAMJOB_VACANCIES_PATH_RE = re.compile(r"/employers/(?P<employer_id>\d+)/vakansii(?:/(?P<id>\d+))?")
 _DREAMJOB_REMOTE_TAGS = frozenset({"можно удаленно", "можно удалённо"})
 _DREAMJOB_RUB_CURRENCY_MARKERS = frozenset({"₽", "руб", "rub"})
+_YCOMBINATOR_REMOTE_LOCATION_RE = re.compile(r"remote\s*\((?P<locations>[^)]+)\)", re.I)
 _TITLE_ATTR_RE = re.compile(r'title="(?P<title>[^"]+)"')
 _HTML_VOID_TAGS = frozenset(
     {
@@ -430,6 +441,27 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         board_url="https://dreamjob.ru/employers/121279/vakansii",
         career_url="https://dreamjob.ru/employers/121279/vakansii",
     ),
+    "career:social-discovery-group": ConfiguredCompanySourceConfig(
+        source_id="career:social-discovery-group",
+        company="Social Discovery Group",
+        platform="jsonld_jobposting",
+        board_url="https://socialdiscoverygroup.com/vacancies",
+        career_url="https://socialdiscoverygroup.com/vacancies",
+    ),
+    "career:prequel": ConfiguredCompanySourceConfig(
+        source_id="career:prequel",
+        company="Prequel",
+        platform="ycombinator",
+        board_url="https://www.ycombinator.com/companies/prequel/jobs",
+        career_url="https://www.ycombinator.com/companies/prequel/jobs",
+    ),
+    "career:veryfi": ConfiguredCompanySourceConfig(
+        source_id="career:veryfi",
+        company="Veryfi",
+        platform="ycombinator",
+        board_url="https://www.ycombinator.com/companies/veryfi-inc/jobs",
+        career_url="https://www.ycombinator.com/companies/veryfi-inc/jobs",
+    ),
 }
 
 
@@ -495,6 +527,10 @@ class ConfiguredCompanyCareerSource(SourceScraper):
             return _parse_bamboohr(response.body, self._config)
         if self._config.platform == "teamtailor":
             return _parse_teamtailor(response.body, self._config, _request)
+        if self._config.platform == "jsonld_jobposting":
+            return _parse_jsonld_job_postings(response.body, self._config)
+        if self._config.platform == "ycombinator":
+            return _parse_ycombinator(response.body, self._config)
         raise ValueError(f"unsupported configured company platform: {self._config.platform}")
 
 
@@ -1922,6 +1958,324 @@ def _join_remote_global(
     if normalized_remote_type in {"worldwide", "global"}:
         return True
     return False if remote_locations else None
+
+
+def _parse_jsonld_job_postings(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
+    postings = tuple(_jsonld_job_postings(body))
+    if not postings:
+        raise ValueError(f"{config.company} JSON-LD response contains no JobPosting objects")
+    listings = tuple(
+        listing
+        for posting in postings
+        for listing in (_jsonld_job_posting_listing(posting, config),)
+        if listing is not None
+    )
+    if not listings:
+        raise ValueError(f"{config.company} JSON-LD response contains no valid JobPosting listings")
+    return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+
+def _jsonld_job_postings(body: str) -> tuple[dict[str, Any], ...]:
+    postings: list[dict[str, Any]] = []
+    for match in _JOB_POSTING_JSON_LD_RE.finditer(body):
+        try:
+            value = json.loads(html.unescape(match.group("body").strip()))
+        except json.JSONDecodeError:
+            continue
+        postings.extend(_jsonld_job_postings_from_value(value))
+    return tuple(postings)
+
+
+def _jsonld_job_postings_from_value(value: object) -> tuple[dict[str, Any], ...]:
+    postings: list[dict[str, Any]] = []
+    if isinstance(value, dict):
+        item_type = value.get("@type")
+        item_types = item_type if isinstance(item_type, list) else [item_type]
+        if "JobPosting" in item_types:
+            postings.append(value)
+        for item in value.values():
+            postings.extend(_jsonld_job_postings_from_value(item))
+    elif isinstance(value, list):
+        for item in value:
+            postings.extend(_jsonld_job_postings_from_value(item))
+    return tuple(postings)
+
+
+def _jsonld_job_posting_listing(
+    posting: dict[str, Any],
+    config: ConfiguredCompanySourceConfig,
+) -> RawListing | None:
+    title = _text(posting.get("title")).strip() or _text(posting.get("name")).strip()
+    url = _text(posting.get("url")).strip()
+    source_listing_id = _jsonld_identifier(posting)
+    if not title or not url or not source_listing_id:
+        return None
+
+    description_html = _text(posting.get("description")).strip()
+    description = None if description_html == "~" else html_to_text(description_html)
+    sections = _html_sections(description_html) if description_html and description_html != "~" else {}
+    locations = _jsonld_locations(posting.get("jobLocation"))
+    location_text = _location_text(locations)
+    work_format = _jsonld_work_format(posting)
+    remote_locations = _jsonld_remote_locations(posting, work_format)
+    salary_text = _jsonld_salary_text(posting.get("baseSalary"))
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "identifier": posting.get("identifier"),
+            "date_posted": _text(posting.get("datePosted")).strip() or None,
+            "valid_through": _text(posting.get("validThrough")).strip() or None,
+            "employment_type": posting.get("employmentType"),
+            "direct_apply": posting.get("directApply"),
+            "hiring_organization": posting.get("hiringOrganization"),
+            "job_location": posting.get("jobLocation"),
+            "job_location_type": posting.get("jobLocationType"),
+            "applicant_location_requirements": posting.get("applicantLocationRequirements"),
+        }
+    )
+    if locations:
+        raw["locations"] = tuple(location.raw for location in locations)
+    if work_format:
+        raw["work_format"] = work_format
+    if remote_locations:
+        raw["remote_locations"] = remote_locations
+    if salary_text:
+        raw["salary"] = salary_text
+
+    return RawListing(
+        source_listing_id=source_listing_id,
+        title=title,
+        url=strip_query(url),
+        source=config.source_id,
+        company=_jsonld_hiring_organization_name(posting) or config.company,
+        country=_joined_unique(location.country for location in locations),
+        city=_joined_unique(location.city for location in locations),
+        location_text=location_text,
+        salary_text=salary_text,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=_text(posting.get("datePosted")).strip() or None,
+        remote_in_country=_remote_in_country(work_format=work_format, remote_locations=remote_locations),
+        remote_global=_remote_global(work_format=work_format, remote_locations=remote_locations),
+        relocation=None,
+        native_grade=None,
+        description=description,
+        requirements=_requirements(sections, config.requirements_label_markers),
+        additional_sections=sections,
+        skills=(),
+        raw_text=_join_text(
+            title,
+            location_text,
+            _text(posting.get("employmentType")),
+            description,
+            salary_text,
+        ),
+        raw=raw,
+    )
+
+
+def _jsonld_identifier(posting: dict[str, Any]) -> str | None:
+    identifier = posting.get("identifier")
+    if isinstance(identifier, dict):
+        value = _text(identifier.get("value")).strip()
+        if value and value != "~":
+            return value
+    value = _text(identifier).strip()
+    if value and value != "~":
+        return value
+    url = _text(posting.get("url")).strip()
+    if url:
+        return strip_query(url).rstrip("/").rsplit("/", 1)[-1] or None
+    return None
+
+
+def _jsonld_locations(value: object) -> tuple[_Location, ...]:
+    items = value if isinstance(value, list) else [value]
+    locations: list[_Location] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        address = _dict_value(item.get("address"))
+        city = _text(address.get("addressLocality")).strip() or None
+        country = _text(address.get("addressCountry")).strip() or None
+        region = _text(address.get("addressRegion")).strip()
+        name = _text(item.get("name")).strip() or None
+        if name is None:
+            name = _jsonld_location_name(city=city, country=country, region=region)
+        if name or country or city:
+            locations.append(_Location(name=name, country=country, city=city))
+    return tuple(locations)
+
+
+def _jsonld_location_name(*, city: str | None, country: str | None, region: str) -> str | None:
+    values = tuple(value for value in (city, region or None, country) if value)
+    return ", ".join(values) or None
+
+
+def _jsonld_work_format(posting: dict[str, Any]) -> str | None:
+    location_type = _text(posting.get("jobLocationType")).strip().casefold()
+    if location_type == "telecommute":
+        return "remote"
+    return None
+
+
+def _jsonld_remote_locations(posting: dict[str, Any], work_format: str | None) -> tuple[str, ...]:
+    if work_format != "remote":
+        return ()
+    locations = _jsonld_locations(posting.get("applicantLocationRequirements"))
+    return tuple(
+        dict.fromkeys(
+            value
+            for location in locations
+            for value in (location.name or location.country or location.city,)
+            if value
+        )
+    )
+
+
+def _jsonld_salary_text(value: object) -> str | None:
+    if not isinstance(value, dict):
+        return None
+    currency = _text(value.get("currency")).strip()
+    amount = value.get("value")
+    if isinstance(amount, dict):
+        min_value = _text(amount.get("minValue")).strip()
+        max_value = _text(amount.get("maxValue")).strip()
+        unit = _text(amount.get("unitText")).strip()
+        values = " - ".join(value for value in (min_value, max_value) if value)
+        return " ".join(value for value in (currency, values, unit) if value) or None
+    text = _text(amount).strip()
+    return " ".join(value for value in (currency, text) if value) or None
+
+
+def _jsonld_hiring_organization_name(posting: dict[str, Any]) -> str | None:
+    organization = posting.get("hiringOrganization")
+    if not isinstance(organization, dict):
+        return None
+    return _text(organization.get("name")).strip() or None
+
+
+def _parse_ycombinator(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
+    payload = _ycombinator_data_page(body, config)
+    props = _dict_value(payload.get("props"))
+    jobs = props.get("jobPostings")
+    if not isinstance(jobs, list):
+        raise ValueError(f"{config.company} Y Combinator data-page is missing jobPostings")
+    if not jobs:
+        return _no_results()
+    listings = tuple(_ycombinator_listing(job, config) for job in jobs if isinstance(job, dict))
+    if not listings:
+        raise ValueError(f"{config.company} Y Combinator data-page contains no valid posting objects")
+    return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+
+def _ycombinator_data_page(body: str, config: ConfiguredCompanySourceConfig) -> dict[str, Any]:
+    match = _YCOMBINATOR_DATA_PAGE_RE.search(body)
+    if match is None:
+        raise ValueError(f"{config.company} Y Combinator response is missing WaasShowJobsPage data-page")
+    try:
+        value = json.loads(html.unescape(match.group("body")))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{config.company} Y Combinator data-page is not valid JSON") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{config.company} Y Combinator data-page is not a JSON object")
+    return value
+
+
+def _ycombinator_listing(item: dict[str, Any], config: ConfiguredCompanySourceConfig) -> RawListing:
+    source_listing_id = str(item.get("id") or "").strip()
+    if not source_listing_id:
+        raise ValueError(f"{config.company} {config.platform} posting is missing id")
+    title = _required_text(item.get("title"), "title", config)
+    relative_url = _required_text(item.get("url"), "url", config)
+    location_text = _text(item.get("location")).strip() or None
+    salary_text = _text(item.get("salaryRange")).strip() or None
+    work_format = "remote" if location_text and "remote" in location_text.casefold() else None
+    remote_locations = _ycombinator_remote_locations(location_text, work_format)
+    skills = _text_values(item.get("skills"))
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "id": item.get("id"),
+            "apply_url": _text(item.get("applyUrl")).strip() or None,
+            "location": location_text,
+            "type": _text(item.get("type")).strip() or None,
+            "role": _text(item.get("role")).strip() or None,
+            "role_specific_type": _text(item.get("roleSpecificType")).strip() or None,
+            "pretty_role": _text(item.get("prettyRole")).strip() or None,
+            "salary_range": salary_text,
+            "equity_range": _text(item.get("equityRange")).strip() or None,
+            "min_experience": _text(item.get("minExperience")).strip() or None,
+            "visa": _text(item.get("visa")).strip() or None,
+            "created_at": _text(item.get("createdAt")).strip() or None,
+            "last_active": _text(item.get("lastActive")).strip() or None,
+            "company_url": _text(item.get("companyUrl")).strip() or None,
+            "company_batch_name": _text(item.get("companyBatchName")).strip() or None,
+            "company_one_liner": _text(item.get("companyOneLiner")).strip() or None,
+        }
+    )
+    if work_format:
+        raw["work_format"] = work_format
+    if remote_locations:
+        raw["remote_locations"] = remote_locations
+
+    return RawListing(
+        source_listing_id=source_listing_id,
+        title=title,
+        url=strip_query(urljoin("https://www.ycombinator.com", relative_url)),
+        source=config.source_id,
+        company=_text(item.get("companyName")).strip() or config.company,
+        country=None,
+        city=None,
+        location_text=location_text,
+        salary_text=salary_text,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=None,
+        remote_in_country=True if work_format == "remote" and remote_locations else None,
+        remote_global=_remote_global(work_format=work_format, remote_locations=remote_locations),
+        relocation=None,
+        native_grade=None,
+        description=None,
+        requirements=None,
+        additional_sections={},
+        skills=skills,
+        raw_text=_join_text(
+            title,
+            location_text,
+            _text(item.get("type")),
+            _text(item.get("prettyRole")),
+            salary_text,
+            _text(item.get("minExperience")),
+            " ".join(skills),
+        ),
+        raw=raw,
+    )
+
+
+def _ycombinator_remote_locations(location_text: str | None, work_format: str | None) -> tuple[str, ...]:
+    if work_format != "remote" or not location_text:
+        return ()
+    match = _YCOMBINATOR_REMOTE_LOCATION_RE.search(location_text)
+    if match is None:
+        return ()
+    values: list[str] = []
+    for item in re.split(r"[/;]", match.group("locations")):
+        value = item.strip()
+        if value and value not in values:
+            values.append(value)
+    return tuple(values)
+
+
+def _joined_unique(values: Any) -> str | None:
+    unique: list[str] = []
+    for value in values:
+        text = _text(value).strip()
+        if text and text not in unique:
+            unique.append(text)
+    return ", ".join(unique) or None
 
 
 def _parse_dreamjob(

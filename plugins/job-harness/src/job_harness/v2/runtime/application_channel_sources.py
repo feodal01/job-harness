@@ -198,6 +198,9 @@ _COMPANY_CAREER_URLS = {
     "career:retnnet": "https://dreamjob.ru/employers/43931/vakansii",
     "career:znanie": "https://dreamjob.ru/employers/198144/vakansii",
     "career:nii-spetsvuzavtomatika": "https://dreamjob.ru/employers/121279/vakansii",
+    "career:social-discovery-group": "https://socialdiscoverygroup.com/vacancies",
+    "career:prequel": "https://www.ycombinator.com/companies/prequel/jobs",
+    "career:veryfi": "https://www.ycombinator.com/companies/veryfi-inc/jobs",
 }
 
 

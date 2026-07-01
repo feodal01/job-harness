@@ -1,0 +1,35 @@
+{
+  "expected_count": 1,
+  "raw_contains": {
+    "43482": {
+      "ats_platform": "ycombinator",
+      "min_experience": "3+ years",
+      "pretty_role": "Engineering",
+      "role": "eng"
+    }
+  },
+  "salary_contains": {
+    "43482": [
+      "$150K - $220K"
+    ]
+  },
+  "sample_listings": [
+    {
+      "city": null,
+      "company": "Prequel",
+      "country": null,
+      "location_text": "New York City",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": "$150K - $220K",
+      "source_listing_id": "43482",
+      "title": "Senior Software Engineer",
+      "url": "https://www.ycombinator.com/companies/prequel/jobs/VNoKffl-senior-software-engineer"
+    }
+  ]
+}

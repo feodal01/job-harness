@@ -1,0 +1,84 @@
+{
+  "expected_count": 12,
+  "raw_contains": {
+    "96450": {
+      "ats_platform": "ycombinator",
+      "remote_locations": [
+        "BR",
+        "MX",
+        "AR",
+        "CO"
+      ],
+      "work_format": "remote"
+    }
+  },
+  "salary_contains": {
+    "96450": [
+      "$30K - $60K"
+    ]
+  },
+  "sample_listings": [
+    {
+      "city": null,
+      "company": "Veryfi, Inc.",
+      "country": null,
+      "location_text": "BR / MX / AR / CO / Remote (BR; MX; AR; CO)",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": "$30K - $60K",
+      "source_listing_id": "96450",
+      "title": "Technical Account Manager Latam",
+      "url": "https://www.ycombinator.com/companies/veryfi-inc/jobs/EDR6YPh-technical-account-manager-latam"
+    },
+    {
+      "city": null,
+      "company": "Veryfi, Inc.",
+      "country": null,
+      "location_text": "San Mateo, CA, US",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": "$120K - $160K",
+      "skills": [
+        "JavaScript",
+        "Python",
+        "React"
+      ],
+      "source_listing_id": "90288",
+      "title": "Full-Stack Software Engineer",
+      "url": "https://www.ycombinator.com/companies/veryfi-inc/jobs/I4G1kE9-full-stack-software-engineer"
+    },
+    {
+      "city": null,
+      "company": "Veryfi, Inc.",
+      "country": null,
+      "location_text": "CO / MX / BR / Remote (CO; MX; BR)",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": "$25K - $40K",
+      "skills": [
+        "PostgreSQL",
+        "Software Architecture",
+        "Data Analytics",
+        "AI Agents"
+      ],
+      "source_listing_id": "79182",
+      "title": "Technical Customer Support T2",
+      "url": "https://www.ycombinator.com/companies/veryfi-inc/jobs/vquMgAk-technical-customer-support-t2"
+    }
+  ]
+}

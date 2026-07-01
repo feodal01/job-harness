@@ -886,6 +886,62 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             payload["results"][0]["remote_scope"],
         )
 
+    def test_remote_us_city_state_listing_infers_country_scope(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("Engineer",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("US",),
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="Veryfi, Inc.",
+                    source="career:veryfi",
+                    title="Senior ML Engineer",
+                    location_text="San Mateo, California / Remote",
+                    remote_in_country=None,
+                    remote_global=None,
+                    raw={"work_format": ["remote"]},
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:veryfi"),),
+        )
+
+        # Assert
+        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual("US", payload["results"][0]["country"])
+        self.assertEqual("country:US", payload["results"][0]["remote_scope"])
+
+    def test_remote_city_region_country_listing_does_not_infer_unrelated_city_country(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("Engineer",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("CO",),
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="Veryfi, Inc.",
+                    source="career:veryfi",
+                    title="Data Annotation Engineer",
+                    location_text="Medellín, Antioquia, CO / Remote (Medellín, Antioquia, CO)",
+                    remote_in_country=None,
+                    remote_global=None,
+                    raw={"remote_locations": ["Medellín, Antioquia, CO"], "work_format": ["remote"]},
+                ),
+            ),
+            source_attempts=(_attempt_record(source="career:veryfi"),),
+        )
+
+        # Assert
+        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual("CO", payload["results"][0]["country"])
+        self.assertEqual("country:CO", payload["results"][0]["remote_scope"])
+
     def test_physical_city_listing_infers_country_for_hybrid_filtering(self) -> None:
         # Arrange / Act
         payload = _process_payload(

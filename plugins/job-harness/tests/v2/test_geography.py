@@ -67,6 +67,8 @@ class GeographyTest(unittest.TestCase):
         cases = (
             ("Alexandria, Australia (Hybrid)", ("AU",)),
             ("Cambridge, United States", ("US",)),
+            ("Medellín, Antioquia, CO", ("CO",)),
+            ("Medellín, Antioquia, CO / Remote (Medellín, Antioquia, CO)", ("CO",)),
         )
         for raw, expected in cases:
             with self.subTest(raw=raw):
@@ -116,6 +118,7 @@ class GeographyTest(unittest.TestCase):
         cases = (
             "US - Cambridge, MA",
             "US - Palo Alto CA",
+            "San Mateo, CA, US",
         )
         for raw in cases:
             with self.subTest(raw=raw):
@@ -124,6 +127,13 @@ class GeographyTest(unittest.TestCase):
 
                 # Assert
                 self.assertEqual(("US",), normalized)
+
+    def test_infers_us_from_city_state_name_source_location(self) -> None:
+        # Arrange / Act
+        normalized = normalize_source_geographies("San Mateo, California / Remote")
+
+        # Assert
+        self.assertEqual(("US",), normalized)
 
     def test_normalizes_country_from_known_source_city(self) -> None:
         cases = (
