@@ -71,6 +71,9 @@
       gap: 8px;
       align-items: center;
     }
+    .meta {
+      align-items: flex-start;
+    }
     .run-id {
       color: var(--muted);
       font-size: 13px;
@@ -80,17 +83,29 @@
       font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
     .pill {
-      display: inline-flex;
-      align-items: center;
+      display: inline-grid;
+      grid-template-columns: max-content minmax(0, 1fr);
+      column-gap: 4px;
+      align-items: baseline;
+      flex: 0 1 auto;
+      max-width: 100%;
+      min-width: 0;
       min-height: 28px;
       padding: 4px 9px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: var(--panel);
       color: var(--muted);
-      white-space: nowrap;
+      white-space: normal;
     }
-    .pill strong { color: var(--ink); font-weight: 650; }
+    .pill strong {
+      color: var(--ink);
+      font-weight: 650;
+    }
+    .pill-value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
     .tabs {
       display: flex;
       gap: 6px;
@@ -353,7 +368,12 @@
     function pill(label, value) {
       const el = document.createElement("span");
       el.className = "pill";
-      el.innerHTML = `<strong>${escapeHtml(label)}</strong>&nbsp;${escapeHtml(text(value))}`;
+      const labelEl = document.createElement("strong");
+      labelEl.textContent = label;
+      const valueEl = document.createElement("span");
+      valueEl.className = "pill-value";
+      valueEl.textContent = text(value);
+      el.replaceChildren(labelEl, valueEl);
       return el;
     }
 

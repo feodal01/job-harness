@@ -279,6 +279,37 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertIn('"QA Intern"', html)
         self.assertIn("Filtered out", html)
 
+    def test_render_processed_results_html_allows_long_request_pills_to_wrap(self) -> None:
+        payload = {
+            "record_type": "processed_results",
+            "run_id": "r-test",
+            "append_sequence": 0,
+            "raw_records_read": 0,
+            "result_count": 0,
+            "search_request": {
+                "query_variants": ["QA"],
+                "sources": [
+                    "career:appfollow",
+                    "career:airslate",
+                    "career:wintermute",
+                    "career:chainstack",
+                ],
+            },
+            "results": [],
+            "filtered_out_results": [],
+        }
+
+        html = render_processed_results_html(payload)
+
+        self.assertIn("flex: 0 1 auto;", html)
+        self.assertIn("max-width: 100%;", html)
+        self.assertIn("min-width: 0;", html)
+        self.assertIn("white-space: normal;", html)
+        self.assertIn("overflow-wrap: anywhere;", html)
+        self.assertIn('className = "pill-value"', html)
+        self.assertIn("career:appfollow", html)
+        self.assertIn("career:chainstack", html)
+
     def test_render_processed_results_html_embeds_company_contacts(self) -> None:
         payload = {
             "record_type": "processed_results",

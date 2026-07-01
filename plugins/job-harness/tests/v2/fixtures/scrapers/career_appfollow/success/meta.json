@@ -1,0 +1,10 @@
+{
+  "source_id": "career:appfollow",
+  "captured_url": "https://api.lever.co/v0/postings/appfollow?mode=json",
+  "capture_date": "2026-06-25",
+  "capture_method": "curl -L against Lever postings API",
+  "fixture_kind": "success_non_empty",
+  "real_capture": true,
+  "redactions": [],
+  "notes": "Real AppFollow Lever postings response with three visible jobs. Lever country is preserved only in raw because public job pages show Europe and no addressCountry."
+}

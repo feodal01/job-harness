@@ -1,0 +1,48 @@
+{
+  "outcome": "success",
+  "posted_at": "2026-06-10",
+  "location_text": "Europe",
+  "min_description_length": 3000,
+  "description_contains": [
+    "AppFollow helps the world's top mobile and gaming teams",
+    "ASO Product Builder",
+    "Remote-first, Europe-based",
+    "AI agents and MCP"
+  ],
+  "additional_sections": [
+    "Role Overview",
+    "Key Responsibilities",
+    "KPIs",
+    "Experience",
+    "Tools (must-have)",
+    "Skills",
+    "Languages",
+    "What We Offer",
+    "Benefits & Perks",
+    "Growth",
+    "Hiring Timeline"
+  ],
+  "section_contains": {
+    "Role Overview": [
+      "relaunch and grow AppFollow's ASO",
+      "AI-native part of the platform"
+    ],
+    "Key Responsibilities": [
+      "Relaunch and evolve AppFollow",
+      "Partner with engineering"
+    ],
+    "Experience": [
+      "3+ years in product management",
+      "European time zone"
+    ],
+    "What We Offer": [
+      "Remote position, anywhere in Europe",
+      "Global team across Europe"
+    ]
+  },
+  "requirements_contains": [
+    "Strong ASO/mobile marketing domain knowledge",
+    "AI: Claud Code/Codex/Cursor, MCP, AI agents",
+    "Fluent English"
+  ]
+}

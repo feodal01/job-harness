@@ -1,0 +1,15 @@
+{
+  "source_id": "career:chainstack",
+  "captured_url": "https://chainstack.bamboohr.com/careers/list",
+  "capture_date": "2026-06-27",
+  "capture_method": "curl -L against the public BambooHR careers list JSON endpoint with the job-harness-v2 HTTP user-agent",
+  "fixture_kind": "success_non_empty",
+  "redactions": [
+    "None. The fixture preserves the complete public BambooHR careers list JSON response captured from the source."
+  ],
+  "notes": [
+    "The list endpoint exposes job titles, departments, employment status, empty location objects, and no salary or posted date fields.",
+    "Detail pages render as a BambooHR app shell with Open Graph metadata; no stable SSR detail payload was found for listing-level salary or geography."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

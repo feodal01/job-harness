@@ -1,0 +1,151 @@
+{
+  "outcome": "success",
+  "expected_count": 4,
+  "sample_listings": [
+    {
+      "source_listing_id": "b14e6e12-1f39-41b8-a3ed-8b02ac8b1464",
+      "title": "Algorithmic Trader",
+      "url": "https://jobs.lever.co/wintermute-trading/b14e6e12-1f39-41b8-a3ed-8b02ac8b1464",
+      "company": "Wintermute",
+      "country": null,
+      "city": null,
+      "location_text": "London",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-04-04T08:57:56.187000Z",
+      "remote_in_country": false,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4cab7a75-4304-4590-90c5-6755dbd97d36",
+      "title": "C++ Quant Developer",
+      "url": "https://jobs.lever.co/wintermute-trading/4cab7a75-4304-4590-90c5-6755dbd97d36",
+      "company": "Wintermute",
+      "country": null,
+      "city": null,
+      "location_text": "London",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2021-05-01T15:03:10.307000Z",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "d059ea72-e3d2-42ce-bbb3-d47531e0c933",
+      "title": "Core Developer (Python)",
+      "url": "https://jobs.lever.co/wintermute-trading/d059ea72-e3d2-42ce-bbb3-d47531e0c933",
+      "company": "Wintermute",
+      "country": null,
+      "city": null,
+      "location_text": "London",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2024-04-01T11:56:23.795000Z",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "3b025b92-83dc-44a9-8786-e618d43f5393",
+      "title": "Institutional Business Development Director",
+      "url": "https://jobs.lever.co/wintermute-trading/3b025b92-83dc-44a9-8786-e618d43f5393",
+      "company": "Wintermute",
+      "country": null,
+      "city": null,
+      "location_text": "London/New York",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-08T09:26:06.373000Z",
+      "remote_in_country": false,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "description_contains": {
+    "b14e6e12-1f39-41b8-a3ed-8b02ac8b1464": [
+      "Wintermute is a technology unicorn",
+      "digital asset market"
+    ],
+    "d059ea72-e3d2-42ce-bbb3-d47531e0c933": [
+      "experienced developer to join the Core Development team"
+    ]
+  },
+  "requirements_contains": {
+    "b14e6e12-1f39-41b8-a3ed-8b02ac8b1464": [
+      "Excellent quantitative and analytical skills",
+      "willingness and curiosity to learn algorithmic"
+    ],
+    "4cab7a75-4304-4590-90c5-6755dbd97d36": [
+      "At least 2 years’ experience with C++",
+      "Understanding networking and implementing client-server connections"
+    ],
+    "d059ea72-e3d2-42ce-bbb3-d47531e0c933": [
+      "At least 2 years of Python experience",
+      "Experience with SQL databases"
+    ],
+    "3b025b92-83dc-44a9-8786-e618d43f5393": [
+      "Experience within institutional financial services",
+      "Strong knowledge of OTC markets"
+    ]
+  },
+  "raw_contains": {
+    "b14e6e12-1f39-41b8-a3ed-8b02ac8b1464": {
+      "workplace_type": "onsite",
+      "work_format": [
+        "office"
+      ],
+      "all_locations": [
+        "London"
+      ],
+      "lever_country": "GB"
+    },
+    "4cab7a75-4304-4590-90c5-6755dbd97d36": {
+      "workplace_type": "hybrid",
+      "work_format": [
+        "hybrid"
+      ],
+      "all_locations": [
+        "London"
+      ],
+      "lever_country": "GB"
+    },
+    "d059ea72-e3d2-42ce-bbb3-d47531e0c933": {
+      "workplace_type": "hybrid",
+      "work_format": [
+        "hybrid"
+      ],
+      "all_locations": [
+        "London"
+      ],
+      "lever_country": "GB"
+    },
+    "3b025b92-83dc-44a9-8786-e618d43f5393": {
+      "workplace_type": "onsite",
+      "work_format": [
+        "office"
+      ],
+      "all_locations": [
+        "London/New York"
+      ],
+      "lever_country": null
+    }
+  },
+  "section_labels": [
+    "Hard Skills Requirements",
+    "Other Requirements"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "source_id": "career:appfollow",
+  "captured_url": "https://jobs.lever.co/appfollow/b7ece5ce-1d7c-4665-b8d3-806cb5947460",
+  "capture_date": "2026-06-27",
+  "capture_method": "urllib.request against public Lever detail page with job-harness fixture capture user-agent",
+  "fixture_kind": "detail",
+  "real_capture": true,
+  "redactions": [],
+  "notes": "Real AppFollow Lever detail page for Senior Backend Engineer. Covers JSON-LD section headings rendered as strong tags without trailing colons."
+}

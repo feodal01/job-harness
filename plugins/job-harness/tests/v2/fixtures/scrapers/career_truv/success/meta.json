@@ -1,0 +1,7 @@
+{
+  "source_id": "career:truv",
+  "captured_url": "https://api.lever.co/v0/postings/truv?mode=json",
+  "captured_at": "2026-06-27",
+  "fixture_kind": "success_non_empty",
+  "notes": "Real Lever postings JSON minimized to four live remote postings covering source country codes and multi-location remote scope metadata."
+}

@@ -1,0 +1,60 @@
+{
+  "outcome": "success",
+  "expected_count": 3,
+  "sample_listings": [
+    {
+      "source_listing_id": "f3e97cf3-9777-4e54-be7a-29525fe67b86",
+      "title": "ASO Product Builder",
+      "url": "https://jobs.lever.co/appfollow/f3e97cf3-9777-4e54-be7a-29525fe67b86",
+      "company": "AppFollow",
+      "country": null,
+      "city": null,
+      "location_text": "Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-10",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "6f640e79-7e84-4018-b368-ef30b6540c59",
+      "title": "Customer Success Manager (Europe)",
+      "url": "https://jobs.lever.co/appfollow/6f640e79-7e84-4018-b368-ef30b6540c59",
+      "company": "AppFollow",
+      "country": null,
+      "city": null,
+      "location_text": "Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-12",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "b7ece5ce-1d7c-4665-b8d3-806cb5947460",
+      "title": "Senior Backend Engineer (Product Team)",
+      "url": "https://jobs.lever.co/appfollow/b7ece5ce-1d7c-4665-b8d3-806cb5947460",
+      "company": "AppFollow",
+      "country": null,
+      "city": null,
+      "location_text": "Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-11",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ]
+}

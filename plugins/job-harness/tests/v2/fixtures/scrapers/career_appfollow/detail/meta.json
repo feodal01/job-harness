@@ -1,0 +1,10 @@
+{
+  "source_id": "career:appfollow",
+  "captured_url": "https://jobs.lever.co/appfollow/f3e97cf3-9777-4e54-be7a-29525fe67b86",
+  "capture_date": "2026-06-25",
+  "capture_method": "curl -L against public Lever detail page",
+  "fixture_kind": "detail",
+  "real_capture": true,
+  "redactions": [],
+  "notes": "Real AppFollow Lever detail page for ASO Product Builder; parser reads JSON-LD JobPosting description and datePosted."
+}

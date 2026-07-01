@@ -1,0 +1,113 @@
+{
+  "outcome": "success",
+  "expected_count": 3,
+  "sample_listings": [
+    {
+      "source_listing_id": "96f30757-f4d1-4579-a8db-526e5b2700fe",
+      "title": "Executive Assistant",
+      "url": "https://jobs.lever.co/Termius/96f30757-f4d1-4579-a8db-526e5b2700fe",
+      "company": "Termius",
+      "country": null,
+      "city": null,
+      "location_text": "Auckland",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-03-12T12:17:14.023000Z",
+      "remote_in_country": false,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "bc2c9a2c-1242-4a31-b97b-3bf70ad54848",
+      "title": "Senior Product Engineer (Rust) (Auckland, New Zealand)",
+      "url": "https://jobs.lever.co/Termius/bc2c9a2c-1242-4a31-b97b-3bf70ad54848",
+      "company": "Termius",
+      "country": null,
+      "city": null,
+      "location_text": "Auckland",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-14T10:45:25.072000Z",
+      "remote_in_country": false,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "1baf95ef-62c4-45d9-8b66-3d4820a17e8b",
+      "title": "Senior Software Engineer (Rust)",
+      "url": "https://jobs.lever.co/Termius/1baf95ef-62c4-45d9-8b66-3d4820a17e8b",
+      "company": "Termius",
+      "country": null,
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-15T11:56:11.408000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "description_contains": {
+    "bc2c9a2c-1242-4a31-b97b-3bf70ad54848": [
+      "cross-platform SSH client",
+      "Rust Engineer"
+    ],
+    "1baf95ef-62c4-45d9-8b66-3d4820a17e8b": [
+      "cross-platform SSH client",
+      "Rust Engineer"
+    ]
+  },
+  "requirements_contains": {
+    "96f30757-f4d1-4579-a8db-526e5b2700fe": [
+      "Experience in a fast-paced environment",
+      "highly organised, detail-oriented"
+    ]
+  },
+  "raw_contains": {
+    "96f30757-f4d1-4579-a8db-526e5b2700fe": {
+      "workplace_type": "onsite",
+      "lever_country": "NZ",
+      "work_format": [
+        "office"
+      ],
+      "all_locations": [
+        "Auckland"
+      ]
+    },
+    "bc2c9a2c-1242-4a31-b97b-3bf70ad54848": {
+      "workplace_type": "onsite",
+      "lever_country": "NZ",
+      "work_format": [
+        "office"
+      ],
+      "all_locations": [
+        "Auckland"
+      ]
+    },
+    "1baf95ef-62c4-45d9-8b66-3d4820a17e8b": {
+      "workplace_type": "remote",
+      "work_format": [
+        "remote"
+      ],
+      "lever_country": "GE",
+      "all_locations": [
+        "Remote"
+      ]
+    }
+  },
+  "section_labels": [
+    "About the role",
+    "Key Responsibilities",
+    "Key Qualifications"
+  ]
+}

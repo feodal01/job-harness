@@ -194,6 +194,42 @@ class SourceCatalogTableTest(unittest.TestCase):
             tuple(case.kind for case in fixture_suite.cases),
         )
 
+    def test_appfollow_catalog_row_declares_source_contract(self) -> None:
+        # Arrange / Act
+        descriptor = source_descriptor("career:appfollow")
+        required_fixture_kinds = source_required_fixture_kinds("career:appfollow")
+        fixture_suite = source_fixture_suite("career:appfollow")
+
+        # Assert
+        self.assertEqual(SourceType.COMPANY_CAREER, descriptor.source_type)
+        self.assertEqual(Transport.HTTP, descriptor.transport)
+        self.assertEqual((), descriptor.countries)
+        self.assertEqual(20, descriptor.source_limit)
+        self.assertEqual(frozenset(), descriptor.native_request_criteria)
+        self.assertEqual(
+            frozenset(
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                }
+            ),
+            descriptor.structured_output_criteria,
+        )
+        self.assertFalse(required_fixture_kinds.no_results)
+        self.assertFalse(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.detail)
+        self.assertEqual(
+            (
+                ParserFixtureKind.SUCCESS_NON_EMPTY,
+                ParserFixtureKind.DETAIL,
+                ParserFixtureKind.DETAIL,
+            ),
+            tuple(case.kind for case in fixture_suite.cases),
+        )
+
     def test_hh_ru_catalog_row_declares_source_contract(self) -> None:
         # Arrange / Act
         descriptor = source_descriptor("hh_ru")
@@ -631,6 +667,148 @@ class SourceCatalogTableTest(unittest.TestCase):
             (ParserFixtureKind.SUCCESS_NON_EMPTY,),
             tuple(case.kind for case in fixture_suite.cases),
         )
+
+    def test_airslate_catalog_row_declares_source_contract(self) -> None:
+        descriptor = source_descriptor("career:airslate")
+        required_fixture_kinds = source_required_fixture_kinds("career:airslate")
+        fixture_suite = source_fixture_suite("career:airslate")
+
+        self.assertEqual(SourceType.COMPANY_CAREER, descriptor.source_type)
+        self.assertEqual(Transport.HTTP, descriptor.transport)
+        self.assertEqual((), descriptor.countries)
+        self.assertEqual(100, descriptor.source_limit)
+        self.assertEqual(frozenset(), descriptor.native_request_criteria)
+        self.assertEqual(
+            frozenset(
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                }
+            ),
+            descriptor.structured_output_criteria,
+        )
+        self.assertFalse(required_fixture_kinds.no_results)
+        self.assertFalse(required_fixture_kinds.pagination)
+        self.assertFalse(required_fixture_kinds.detail)
+        self.assertEqual(
+            (ParserFixtureKind.SUCCESS_NON_EMPTY,),
+            tuple(case.kind for case in fixture_suite.cases),
+        )
+
+    def test_additional_company_catalog_rows_declare_source_contracts(self) -> None:
+        cases = (
+            (
+                "career:wintermute",
+                100,
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                },
+            ),
+            (
+                "career:truv",
+                100,
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                },
+            ),
+            (
+                "career:termius",
+                100,
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                },
+            ),
+            (
+                "career:outschool",
+                100,
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                },
+            ),
+            (
+                "career:zeroavia",
+                100,
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                    SearchCriterion.CITIES,
+                },
+            ),
+            (
+                "career:wallarm",
+                100,
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.SALARY_FROM,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                    SearchCriterion.CITIES,
+                },
+            ),
+            (
+                "career:chainstack",
+                100,
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.REMOTE_MODE,
+                },
+            ),
+            (
+                "career:3commas",
+                100,
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                    SearchCriterion.CITIES,
+                },
+            ),
+        )
+
+        for source_id, source_limit, structured_criteria in cases:
+            with self.subTest(source_id=source_id):
+                descriptor = source_descriptor(source_id)
+                required_fixture_kinds = source_required_fixture_kinds(source_id)
+                fixture_suite = source_fixture_suite(source_id)
+
+                self.assertEqual(SourceType.COMPANY_CAREER, descriptor.source_type)
+                self.assertEqual(Transport.HTTP, descriptor.transport)
+                self.assertEqual((), descriptor.countries)
+                self.assertEqual(source_limit, descriptor.source_limit)
+                self.assertEqual(frozenset(), descriptor.native_request_criteria)
+                self.assertEqual(frozenset(structured_criteria), descriptor.structured_output_criteria)
+                self.assertFalse(required_fixture_kinds.no_results)
+                self.assertFalse(required_fixture_kinds.pagination)
+                self.assertFalse(required_fixture_kinds.detail)
+                self.assertEqual(
+                    (ParserFixtureKind.SUCCESS_NON_EMPTY,),
+                    tuple(case.kind for case in fixture_suite.cases),
+                )
 
     def test_jetbrains_catalog_row_declares_source_contract(self) -> None:
         # Arrange / Act

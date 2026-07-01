@@ -1,0 +1,7 @@
+{
+  "source_id": "career:airslate",
+  "captured_url": "https://api.lever.co/v0/postings/airslate?mode=json",
+  "captured_at": "2026-06-27",
+  "fixture_kind": "success_non_empty",
+  "notes": "Real Lever postings JSON minimized to four live postings covering remote and hybrid workplace metadata."
+}
