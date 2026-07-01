@@ -194,6 +194,41 @@ class SourceCatalogTableTest(unittest.TestCase):
             tuple(case.kind for case in fixture_suite.cases),
         )
 
+    def test_appfollow_catalog_row_declares_source_contract(self) -> None:
+        # Arrange / Act
+        descriptor = source_descriptor("career:appfollow")
+        required_fixture_kinds = source_required_fixture_kinds("career:appfollow")
+        fixture_suite = source_fixture_suite("career:appfollow")
+
+        # Assert
+        self.assertEqual(SourceType.COMPANY_CAREER, descriptor.source_type)
+        self.assertEqual(Transport.HTTP, descriptor.transport)
+        self.assertEqual((), descriptor.countries)
+        self.assertEqual(20, descriptor.source_limit)
+        self.assertEqual(frozenset(), descriptor.native_request_criteria)
+        self.assertEqual(
+            frozenset(
+                {
+                    SearchCriterion.QUERY,
+                    SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                }
+            ),
+            descriptor.structured_output_criteria,
+        )
+        self.assertFalse(required_fixture_kinds.no_results)
+        self.assertFalse(required_fixture_kinds.pagination)
+        self.assertTrue(required_fixture_kinds.detail)
+        self.assertEqual(
+            (
+                ParserFixtureKind.SUCCESS_NON_EMPTY,
+                ParserFixtureKind.DETAIL,
+            ),
+            tuple(case.kind for case in fixture_suite.cases),
+        )
+
     def test_hh_ru_catalog_row_declares_source_contract(self) -> None:
         # Arrange / Act
         descriptor = source_descriptor("hh_ru")

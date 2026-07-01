@@ -108,7 +108,8 @@ VALUES
     (13, 'staff_am', 'aggregator', 'http', 100),
     (14, 'career:ibs', 'company_career', 'http', 100),
     (15, 'career:amocrm', 'company_career', 'http', 50),
-    (16, 'career:coinspaid', 'company_career', 'http', 100);
+    (16, 'career:coinspaid', 'company_career', 'http', 100),
+    (17, 'career:appfollow', 'company_career', 'http', 20);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -279,7 +280,16 @@ VALUES
     ('career:coinspaid', 5, 'remote_mode', 'structured_output'),
     ('career:coinspaid', 6, 'work_from_geographies', 'structured_output'),
     ('career:coinspaid', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:coinspaid', 8, 'cities', 'structured_output');
+    ('career:coinspaid', 8, 'cities', 'structured_output'),
+    ('career:appfollow', 0, 'query', 'structured_output'),
+    ('career:appfollow', 1, 'grades', 'unsupported'),
+    ('career:appfollow', 2, 'salary_from', 'unsupported'),
+    ('career:appfollow', 3, 'published_since', 'structured_output'),
+    ('career:appfollow', 4, 'relocation', 'unsupported'),
+    ('career:appfollow', 5, 'remote_mode', 'structured_output'),
+    ('career:appfollow', 6, 'work_from_geographies', 'structured_output'),
+    ('career:appfollow', 7, 'vacancy_geographies', 'structured_output'),
+    ('career:appfollow', 8, 'cities', 'unsupported');
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -313,7 +323,8 @@ VALUES
     ('staff_am', 'detail'),
     ('career:ibs', 'pagination'),
     ('career:ibs', 'detail'),
-    ('career:amocrm', 'detail');
+    ('career:amocrm', 'detail'),
+    ('career:appfollow', 'detail');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -1017,6 +1028,28 @@ VALUES
         'tests/v2/fixtures/scrapers/career_coinspaid/success/response.json',
         'tests/v2/fixtures/scrapers/career_coinspaid/success/meta.json',
         'tests/v2/fixtures/scrapers/career_coinspaid/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:appfollow',
+        0,
+        'career:appfollow-success',
+        'success_non_empty',
+        'tests/v2/fixtures/scrapers/career_appfollow/success/response.json',
+        'tests/v2/fixtures/scrapers/career_appfollow/success/meta.json',
+        'tests/v2/fixtures/scrapers/career_appfollow/success/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:appfollow',
+        1,
+        'career:appfollow-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_appfollow/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_appfollow/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_appfollow/detail/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

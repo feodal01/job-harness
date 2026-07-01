@@ -34,6 +34,7 @@ from job_harness.v2.runtime import (
 )
 from job_harness.v2.runtime.sources import (
     AmoCRMCareerSource,
+    AppFollowCareerSource,
     CoinsPaidCareerSource,
     FinderWorkSource,
     GeekJobSource,
@@ -141,6 +142,8 @@ def _source_id(source: str) -> str:
         return "career:ibs"
     if source == "career_amocrm":
         return "career:amocrm"
+    if source == "career_appfollow":
+        return "career:appfollow"
     if source == "career_coinspaid":
         return "career:coinspaid"
     return source
@@ -382,6 +385,7 @@ class RemoteGlobalEvidenceContractTest(unittest.TestCase):
             ("hirehi", HireHiSource()),
             ("staff_am", StaffAmSource()),
             ("career_jetbrains", JetBrainsCareerSource()),
+            ("career_appfollow", AppFollowCareerSource()),
             ("career_coinspaid", CoinsPaidCareerSource()),
         )
 
@@ -431,6 +435,7 @@ class RemoteInCountryEvidenceContractTest(unittest.TestCase):
             ("hirehi", HireHiSource()),
             ("staff_am", StaffAmSource()),
             ("career_jetbrains", JetBrainsCareerSource()),
+            ("career_appfollow", AppFollowCareerSource()),
             ("career_coinspaid", CoinsPaidCareerSource()),
         )
 
@@ -1191,6 +1196,80 @@ class AmoCRMCareerSourceTest(unittest.TestCase):
         for label, phrases in expected["section_not_contains"].items():
             for phrase in phrases:
                 self.assertNotIn(phrase, detailed.additional_sections[label])
+
+
+class AppFollowCareerSourceTest(unittest.TestCase):
+    BOARD_URL = "https://api.lever.co/v0/postings/appfollow?mode=json"
+
+    def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
+        # Arrange / Act
+        source = SupportedSource(
+            scraper=AppFollowCareerSource(),
+            fixture_suite=source_fixture_suite("career:appfollow"),
+        )
+
+        # Assert
+        self.assertEqual("career:appfollow", source.scraper.descriptor.source_id)
+
+    def test_request_mapping_fetches_the_real_lever_board_for_all_queries(self) -> None:
+        # Arrange
+        source = AppFollowCareerSource()
+
+        # Act
+        product_request = source.build_search_requests(SearchRequest(query_variants=("Product",)))[0]
+        engineer_request = source.build_search_requests(SearchRequest(query_variants=("Backend",)))[0]
+
+        # Assert
+        self.assertEqual("career:appfollow", product_request.source_id)
+        self.assertEqual("Product", product_request.query_variant)
+        self.assertEqual(self.BOARD_URL, product_request.url)
+        self.assertEqual(self.BOARD_URL, engineer_request.url)
+
+    def test_success_fixture_matches_manual_golden_samples(self) -> None:
+        # Arrange
+        source = AppFollowCareerSource()
+        expected = _expected("career_appfollow", "success")
+
+        # Act
+        parsed = source.parse_search_response(
+            _fixture_response("career_appfollow", "success"),
+            SourceFetchRequest(
+                source_id="career:appfollow",
+                query_variant="Product",
+                url=self.BOARD_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(expected["expected_count"], len(parsed.listings))
+        for sample in expected["sample_listings"]:
+            _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
+        product_listing = _listing_by_id(parsed.listings, "f3e97cf3-9777-4e54-be7a-29525fe67b86")
+        self.assertEqual("remote", product_listing.raw["work_format"])
+        self.assertEqual("Europe", product_listing.raw["remote_locations"])
+        self.assertEqual("FI", product_listing.raw["lever_country"])
+
+    def test_detail_fixture_extracts_json_ld_description_text(self) -> None:
+        # Arrange
+        source = AppFollowCareerSource()
+        listing = _detail_listing_from_input("career_appfollow")
+        expected = _expected("career_appfollow", "detail")
+
+        # Act
+        detailed = source.parse_detail_response(_fixture_response("career_appfollow", "detail"), listing)
+
+        # Assert
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+        self.assertEqual(expected["posted_at"], detailed.posted_at)
+        self.assertEqual(expected["location_text"], detailed.location_text)
+        self.assertIsNone(detailed.country)
+        self.assertEqual(set(expected["additional_sections"]), set(detailed.additional_sections))
+        for label, phrases in expected["section_contains"].items():
+            for phrase in phrases:
+                self.assertIn(phrase, detailed.additional_sections[label])
+        for text in expected["requirements_contains"]:
+            self.assertIn(text, detailed.requirements or "")
 
 
 class TalantoSourceTest(unittest.TestCase):
