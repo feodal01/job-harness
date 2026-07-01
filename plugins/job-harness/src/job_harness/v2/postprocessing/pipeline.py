@@ -10,6 +10,7 @@ from enum import StrEnum
 from job_harness.v2.contracts import SearchRequest, TextExclusion, TextExclusionMode
 from job_harness.v2.matching import FuzzyBounds, fuzzy_any_match, fuzzy_tokens_match
 from job_harness.v2.postprocessing.application_channels import application_channels
+from job_harness.v2.postprocessing.company_contacts import company_contacts
 from job_harness.v2.postprocessing.criteria_plan import CriteriaProcessingPlanner
 from job_harness.v2.postprocessing.remote_scope import (
     country_text,
@@ -198,6 +199,7 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
             "additional_sections": _text_mapping(listing.get("additional_sections")),
             "skills": _text_tuple(listing.get("skills")),
             "application_channels": application_channels(listing),
+            "company_contacts": company_contacts(listing),
             "source_facts": _source_facts(listing),
             "raw_text": _optional_text(listing.get("raw_text")),
             "description_availability": _optional_text(record.get("description_availability")),

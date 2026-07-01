@@ -27,6 +27,7 @@
         "benefits",
         "category",
         "category_name",
+        "company_contacts",
         "id",
         "responsibilities",
         "work_format",
@@ -88,10 +89,30 @@
         "apply_url",
         "category",
         "category_name",
+        "company_contacts",
         "id",
         "work_format",
         "work_type"
       ]
     }
-  ]
+  ],
+  "raw_contains": {
+    "cmq9caz82000ldce2h3nxr6db": {
+      "company_contacts": [
+        {
+          "type": "telegram",
+          "label": "Telegram",
+          "value": "@apply_jobs_bot",
+          "url": "https://t.me/apply_jobs_bot?start=apply_84f8b063-7812-48b3-8dbc-d45925c45eff_AAAX0P___xbPZQRO",
+          "source": "it_jobs_uz.apply_url"
+        }
+      ]
+    },
+    "cmmq8ycrn0007x3drm0yzpiuh": {
+      "company": {
+        "companySiteUrl": "https://uzum.uz/",
+        "companyVacanciesUrl": "https://people.uzum.com/career/ru/vacancies/2624"
+      }
+    }
+  }
 }

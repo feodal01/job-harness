@@ -68,5 +68,12 @@
         "DevTools / Postman"
       ]
     }
-  ]
+  ],
+  "raw_contains": {
+    "33888": {
+      "company": {
+        "companyProfileUrl": "https://getmatch.ru/companies/GNRXrNQz-sber"
+      }
+    }
+  }
 }

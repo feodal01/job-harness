@@ -7,6 +7,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from tests.v2._support.contract_runtime import (
     FakeFetcher,
@@ -172,6 +173,32 @@ class ConcurrentFetcher:
             url=request.url,
             media_type="text/html",
             body="<html></html>",
+        )
+
+
+class ConcurrentContactPageFetcher:
+    def __init__(self) -> None:
+        self.active = 0
+        self.max_active = 0
+        self.calls: list[SourceFetchRequest] = []
+
+    async def fetch(self, request: SourceFetchRequest) -> SourceResponseArtifact:
+        self.calls.append(request)
+        self.active += 1
+        self.max_active = max(self.max_active, self.active)
+        await asyncio.sleep(0.01)
+        self.active -= 1
+        host = urlparse(request.url).netloc
+        body = (
+            '<a href="/contacts">Contacts</a>'
+            if request.url.endswith(".test/")
+            else f'<a href="mailto:hr@{host}">HR</a>'
+        )
+        return SourceResponseArtifact(
+            source_id=request.source_id,
+            url=request.url,
+            media_type="text/html",
+            body=body,
         )
 
 
@@ -780,7 +807,17 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             },
         )
         fetcher = FakeApplicationChannelFetcher(
-            {"https://simbirsoft.com/": '<a href="/career">Карьера</a>'}
+            {
+                "https://career.habr.com/companies/simbirsoft": (
+                    Path(__file__).parent
+                    / "fixtures"
+                    / "scrapers"
+                    / "habr_career"
+                    / "company_profile_contacts"
+                    / "response.html"
+                ).read_text(encoding="utf-8"),
+                "https://simbirsoft.com/": '<a href="/career">Карьера</a>',
+            }
         )
 
         with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
@@ -796,13 +833,17 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
 
             # Assert
-            self.assertEqual(1, result.attempted)
+            self.assertEqual(2, result.attempted)
             self.assertEqual(1, result.resolved)
             self.assertEqual(0, result.failed)
             self.assertEqual(1, result.updated)
+            self.assertEqual(6, result.contacts_resolved)
             raw_records = writer.read_raw_records()
 
-        self.assertEqual(["https://simbirsoft.com/"], [call.url for call in fetcher.calls])
+        self.assertEqual(
+            ["https://career.habr.com/companies/simbirsoft", "https://simbirsoft.com/"],
+            [call.url for call in fetcher.calls],
+        )
         channels = raw_records[0]["listing"]["raw"]["application_channels"]
         self.assertEqual("company_career_page", channels[0]["type"])
         self.assertEqual("Careers", channels[0]["label"])
@@ -812,6 +853,362 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("Profile", channels[1]["label"])
         self.assertEqual("https://career.habr.com/companies/simbirsoft", channels[1]["url"])
         self.assertEqual("habr_career.company_profile_url", channels[1]["source"])
+        self.assertEqual(
+            [
+                {
+                    "type": "phone",
+                    "label": "Phone",
+                    "value": "+7 (842) 279-22-72",
+                    "source": "habr_career.company_profile",
+                    "url": "tel:+78422792272",
+                },
+                {
+                    "type": "email",
+                    "label": "Email",
+                    "value": "hr@simbirsoft.com",
+                    "source": "habr_career.company_profile",
+                    "url": "mailto:hr@simbirsoft.com",
+                },
+                {
+                    "type": "vk",
+                    "label": "VK",
+                    "value": "simbirsoft",
+                    "source": "habr_career.company_profile",
+                    "url": "https://vk.com/simbirsoft",
+                },
+                {
+                    "type": "telegram",
+                    "label": "Telegram",
+                    "value": "@simbirsoft_dev",
+                    "source": "habr_career.company_profile",
+                    "url": "https://telegram.me/simbirsoft_dev",
+                },
+                {
+                    "type": "youtube",
+                    "label": "YouTube",
+                    "value": "channel",
+                    "source": "habr_career.company_profile",
+                    "url": "https://www.youtube.com/channel/UCOSR6d4pDGwIvWpR9uBg7bg",
+                },
+                {
+                    "type": "dzen",
+                    "label": "Dzen",
+                    "value": "simbirsoft",
+                    "source": "habr_career.company_profile",
+                    "url": "https://dzen.ru/simbirsoft",
+                },
+            ],
+            raw_records[0]["listing"]["raw"]["company_contacts"],
+        )
+
+    async def test_application_channel_runner_ignores_habr_internal_vacancies_as_careers(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("habr_career", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://actimind.com",
+                    "companyProfileUrl": "https://career.habr.com/companies/actimind",
+                    "companyVacanciesUrl": "https://career.habr.com/companies/actimind/vacancies",
+                }
+            },
+        )
+        fetcher = FakeApplicationChannelFetcher(
+            {
+                "https://career.habr.com/companies/actimind": "<h2>Контакты</h2>",
+                "https://actimind.com/": "<main>Actimind</main>",
+            }
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual(2, result.attempted)
+        self.assertEqual(0, result.resolved)
+        self.assertEqual(0, result.failed)
+        self.assertEqual(1, result.updated)
+        self.assertEqual(
+            ["https://career.habr.com/companies/actimind", "https://actimind.com/"],
+            [call.url for call in fetcher.calls],
+        )
+        channels = raw_records[0]["listing"]["raw"]["application_channels"]
+        self.assertEqual("company_site", channels[0]["type"])
+        self.assertEqual("Site", channels[0]["label"])
+        self.assertEqual("https://actimind.com/", channels[0]["url"])
+        self.assertEqual("aggregator_company_profile", channels[1]["type"])
+        self.assertEqual("Profile", channels[1]["label"])
+        self.assertEqual("https://career.habr.com/companies/actimind", channels[1]["url"])
+        self.assertNotIn(
+            "https://career.habr.com/companies/actimind/vacancies",
+            [channel["url"] for channel in channels],
+        )
+
+    async def test_application_channel_runner_adds_getmatch_profile_without_profile_fetch(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("getmatch", "1"),
+            raw={"company": {"companyProfileUrl": "https://getmatch.ru/companies/GNRXrNQz-sber"}},
+        )
+        fetcher = FakeApplicationChannelFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual(0, result.attempted)
+        self.assertEqual(0, result.resolved)
+        self.assertEqual(0, result.failed)
+        self.assertEqual(1, result.updated)
+        self.assertEqual([], fetcher.calls)
+        self.assertEqual(
+            [
+                {
+                    "type": "aggregator_company_profile",
+                    "label": "Profile",
+                    "url": "https://getmatch.ru/companies/GNRXrNQz-sber",
+                    "status": "source_provided",
+                    "source": "getmatch.company_profile_url",
+                }
+            ],
+            raw_records[0]["listing"]["raw"]["application_channels"],
+        )
+
+    async def test_application_channel_runner_resolves_staff_am_profile_official_site(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("staff_am", "1"),
+            raw={"company": {"companyProfileUrl": "https://staff.am/en/company/digitain"}},
+        )
+        fetcher = FakeApplicationChannelFetcher(
+            {
+                "https://staff.am/en/company/digitain": '<a href="https://digitain.com">Website</a>',
+                "https://digitain.com/": (
+                    '<a href="/career">Career</a>'
+                    '<a href="/contacts">Contacts</a>'
+                    '<a href="mailto:hr@digitain.com">hr@digitain.com</a>'
+                ),
+                "https://digitain.com/contacts": '<a href="https://t.me/digitain_jobs">@digitain_jobs</a>',
+            }
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual(2, result.attempted)
+        self.assertEqual(1, result.resolved)
+        self.assertEqual(0, result.failed)
+        self.assertEqual(
+            [
+                "https://staff.am/en/company/digitain",
+                "https://digitain.com/",
+                "https://digitain.com/contacts",
+            ],
+            [call.url for call in fetcher.calls],
+        )
+        channels = raw_records[0]["listing"]["raw"]["application_channels"]
+        self.assertEqual("https://digitain.com/career", channels[0]["url"])
+        self.assertEqual("company_site_homepage", channels[0]["source"])
+        self.assertEqual("https://staff.am/en/company/digitain", channels[1]["url"])
+        contacts = raw_records[0]["listing"]["raw"]["company_contacts"]
+        self.assertEqual("hr@digitain.com", contacts[0]["value"])
+        self.assertEqual("@digitain_jobs", contacts[1]["value"])
+
+    async def test_application_channel_runner_preserves_it_jobs_source_contacts_and_direct_career(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("it_jobs_uz", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://uzum.uz/",
+                    "companyVacanciesUrl": "https://people.uzum.com/career/ru/vacancies/2624",
+                },
+                "company_contacts": [
+                    {
+                        "type": "telegram",
+                        "label": "Telegram",
+                        "value": "@apply_jobs_bot",
+                        "url": "https://t.me/apply_jobs_bot?start=apply_123",
+                        "source": "it_jobs_uz.apply_url",
+                    }
+                ],
+            },
+        )
+        fetcher = FakeApplicationChannelFetcher(
+            {"https://uzum.uz/": '<a href="mailto:jobs@uzum.uz">jobs@uzum.uz</a>'}
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual(1, result.attempted)
+        self.assertEqual(1, result.resolved)
+        self.assertEqual(["https://uzum.uz/"], [call.url for call in fetcher.calls])
+        channels = raw_records[0]["listing"]["raw"]["application_channels"]
+        self.assertEqual("company_career_page", channels[0]["type"])
+        self.assertEqual("https://people.uzum.com/career/ru/vacancies/2624", channels[0]["url"])
+        self.assertEqual("it_jobs_uz.company_vacancies_url", channels[0]["source"])
+        contacts = raw_records[0]["listing"]["raw"]["company_contacts"]
+        self.assertEqual("@apply_jobs_bot", contacts[0]["value"])
+        self.assertEqual("jobs@uzum.uz", contacts[1]["value"])
+
+    async def test_application_channel_runner_rejects_direct_career_urls_on_aggregator_domains(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("it_jobs_uz", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://acme.test",
+                    "companyVacanciesUrl": "https://career.habr.com/companies/acme/vacancies",
+                }
+            },
+        )
+        fetcher = FakeApplicationChannelFetcher({"https://acme.test/": "<main>Acme</main>"})
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual(1, result.attempted)
+        self.assertEqual(0, result.resolved)
+        channels = raw_records[0]["listing"]["raw"]["application_channels"]
+        self.assertEqual("company_site", channels[0]["type"])
+        self.assertEqual("https://acme.test/", channels[0]["url"])
+        self.assertNotIn(
+            "https://career.habr.com/companies/acme/vacancies",
+            [channel["url"] for channel in channels],
+        )
+
+    async def test_application_channel_runner_collects_company_site_contact_page_contacts(self) -> None:
+        # Arrange
+        raw_listing = replace(
+            listing("hh_ru", "1"),
+            raw={
+                "company": {
+                    "companySiteUrl": "https://acme.test",
+                    "employerUrl": "https://hh.ru/employer/1",
+                }
+            },
+        )
+
+        fetcher = FakeApplicationChannelFetcher(
+            {
+                "https://acme.test/": (
+                    '<a href="/careers">Careers</a><a href="/contacts">Contacts</a>'
+                    '<a href="tel:300">300</a> +7 (812) 336'
+                ),
+                "https://acme.test/contacts": (
+                    '<a href="mailto:jobs@acme.test">jobs@acme.test</a>'
+                    '<a href="https://t.me/acme_jobs">Telegram</a>'
+                    '<a href="https://www.youtube.com/user/AcmeJobs">YouTube</a>'
+                ),
+            }
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            writer.append_raw_record(_raw_search_record(raw_listing))
+            raw_record_id = writer.read_raw_record_rows()[0].raw_record_id
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+            )
+
+            # Act
+            result = await runner.run((ApplicationChannelWorkItem(raw_record_id, raw_listing),))
+
+            # Assert
+            raw_records = writer.read_raw_records()
+
+        self.assertEqual(1, result.attempted)
+        self.assertEqual(1, result.resolved)
+        self.assertEqual(0, result.failed)
+        self.assertEqual(1, result.updated)
+        self.assertEqual(3, result.contacts_resolved)
+        self.assertEqual(["https://acme.test/", "https://acme.test/contacts"], [call.url for call in fetcher.calls])
+        self.assertEqual(
+            [
+                {
+                    "type": "email",
+                    "label": "Email",
+                    "value": "jobs@acme.test",
+                    "source": "company_site_contact_page",
+                    "url": "mailto:jobs@acme.test",
+                },
+                {
+                    "type": "telegram",
+                    "label": "Telegram",
+                    "value": "@acme_jobs",
+                    "source": "company_site_contact_page",
+                    "url": "https://t.me/acme_jobs",
+                },
+                {
+                    "type": "youtube",
+                    "label": "YouTube",
+                    "value": "AcmeJobs",
+                    "source": "company_site_contact_page",
+                    "url": "https://www.youtube.com/user/AcmeJobs",
+                },
+            ],
+            raw_records[0]["listing"]["raw"]["company_contacts"],
+        )
 
     async def test_application_channel_runner_rejects_generic_work_substrings(self) -> None:
         # Arrange
@@ -832,6 +1229,9 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
                   Политика обработки персональных данных
                 </a>
                 <a href="/portfolio/razrabotka-platformy">Разработка платформы</a>
+                <a href="/catalog/sistema_vypuska_otrabotavshikh_gazov">
+                  Система выпуска отработавших газов
+                </a>
                 """
             }
         )
@@ -986,14 +1386,51 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(0, result.failed)
         self.assertEqual(2, fetcher.max_active)
 
-    async def test_application_channel_work_items_ignore_unregistered_aggregator_company_metadata(self) -> None:
+    async def test_application_channel_runner_limits_contact_page_requests_by_source(self) -> None:
+        # Arrange
+        raw_listings = tuple(
+            replace(
+                listing("hh_ru", str(index)),
+                raw={
+                    "company": {
+                        "companySiteUrl": f"https://company-{index}.test",
+                        "employerUrl": f"https://hh.ru/employer/{index}",
+                    }
+                },
+            )
+            for index in range(3)
+        )
+        fetcher = ConcurrentContactPageFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            work_items = []
+            for raw_listing in raw_listings:
+                writer.append_raw_record(_raw_search_record(raw_listing))
+            for index, row in enumerate(writer.read_raw_record_rows()):
+                work_items.append(ApplicationChannelWorkItem(row.raw_record_id, raw_listings[index]))
+            runner = ApplicationChannelEnrichmentRunner(
+                fetcher=fetcher,
+                writer=writer,
+                config=ApplicationChannelServiceConfig(),
+                request_concurrency_by_source=2,
+            )
+
+            # Act
+            result = await runner.run(tuple(work_items))
+
+        self.assertEqual(3, result.attempted)
+        self.assertEqual(3, result.contacts_resolved)
+        self.assertEqual(2, fetcher.max_active)
+        self.assertEqual(6, len(fetcher.calls))
+
+    async def test_application_channel_work_items_ignore_unsupported_aggregator_company_metadata(self) -> None:
         # Arrange
         raw_listing = replace(
-            listing("getmatch", "1"),
+            listing("talanto", "1"),
             raw={
                 "company": {
                     "companySiteUrl": "https://acme.test",
-                    "employerUrl": "https://getmatch.ru/companies/acme",
+                    "companyProfileUrl": "https://talanto.work/?company_domains=Acme",
                 }
             },
         )

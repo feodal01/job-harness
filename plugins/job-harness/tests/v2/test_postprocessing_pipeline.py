@@ -232,6 +232,60 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             payload["results"][0]["application_channels"],
         )
 
+    def test_extracts_company_contacts_from_normalized_raw_listing(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",)),
+            raw_records=(
+                _raw_record(
+                    "1000163567",
+                    source="habr_career",
+                    company="SimbirSoft",
+                    raw={
+                        "company_contacts": [
+                            {
+                                "type": "email",
+                                "label": "Email",
+                                "value": "hr@simbirsoft.com",
+                                "url": "mailto:hr@simbirsoft.com",
+                                "source": "habr_career.company_profile",
+                            },
+                            {
+                                "type": "telegram",
+                                "label": "Telegram",
+                                "value": "@simbirsoft_dev",
+                                "url": "https://telegram.me/simbirsoft_dev",
+                                "source": "habr_career.company_profile",
+                            },
+                            {"type": "broken", "label": "Broken"},
+                        ]
+                    },
+                ),
+            ),
+            source_attempts=(_attempt_record(source="habr_career"),),
+        )
+
+        # Assert
+        self.assertEqual(
+            [
+                {
+                    "type": "email",
+                    "label": "Email",
+                    "value": "hr@simbirsoft.com",
+                    "url": "mailto:hr@simbirsoft.com",
+                    "source": "habr_career.company_profile",
+                },
+                {
+                    "type": "telegram",
+                    "label": "Telegram",
+                    "value": "@simbirsoft_dev",
+                    "url": "https://telegram.me/simbirsoft_dev",
+                    "source": "habr_career.company_profile",
+                },
+            ],
+            payload["results"][0]["company_contacts"],
+        )
+
     def test_prefers_resolved_application_channels_from_raw_listing(self) -> None:
         # Arrange / Act
         payload = _process_payload(

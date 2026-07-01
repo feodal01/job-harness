@@ -21,6 +21,7 @@
       "skills": [],
       "raw_keys": [
         "category",
+        "company",
         "id"
       ]
     },
@@ -43,6 +44,7 @@
       "skills": [],
       "raw_keys": [
         "category",
+        "company",
         "id"
       ]
     },
@@ -65,8 +67,17 @@
       "skills": [],
       "raw_keys": [
         "category",
+        "company",
         "id"
       ]
     }
-  ]
+  ],
+  "raw_contains": {
+    "159745": {
+      "company": {
+        "id": 60,
+        "companyProfileUrl": "https://staff.am/en/company/telcell-cjsc"
+      }
+    }
+  }
 }

@@ -57,10 +57,11 @@ Before changing scraper behavior or tests, read:
   aggregator scraper. Shared application-channel code may resolve and present
   those source facts, but must not contain one-off parser assumptions for every
   aggregator page shape.
-- Application-channel enrichment reuses the runtime fetcher and the detail
-  service per-source concurrency. Do not add separate global request limits or
-  independent concurrency knobs unless the whole runtime request-management
-  contract changes with tests.
+- Application-channel and company-contact enrichment reuse the runtime fetcher
+  and the detail service per-source concurrency. This includes extra requests
+  to aggregator company profiles and employer contact/about pages. Do not add
+  separate global request limits or independent concurrency knobs unless the
+  whole runtime request-management contract changes with tests.
 - After changing scraper behavior, parser output, result post-processing,
   filtering, dedupe, presentation fields, or report rendering, run a live query
   that exercises the changed behavior and manually audit at least 10 affected
@@ -120,11 +121,11 @@ Before changing scraper behavior or tests, read:
 - Strip tracking parameters from emitted vacancy URLs.
 - Keep raw source facts separate from downstream filtering, ranking, dedupe, and
   presentation.
-- For aggregator employer/application-channel metadata, preserve source facts in
-  `raw["company"]` with source-specific field names such as `companySiteUrl`,
-  `companyProfileUrl`, or `companyVacanciesUrl`. Add or update the
-  source-specific seed policy in `runtime/application_channel_sources.py` only
-  after the scraper has captured real source evidence.
+- For aggregator employer/application-channel/contact metadata, preserve source
+  facts in `raw["company"]` with source-specific field names such as
+  `companySiteUrl`, `companyProfileUrl`, or `companyVacanciesUrl`. Add or update
+  the source-specific seed/contact policy only after the scraper or enrichment
+  layer has captured real source evidence.
 - Treat LinkedIn Job Wrapping workplace tags (`#LI-Remote`, `#LI-Hybrid`,
   `#LI-Onsite`) as valid source-exposed workplace signals when they appear in a
   real captured source artifact. Preserve them as dedicated raw facts, not as

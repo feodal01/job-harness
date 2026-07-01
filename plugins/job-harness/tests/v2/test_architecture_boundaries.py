@@ -67,6 +67,7 @@ _ALLOWED_RUNTIME_IMPORTS = {
         "job_harness.v2.runtime.application_channel_records",
         "job_harness.v2.runtime.application_channel_resolver",
         "job_harness.v2.runtime.application_channel_sources",
+        "job_harness.v2.runtime.company_contacts",
         "job_harness.v2.runtime.config",
     ),
     "job_harness.v2.runtime.application_channel_profiles": (
@@ -74,6 +75,7 @@ _ALLOWED_RUNTIME_IMPORTS = {
         _PORTS_MODULE,
         "job_harness.v2.runtime.application_channel_resolver",
         "job_harness.v2.runtime.application_channel_sources",
+        "job_harness.v2.runtime.company_contacts",
         "job_harness.v2.runtime.errors",
     ),
     "job_harness.v2.runtime.application_channel_records": (
@@ -84,11 +86,13 @@ _ALLOWED_RUNTIME_IMPORTS = {
         _CONTRACTS_PREFIX,
         _PORTS_MODULE,
         "job_harness.v2.runtime.application_channel_sources",
+        "job_harness.v2.runtime.company_contacts",
         "job_harness.v2.runtime.errors",
     ),
     "job_harness.v2.runtime.application_channel_sources": (_CONTRACTS_PREFIX,),
     "job_harness.v2.runtime.artifacts": (),
     "job_harness.v2.runtime.catalog": (_CONTRACTS_PREFIX,),
+    "job_harness.v2.runtime.company_contacts": (),
     "job_harness.v2.runtime.config": (
         "job_harness.v2.runtime.retry",
         _SERIALIZATION_MODULE,

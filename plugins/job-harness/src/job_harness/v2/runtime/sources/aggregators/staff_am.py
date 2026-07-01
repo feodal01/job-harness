@@ -144,6 +144,9 @@ def _listing_from_job(job: dict[str, Any]) -> RawListing | None:
     is_remote = bool(job.get("is_remote")) or None
     category_name = _localized(category.get("title")).strip()
     raw: dict[str, object] = {"id": item_id}
+    company_facts = _company_facts(company_data)
+    if company_facts:
+        raw["company"] = company_facts
     if category_name:
         raw["category"] = category_name
     if bool(job.get("is_featured")):
@@ -203,6 +206,19 @@ def _staff_detail_description(body: str) -> str | None:
     if not sections:
         return None
     return "\n\n".join(sections)
+
+
+def _company_facts(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    facts: dict[str, object] = {}
+    company_id = value.get("id")
+    if company_id is not None:
+        facts["id"] = company_id
+    slug = _localized(value.get("slug")).strip()
+    if slug:
+        facts["companyProfileUrl"] = f"{_BASE_URL}/en/company/{slug}"
+    return facts
 
 
 def _listing_matches_query(listing: RawListing, query: str) -> bool:

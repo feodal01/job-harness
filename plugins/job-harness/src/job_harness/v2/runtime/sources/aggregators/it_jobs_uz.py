@@ -29,6 +29,27 @@ _EXPERIENCE_GRADE_MAP = {
     "SENIOR": "senior",
     "ANY": "any",
 }
+_CAREER_URL_MARKERS = (
+    "career",
+    "careers",
+    "jobs",
+    "job",
+    "vacanc",
+    "rabota",
+    "ваканс",
+)
+_NON_COMPANY_CAREER_HOSTS = (
+    "career.habr.com",
+    "getmatch.ru",
+    "hh.ru",
+    "it-market.uz",
+    "rabota.ru",
+    "superjob.ru",
+    "t.me",
+    "telegram.me",
+    "worklicant.com",
+)
+_EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 _CATEGORY_MARKERS: dict[str, frozenset[str]] = {
     "backend": frozenset(
         {"backend", "бэкенд", "server", "node", "nodejs", "php", "golang", "go", "java", "python", "fastapi", "django"}
@@ -189,29 +210,20 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
     tags = item.get("tags")
     skills = tuple(_text(tag).strip() for tag in tags if _text(tag).strip()) if isinstance(tags, list) else ()
 
-    raw: dict[str, object] = {"id": item_id}
-    if apply_url:
-        raw["apply_url"] = apply_url
-    if source_url:
-        raw["external_source_url"] = source_url
-    if source_name:
-        raw["external_source"] = source_name
-    if category_slug:
-        raw["category"] = category_slug
-    if category_name:
-        raw["category_name"] = category_name
-    if work_type:
-        raw.update({"work_type": work_type.casefold(), "work_format": work_type.casefold()})
-    if company_website:
-        raw["company_website"] = company_website
-    if company_logo:
-        raw["company_logo"] = company_logo
-    if responsibilities:
-        raw["responsibilities"] = responsibilities
-    if benefits:
-        raw["benefits"] = benefits
-    if expires_at:
-        raw["expires_at"] = expires_at
+    raw = _raw_facts(
+        item_id=item_id,
+        apply_url=apply_url,
+        source_url=source_url,
+        source_name=source_name,
+        category_slug=category_slug,
+        category_name=category_name,
+        work_type=work_type,
+        company_website=company_website,
+        company_logo=company_logo,
+        responsibilities=responsibilities,
+        benefits=benefits,
+        expires_at=expires_at,
+    )
     additional_sections = {
         key: value
         for key, value in (
@@ -270,6 +282,51 @@ def _combined_description(item: dict[str, Any]) -> str | None:
     return "\n\n".join(sections)
 
 
+def _raw_facts(
+    *,
+    item_id: object,
+    apply_url: str,
+    source_url: str,
+    source_name: str,
+    category_slug: str,
+    category_name: str,
+    work_type: str,
+    company_website: str,
+    company_logo: str,
+    responsibilities: str | None,
+    benefits: str | None,
+    expires_at: str,
+) -> dict[str, object]:
+    raw: dict[str, object] = {"id": item_id}
+    for key, value in (
+        ("apply_url", apply_url),
+        ("external_source_url", source_url),
+        ("external_source", source_name),
+        ("category", category_slug),
+        ("category_name", category_name),
+        ("company_website", company_website),
+        ("company_logo", company_logo),
+        ("responsibilities", responsibilities),
+        ("benefits", benefits),
+        ("expires_at", expires_at),
+    ):
+        if value:
+            raw[key] = value
+    if work_type:
+        raw.update({"work_type": work_type.casefold(), "work_format": work_type.casefold()})
+    company_facts = _company_facts(
+        company_website=company_website,
+        apply_url=apply_url,
+        source_url=source_url,
+    )
+    if company_facts:
+        raw["company"] = company_facts
+    company_contacts = _company_contacts_from_apply_url(apply_url)
+    if company_contacts:
+        raw["company_contacts"] = list(company_contacts)
+    return raw
+
+
 def _listing_matches_query(listing: RawListing, query: str) -> bool:
     tokens = _query_tokens(query)
     if not tokens:
@@ -310,6 +367,98 @@ def _native_grade(value: str) -> str | None:
     if not value:
         return None
     return _EXPERIENCE_GRADE_MAP.get(value.upper(), value.casefold())
+
+
+def _company_facts(*, company_website: str, apply_url: str, source_url: str) -> dict[str, object]:
+    facts: dict[str, object] = {}
+    site_url = _http_url(company_website)
+    if site_url is not None:
+        facts["companySiteUrl"] = site_url
+    career_url = _company_career_url(apply_url) or _company_career_url(source_url)
+    if career_url is not None:
+        facts["companyVacanciesUrl"] = career_url
+    return facts
+
+
+def _company_contacts_from_apply_url(apply_url: str) -> tuple[dict[str, str], ...]:
+    telegram_contact = _telegram_contact(apply_url)
+    if telegram_contact is not None:
+        return (telegram_contact,)
+    email = _email_value(apply_url)
+    if email:
+        return (
+            {
+                "type": "email",
+                "label": "Email",
+                "value": email,
+                "url": f"mailto:{email}",
+                "source": "it_jobs_uz.apply_url",
+            },
+        )
+    return ()
+
+
+def _company_career_url(value: str) -> str | None:
+    url = _http_url(value)
+    if url is None:
+        return None
+    parsed = urlparse(url)
+    host = parsed.netloc.casefold()
+    if _is_non_company_career_host(host):
+        return None
+    haystack = f"{host} {parsed.path} {parsed.query}".casefold()
+    if not any(marker in haystack for marker in _CAREER_URL_MARKERS):
+        return None
+    return url
+
+
+def _http_url(value: str) -> str | None:
+    stripped = value.strip()
+    if not stripped:
+        return None
+    parsed = urlparse(stripped if "://" in stripped else f"https://{stripped}")
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path or "/", "", parsed.query, ""))
+
+
+def _telegram_contact(value: str) -> dict[str, str] | None:
+    stripped = value.strip()
+    if not stripped:
+        return None
+    candidate = stripped.removeprefix("telegram:").strip()
+    parsed = urlparse(candidate if "://" in candidate else "")
+    handle = ""
+    url = ""
+    if parsed.netloc.casefold() in {"t.me", "telegram.me"}:
+        handle = parsed.path.strip("/").split("/", 1)[0]
+        url = candidate
+    elif candidate.startswith("@"):
+        handle = candidate[1:].split()[0].strip("/")
+        url = f"https://t.me/{handle}"
+    elif candidate.casefold().startswith("t.me/"):
+        handle = candidate.split("/", 1)[1].split("?", 1)[0].strip("/")
+        url = f"https://{candidate}"
+    if not handle:
+        return None
+    return {
+        "type": "telegram",
+        "label": "Telegram",
+        "value": f"@{handle}",
+        "url": url,
+        "source": "it_jobs_uz.apply_url",
+    }
+
+
+def _email_value(value: str) -> str | None:
+    match = _EMAIL_RE.search(value)
+    if match is None:
+        return None
+    return match.group(0).casefold()
+
+
+def _is_non_company_career_host(host: str) -> bool:
+    return any(host == domain or host.endswith(f".{domain}") for domain in _NON_COMPANY_CAREER_HOSTS)
 
 
 def _salary_text(
