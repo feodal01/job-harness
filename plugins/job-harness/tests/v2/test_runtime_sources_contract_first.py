@@ -2694,6 +2694,34 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
         self.assertEqual(expected["raw_remote_locations"], _jsonish(detailed.raw.get("remote_locations")))
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
 
+    def test_personio_detail_fixture_enriches_location_remote_salary_and_description(self) -> None:
+        source = build_supported_source_catalog(("career:vivid-money",)).get("career:vivid-money")
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("Engineer",)))[0]
+        parsed = source.parse_search_response(
+            _fixture_response("career_vivid-money", "success"),
+            fetch_request,
+        )
+        expected = _expected("career_vivid-money", "detail")
+        listing = _listing_by_id(parsed.listings, str(expected["source_listing_id"]))
+
+        self.assertIsInstance(source, DetailEnrichmentScraper)
+        detail_source = cast(DetailEnrichmentScraper, source)
+        detail_request = detail_source.build_detail_request(listing)
+        detailed = detail_source.parse_detail_response(
+            _fixture_response("career_vivid-money", "detail"),
+            listing,
+        )
+
+        detail_fixture_case = _required_fixture_case("career:vivid-money", ParserFixtureKind.DETAIL)
+        self.assertEqual(_fixture_captured_url(detail_fixture_case), detail_request.url)
+        self.assertEqual(expected["country"], detailed.country)
+        self.assertEqual(expected["city"], detailed.city)
+        self.assertEqual(expected["location_text"], detailed.location_text)
+        self.assertEqual(expected["posted_at"], detailed.posted_at)
+        self.assertEqual(expected["salary_contains"][0], (detailed.salary_text or "").splitlines()[0])
+        self.assertEqual(expected["raw_remote_locations"], _jsonish(detailed.raw.get("remote_locations")))
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
 
 class TermiusCareerSourceTest(unittest.TestCase):
     def test_remote_only_listing_does_not_surface_hidden_lever_country(self) -> None:
@@ -2761,6 +2789,8 @@ def _additional_company_sources() -> tuple[tuple[str, SourceScraper], ...]:
         "career:osome",
         "career:sumsub",
         "career:semrush",
+        "career:quadcode",
+        "career:vivid-money",
     )
     catalog = build_supported_source_catalog(source_ids)
     return tuple(
