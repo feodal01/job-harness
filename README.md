@@ -1,3 +1,5 @@
+![Agentic Job Search with Job Harness](docs/assets/job-harness-social-preview.png)
+
 # job-harness
 
 Job Search OS for AI agents. Tell the agent what kind of role you want; it
