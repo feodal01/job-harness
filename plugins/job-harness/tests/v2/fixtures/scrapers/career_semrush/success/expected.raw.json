@@ -1,0 +1,103 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "JR100839",
+      "title": "Senior Data Scientist (Sota Team)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/Spain/Senior-Data-Scientist--Sota-Team-_JR100839",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "6 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100729",
+      "title": "Customer Success Manager, Enterprise (French)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/Barcelona/Strategic-Customer-Success-Manager-Enterprise---French-speaking--Strategic-Customer-Success-Team-_JR100729",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "2 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100841",
+      "title": "Customer Success Manager Enterprise - German Speaking (Strategic Customer Success Team)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/Berlin/Customer-Success-Manager-Enterprise---German-Speaking--Strategic-Customer-Success-Team-_JR100841",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "3 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100838",
+      "title": "Deal Desk Specialist (Deal Desk Team)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/United-States---Boston/Deal-Desk-Specialist--Deal-Desk-Team-_JR100838-1",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "4 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100828",
+      "title": "Senior Insights Analyst (Product Analytics Team)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/Barcelona/Senior-Insights-Analyst--Product-Analytics-Team-_JR100828",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "5 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "JR100839": {
+      "ats_platform": "workday",
+      "time_type": "Full time",
+      "posted_on": "Posted Today"
+    }
+  }
+}

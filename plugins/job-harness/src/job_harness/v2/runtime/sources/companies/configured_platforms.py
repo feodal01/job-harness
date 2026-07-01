@@ -5,13 +5,15 @@ from __future__ import annotations
 import html
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any, Literal
 from urllib.parse import urljoin
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    DetailEnrichmentScraper,
+    HttpMethod,
     RawListing,
     RequiredParserFixtures,
     SearchRequest,
@@ -26,7 +28,7 @@ from job_harness.v2.runtime.sources._html import html_to_text
 from job_harness.v2.runtime.sources._url import strip_query
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
-Platform = Literal["lever", "ashby", "workable", "greenhouse", "bamboohr", "teamtailor"]
+Platform = Literal["lever", "ashby", "workable", "greenhouse", "bamboohr", "teamtailor", "workday"]
 
 _SECTION_LABEL_RE = re.compile(
     r"<(?P<tag>h[1-6]|strong|b)[^>]*>(?P<label>.*?)</(?P=tag)>",
@@ -44,6 +46,8 @@ _TEAMTAILOR_LINK_RE = re.compile(
 _TEAMTAILOR_SHOW_MORE_RE = re.compile(r'href="(?P<href>[^"]*/jobs/show_more\?page=\d+)"')
 _TEAMTAILOR_SPAN_RE = re.compile(r'<span(?P<attrs>[^>]*)>(?P<body>.*?)</span>', re.S)
 _TITLE_ATTR_RE = re.compile(r'title="(?P<title>[^"]+)"')
+_WORKDAY_PAGE_LIMIT = 20
+_WORKDAY_SEARCH_HEADERS = {"Accept": "application/json", "Content-Type": "application/json"}
 _DEFAULT_REQUIREMENTS_LABEL_MARKERS = ("requirements", "looking for", "what you bring", "who you are", "about you")
 _GREENHOUSE_SALARY_LABEL_MARKERS = ("compensation", "pay", "salary")
 _SALARY_STOP_LINE_MARKERS = (
@@ -65,6 +69,9 @@ class ConfiguredCompanySourceConfig:
     requirements_label_markers: tuple[str, ...] = _DEFAULT_REQUIREMENTS_LABEL_MARKERS
     workable_slug: str | None = None
     bamboohr_detail_url_template: str | None = None
+    workday_base_url: str | None = None
+    workday_tenant: str | None = None
+    workday_site: str | None = None
 
 
 CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
@@ -308,6 +315,16 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         board_url="https://careers.sumsub.com/jobs",
         career_url="https://careers.sumsub.com/jobs",
     ),
+    "career:semrush": ConfiguredCompanySourceConfig(
+        source_id="career:semrush",
+        company="Semrush",
+        platform="workday",
+        board_url="https://semrush.wd5.myworkdayjobs.com/wday/cxs/semrush/semrushcareers/jobs",
+        career_url="https://careers.semrush.com/en/jobs/",
+        workday_base_url="https://semrush.wd5.myworkdayjobs.com",
+        workday_tenant="semrush",
+        workday_site="semrushcareers",
+    ),
 }
 
 
@@ -316,6 +333,8 @@ def configured_company_source(source_id: str) -> SourceScraper:
         config = CONFIGURED_COMPANY_SOURCE_CONFIGS[source_id]
     except KeyError as exc:
         raise ValueError(f"unknown configured company source: {source_id}") from exc
+    if config.platform == "workday":
+        return ConfiguredWorkdayCompanyCareerSource(config)
     return ConfiguredCompanyCareerSource(config)
 
 
@@ -366,6 +385,57 @@ class ConfiguredCompanyCareerSource(SourceScraper):
         if self._config.platform == "teamtailor":
             return _parse_teamtailor(response.body, self._config, _request)
         raise ValueError(f"unsupported configured company platform: {self._config.platform}")
+
+
+class ConfiguredWorkdayCompanyCareerSource(DetailEnrichmentScraper):
+    def __init__(self, config: ConfiguredCompanySourceConfig) -> None:
+        self._config = config
+
+    @property
+    def descriptor(self) -> SourceDescriptor:
+        return source_descriptor(self._config.source_id)
+
+    @property
+    def required_fixture_kinds(self) -> RequiredParserFixtures:
+        return source_required_fixture_kinds(self._config.source_id)
+
+    def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
+        return tuple(
+            SourceFetchRequest(
+                source_id=self.descriptor.source_id,
+                query_variant=query_variant,
+                url=self._config.board_url,
+                method=HttpMethod.POST,
+                headers=dict(_WORKDAY_SEARCH_HEADERS),
+                body=_workday_search_body(offset=0),
+            )
+            for query_variant in request.query_variants
+        )
+
+    def parse_search_response(
+        self,
+        response: SourceResponseArtifact,
+        request: SourceFetchRequest,
+    ) -> SourceSearchParseResult:
+        return _parse_workday(response.body, self._config, request)
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        detail_url = _text(listing.raw.get("workday_cxs_detail_url")).strip()
+        if not detail_url:
+            raise ValueError(f"{self._config.company} Workday listing is missing detail URL")
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=detail_url,
+            headers={"Accept": "application/json"},
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        return _workday_detail_listing(response.body, listing, self._config)
 
 
 def _parse_lever(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
@@ -668,6 +738,132 @@ def _greenhouse_listing(job: dict[str, Any], config: ConfiguredCompanySourceConf
         additional_sections=additional_sections,
         skills=(),
         raw_text=_join_text(title, location_text, " ".join(departments), description, requirements, salary_text),
+        raw=raw,
+    )
+
+
+def _parse_workday(
+    body: str,
+    config: ConfiguredCompanySourceConfig,
+    request: SourceFetchRequest,
+) -> SourceSearchParseResult:
+    payload = _json_object(body, f"{config.company} Workday response")
+    postings = payload.get("jobPostings")
+    if not isinstance(postings, list):
+        raise ValueError(f"{config.company} Workday response jobPostings field is not a JSON array")
+    total = _int_value(payload, "total")
+    if not postings and total == 0:
+        return _no_results()
+    if not postings:
+        raise ValueError(f"{config.company} Workday response has no postings without an explicit empty total")
+
+    listings = tuple(_workday_listing(posting, config) for posting in postings if isinstance(posting, dict))
+    if not listings:
+        raise ValueError(f"{config.company} Workday response contains no valid posting objects")
+    return SourceSearchParseResult(
+        outcome=SourceOutcome.SUCCESS,
+        listings=listings,
+        next_request=_workday_next_request(payload, request),
+    )
+
+
+def _workday_listing(posting: dict[str, Any], config: ConfiguredCompanySourceConfig) -> RawListing:
+    title = _required_text(posting.get("title"), "title", config)
+    external_path = _required_text(posting.get("externalPath"), "externalPath", config)
+    source_listing_id = _workday_source_listing_id(posting, external_path)
+    location_text = _text(posting.get("locationsText")).strip() or None
+    bullet_fields = _text_values(posting.get("bulletFields"))
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "external_path": external_path,
+            "workday_cxs_detail_url": _workday_cxs_detail_url(config, external_path),
+            "locations_text": location_text,
+            "posted_on": _text(posting.get("postedOn")).strip() or None,
+            "time_type": _text(posting.get("timeType")).strip() or None,
+            "bullet_fields": bullet_fields,
+        }
+    )
+    return RawListing(
+        source_listing_id=source_listing_id,
+        title=title,
+        url=_workday_public_job_url(config, external_path),
+        source=config.source_id,
+        company=config.company,
+        country=None,
+        city=None,
+        location_text=location_text,
+        salary_text=None,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=None,
+        remote_in_country=None,
+        remote_global=None,
+        relocation=None,
+        native_grade=None,
+        description=None,
+        requirements=None,
+        additional_sections={},
+        skills=(),
+        raw_text=_join_text(title, location_text, raw["time_type"], raw["posted_on"], " ".join(bullet_fields)),
+        raw=raw,
+    )
+
+
+def _workday_detail_listing(
+    body: str,
+    listing: RawListing,
+    config: ConfiguredCompanySourceConfig,
+) -> RawListing:
+    payload = _json_object(body, f"{config.company} Workday detail response")
+    info = payload.get("jobPostingInfo")
+    if not isinstance(info, dict):
+        raise ValueError(f"{config.company} Workday detail response is missing jobPostingInfo")
+    description_html = _text(info.get("jobDescription"))
+    description = html_to_text(description_html)
+    if not description:
+        raise ValueError(f"{config.company} Workday detail response is missing jobDescription")
+
+    sections = _html_sections(description_html)
+    locations = _workday_detail_locations(info, listing)
+    country = _workday_country_descriptor(info)
+    remote_type = _text(info.get("remoteType")).strip() or None
+    raw_detail = {
+        "id": _text(info.get("id")).strip() or None,
+        "job_posting_id": _text(info.get("jobPostingId")).strip() or None,
+        "job_req_id": _text(info.get("jobReqId")).strip() or None,
+        "posted_on": _text(info.get("postedOn")).strip() or None,
+        "start_date": _text(info.get("startDate")).strip() or None,
+        "time_type": _text(info.get("timeType")).strip() or None,
+        "location": _text(info.get("location")).strip() or None,
+        "additional_locations": _text_values(info.get("additionalLocations")),
+        "country": info.get("country"),
+        "remote_type": remote_type,
+        "hiring_organization": payload.get("hiringOrganization"),
+    }
+    raw = {**listing.raw, "detail": raw_detail}
+    if locations:
+        raw["locations"] = locations
+    if country:
+        raw["country"] = country
+    if remote_type:
+        raw["remote_type"] = remote_type
+    if remote_type and remote_type.casefold() == "remote" and locations:
+        raw["remote_locations"] = locations
+
+    location_text = "; ".join(locations) or listing.location_text
+    return replace(
+        listing,
+        url=_text(info.get("externalUrl")).strip() or listing.url,
+        country=country or listing.country,
+        city=_workday_city(info, country),
+        location_text=location_text,
+        posted_at=_text(info.get("startDate")).strip() or listing.posted_at,
+        description=description,
+        requirements=_requirements(sections, config.requirements_label_markers),
+        additional_sections=sections,
+        raw_text=_join_text(listing.raw_text, location_text, remote_type, description),
         raw=raw,
     )
 
@@ -1341,6 +1537,125 @@ def _teamtailor_remote_locations(location_text: str | None, work_format: str | N
         for part in location_text.split(",")
         if part.strip() and part.strip() != "Multiple locations"
     )
+
+
+def _workday_search_body(*, offset: int) -> bytes:
+    return json.dumps(
+        {
+            "appliedFacets": {},
+            "limit": _WORKDAY_PAGE_LIMIT,
+            "offset": offset,
+            "searchText": "",
+        },
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _workday_next_request(payload: dict[str, Any], request: SourceFetchRequest) -> SourceFetchRequest | None:
+    total = _int_value(payload, "total")
+    if total is None:
+        return None
+    postings = payload.get("jobPostings")
+    if not isinstance(postings, list):
+        return None
+    next_offset = _workday_request_offset(request) + len(postings)
+    if next_offset >= total:
+        return None
+    return SourceFetchRequest(
+        source_id=request.source_id,
+        query_variant=request.query_variant,
+        url=_workday_page_url(request.url, next_offset),
+        method=HttpMethod.POST,
+        headers=dict(_WORKDAY_SEARCH_HEADERS),
+        body=_workday_search_body(offset=next_offset),
+    )
+
+
+def _workday_request_offset(request: SourceFetchRequest) -> int:
+    if request.body is None:
+        return 0
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return 0
+    if not isinstance(payload, dict):
+        return 0
+    offset = payload.get("offset")
+    return offset if isinstance(offset, int) and offset >= 0 else 0
+
+
+def _workday_source_listing_id(posting: dict[str, Any], external_path: str) -> str:
+    bullet_fields = _text_values(posting.get("bulletFields"))
+    if bullet_fields:
+        return bullet_fields[0]
+    return external_path.rstrip("/").rsplit("/", 1)[-1]
+
+
+def _workday_page_url(url: str, offset: int) -> str:
+    base_url = url.split("?", 1)[0]
+    return f"{base_url}?offset={offset}"
+
+
+def _workday_cxs_detail_url(config: ConfiguredCompanySourceConfig, external_path: str) -> str:
+    base_url = _workday_config_value(config.workday_base_url, "workday_base_url", config)
+    tenant = _workday_config_value(config.workday_tenant, "workday_tenant", config)
+    site = _workday_config_value(config.workday_site, "workday_site", config)
+    path = external_path if external_path.startswith("/") else f"/{external_path}"
+    return f"{base_url}/wday/cxs/{tenant}/{site}{path}"
+
+
+def _workday_public_job_url(config: ConfiguredCompanySourceConfig, external_path: str) -> str:
+    base_url = _workday_config_value(config.workday_base_url, "workday_base_url", config)
+    site = _workday_config_value(config.workday_site, "workday_site", config)
+    path = external_path if external_path.startswith("/") else f"/{external_path}"
+    return f"{base_url}/{site}{path}"
+
+
+def _workday_detail_locations(info: dict[str, Any], listing: RawListing) -> tuple[str, ...]:
+    values: list[str] = []
+    for value in (_text(info.get("location")).strip(), *_text_values(info.get("additionalLocations"))):
+        if value and value not in values:
+            values.append(value)
+    if values:
+        return tuple(values)
+    return (listing.location_text,) if listing.location_text else ()
+
+
+def _workday_country_descriptor(info: dict[str, Any]) -> str | None:
+    country = info.get("country")
+    if not isinstance(country, dict):
+        return None
+    return _text(country.get("descriptor")).strip() or None
+
+
+def _workday_city(info: dict[str, Any], country: str | None) -> str | None:
+    location = _text(info.get("location")).strip()
+    if not location:
+        return None
+    city = _workday_city_without_country_prefix(location=location, country=country)
+    if country and city.casefold() == country.casefold():
+        return None
+    if city.casefold() == "remote" or _is_region_label(city):
+        return None
+    return city
+
+
+def _workday_city_without_country_prefix(*, location: str, country: str | None) -> str:
+    if " - " not in location:
+        return location
+    country_prefix, city = (part.strip() for part in location.split(" - ", 1))
+    country_keys = {country.casefold()} if country else set()
+    if country and country.casefold() == "united states of america":
+        country_keys.add("united states")
+    if country_prefix.casefold() in country_keys and city:
+        return city
+    return location
+
+
+def _workday_config_value(value: str | None, field_name: str, config: ConfiguredCompanySourceConfig) -> str:
+    if value is None or not value.strip():
+        raise ValueError(f"{config.company} Workday config is missing {field_name}")
+    return value.rstrip("/")
 
 
 def _strip_workplace_marker(value: str | None) -> str | None:

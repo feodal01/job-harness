@@ -189,6 +189,7 @@ _COMPANY_CAREER_URLS = {
     "career:tradingview": "https://tradingview.teamtailor.com/jobs",
     "career:osome": "https://careers.osome.com/jobs",
     "career:sumsub": "https://careers.sumsub.com/jobs",
+    "career:semrush": "https://careers.semrush.com/en/jobs/",
 }
 
 

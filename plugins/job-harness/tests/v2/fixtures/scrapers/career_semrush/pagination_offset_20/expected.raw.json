@@ -1,0 +1,103 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "JR100245",
+      "title": "Enterprise Account Executive, DACH (Enterprise Central Sales Team)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/United-Kingdom/Enterprise-Account-Executive-DACH_JR100245",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "5 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100707",
+      "title": "Senior ClickHouse Solution Engineer (ClickHouse Team)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/Cyprus/Senior-ClickHouse-Solution-Engineer--ClickHouse-Team-_JR100707",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "4 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100540",
+      "title": "Enterprise Business Development Representative",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/United-Kingdom/Enterprise-Business-Development-Representative--French-Speaker_JR100540",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "United Kingdom",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100811",
+      "title": "Senior QA Automation Engineer (Nexus Team)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/Spain/Senior-QA-Automation-Engineer--Nexus-Team-_JR100811",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "4 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100738",
+      "title": "Account Executive - Big Data",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/United-States/Account-Executive---Big-Data_JR100738",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "2 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "JR100245": {
+      "ats_platform": "workday",
+      "time_type": "Full time",
+      "posted_on": "Posted 19 Days Ago"
+    }
+  }
+}
