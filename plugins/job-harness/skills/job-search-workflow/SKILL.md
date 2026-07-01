@@ -137,24 +137,13 @@ service-owned settings packaged in
 `job_harness/v2/runtime/search_service_config.json`. Agents should not pass
 these values as normal search criteria.
 
-## Supported v2 sources (14)
+## Supported v2 sources
 
-| source_id | type | source_limit | countries |
-|-----------|------|-------------|-----------|
-| `habr_career` | aggregator | 50 | RU |
-| `hh_ru` | aggregator | 100 | RU |
-| `talanto` | aggregator | 50 | — |
-| `career:vk` | company_career | 25 | RU |
-| `career:jetbrains` | company_career | 120 | — |
-| `geekjob` | aggregator | 50 | — |
-| `talento` | aggregator | 50 | — |
-| `finder_work` | aggregator | 100 | — |
-| `getmatch` | aggregator | 100 | — |
-| `it_jobs_uz` | aggregator | 100 | — |
-| `hirify` | aggregator | 100 | — |
-| `jobturbo` | aggregator | 50 | — |
-| `hirehi` | aggregator | 50 | RU |
-| `staff_am` | aggregator | 100 | AM |
+The source catalog changes as new aggregators and employer career pages are
+added. Do not rely on a static source list in this skill. Always call
+`job-harness-v2 list-sources` at the start of a search session and use the
+returned `source_id`, `source_type`, `source_limit`, country, and criteria
+capability fields as the current contract.
 
 ## Artifact layout
 

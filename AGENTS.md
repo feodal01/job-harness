@@ -63,16 +63,12 @@ The plugin includes:
 - **v1 MCP tools (legacy)**: `search_start`, `search_status`, `search_results`, … via `scripts/mcp-server.py`
 
 `plugins/job-harness/skills/job-search-workflow/SKILL.md` is the canonical
-search workflow. It uses **`job-harness-v2` CLI**, not v1 MCP tools.
+search workflow. It owns v2 CLI usage, current search parameters, source catalog
+inspection, append mode, artifact handling, and presentation rules. It uses
+**`job-harness-v2` CLI**, not v1 MCP tools.
 `plugins/job-harness/agents/job-searcher.md` and
 `plugins/job-harness/commands/job-search.md` must remain thin entrypoints and
 must not duplicate the skill workflow text.
-
-**v2 search workflow:** call `job-harness-v2 list-sources`, then
-`job-harness-v2 search` with criteria flags. Artifacts land under
-`.job-harness/v2/runs/<run_id>/`. Use `--append-to-run-id` for additional query
-variants. Read the `processed_results` table from `run.sqlite` for presentation;
-the `raw_listings` table is unfiltered evidence.
 
 **v2 search features to preserve:**
 
@@ -80,10 +76,6 @@ the `raw_listings` table is unfiltered evidence.
 - Per-source raw limits from `source_catalog.sql`.
 - Criteria capabilities per source (`native_request`, `structured_output`, `unsupported`).
 - Append mode with shared run corpus and advancing `append_sequence`.
-
-The v2 CLI entry point:
-
-`uv --directory plugins/job-harness run job-harness-v2 search --queries "QA | AQA | SDET | quality assurance" --country RU`
 
 Legacy v1 CLI/MCP remains under `job_harness.v1` for maintenance.
 
