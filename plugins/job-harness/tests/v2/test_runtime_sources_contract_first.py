@@ -2678,6 +2678,28 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
                         self.assertEqual(expected_value, _jsonish(listing.raw.get(key)), key)
 
 
+class TermiusCareerSourceTest(unittest.TestCase):
+    def test_remote_only_listing_does_not_surface_hidden_lever_country(self) -> None:
+        source = TermiusCareerSource()
+        parsed = source.parse_search_response(
+            _fixture_response("career_termius", "success"),
+            SourceFetchRequest(
+                source_id=source.descriptor.source_id,
+                query_variant="Rust",
+                url="https://api.lever.co/v0/postings/Termius?mode=json",
+            ),
+        )
+
+        listing = _listing_by_id(parsed.listings, "1baf95ef-62c4-45d9-8b66-3d4820a17e8b")
+
+        self.assertEqual("Remote", listing.location_text)
+        self.assertIsNone(listing.country)
+        self.assertIsNone(listing.remote_in_country)
+        self.assertIsNone(listing.remote_global)
+        self.assertEqual("GE", listing.raw["lever_country"])
+        self.assertEqual(["Remote"], _jsonish(listing.raw["remote_locations"]))
+
+
 def _additional_company_sources() -> tuple[tuple[str, SourceScraper], ...]:
     return (
         ("career_wintermute", WintermuteCareerSource()),

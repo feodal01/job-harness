@@ -7,7 +7,7 @@
       "title": "Executive Assistant",
       "url": "https://jobs.lever.co/Termius/96f30757-f4d1-4579-a8db-526e5b2700fe",
       "company": "Termius",
-      "country": "NZ",
+      "country": null,
       "city": null,
       "location_text": "Auckland",
       "salary_text": null,
@@ -25,7 +25,7 @@
       "title": "Senior Product Engineer (Rust) (Auckland, New Zealand)",
       "url": "https://jobs.lever.co/Termius/bc2c9a2c-1242-4a31-b97b-3bf70ad54848",
       "company": "Termius",
-      "country": "NZ",
+      "country": null,
       "city": null,
       "location_text": "Auckland",
       "salary_text": null,
@@ -43,7 +43,7 @@
       "title": "Senior Software Engineer (Rust)",
       "url": "https://jobs.lever.co/Termius/1baf95ef-62c4-45d9-8b66-3d4820a17e8b",
       "company": "Termius",
-      "country": "GE",
+      "country": null,
       "city": null,
       "location_text": "Remote",
       "salary_text": null,
@@ -51,8 +51,8 @@
       "salary_max": null,
       "salary_currency": null,
       "posted_at": "2026-06-15T11:56:11.408000Z",
-      "remote_in_country": true,
-      "remote_global": false,
+      "remote_in_country": null,
+      "remote_global": null,
       "native_grade": null,
       "skills": []
     }
@@ -76,6 +76,7 @@
   "raw_contains": {
     "96f30757-f4d1-4579-a8db-526e5b2700fe": {
       "workplace_type": "onsite",
+      "lever_country": "NZ",
       "work_format": [
         "office"
       ],
@@ -85,6 +86,7 @@
     },
     "bc2c9a2c-1242-4a31-b97b-3bf70ad54848": {
       "workplace_type": "onsite",
+      "lever_country": "NZ",
       "work_format": [
         "office"
       ],
@@ -97,6 +99,7 @@
       "work_format": [
         "remote"
       ],
+      "lever_country": "GE",
       "all_locations": [
         "Remote"
       ],
