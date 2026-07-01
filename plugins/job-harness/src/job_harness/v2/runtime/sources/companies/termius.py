@@ -181,7 +181,7 @@ def _work_formats(workplace_type: str | None) -> tuple[str, ...]:
 def _remote_locations(*, workplace_type: str | None, all_locations: tuple[str, ...]) -> tuple[str, ...]:
     if workplace_type != "remote":
         return ()
-    return all_locations
+    return tuple(location for location in all_locations if location.casefold() != "remote")
 
 
 def _remote_in_country(workplace_type: str | None) -> bool | None:

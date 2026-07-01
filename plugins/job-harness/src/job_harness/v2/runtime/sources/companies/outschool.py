@@ -33,6 +33,12 @@ _SALARY_MARKER_RE = re.compile(r"(\$|CAD|USD|hourly rate)", re.I)
 _REMOTE_SCOPE_RE = re.compile(r"remote\s*\((?P<scope>[^)]+)\)", re.I)
 _REQUIREMENTS_LABEL_MARKERS = ("desired experience", "required", "requirements", "skills")
 _SALARY_LABEL_MARKERS = ("compensation", "pay zones", "보상")
+_SALARY_STOP_LINE_MARKERS = (
+    "we use covey",
+    "please see the independent bias audit",
+    "benefits & culture",
+    "outschool is an equal opportunity employer",
+)
 
 
 class OutschoolCareerSource(SourceScraper):
@@ -193,13 +199,25 @@ def _requirements(sections: dict[str, str]) -> str | None:
 
 
 def _salary_text(sections: dict[str, str]) -> str | None:
-    parts = [
-        f"{label}\n{body}"
-        for label, body in sections.items()
-        if any(marker in label.casefold() for marker in _SALARY_LABEL_MARKERS)
-        and _SALARY_MARKER_RE.search(body)
-    ]
+    parts: list[str] = []
+    for label, body in sections.items():
+        if not any(marker in label.casefold() for marker in _SALARY_LABEL_MARKERS):
+            continue
+        salary_body = _salary_body(body)
+        if salary_body and _SALARY_MARKER_RE.search(salary_body):
+            parts.append(f"{label}\n{salary_body}")
     return "\n\n".join(parts) or None
+
+
+def _salary_body(body: str) -> str | None:
+    lines: list[str] = []
+    for line in body.splitlines():
+        normalized = line.strip().casefold()
+        if any(normalized.startswith(marker) for marker in _SALARY_STOP_LINE_MARKERS):
+            break
+        lines.append(line)
+    text = "\n".join(lines).strip()
+    return text or None
 
 
 def _work_formats(location_text: str) -> tuple[str, ...]:

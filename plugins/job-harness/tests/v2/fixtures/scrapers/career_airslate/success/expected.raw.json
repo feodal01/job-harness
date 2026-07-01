@@ -7,7 +7,7 @@
       "title": "Automation QE Lead: Quality Architecture & Agentic Testing",
       "url": "https://jobs.lever.co/airslate/1fe1bfc3-12bc-482f-8cd6-102651e0a1f8",
       "company": "airSlate",
-      "country": "PL",
+      "country": null,
       "city": null,
       "location_text": "Poland, Barcelona, Budapest, Romania, Bucharest",
       "salary_text": null,
@@ -25,7 +25,7 @@
       "title": "Sales Development Representative",
       "url": "https://jobs.lever.co/airslate/64698782-e3b3-48aa-82e1-5315c0ce5da0",
       "company": "airSlate",
-      "country": "PH",
+      "country": null,
       "city": null,
       "location_text": "Manila",
       "salary_text": null,
@@ -43,7 +43,7 @@
       "title": "Senior Data Engineer",
       "url": "https://jobs.lever.co/airslate/998971b5-5826-41e3-884f-cf54d9cc4b09",
       "company": "airSlate",
-      "country": "PL",
+      "country": null,
       "city": null,
       "location_text": "Wroclaw, Poland, Kyiv",
       "salary_text": null,
@@ -61,7 +61,7 @@
       "title": "Senior Director of Marketing",
       "url": "https://jobs.lever.co/airslate/ad1346b2-a88c-4c83-95fa-f104d6916526",
       "company": "airSlate",
-      "country": "GB",
+      "country": null,
       "city": null,
       "location_text": "London, Boston",
       "salary_text": null,
@@ -121,7 +121,8 @@
         "Budapest",
         "Romania",
         "Bucharest"
-      ]
+      ],
+      "lever_country": "PL"
     },
     "64698782-e3b3-48aa-82e1-5315c0ce5da0": {
       "workplace_type": "remote",
@@ -133,7 +134,8 @@
       ],
       "remote_locations": [
         "Manila"
-      ]
+      ],
+      "lever_country": "PH"
     },
     "998971b5-5826-41e3-884f-cf54d9cc4b09": {
       "workplace_type": "hybrid",
@@ -144,7 +146,8 @@
         "Wroclaw",
         "Poland",
         "Kyiv"
-      ]
+      ],
+      "lever_country": "PL"
     },
     "ad1346b2-a88c-4c83-95fa-f104d6916526": {
       "workplace_type": "remote",
@@ -158,7 +161,8 @@
       "remote_locations": [
         "London",
         "Boston"
-      ]
+      ],
+      "lever_country": "GB"
     }
   },
   "section_labels": [

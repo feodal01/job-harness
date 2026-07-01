@@ -95,6 +95,7 @@ def _listing(posting: dict[str, Any]) -> RawListing:
         "team": _text(categories.get("team")).strip() or None,
         "commitment": _text(categories.get("commitment")).strip() or None,
         "all_locations": all_locations,
+        "lever_country": _text(posting.get("country")).strip() or None,
         "workplace_type": workplace_type,
     }
     if work_formats:
@@ -108,7 +109,7 @@ def _listing(posting: dict[str, Any]) -> RawListing:
         url=strip_query(_required_text(posting.get("hostedUrl"), "hostedUrl")),
         source=_SOURCE_ID,
         company=_COMPANY,
-        country=_text(posting.get("country")).strip() or None,
+        country=None,
         city=None,
         location_text=_location_text(categories.get("location"), all_locations),
         salary_text=None,
@@ -116,8 +117,8 @@ def _listing(posting: dict[str, Any]) -> RawListing:
         salary_max=None,
         salary_currency=None,
         posted_at=_posted_at(posting.get("createdAt")),
-        remote_in_country=_remote_in_country(workplace_type),
-        remote_global=False if workplace_type in {"hybrid", "remote"} else None,
+        remote_in_country=_remote_in_country(workplace_type, remote_locations),
+        remote_global=_remote_global(workplace_type, remote_locations),
         relocation=None,
         native_grade=None,
         description=description,
@@ -186,13 +187,21 @@ def _work_formats(workplace_type: str | None) -> tuple[str, ...]:
 def _remote_locations(*, workplace_type: str | None, all_locations: tuple[str, ...]) -> tuple[str, ...]:
     if workplace_type != "remote":
         return ()
-    return all_locations
+    return tuple(location for location in all_locations if location.casefold() != "remote")
 
 
-def _remote_in_country(workplace_type: str | None) -> bool | None:
+def _remote_in_country(workplace_type: str | None, remote_locations: tuple[str, ...]) -> bool | None:
     if workplace_type == "remote":
-        return True
+        return True if remote_locations else None
     if workplace_type in {"hybrid", "on-site", "onsite"}:
+        return False
+    return None
+
+
+def _remote_global(workplace_type: str | None, remote_locations: tuple[str, ...]) -> bool | None:
+    if workplace_type == "remote":
+        return False if remote_locations else None
+    if workplace_type == "hybrid":
         return False
     return None
 

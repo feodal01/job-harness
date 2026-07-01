@@ -7,7 +7,7 @@
       "title": "Algorithmic Trader",
       "url": "https://jobs.lever.co/wintermute-trading/b14e6e12-1f39-41b8-a3ed-8b02ac8b1464",
       "company": "Wintermute",
-      "country": "GB",
+      "country": null,
       "city": null,
       "location_text": "London",
       "salary_text": null,
@@ -25,7 +25,7 @@
       "title": "C++ Quant Developer",
       "url": "https://jobs.lever.co/wintermute-trading/4cab7a75-4304-4590-90c5-6755dbd97d36",
       "company": "Wintermute",
-      "country": "GB",
+      "country": null,
       "city": null,
       "location_text": "London",
       "salary_text": null,
@@ -43,7 +43,7 @@
       "title": "Core Developer (Python)",
       "url": "https://jobs.lever.co/wintermute-trading/d059ea72-e3d2-42ce-bbb3-d47531e0c933",
       "company": "Wintermute",
-      "country": "GB",
+      "country": null,
       "city": null,
       "location_text": "London",
       "salary_text": null,
@@ -110,7 +110,8 @@
       ],
       "all_locations": [
         "London"
-      ]
+      ],
+      "lever_country": "GB"
     },
     "4cab7a75-4304-4590-90c5-6755dbd97d36": {
       "workplace_type": "hybrid",
@@ -119,7 +120,8 @@
       ],
       "all_locations": [
         "London"
-      ]
+      ],
+      "lever_country": "GB"
     },
     "d059ea72-e3d2-42ce-bbb3-d47531e0c933": {
       "workplace_type": "hybrid",
@@ -128,7 +130,8 @@
       ],
       "all_locations": [
         "London"
-      ]
+      ],
+      "lever_country": "GB"
     },
     "3b025b92-83dc-44a9-8786-e618d43f5393": {
       "workplace_type": "onsite",
@@ -137,7 +140,8 @@
       ],
       "all_locations": [
         "London/New York"
-      ]
+      ],
+      "lever_country": null
     }
   },
   "section_labels": [

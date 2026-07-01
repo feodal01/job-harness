@@ -2697,7 +2697,7 @@ class TermiusCareerSourceTest(unittest.TestCase):
         self.assertIsNone(listing.remote_in_country)
         self.assertIsNone(listing.remote_global)
         self.assertEqual("GE", listing.raw["lever_country"])
-        self.assertEqual(["Remote"], _jsonish(listing.raw["remote_locations"]))
+        self.assertNotIn("remote_locations", listing.raw)
 
 
 def _additional_company_sources() -> tuple[tuple[str, SourceScraper], ...]:

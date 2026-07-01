@@ -7,7 +7,7 @@
       "title": "Customer Success Manager",
       "url": "https://jobs.lever.co/truv/8908ed58-0430-4585-941a-fdd5194f9613",
       "company": "Truv",
-      "country": "US",
+      "country": null,
       "city": null,
       "location_text": "Remote",
       "salary_text": null,
@@ -15,8 +15,8 @@
       "salary_max": null,
       "salary_currency": null,
       "posted_at": "2026-06-26T15:31:41.408000Z",
-      "remote_in_country": true,
-      "remote_global": false,
+      "remote_in_country": null,
+      "remote_global": null,
       "native_grade": null,
       "skills": []
     },
@@ -25,7 +25,7 @@
       "title": "Data Analyst",
       "url": "https://jobs.lever.co/truv/b523092e-714e-49f7-bea1-c1edef7bf6b7",
       "company": "Truv",
-      "country": "FR",
+      "country": null,
       "city": null,
       "location_text": "France",
       "salary_text": null,
@@ -43,7 +43,7 @@
       "title": "QA Engineer",
       "url": "https://jobs.lever.co/truv/8e8eb5ff-0344-420b-a0e5-a2f1c1d4171f",
       "company": "Truv",
-      "country": "ES",
+      "country": null,
       "city": null,
       "location_text": "Spain, Cyprus, Georgia, Italy, Montenegro, Portugal, Serbia",
       "salary_text": null,
@@ -61,7 +61,7 @@
       "title": "Senior Software Engineer - Integrations, Crawler",
       "url": "https://jobs.lever.co/truv/3c350a95-c889-472a-b7b4-85435feee510",
       "company": "Truv",
-      "country": "ES",
+      "country": null,
       "city": null,
       "location_text": "Spain, Georgia, Montenegro, Portugal, Serbia, Buenos Aires, Cyprus, UAE",
       "salary_text": null,
@@ -111,9 +111,7 @@
       "all_locations": [
         "Remote"
       ],
-      "remote_locations": [
-        "Remote"
-      ]
+      "lever_country": "US"
     },
     "b523092e-714e-49f7-bea1-c1edef7bf6b7": {
       "workplace_type": "remote",
@@ -125,7 +123,8 @@
       ],
       "remote_locations": [
         "France"
-      ]
+      ],
+      "lever_country": "FR"
     },
     "8e8eb5ff-0344-420b-a0e5-a2f1c1d4171f": {
       "workplace_type": "remote",
@@ -149,7 +148,8 @@
         "Montenegro",
         "Portugal",
         "Serbia"
-      ]
+      ],
+      "lever_country": "ES"
     },
     "3c350a95-c889-472a-b7b4-85435feee510": {
       "workplace_type": "remote",
@@ -175,7 +175,8 @@
         "Buenos Aires",
         "Cyprus",
         "UAE"
-      ]
+      ],
+      "lever_country": "ES"
     }
   },
   "section_labels": [
