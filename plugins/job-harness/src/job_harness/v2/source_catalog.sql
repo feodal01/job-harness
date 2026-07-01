@@ -154,7 +154,8 @@ VALUES
     (59, 'career:thesoul-publishing', 'company_career', 'http', 100),
     (60, 'career:semrush', 'company_career', 'http', 100),
     (61, 'career:quadcode', 'company_career', 'http', 100),
-    (62, 'career:vivid-money', 'company_career', 'http', 100);
+    (62, 'career:vivid-money', 'company_career', 'http', 100),
+    (63, 'career:sidestream', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -613,6 +614,27 @@ SELECT personio_sources.source_id, personio_criteria.criterion_order, personio_c
 FROM personio_sources
 CROSS JOIN personio_criteria;
 
+WITH join_sources(source_id) AS (
+    VALUES
+        ('career:sidestream')
+),
+join_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT join_sources.source_id, join_criteria.criterion_order, join_criteria.criterion, join_criteria.capability
+FROM join_sources
+CROSS JOIN join_criteria;
+
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
     ('habr_career', 'no_results'),
@@ -652,7 +674,8 @@ VALUES
     ('career:sumsub', 'pagination'),
     ('career:semrush', 'pagination'),
     ('career:semrush', 'detail'),
-    ('career:vivid-money', 'detail');
+    ('career:vivid-money', 'detail'),
+    ('career:sidestream', 'detail');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -1574,7 +1597,8 @@ WITH configured_company_success_html_fixtures(source_id, folder) AS (
         ('career:tradingview', 'career_tradingview'),
         ('career:osome', 'career_osome'),
         ('career:sumsub', 'career_sumsub'),
-        ('career:vivid-money', 'career_vivid-money')
+        ('career:vivid-money', 'career_vivid-money'),
+        ('career:sidestream', 'career_sidestream')
 )
 INSERT INTO parser_fixtures (
     source_id,
@@ -1659,6 +1683,17 @@ VALUES
         'tests/v2/fixtures/scrapers/career_vivid-money/detail/response.html',
         'tests/v2/fixtures/scrapers/career_vivid-money/detail/meta.json',
         'tests/v2/fixtures/scrapers/career_vivid-money/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:sidestream',
+        1,
+        'career:sidestream-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_sidestream/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_sidestream/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_sidestream/detail/expected.raw.json',
         1,
         'codex_direct_fixture_review'
     );

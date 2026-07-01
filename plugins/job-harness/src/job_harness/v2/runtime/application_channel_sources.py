@@ -192,6 +192,7 @@ _COMPANY_CAREER_URLS = {
     "career:semrush": "https://careers.semrush.com/en/jobs/",
     "career:quadcode": "https://jobs.quadcode.com/jobs",
     "career:vivid-money": "https://careers.vivid.money/#vacancies",
+    "career:sidestream": "https://sidestream.tech/jobs",
 }
 
 
