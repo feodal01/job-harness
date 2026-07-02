@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-01",
+  "captured_url": "https://api.eu.lever.co/v0/postings/quadcode?mode=json",
+  "content_type": "application/json; charset=utf-8",
+  "final_url": "https://api.eu.lever.co/v0/postings/quadcode?mode=json",
+  "notes": "Real Lever EU postings JSON from Quadcode public board.",
+  "source_id": "career:quadcode"
+}

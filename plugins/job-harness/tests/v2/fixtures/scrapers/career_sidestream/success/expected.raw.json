@@ -1,0 +1,93 @@
+{
+  "expected_count": 4,
+  "raw_contains": {
+    "16328249": {
+      "ats_platform": "join",
+      "work_format": [
+        "remote"
+      ],
+      "remote_locations": [
+        "Germany"
+      ],
+      "remote_type": "COUNTRY",
+      "workplace_type": "REMOTE"
+    },
+    "16328246": {
+      "ats_platform": "join",
+      "work_format": [
+        "hybrid"
+      ],
+      "workplace_type": "HYBRID"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Cologne",
+      "company": "Sidestream",
+      "country": "DE",
+      "location_text": "Cologne, Germany",
+      "native_grade": null,
+      "posted_at": "2026-06-19T06:45:12.871Z",
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "16328246",
+      "title": "Junior Projektmanager (w/m/d) - Quereinsteiger willkommen",
+      "url": "https://join.com/companies/sidestream/16328246-junior-projektmanager-w-m-d-quereinsteiger-willkommen"
+    },
+    {
+      "city": "Cologne",
+      "company": "Sidestream",
+      "country": "DE",
+      "location_text": "Remote (Germany)",
+      "native_grade": null,
+      "posted_at": "2026-06-19T06:46:26.566Z",
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "16328249",
+      "title": "Senior Typescript Developer (f/m/d)",
+      "url": "https://join.com/companies/sidestream/16328249-senior-typescript-developer-f-m-d"
+    },
+    {
+      "city": "Cologne",
+      "company": "Sidestream",
+      "country": "DE",
+      "location_text": "Remote (Germany)",
+      "native_grade": null,
+      "posted_at": "2026-06-19T06:48:27.746Z",
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "16328251",
+      "title": "Sidebase Open-Source Contributor & Senior TS Dev (f/m/d)",
+      "url": "https://join.com/companies/sidestream/16328251-sidebase-open-source-contributor-and-senior-ts-dev-f-m-d"
+    },
+    {
+      "city": "Cologne",
+      "company": "Sidestream",
+      "country": "DE",
+      "location_text": "Remote (Germany)",
+      "native_grade": null,
+      "posted_at": "2026-06-19T06:48:51.324Z",
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "16328253",
+      "title": "Werkstudent*in Sales & Marketing (m/w/d)",
+      "url": "https://join.com/companies/sidestream/16328253-werkstudent-in-sales-und-marketing-m-w-d"
+    }
+  ]
+}
