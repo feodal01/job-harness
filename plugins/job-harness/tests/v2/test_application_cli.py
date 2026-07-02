@@ -6,12 +6,14 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from job_harness.v2.application import V2SearchApplication, V2SearchConfig
 from job_harness.v2.cli import _build_parser, _query_variants, _request_from_args, main as cli_main
 from job_harness.v2.contracts import (
     ParserFixtureCase,
     ParserFixtureKind,
+    RawListing,
     RemoteMode,
     SearchRequest,
     SourceFetchRequest,
@@ -20,10 +22,12 @@ from job_harness.v2.contracts import (
 from job_harness.v2.persistence import SqliteRunStore
 from job_harness.v2.runtime import (
     ApplicationChannelServiceConfig,
+    AtsCompanyUrlParseResult,
     DetailServiceConfig,
     RetryServiceConfig,
     SearchServiceConfig,
 )
+from job_harness.v2.runtime.sources.companies.ats import AtsCompanySourceConfig
 from job_harness.v2.source_catalog import country_catalog_entries, source_catalog_entries, source_fixture_suite
 
 _PLUGIN_ROOT_PARENT_INDEX = 2
@@ -175,6 +179,91 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
             [source["source_id"] for source in payload["sources"]],
         )
         self.assertTrue(all(source["implemented"] for source in payload["sources"]))
+
+    def test_cli_parse_ats_url_prints_agent_readable_json(self) -> None:
+        # Arrange
+        stdout = io.StringIO()
+        calls: list[dict[str, object]] = []
+
+        async def fake_fetch_ats_company_listings(
+            url: str,
+            *,
+            company: str | None = None,
+            source_id: str = "adhoc:ats",
+            platform: str | None = None,
+            source_limit: int = 200,
+            query_variant: str = "ats-url",
+        ) -> AtsCompanyUrlParseResult:
+            calls.append(
+                {
+                    "url": url,
+                    "company": company,
+                    "source_id": source_id,
+                    "platform": platform,
+                    "source_limit": source_limit,
+                    "query_variant": query_variant,
+                }
+            )
+            return AtsCompanyUrlParseResult(
+                config=AtsCompanySourceConfig(
+                    source_id=source_id,
+                    company=company or "Airbnb",
+                    platform="greenhouse",
+                    board_url="https://boards-api.greenhouse.io/v1/boards/airbnb/jobs?content=true",
+                    career_url="https://job-boards.greenhouse.io/airbnb",
+                ),
+                listings=(
+                    RawListing(
+                        source_listing_id="123",
+                        title="QA Engineer",
+                        url="https://careers.airbnb.com/positions/123",
+                        source=source_id,
+                        company=company or "Airbnb",
+                    ),
+                ),
+                pages_visited=1,
+                limit_reached=False,
+            )
+
+        # Act
+        with (
+            patch("job_harness.v2.cli.fetch_ats_company_listings", fake_fetch_ats_company_listings),
+            contextlib.redirect_stdout(stdout),
+        ):
+            code = cli_main(
+                [
+                    "parse-ats-url",
+                    "https://job-boards.greenhouse.io/airbnb",
+                    "--company",
+                    "Airbnb",
+                    "--source-id",
+                    "adhoc:airbnb",
+                    "--source-limit",
+                    "25",
+                ]
+            )
+
+        # Assert
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(0, code)
+        self.assertEqual(
+            [
+                {
+                    "url": "https://job-boards.greenhouse.io/airbnb",
+                    "company": "Airbnb",
+                    "source_id": "adhoc:airbnb",
+                    "platform": None,
+                    "source_limit": 25,
+                    "query_variant": "ats-url",
+                }
+            ],
+            calls,
+        )
+        self.assertEqual("ats_url_parse", payload["record_type"])
+        self.assertEqual("greenhouse", payload["platform"])
+        self.assertEqual("adhoc:airbnb", payload["source_id"])
+        self.assertEqual(1, payload["listing_count"])
+        self.assertEqual("QA Engineer", payload["listings"][0]["title"])
 
     async def test_cli_accepts_pipe_separated_query_variants(self) -> None:
         # Arrange

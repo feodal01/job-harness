@@ -1,0 +1,88 @@
+{
+  "outcome": "success",
+  "expected_count": 10,
+  "sample_listings": [
+    {
+      "source_listing_id": "973",
+      "title": "ISSE, Senior",
+      "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/viewRequisition?org=NAVSTAR&cws=37&rid=973",
+      "company": "Navstar",
+      "country": null,
+      "city": "Columbia",
+      "location_text": "Columbia, MD",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "974",
+      "title": "ISSE, SME",
+      "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/viewRequisition?org=NAVSTAR&cws=37&rid=974",
+      "company": "Navstar",
+      "country": null,
+      "city": "Columbia",
+      "location_text": "Columbia, MD",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "1006",
+      "title": "ISSO, Senior",
+      "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/viewRequisition?org=NAVSTAR&cws=37&rid=1006",
+      "company": "Navstar",
+      "country": null,
+      "city": "Fort Meade",
+      "location_text": "Fort Meade, MD",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "973": {
+      "ats_platform": "taleo",
+      "board_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "career_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "id": "973",
+      "department": null,
+      "employment_type": null,
+      "fields": [
+        "Columbia, MD",
+        "TS/SCI with Polygraph"
+      ],
+      "location": "Columbia, MD"
+    },
+    "974": {
+      "ats_platform": "taleo",
+      "board_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "career_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "id": "974",
+      "department": null,
+      "employment_type": null,
+      "fields": [
+        "Columbia, MD",
+        "TS/SCI with Polygraph"
+      ],
+      "location": "Columbia, MD"
+    }
+  }
+}

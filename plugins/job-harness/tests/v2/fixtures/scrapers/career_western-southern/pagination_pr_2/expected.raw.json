@@ -1,0 +1,90 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "24947",
+      "title": "Vice President, DTC Marketing & Media Strategy",
+      "url": "https://careers-westernsouthern.icims.com/jobs/24947/vice-president%2c-dtc-marketing-%26-media-strategy/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "White Plains",
+      "location_text": "US-NY-WHITE PLAINS",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "24946",
+      "title": "Financial Advanced Internal Auditor",
+      "url": "https://careers-westernsouthern.icims.com/jobs/24946/financial-advanced-internal-auditor/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Cincinnati",
+      "location_text": "US-OH-CINCINNATI",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "24940",
+      "title": "Senior Accounting Specialist",
+      "url": "https://careers-westernsouthern.icims.com/jobs/24940/senior-accounting-specialist/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Cincinnati",
+      "location_text": "US-OH-CINCINNATI",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "24947": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1",
+      "id": "24947",
+      "department": "Marketing & Public Relations",
+      "location": "US-NY-WHITE PLAINS",
+      "metadata": {
+        "job locations": "US-NY-WHITE PLAINS",
+        "function": "Marketing & Public Relations",
+        "id": "2026-24947",
+        "subsidiary": "Gerber Life Insurance Company"
+      }
+    },
+    "24946": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1",
+      "id": "24946",
+      "department": "Internal Audit",
+      "location": "US-OH-CINCINNATI",
+      "metadata": {
+        "job locations": "US-OH-CINCINNATI",
+        "function": "Internal Audit",
+        "id": "2026-24946",
+        "subsidiary": "Western & Southern Financial Group"
+      }
+    }
+  }
+}

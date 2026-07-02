@@ -1,0 +1,90 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "24849",
+      "title": "Vice President Independent Life And Enterprise Life Product Officer",
+      "url": "https://careers-westernsouthern.icims.com/jobs/24849/vice-president-independent-life-and-enterprise-life-product-officer/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Cincinnati",
+      "location_text": "US-OH-CINCINNATI",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "24819",
+      "title": "Sales Operation Support Specialist",
+      "url": "https://careers-westernsouthern.icims.com/jobs/24819/sales-operation-support-specialist/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Cincinnati",
+      "location_text": "US-OH-CINCINNATI",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "24807",
+      "title": "Regional Vice President",
+      "url": "https://careers-westernsouthern.icims.com/jobs/24807/regional-vice-president/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Orange",
+      "location_text": "US-CA-ORANGE",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "24849": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1",
+      "id": "24849",
+      "department": "Business Development & Sales",
+      "location": "US-OH-CINCINNATI",
+      "metadata": {
+        "job locations": "US-OH-CINCINNATI",
+        "function": "Business Development & Sales",
+        "id": "2026-24849",
+        "subsidiary": "Western & Southern Financial Group"
+      }
+    },
+    "24819": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1",
+      "id": "24819",
+      "department": "Call Center & Customer Service",
+      "location": "US-OH-CINCINNATI",
+      "metadata": {
+        "job locations": "US-OH-CINCINNATI",
+        "function": "Call Center & Customer Service",
+        "id": "2026-24819",
+        "subsidiary": "Western & Southern Financial Group"
+      }
+    }
+  }
+}

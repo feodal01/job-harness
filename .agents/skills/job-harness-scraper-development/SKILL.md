@@ -107,6 +107,12 @@ Before changing scraper behavior or tests, read:
 - Add or update the v2 scraper under
   `plugins/job-harness/src/job_harness/v2/runtime/sources/aggregators/` or
   `plugins/job-harness/src/job_harness/v2/runtime/sources/companies/`.
+- For company career pages backed by a repeatable ATS, add the platform parser
+  or company config under
+  `plugins/job-harness/src/job_harness/v2/runtime/sources/companies/ats/`
+  instead of creating a one-company module. A new company on an already
+  supported ATS should normally require only `ATS_COMPANY_SOURCE_CONFIGS`,
+  `source_catalog.sql`, and a real captured parser fixture.
 - Register the source in `plugins/job-harness/src/job_harness/v2/source_catalog.sql`
   and `plugins/job-harness/src/job_harness/v2/runtime/source_registry.py`.
   Declare explicit countries, transport, source type, source limit, required
@@ -154,4 +160,5 @@ Use `references/scrapers.md` for:
 - country-aware source metadata;
 - LinkedIn Job Wrapping workplace tags;
 - aggregator employer metadata for application-channel resolution;
+- repeatable ATS company source structure;
 - specialization/category APIs.

@@ -1,0 +1,65 @@
+{
+  "expected_count": 112,
+  "raw_contains": {
+    "5514": {
+      "ats_platform": "successfactors",
+      "board_url": "https://api2.successfactors.eu/career?company=Mindray&career_ns=job_listing_summary&resultType=XML",
+      "career_url": "https://api2.successfactors.eu/career?company=Mindray&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH",
+      "id": "5514",
+      "department": "Finance",
+      "location": "Warsaw, Poland",
+      "metadata": {
+        "country/region": "Poland",
+        "job function": "Finance"
+      }
+    },
+    "5552": {
+      "ats_platform": "successfactors",
+      "board_url": "https://api2.successfactors.eu/career?company=Mindray&career_ns=job_listing_summary&resultType=XML",
+      "career_url": "https://api2.successfactors.eu/career?company=Mindray&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH",
+      "id": "5552",
+      "department": "Administration",
+      "location": "India",
+      "metadata": {
+        "country/region": "India",
+        "job function": "Administration"
+      }
+    }
+  },
+  "sample_listings": [
+    {
+      "source_listing_id": "5514",
+      "title": "Accountant, Poland- Fixed Term Contract",
+      "url": "https://api2.successfactors.eu/career?career_ns=job_listing&company=Mindray&career_job_req_id=5514",
+      "company": "Mindray",
+      "country": "Poland",
+      "city": "Warsaw",
+      "location_text": "Warsaw, Poland",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    },
+    {
+      "source_listing_id": "5552",
+      "title": "ADMIN SPECIALIST",
+      "url": "https://api2.successfactors.eu/career?career_ns=job_listing&company=Mindray&career_job_req_id=5552",
+      "company": "Mindray",
+      "country": "India",
+      "city": null,
+      "location_text": "India",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    }
+  ]
+}

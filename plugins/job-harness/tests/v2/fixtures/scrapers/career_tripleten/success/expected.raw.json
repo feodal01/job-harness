@@ -1,0 +1,85 @@
+{
+  "expected_count": 305,
+  "raw_contains": {
+    "AC.F59": {
+      "ats_platform": "comeet",
+      "comeet_company_uid": "98.008",
+      "department": "Product Management",
+      "employment_type": "Hourly",
+      "experience_level": "Senior",
+      "location": {
+        "city": "Boston",
+        "country": "US",
+        "is_remote": true,
+        "name": "Remote",
+        "state": null,
+        "timezone": "America/Iqaluit"
+      },
+      "remote_locations": [
+        "US"
+      ],
+      "work_format": [
+        "remote"
+      ],
+      "workplace_type": "Remote"
+    },
+    "AC.F59-10.501": {
+      "ats_platform": "comeet",
+      "comeet_company_uid": "98.008",
+      "department": "Product Management",
+      "employment_type": "Hourly",
+      "experience_level": "Senior",
+      "location": {
+        "city": null,
+        "country": "BR",
+        "is_remote": true,
+        "name": "Remote, based in LATAM",
+        "state": "Remote",
+        "timezone": "America/Mexico_City"
+      },
+      "remote_locations": [
+        "BR"
+      ],
+      "work_format": [
+        "remote"
+      ],
+      "workplace_type": "Remote"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Boston",
+      "company": "TripleTen",
+      "country": "US",
+      "location_text": "Remote",
+      "native_grade": null,
+      "posted_at": "2026-06-17T10:10:02Z",
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "AC.F59",
+      "title": "AI Automation Teaching Experts",
+      "url": "https://www.comeet.com/jobs/tripleten/98.008/ai-automation-teaching-experts/AC.F59"
+    },
+    {
+      "city": null,
+      "company": "TripleTen",
+      "country": "BR",
+      "location_text": "Remote, based in LATAM",
+      "native_grade": null,
+      "posted_at": "2026-06-17T10:10:02Z",
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "AC.F59-10.501",
+      "title": "AI Automation Teaching Experts",
+      "url": "https://www.comeet.com/jobs/tripleten/98.008/ai-automation-teaching-experts/AC.F59-10.501"
+    }
+  ]
+}

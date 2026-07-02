@@ -1,0 +1,78 @@
+{
+  "outcome": "success",
+  "expected_count": 27,
+  "sample_listings": [
+    {
+      "source_listing_id": "owJeAfwN",
+      "title": "AI Platform Lead",
+      "url": "https://jobs.jobvite.com/visionist/job/owJeAfwN",
+      "company": "Visionist",
+      "country": null,
+      "city": "Laurel",
+      "location_text": "Laurel, MD",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "ofD6zfwh",
+      "title": "Cloud Software Engineer",
+      "url": "https://jobs.jobvite.com/visionist/job/ofD6zfwh",
+      "company": "Visionist",
+      "country": null,
+      "city": "2 Locations",
+      "location_text": "2 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "orEpAfwO",
+      "title": "Cloud Software Engineer",
+      "url": "https://jobs.jobvite.com/visionist/job/orEpAfwO",
+      "company": "Visionist",
+      "country": null,
+      "city": "2 Locations",
+      "location_text": "2 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "owJeAfwN": {
+      "ats_platform": "jobvite",
+      "board_url": "https://jobs.jobvite.com/visionist",
+      "career_url": "https://jobs.jobvite.com/visionist",
+      "id": "owJeAfwN",
+      "department": null,
+      "location": "Laurel, MD"
+    },
+    "ofD6zfwh": {
+      "ats_platform": "jobvite",
+      "board_url": "https://jobs.jobvite.com/visionist",
+      "career_url": "https://jobs.jobvite.com/visionist",
+      "id": "ofD6zfwh",
+      "department": null,
+      "location": "2 Locations"
+    }
+  }
+}

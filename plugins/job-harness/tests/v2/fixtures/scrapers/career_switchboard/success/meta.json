@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-02",
+  "captured_url": "https://switchboard.breezy.hr/",
+  "content_type": "text/html; charset=utf-8",
+  "final_url": "https://switchboard.breezy.hr/",
+  "notes": "Real public Breezy career board HTML captured for career:switchboard.",
+  "source_id": "career:switchboard"
+}

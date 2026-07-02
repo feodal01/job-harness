@@ -7,11 +7,7 @@ from collections.abc import Callable
 from job_harness.v2.contracts import SourceScraper
 from job_harness.v2.runtime.catalog import SourceCatalog, SupportedSource
 from job_harness.v2.runtime.sources import (
-    AirSlateCareerSource,
     AmoCRMCareerSource,
-    AppFollowCareerSource,
-    ChainstackCareerSource,
-    CoinsPaidCareerSource,
     FinderWorkSource,
     GeekJobSource,
     GetmatchSource,
@@ -21,30 +17,22 @@ from job_harness.v2.runtime.sources import (
     HirifySource,
     IBSCareerSource,
     ItJobsUzSource,
-    JetBrainsCareerSource,
     JobTurboSource,
-    OutschoolCareerSource,
     StaffAmSource,
     TalantoSource,
     TalentoSource,
-    TermiusCareerSource,
-    ThreeCommasCareerSource,
-    TruvCareerSource,
     VKCareerSource,
-    WallarmCareerSource,
-    WintermuteCareerSource,
-    ZeroAviaCareerSource,
 )
-from job_harness.v2.runtime.sources.companies.configured_platforms import (
-    CONFIGURED_COMPANY_SOURCE_CONFIGS,
-    configured_company_source,
+from job_harness.v2.runtime.sources.companies.ats import (
+    ATS_COMPANY_SOURCE_CONFIGS,
+    ats_company_source,
 )
 from job_harness.v2.source_catalog import source_catalog_entries, source_fixture_suite
 
 
-def _configured_source_factory(source_id: str) -> Callable[[], SourceScraper]:
+def _ats_source_factory(source_id: str) -> Callable[[], SourceScraper]:
     def factory() -> SourceScraper:
-        return configured_company_source(source_id)
+        return ats_company_source(source_id)
 
     return factory
 
@@ -53,7 +41,6 @@ _SOURCE_FACTORIES: dict[str, Callable[[], SourceScraper]] = {
     "habr_career": HabrCareerSource,
     "hh_ru": HhRuSource,
     "career:vk": VKCareerSource,
-    "career:jetbrains": JetBrainsCareerSource,
     "career:ibs": IBSCareerSource,
     "talanto": TalantoSource,
     "geekjob": GeekJobSource,
@@ -66,18 +53,7 @@ _SOURCE_FACTORIES: dict[str, Callable[[], SourceScraper]] = {
     "hirehi": HireHiSource,
     "staff_am": StaffAmSource,
     "career:amocrm": AmoCRMCareerSource,
-    "career:appfollow": AppFollowCareerSource,
-    "career:coinspaid": CoinsPaidCareerSource,
-    "career:airslate": AirSlateCareerSource,
-    "career:wintermute": WintermuteCareerSource,
-    "career:truv": TruvCareerSource,
-    "career:termius": TermiusCareerSource,
-    "career:outschool": OutschoolCareerSource,
-    "career:zeroavia": ZeroAviaCareerSource,
-    "career:wallarm": WallarmCareerSource,
-    "career:chainstack": ChainstackCareerSource,
-    "career:3commas": ThreeCommasCareerSource,
-    **{source_id: _configured_source_factory(source_id) for source_id in CONFIGURED_COMPANY_SOURCE_CONFIGS},
+    **{source_id: _ats_source_factory(source_id) for source_id in ATS_COMPANY_SOURCE_CONFIGS},
 }
 
 

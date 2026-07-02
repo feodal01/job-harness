@@ -10,6 +10,7 @@ from job_harness.v2.contracts.source import SourceDescriptor
 
 @dataclass(frozen=True)
 class RequiredParserFixtures:
+    success_non_empty: bool = True
     no_results: bool = False
     pagination: bool = False
     detail: bool = False
@@ -22,7 +23,9 @@ class RequiredParserFixtures:
 
     @property
     def required_kinds(self) -> frozenset[ParserFixtureKind]:
-        kinds = {ParserFixtureKind.SUCCESS_NON_EMPTY}
+        kinds = set()
+        if self.success_non_empty:
+            kinds.add(ParserFixtureKind.SUCCESS_NON_EMPTY)
         if self.no_results:
             kinds.add(ParserFixtureKind.NO_RESULTS)
         if self.pagination:
@@ -83,8 +86,6 @@ class ParserFixtureSuite:
         source_id = self.source_id.strip()
         if not source_id:
             raise ValueError("source_id must be non-empty")
-        if not self.cases:
-            raise ValueError("fixture suite must contain at least one case")
         object.__setattr__(self, "source_id", source_id)
 
     @property

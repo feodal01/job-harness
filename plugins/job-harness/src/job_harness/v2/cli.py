@@ -26,7 +26,7 @@ from job_harness.v2.contracts import (
 )
 from job_harness.v2.persistence import read_processed_results_payload
 from job_harness.v2.presentation import render_processed_results_markdown
-from job_harness.v2.runtime import implemented_source_ids
+from job_harness.v2.runtime import fetch_ats_company_listings, implemented_source_ids
 from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import country_catalog_entries, source_catalog_entries
 
@@ -42,6 +42,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             request = _request_from_args(args)
             execution = asyncio.run(_run_search(args, request))
             _print_json(_execution_payload(execution))
+            return 0
+        if args.command == "parse-ats-url":
+            result = asyncio.run(_run_ats_url_parse(args))
+            _print_json(_ats_url_parse_payload(result))
             return 0
         if args.command == "format":
             return _run_format(args)
@@ -107,6 +111,34 @@ def _build_parser() -> argparse.ArgumentParser:
     search.add_argument("--run-id")
     search.add_argument("--runs-dir", type=Path, default=Path(".job-harness/v2/runs"))
 
+    ats = subparsers.add_parser(
+        "parse-ats-url",
+        help="Parse one ATS career board URL into raw listings.",
+    )
+    ats.add_argument("url", help="Public ATS board URL or supported ATS API URL.")
+    ats.add_argument("--company", help="Company name to attach to parsed listings.")
+    ats.add_argument(
+        "--source-id",
+        default="adhoc:ats",
+        help="Synthetic source id for returned listings. Defaults to adhoc:ats.",
+    )
+    ats.add_argument(
+        "--platform",
+        choices=_ats_platform_values(),
+        help="Force a supported ATS parser for URLs that cannot be detected by pattern.",
+    )
+    ats.add_argument(
+        "--source-limit",
+        type=int,
+        default=200,
+        help="Maximum listings to return across all paginated ATS pages.",
+    )
+    ats.add_argument(
+        "--query-variant",
+        default="ats-url",
+        help="Query variant label used in fetch requests and diagnostics.",
+    )
+
     format_cmd = subparsers.add_parser("format", help="Render processed results from run.sqlite as markdown.")
     format_cmd.add_argument("--input", type=Path, required=True, help="Path to run.sqlite.")
     format_cmd.add_argument("--output", type=Path, help="Write markdown to this file instead of stdout.")
@@ -168,6 +200,17 @@ async def _run_search(args: argparse.Namespace, request: SearchRequest) -> V2Sea
         )
     )
     return await app.search(request, run_id=args.run_id)
+
+
+async def _run_ats_url_parse(args: argparse.Namespace) -> object:
+    return await fetch_ats_company_listings(
+        args.url,
+        company=args.company,
+        source_id=args.source_id,
+        platform=args.platform,
+        source_limit=args.source_limit,
+        query_variant=args.query_variant,
+    )
 
 
 def _query_variants(args: argparse.Namespace) -> tuple[str, ...]:
@@ -243,6 +286,32 @@ def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
     }
 
 
+def _ats_url_parse_payload(result: object) -> dict[str, object]:
+    payload = to_jsonable(result)
+    if not isinstance(payload, dict):
+        raise TypeError("ATS URL parse result must serialize to a JSON object")
+    config = payload.get("config")
+    if not isinstance(config, dict):
+        raise TypeError("ATS URL parse result config must serialize to a JSON object")
+    listings = payload.get("listings")
+    if not isinstance(listings, list):
+        raise TypeError("ATS URL parse result listings must serialize to a JSON array")
+    return {
+        "schema_version": 1,
+        "record_type": "ats_url_parse",
+        "source_id": config.get("source_id"),
+        "company": config.get("company"),
+        "platform": config.get("platform"),
+        "career_url": config.get("career_url"),
+        "board_url": config.get("board_url"),
+        "pages_visited": payload.get("pages_visited"),
+        "limit_reached": payload.get("limit_reached"),
+        "listing_count": len(listings),
+        "config": config,
+        "listings": listings,
+    }
+
+
 def _attempt_payload(attempt: SourceAttemptRecord) -> dict[str, object]:
     return {
         "source": attempt.source,
@@ -283,6 +352,33 @@ def _grade_values() -> tuple[str, ...]:
 
 def _source_type_values() -> tuple[str, ...]:
     return tuple(item.value for item in SourceType)
+
+
+def _ats_platform_values() -> tuple[str, ...]:
+    return (
+        "ashby",
+        "bamboohr",
+        "breezy",
+        "comeet",
+        "dreamjob",
+        "greenhouse",
+        "huntflow",
+        "icims",
+        "jazzhr",
+        "jobvite",
+        "join",
+        "jsonld_jobposting",
+        "lever",
+        "personio",
+        "recruitee",
+        "smartrecruiters",
+        "successfactors",
+        "taleo",
+        "teamtailor",
+        "workable",
+        "workday",
+        "ycombinator",
+    )
 
 
 def _remote_mode_values() -> tuple[str, ...]:

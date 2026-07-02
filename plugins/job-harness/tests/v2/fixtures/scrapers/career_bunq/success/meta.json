@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-02",
+  "captured_url": "https://bunq.recruitee.com/api/offers",
+  "content_type": "application/json",
+  "final_url": "https://bunq.recruitee.com/api/offers",
+  "notes": "Real public Recruitee offers API JSON captured for career:bunq.",
+  "source_id": "career:bunq"
+}

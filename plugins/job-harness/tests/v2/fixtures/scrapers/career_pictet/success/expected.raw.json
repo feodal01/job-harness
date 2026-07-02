@@ -1,0 +1,69 @@
+{
+  "expected_count": 43,
+  "raw_contains": {
+    "124592": {
+      "ats_platform": "successfactors",
+      "board_url": "https://career012.successfactors.eu/career?company=banquepict&career_ns=job_listing_summary&resultType=XML",
+      "career_url": "https://career012.successfactors.eu/career?company=banquepict&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH",
+      "id": "124592",
+      "department": "Wealth management - Investment Platform",
+      "location": "Frankfurt, Germany",
+      "metadata": {
+        "country": "Germany",
+        "city": "Frankfurt",
+        "activity area": "Wealth management - Investment Platform",
+        "experience level": "Experienced Professionals"
+      }
+    },
+    "124455": {
+      "ats_platform": "successfactors",
+      "board_url": "https://career012.successfactors.eu/career?company=banquepict&career_ns=job_listing_summary&resultType=XML",
+      "career_url": "https://career012.successfactors.eu/career?company=banquepict&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH",
+      "id": "124455",
+      "department": "Operations & Middle Office|Administration",
+      "location": "Luxembourg, Luxembourg",
+      "metadata": {
+        "country": "Luxembourg",
+        "city": "Luxembourg",
+        "activity area": "Operations & Middle Office|Administration",
+        "experience level": "Experienced Professionals"
+      }
+    }
+  },
+  "sample_listings": [
+    {
+      "source_listing_id": "124592",
+      "title": "(Senior) Investment Specialist (m/f/d)",
+      "url": "https://career012.successfactors.eu/career?career_ns=job_listing&company=banquepict&career_job_req_id=124592",
+      "company": "Pictet",
+      "country": "Germany",
+      "city": "Frankfurt",
+      "location_text": "Frankfurt, Germany",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    },
+    {
+      "source_listing_id": "124455",
+      "title": "Banking Operations Officer (Fixed-term contract 12 months)",
+      "url": "https://career012.successfactors.eu/career?career_ns=job_listing&company=banquepict&career_job_req_id=124455",
+      "company": "Pictet",
+      "country": "Luxembourg",
+      "city": "Luxembourg",
+      "location_text": "Luxembourg, Luxembourg",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    }
+  ]
+}

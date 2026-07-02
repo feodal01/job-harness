@@ -1,0 +1,90 @@
+{
+  "outcome": "success",
+  "expected_count": 23,
+  "sample_listings": [
+    {
+      "source_listing_id": "2078",
+      "title": "Power Systems Engineer II – Generator/Plant Testing & Compliance",
+      "url": "https://careers-epeconsulting.icims.com/jobs/2078/power-systems-engineer-ii-%e2%80%93-generator-plant-testing-%26-compliance/job",
+      "company": "Electric Power Engineers",
+      "country": "US",
+      "city": "Austin",
+      "location_text": "US-TX-Austin",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "2077",
+      "title": "Principal Engineer - Data Center Modelling",
+      "url": "https://careers-epeconsulting.icims.com/jobs/2077/principal-engineer---data-center-modelling/job",
+      "company": "Electric Power Engineers",
+      "country": "CA",
+      "city": "Toronto",
+      "location_text": "CA-ON-Toronto",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "2075",
+      "title": "Associate Director - WECC Interconnection",
+      "url": "https://careers-epeconsulting.icims.com/jobs/2075/associate-director----wecc-interconnection/job",
+      "company": "Electric Power Engineers",
+      "country": "US",
+      "city": "Austin",
+      "location_text": "US-TX-Austin",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "2078": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-epeconsulting.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-epeconsulting.icims.com/jobs/search?ss=1",
+      "id": "2078",
+      "department": "NERC Technical",
+      "location": "US-TX-Austin",
+      "metadata": {
+        "location": "US-TX-Austin",
+        "id": "2026-2078",
+        "category": "NERC Technical",
+        "position type": "Regular Full-Time"
+      }
+    },
+    "2077": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-epeconsulting.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-epeconsulting.icims.com/jobs/search?ss=1",
+      "id": "2077",
+      "department": "NERC Technical",
+      "location": "CA-ON-Toronto",
+      "metadata": {
+        "location": "CA-ON-Toronto",
+        "id": "2026-2077",
+        "category": "NERC Technical",
+        "position type": "Regular Full-Time"
+      }
+    }
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "outcome": "success",
+  "expected_count": 20,
+  "sample_listings": [
+    {
+      "source_listing_id": "25036",
+      "title": "Supervisor, Sales- Onsite",
+      "url": "https://careers-westernsouthern.icims.com/jobs/25036/supervisor%2c-sales--onsite/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Fremont",
+      "location_text": "US-MI-FREMONT",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "25035",
+      "title": "Investment Data Analyst II",
+      "url": "https://careers-westernsouthern.icims.com/jobs/25035/investment-data-analyst-ii/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Cincinnati",
+      "location_text": "US-OH-CINCINNATI",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "25031",
+      "title": "Case Manager, New Business",
+      "url": "https://careers-westernsouthern.icims.com/jobs/25031/case-manager%2c-new-business/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Cincinnati",
+      "location_text": "US-OH-CINCINNATI",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "25036": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1",
+      "id": "25036",
+      "department": "Call Center & Customer Service",
+      "location": "US-MI-FREMONT",
+      "metadata": {
+        "job locations": "US-MI-FREMONT",
+        "function": "Call Center & Customer Service",
+        "id": "2026-25036",
+        "subsidiary": "Gerber Life Insurance Company"
+      },
+      "work_format": [
+        "office"
+      ]
+    },
+    "25035": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1",
+      "id": "25035",
+      "department": "Finance & Accounting",
+      "location": "US-OH-CINCINNATI",
+      "metadata": {
+        "job locations": "US-OH-CINCINNATI",
+        "function": "Finance & Accounting",
+        "id": "2026-25035",
+        "subsidiary": "Fort Washington Investment Advisors, Inc."
+      }
+    }
+  }
+}

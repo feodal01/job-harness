@@ -1,0 +1,59 @@
+{
+  "expected_count": 11,
+  "raw_contains": {
+    "Bqj75U397V": {
+      "ats_platform": "jazzhr",
+      "department": "Accounting and Finance",
+      "id": "Bqj75U397V",
+      "location": "Remote",
+      "work_format": [
+        "remote"
+      ]
+    },
+    "demfPjUkc7": {
+      "ats_platform": "jazzhr",
+      "department": "Customer - Professional Services",
+      "id": "demfPjUkc7",
+      "location": "Remote",
+      "work_format": [
+        "remote"
+      ]
+    }
+  },
+  "sample_listings": [
+    {
+      "city": null,
+      "company": "PairSoft",
+      "country": null,
+      "location_text": "Remote",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "Bqj75U397V",
+      "title": "Accounts Receivable Analyst (US Accounting)",
+      "url": "https://pairsoft.applytojob.com/apply/jobs/details/Bqj75U397V"
+    },
+    {
+      "city": null,
+      "company": "PairSoft",
+      "country": null,
+      "location_text": "Remote",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "demfPjUkc7",
+      "title": "Associate Software Consultant",
+      "url": "https://pairsoft.applytojob.com/apply/jobs/details/demfPjUkc7"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-02",
+  "captured_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC&rowFrom=10",
+  "content_type": "text/html;charset=UTF-8",
+  "final_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC&rowFrom=10",
+  "notes": "Real public Taleo Business Edition rowFrom pagination HTML captured for career:keylogic.",
+  "source_id": "career:keylogic"
+}

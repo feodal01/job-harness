@@ -1,0 +1,65 @@
+{
+  "expected_count": 20,
+  "raw_contains": {
+    "25135": {
+      "ats_platform": "icims",
+      "department": "Information Technology",
+      "id": "25135",
+      "location": "US-OH-CINCINNATI",
+      "metadata": {
+        "job locations": "US-OH-CINCINNATI",
+        "function": "Information Technology",
+        "id": "2026-25135",
+        "subsidiary": "Western & Southern Financial Group"
+      }
+    },
+    "25128": {
+      "ats_platform": "icims",
+      "department": "Information Technology",
+      "id": "25128",
+      "location": "US-OH-CINCINNATI",
+      "metadata": {
+        "job locations": "US-OH-CINCINNATI",
+        "function": "Information Technology",
+        "id": "2026-25128",
+        "subsidiary": "Western & Southern Financial Group"
+      }
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Cincinnati",
+      "company": "Western & Southern",
+      "country": "US",
+      "location_text": "US-OH-CINCINNATI",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "25135",
+      "title": "Project Management Office Project Manager II",
+      "url": "https://careers-westernsouthern.icims.com/jobs/25135/project-management-office-project-manager-ii/job"
+    },
+    {
+      "city": "Cincinnati",
+      "company": "Western & Southern",
+      "country": "US",
+      "location_text": "US-OH-CINCINNATI",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "25128",
+      "title": "Information Technology Business Analyst II",
+      "url": "https://careers-westernsouthern.icims.com/jobs/25128/information-technology-business-analyst-ii/job"
+    }
+  ]
+}

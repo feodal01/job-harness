@@ -1,0 +1,75 @@
+{
+  "expected_count": 10,
+  "raw_contains": {
+    "2740": {
+      "ats_platform": "taleo",
+      "board_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "career_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "id": "2740",
+      "department": null,
+      "employment_type": "Full time",
+      "fields": [
+        "Remote",
+        "Full time",
+        "2740"
+      ],
+      "location": "Remote",
+      "work_format": [
+        "remote"
+      ]
+    },
+    "2741": {
+      "ats_platform": "taleo",
+      "board_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "career_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "id": "2741",
+      "department": null,
+      "employment_type": "Full time",
+      "fields": [
+        "Remote",
+        "Full time",
+        "2741"
+      ],
+      "location": "Remote",
+      "work_format": [
+        "remote"
+      ]
+    }
+  },
+  "sample_listings": [
+    {
+      "source_listing_id": "2740",
+      "title": "Data Engineer, Databricks",
+      "url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/viewRequisition?org=KEYLOGIC&cws=37&rid=2740",
+      "company": "KeyLogic",
+      "country": null,
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    },
+    {
+      "source_listing_id": "2741",
+      "title": "DevOps Engineer, Databricks",
+      "url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/viewRequisition?org=KEYLOGIC&cws=37&rid=2741",
+      "company": "KeyLogic",
+      "country": null,
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    }
+  ]
+}

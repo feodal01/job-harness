@@ -1,0 +1,82 @@
+{
+  "expected_count": 151,
+  "raw_contains": {
+    "54.460": {
+      "ats_platform": "comeet",
+      "comeet_company_uid": "76.008",
+      "department": "Technologies",
+      "employment_type": null,
+      "experience_level": null,
+      "location": {
+        "city": "Petah Tikva",
+        "country": "IL",
+        "is_remote": true,
+        "name": "HQ",
+        "state": "Center District",
+        "timezone": "Asia/Jerusalem"
+      },
+      "work_format": [
+        "hybrid"
+      ],
+      "workplace_type": "Hybrid"
+    },
+    "F7.66C": {
+      "ats_platform": "comeet",
+      "comeet_company_uid": "76.008",
+      "department": "US",
+      "employment_type": null,
+      "experience_level": null,
+      "location": {
+        "city": null,
+        "country": "US",
+        "is_remote": true,
+        "name": "United States",
+        "state": null,
+        "timezone": "America/Chicago"
+      },
+      "remote_locations": [
+        "US"
+      ],
+      "work_format": [
+        "remote"
+      ],
+      "workplace_type": "Remote"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Petah Tikva",
+      "company": "CommIT",
+      "country": "IL",
+      "location_text": "HQ",
+      "native_grade": null,
+      "posted_at": "2026-06-15T07:15:02Z",
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "54.460",
+      "title": "Account Executive- Defense Sector",
+      "url": "https://www.comeet.com/jobs/comm-it/76.008/account-executive--defense-sector/54.460"
+    },
+    {
+      "city": null,
+      "company": "CommIT",
+      "country": "US",
+      "location_text": "United States",
+      "native_grade": null,
+      "posted_at": "2026-05-25T11:46:06Z",
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "F7.66C",
+      "title": "AI Presales & Delivery Lead",
+      "url": "https://www.comeet.com/jobs/comm-it/76.008/ai-presales--delivery-lead/F7.66C"
+    }
+  ]
+}

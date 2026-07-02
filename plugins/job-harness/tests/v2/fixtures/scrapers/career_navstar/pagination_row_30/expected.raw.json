@@ -1,0 +1,39 @@
+{
+  "outcome": "success",
+  "expected_count": 1,
+  "sample_listings": [
+    {
+      "source_listing_id": "1018",
+      "title": "Systems Integration Engineer, Senior",
+      "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/viewRequisition?org=NAVSTAR&cws=37&rid=1018",
+      "company": "Navstar",
+      "country": null,
+      "city": "Fort Meade",
+      "location_text": "Fort Meade, MD",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "1018": {
+      "ats_platform": "taleo",
+      "board_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "career_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "id": "1018",
+      "department": null,
+      "employment_type": null,
+      "fields": [
+        "Fort Meade, MD",
+        "TS/SCI with Polygraph"
+      ],
+      "location": "Fort Meade, MD"
+    }
+  }
+}

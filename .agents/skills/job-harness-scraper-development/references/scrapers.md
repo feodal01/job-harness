@@ -188,3 +188,11 @@ the company block.
 **Strategy:** Extract only the workplace tags and preserve them as dedicated raw facts such as `linkedin_workplace_tags`. Do not mix them into visible description text or generic `work_format` inside a scraper. Let post-processing resolve precedence: explicit source fields and visible work-format text win over LinkedIn tags; when no explicit signal exists, workplace tags can determine the work format directly. Preserve multiple workplace tags and resolve them centrally instead of selecting the first match.
 
 **Origin:** JetBrains Greenhouse listings included hidden `#LI-HYBRID` and `#LI-REMOTE` tags; treating the first tag as source `work_format` hid conflicts and made the report harder to audit.
+
+### Repeatable ATS company sources
+
+**Pattern:** Many employer career pages are branded wrappers around repeatable ATS surfaces. Adding each company as a standalone scraper duplicates request mapping, parser decisions, capability declarations, and fixture shape.
+
+**Strategy:** When the career URL proves a known ATS board or public API, keep the platform parser in `runtime/sources/companies/ats/` and add the company as data: `ATS_COMPANY_SOURCE_CONFIGS`, `source_catalog.sql`, and one real captured success fixture. Only create a one-company module when the page is custom or the ATS wrapper needs company-specific behavior that cannot be represented as explicit config.
+
+**Origin:** v2 company sources were consolidated from separate Lever, Greenhouse, Ashby, Workable, BambooHR, Recruitee, Teamtailor, Workday, Personio, JOIN, Dreamjob, YC, Breezy, Huntflow, and SmartRecruiters implementations into a shared ATS layer.
