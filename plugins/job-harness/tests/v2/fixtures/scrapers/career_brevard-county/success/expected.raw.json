@@ -1,0 +1,59 @@
+{
+  "expected_count": 59,
+  "raw_contains": {
+    "23286": {
+      "ats_platform": "successfactors",
+      "board_url": "https://career8.successfactors.com/career?company=brevardcou&career_ns=job_listing_summary&resultType=XML",
+      "career_url": "https://career8.successfactors.com/career?company=brevardcou&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH",
+      "id": "23286",
+      "department": null,
+      "location": null,
+      "metadata": {}
+    },
+    "22374": {
+      "ats_platform": "successfactors",
+      "board_url": "https://career8.successfactors.com/career?company=brevardcou&career_ns=job_listing_summary&resultType=XML",
+      "career_url": "https://career8.successfactors.com/career?company=brevardcou&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH",
+      "id": "22374",
+      "department": null,
+      "location": null,
+      "metadata": {}
+    }
+  },
+  "sample_listings": [
+    {
+      "source_listing_id": "23286",
+      "title": "Accounting Technician",
+      "url": "https://career8.successfactors.com/career?career_ns=job_listing&company=brevardcou&career_job_req_id=23286",
+      "company": "Brevard County",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-26",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    },
+    {
+      "source_listing_id": "22374",
+      "title": "Auto Eqmt Op II - PW Construction",
+      "url": "https://career8.successfactors.com/career?career_ns=job_listing&company=brevardcou&career_job_req_id=22374",
+      "company": "Brevard County",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-01-26",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    }
+  ]
+}

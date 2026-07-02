@@ -163,7 +163,84 @@ VALUES
     (68, 'career:nii-spetsvuzavtomatika', 'company_career', 'http', 100),
     (69, 'career:social-discovery-group', 'company_career', 'http', 100),
     (70, 'career:prequel', 'company_career', 'http', 100),
-    (71, 'career:veryfi', 'company_career', 'http', 100);
+    (71, 'career:veryfi', 'company_career', 'http', 100),
+    (72, 'career:switchboard', 'company_career', 'http', 50),
+    (73, 'career:apicworld', 'company_career', 'http', 50),
+    (74, 'career:smartrecruiters', 'company_career', 'http', 100),
+    (75, 'career:themis-insight', 'company_career', 'http', 100),
+    (76, 'career:bunq', 'company_career', 'http', 100),
+    (77, 'career:bosch', 'company_career', 'http', 100),
+    (78, 'career:visa', 'company_career', 'http', 100),
+    (79, 'career:tripleten', 'company_career', 'http', 300),
+    (80, 'career:comm-it', 'company_career', 'http', 200),
+    (81, 'career:progress', 'company_career', 'http', 100),
+    (82, 'career:visionist', 'company_career', 'http', 100),
+    (83, 'career:foundation-ai', 'company_career', 'http', 100),
+    (84, 'career:imanage', 'company_career', 'http', 100),
+    (85, 'career:pairsoft', 'company_career', 'http', 100),
+    (86, 'career:expleo', 'company_career', 'http', 100),
+    (87, 'career:epe-consulting', 'company_career', 'http', 100),
+    (88, 'career:western-southern', 'company_career', 'http', 200),
+    (89, 'career:keylogic', 'company_career', 'http', 100),
+    (90, 'career:navstar', 'company_career', 'http', 100),
+    (91, 'career:aurora-flight-sciences', 'company_career', 'http', 100),
+    (92, 'career:pictet', 'company_career', 'http', 200),
+    (93, 'career:brevard-county', 'company_career', 'http', 200),
+    (94, 'career:mindray', 'company_career', 'http', 200),
+    (95, 'career:integrate', 'company_career', 'http', 100),
+    (96, 'career:avalanche-studios', 'company_career', 'http', 100),
+    (97, 'career:teramind', 'company_career', 'http', 100),
+    (98, 'career:filevine', 'company_career', 'http', 100),
+    (99, 'career:skydance', 'company_career', 'http', 100),
+    (100, 'career:ramp', 'company_career', 'http', 200),
+    (101, 'career:street-child', 'company_career', 'http', 100),
+    (102, 'career:pepperstone', 'company_career', 'http', 100),
+    (103, 'career:obrela', 'company_career', 'http', 100),
+    (104, 'career:grid', 'company_career', 'http', 100),
+    (105, 'career:hygraph', 'company_career', 'http', 100),
+    (106, 'career:great-minds', 'company_career', 'http', 100),
+    (107, 'career:apify', 'company_career', 'http', 100),
+    (108, 'career:nielseniq', 'company_career', 'http', 500),
+    (109, 'career:software-finder', 'company_career', 'http', 100),
+    (110, 'career:the-studio', 'company_career', 'http', 100),
+    (111, 'career:realitymine', 'company_career', 'http', 100),
+    (112, 'career:tixtrack', 'company_career', 'http', 100),
+    (113, 'career:stark', 'company_career', 'http', 100),
+    (114, 'career:entrix', 'company_career', 'http', 100),
+    (115, 'career:360t', 'company_career', 'http', 100),
+    (116, 'career:agile-robots', 'company_career', 'http', 100),
+    (117, 'career:moser-consulting', 'company_career', 'http', 100),
+    (118, 'career:notably', 'company_career', 'http', 100),
+    (119, 'career:hioperator', 'company_career', 'http', 100),
+    (120, 'career:egnyte', 'company_career', 'http', 100),
+    (121, 'career:point-of-rental', 'company_career', 'http', 100),
+    (122, 'career:webmd', 'company_career', 'http', 100),
+    (123, 'career:reveal', 'company_career', 'http', 100),
+    (124, 'career:nro', 'company_career', 'http', 100),
+    (125, 'career:sphere', 'company_career', 'http', 100),
+    (126, 'career:public-citizen', 'company_career', 'http', 100),
+    (127, 'career:labelmaster', 'company_career', 'http', 100),
+    (128, 'career:sfo', 'company_career', 'http', 100),
+    (129, 'career:carecentrix', 'company_career', 'http', 100),
+    (130, 'career:rambus', 'company_career', 'http', 100),
+    (131, 'career:nvidia', 'company_career', 'http', 100),
+    (132, 'career:instacart', 'company_career', 'http', 100),
+    (133, 'career:vast-data', 'company_career', 'http', 200),
+    (134, 'career:outerbox', 'company_career', 'http', 100),
+    (135, 'career:surecomp', 'company_career', 'http', 100),
+    (136, 'career:routine-labs', 'company_career', 'http', 100),
+    (137, 'career:goodweek', 'company_career', 'http', 100),
+    (138, 'career:yld', 'company_career', 'http', 100),
+    (139, 'career:openhc', 'company_career', 'http', 100),
+    (140, 'career:plus8soft', 'company_career', 'http', 100),
+    (141, 'career:fjx-group', 'company_career', 'http', 100),
+    (142, 'career:overgear', 'company_career', 'http', 100),
+    (143, 'career:sakura-games', 'company_career', 'http', 100),
+    (144, 'career:mediacom', 'company_career', 'http', 200),
+    (145, 'career:internews', 'company_career', 'http', 100),
+    (146, 'career:great-hearts', 'company_career', 'http', 100),
+    (147, 'career:almarai', 'company_career', 'http', 200),
+    (148, 'career:esa', 'company_career', 'http', 200);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -438,7 +515,12 @@ WITH lever_sources(source_id) AS (
         ('career:superannotate'),
         ('career:xsolla'),
         ('career:unlimint'),
-        ('career:quadcode')
+        ('career:quadcode'),
+        ('career:integrate'),
+        ('career:avalanche-studios'),
+        ('career:teramind'),
+        ('career:filevine'),
+        ('career:skydance')
 ),
 lever_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -464,7 +546,8 @@ WITH ashby_sources(source_id) AS (
         ('career:inworld'),
         ('career:luminai'),
         ('career:teleport'),
-        ('career:mapbox')
+        ('career:mapbox'),
+        ('career:ramp')
 ),
 ashby_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -489,7 +572,10 @@ WITH workable_sources(source_id) AS (
         ('career:zeptolab'),
         ('career:homebuddy'),
         ('career:lyka'),
-        ('career:thesoul-publishing')
+        ('career:thesoul-publishing'),
+        ('career:street-child'),
+        ('career:pepperstone'),
+        ('career:obrela')
 ),
 workable_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -541,7 +627,8 @@ WITH bamboohr_sources(source_id) AS (
         ('career:adtech-holding'),
         ('career:altenar'),
         ('career:synder'),
-        ('career:onemarketdata')
+        ('career:onemarketdata'),
+        ('career:apify')
 ),
 bamboohr_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -566,7 +653,11 @@ WITH teamtailor_sources(source_id) AS (
         ('career:synthesized'),
         ('career:tradingview'),
         ('career:osome'),
-        ('career:sumsub')
+        ('career:sumsub'),
+        ('career:software-finder'),
+        ('career:the-studio'),
+        ('career:realitymine'),
+        ('career:tixtrack')
 ),
 teamtailor_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -587,7 +678,8 @@ CROSS JOIN teamtailor_criteria;
 
 WITH workday_sources(source_id) AS (
     VALUES
-        ('career:semrush')
+        ('career:semrush'),
+        ('career:nvidia')
 ),
 workday_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -608,7 +700,11 @@ CROSS JOIN workday_criteria;
 
 WITH personio_sources(source_id) AS (
     VALUES
-        ('career:vivid-money')
+        ('career:vivid-money'),
+        ('career:stark'),
+        ('career:entrix'),
+        ('career:360t'),
+        ('career:agile-robots')
 ),
 personio_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -629,7 +725,10 @@ CROSS JOIN personio_criteria;
 
 WITH join_sources(source_id) AS (
     VALUES
-        ('career:sidestream')
+        ('career:sidestream'),
+        ('career:routine-labs'),
+        ('career:goodweek'),
+        ('career:yld')
 ),
 join_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -654,7 +753,8 @@ WITH dreamjob_sources(source_id) AS (
         ('career:softmall'),
         ('career:retnnet'),
         ('career:znanie'),
-        ('career:nii-spetsvuzavtomatika')
+        ('career:nii-spetsvuzavtomatika'),
+        ('career:openhc')
 ),
 dreamjob_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -701,7 +801,8 @@ CROSS JOIN jsonld_jobposting_criteria;
 WITH ycombinator_sources(source_id) AS (
     VALUES
         ('career:prequel'),
-        ('career:veryfi')
+        ('career:veryfi'),
+        ('career:instacart')
 ),
 ycombinator_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -723,6 +824,299 @@ SELECT
     ycombinator_criteria.capability
 FROM ycombinator_sources
 CROSS JOIN ycombinator_criteria;
+
+WITH breezy_sources(source_id) AS (
+    VALUES
+        ('career:switchboard'),
+        ('career:themis-insight'),
+        ('career:moser-consulting'),
+        ('career:notably'),
+        ('career:hioperator')
+),
+breezy_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'structured_output'),
+        (3, 'published_since', 'unsupported'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'unsupported'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    breezy_sources.source_id,
+    breezy_criteria.criterion_order,
+    breezy_criteria.criterion,
+    breezy_criteria.capability
+FROM breezy_sources
+CROSS JOIN breezy_criteria;
+
+WITH huntflow_sources(source_id) AS (
+    VALUES
+        ('career:apicworld'),
+        ('career:plus8soft'),
+        ('career:fjx-group'),
+        ('career:overgear'),
+        ('career:sakura-games')
+),
+huntflow_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'unsupported'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'unsupported')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    huntflow_sources.source_id,
+    huntflow_criteria.criterion_order,
+    huntflow_criteria.criterion,
+    huntflow_criteria.capability
+FROM huntflow_sources
+CROSS JOIN huntflow_criteria;
+
+WITH smartrecruiters_sources(source_id) AS (
+    VALUES
+        ('career:smartrecruiters'),
+        ('career:bosch'),
+        ('career:visa'),
+        ('career:nielseniq')
+),
+smartrecruiters_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    smartrecruiters_sources.source_id,
+    smartrecruiters_criteria.criterion_order,
+    smartrecruiters_criteria.criterion,
+    smartrecruiters_criteria.capability
+FROM smartrecruiters_sources
+CROSS JOIN smartrecruiters_criteria;
+
+WITH recruitee_sources(source_id) AS (
+    VALUES
+        ('career:bunq'),
+        ('career:grid'),
+        ('career:hygraph'),
+        ('career:great-minds')
+),
+recruitee_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'structured_output'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    recruitee_sources.source_id,
+    recruitee_criteria.criterion_order,
+    recruitee_criteria.criterion,
+    recruitee_criteria.capability
+FROM recruitee_sources
+CROSS JOIN recruitee_criteria;
+
+WITH comeet_sources(source_id) AS (
+    VALUES
+        ('career:tripleten'),
+        ('career:comm-it'),
+        ('career:vast-data'),
+        ('career:outerbox'),
+        ('career:surecomp')
+),
+comeet_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    comeet_sources.source_id,
+    comeet_criteria.criterion_order,
+    comeet_criteria.criterion,
+    comeet_criteria.capability
+FROM comeet_sources
+CROSS JOIN comeet_criteria;
+
+WITH jobvite_sources(source_id) AS (
+    VALUES
+        ('career:progress'),
+        ('career:visionist'),
+        ('career:egnyte'),
+        ('career:point-of-rental'),
+        ('career:webmd'),
+        ('career:reveal')
+),
+jobvite_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'unsupported'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    jobvite_sources.source_id,
+    jobvite_criteria.criterion_order,
+    jobvite_criteria.criterion,
+    jobvite_criteria.capability
+FROM jobvite_sources
+CROSS JOIN jobvite_criteria;
+
+WITH jazzhr_sources(source_id) AS (
+    VALUES
+        ('career:foundation-ai'),
+        ('career:imanage'),
+        ('career:pairsoft'),
+        ('career:nro'),
+        ('career:sphere'),
+        ('career:public-citizen'),
+        ('career:labelmaster')
+),
+jazzhr_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'unsupported'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    jazzhr_sources.source_id,
+    jazzhr_criteria.criterion_order,
+    jazzhr_criteria.criterion,
+    jazzhr_criteria.capability
+FROM jazzhr_sources
+CROSS JOIN jazzhr_criteria;
+
+WITH icims_sources(source_id) AS (
+    VALUES
+        ('career:expleo'),
+        ('career:epe-consulting'),
+        ('career:western-southern'),
+        ('career:sfo'),
+        ('career:carecentrix'),
+        ('career:rambus')
+),
+icims_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'unsupported'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    icims_sources.source_id,
+    icims_criteria.criterion_order,
+    icims_criteria.criterion,
+    icims_criteria.capability
+FROM icims_sources
+CROSS JOIN icims_criteria;
+
+WITH taleo_sources(source_id) AS (
+    VALUES
+        ('career:keylogic'),
+        ('career:navstar'),
+        ('career:aurora-flight-sciences'),
+        ('career:mediacom'),
+        ('career:internews'),
+        ('career:great-hearts')
+),
+taleo_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'unsupported'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    taleo_sources.source_id,
+    taleo_criteria.criterion_order,
+    taleo_criteria.criterion,
+    taleo_criteria.capability
+FROM taleo_sources
+CROSS JOIN taleo_criteria;
+
+WITH successfactors_sources(source_id) AS (
+    VALUES
+        ('career:pictet'),
+        ('career:brevard-county'),
+        ('career:mindray'),
+        ('career:almarai'),
+        ('career:esa')
+),
+successfactors_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT
+    successfactors_sources.source_id,
+    successfactors_criteria.criterion_order,
+    successfactors_criteria.criterion,
+    successfactors_criteria.capability
+FROM successfactors_sources
+CROSS JOIN successfactors_criteria;
 
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
@@ -770,7 +1164,13 @@ VALUES
     ('career:retnnet', 'detail'),
     ('career:znanie', 'detail'),
     ('career:nii-spetsvuzavtomatika', 'pagination'),
-    ('career:nii-spetsvuzavtomatika', 'detail');
+    ('career:nii-spetsvuzavtomatika', 'detail'),
+    ('career:visionist', 'pagination'),
+    ('career:epe-consulting', 'pagination'),
+    ('career:western-southern', 'pagination'),
+    ('career:keylogic', 'pagination'),
+    ('career:navstar', 'pagination'),
+    ('career:aurora-flight-sciences', 'pagination');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -1610,7 +2010,7 @@ VALUES
         'codex_direct_fixture_review'
     );
 
-WITH configured_company_success_fixtures(source_id, folder) AS (
+WITH ats_company_success_fixtures(source_id, folder) AS (
     VALUES
         ('career:collectly', 'career_collectly'),
         ('career:planner5d', 'career_planner5d'),
@@ -1643,7 +2043,8 @@ WITH configured_company_success_fixtures(source_id, folder) AS (
         ('career:osome', 'career_osome'),
         ('career:sumsub', 'career_sumsub'),
         ('career:semrush', 'career_semrush'),
-        ('career:quadcode', 'career_quadcode')
+        ('career:quadcode', 'career_quadcode'),
+        ('career:bunq', 'career_bunq')
 )
 INSERT INTO parser_fixtures (
     source_id,
@@ -1666,7 +2067,7 @@ SELECT
     'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
     1,
     'codex_direct_fixture_review'
-FROM configured_company_success_fixtures
+FROM ats_company_success_fixtures
 WHERE source_id NOT IN (
     'career:joom',
     'career:zeptolab',
@@ -1680,7 +2081,7 @@ WHERE source_id NOT IN (
     'career:sumsub'
 );
 
-WITH configured_company_success_html_fixtures(source_id, folder) AS (
+WITH ats_company_success_html_fixtures(source_id, folder) AS (
     VALUES
         ('career:joom', 'career_joom'),
         ('career:zeptolab', 'career_zeptolab'),
@@ -1701,7 +2102,10 @@ WITH configured_company_success_html_fixtures(source_id, folder) AS (
         ('career:nii-spetsvuzavtomatika', 'career_nii-spetsvuzavtomatika'),
         ('career:social-discovery-group', 'career_social-discovery-group'),
         ('career:prequel', 'career_prequel'),
-        ('career:veryfi', 'career_veryfi')
+        ('career:veryfi', 'career_veryfi'),
+        ('career:switchboard', 'career_switchboard'),
+        ('career:apicworld', 'career_apicworld'),
+        ('career:themis-insight', 'career_themis-insight')
 )
 INSERT INTO parser_fixtures (
     source_id,
@@ -1724,9 +2128,210 @@ SELECT
     'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
     1,
     'codex_direct_fixture_review'
-FROM configured_company_success_html_fixtures;
+FROM ats_company_success_html_fixtures;
 
-WITH configured_company_pagination_fixtures(source_id, folder) AS (
+WITH smartrecruiters_success_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:smartrecruiters', 'career_smartrecruiters'),
+        ('career:bosch', 'career_bosch'),
+        ('career:visa', 'career_visa')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    0,
+    source_id || '-success',
+    'success_non_empty',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/response.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM smartrecruiters_success_fixtures;
+
+WITH comeet_success_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:tripleten', 'career_tripleten'),
+        ('career:comm-it', 'career_comm-it')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    0,
+    source_id || '-success',
+    'success_non_empty',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/response.html',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM comeet_success_fixtures;
+
+WITH jobvite_success_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:progress', 'career_progress'),
+        ('career:visionist', 'career_visionist')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    0,
+    source_id || '-success',
+    'success_non_empty',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/response.html',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM jobvite_success_fixtures;
+
+WITH jazzhr_success_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:foundation-ai', 'career_foundation-ai'),
+        ('career:imanage', 'career_imanage'),
+        ('career:pairsoft', 'career_pairsoft')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    0,
+    source_id || '-success',
+    'success_non_empty',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/response.html',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM jazzhr_success_fixtures;
+
+WITH icims_success_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:expleo', 'career_expleo'),
+        ('career:epe-consulting', 'career_epe-consulting'),
+        ('career:western-southern', 'career_western-southern')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    0,
+    source_id || '-success',
+    'success_non_empty',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/response.html',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM icims_success_fixtures;
+
+WITH taleo_success_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:keylogic', 'career_keylogic'),
+        ('career:navstar', 'career_navstar'),
+        ('career:aurora-flight-sciences', 'career_aurora-flight-sciences')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    0,
+    source_id || '-success',
+    'success_non_empty',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/response.html',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM taleo_success_fixtures;
+
+WITH successfactors_success_fixtures(source_id, folder) AS (
+    VALUES
+        ('career:pictet', 'career_pictet'),
+        ('career:brevard-county', 'career_brevard-county'),
+        ('career:mindray', 'career_mindray')
+)
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+SELECT
+    source_id,
+    0,
+    source_id || '-success',
+    'success_non_empty',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/response.html',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/meta.json',
+    'tests/v2/fixtures/scrapers/' || folder || '/success/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+FROM successfactors_success_fixtures;
+
+WITH ats_company_pagination_fixtures(source_id, folder) AS (
     VALUES
         ('career:tradingview', 'career_tradingview'),
         ('career:osome', 'career_osome'),
@@ -1754,7 +2359,163 @@ SELECT
     'tests/v2/fixtures/scrapers/' || folder || '/pagination/expected.raw.json',
     1,
     'codex_direct_fixture_review'
-FROM configured_company_pagination_fixtures;
+FROM ats_company_pagination_fixtures;
+
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+VALUES
+    (
+        'career:visionist',
+        1,
+        'career:visionist-pagination-software-engineering',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_visionist/pagination_software_engineering/response.html',
+        'tests/v2/fixtures/scrapers/career_visionist/pagination_software_engineering/meta.json',
+        'tests/v2/fixtures/scrapers/career_visionist/pagination_software_engineering/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:epe-consulting',
+        1,
+        'career:epe-consulting-pagination-pr-1',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_epe-consulting/pagination_pr_1/response.html',
+        'tests/v2/fixtures/scrapers/career_epe-consulting/pagination_pr_1/meta.json',
+        'tests/v2/fixtures/scrapers/career_epe-consulting/pagination_pr_1/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:western-southern',
+        1,
+        'career:western-southern-pagination-pr-1',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_1/response.html',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_1/meta.json',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_1/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:western-southern',
+        2,
+        'career:western-southern-pagination-pr-2',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_2/response.html',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_2/meta.json',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_2/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:western-southern',
+        3,
+        'career:western-southern-pagination-pr-3',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_3/response.html',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_3/meta.json',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_3/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:western-southern',
+        4,
+        'career:western-southern-pagination-pr-4',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_4/response.html',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_4/meta.json',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_4/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:western-southern',
+        5,
+        'career:western-southern-pagination-pr-5',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_5/response.html',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_5/meta.json',
+        'tests/v2/fixtures/scrapers/career_western-southern/pagination_pr_5/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:keylogic',
+        1,
+        'career:keylogic-pagination-row-10',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_keylogic/pagination_row_10/response.html',
+        'tests/v2/fixtures/scrapers/career_keylogic/pagination_row_10/meta.json',
+        'tests/v2/fixtures/scrapers/career_keylogic/pagination_row_10/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:keylogic',
+        2,
+        'career:keylogic-pagination-row-20',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_keylogic/pagination_row_20/response.html',
+        'tests/v2/fixtures/scrapers/career_keylogic/pagination_row_20/meta.json',
+        'tests/v2/fixtures/scrapers/career_keylogic/pagination_row_20/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:navstar',
+        1,
+        'career:navstar-pagination-row-10',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_navstar/pagination_row_10/response.html',
+        'tests/v2/fixtures/scrapers/career_navstar/pagination_row_10/meta.json',
+        'tests/v2/fixtures/scrapers/career_navstar/pagination_row_10/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:navstar',
+        2,
+        'career:navstar-pagination-row-20',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_navstar/pagination_row_20/response.html',
+        'tests/v2/fixtures/scrapers/career_navstar/pagination_row_20/meta.json',
+        'tests/v2/fixtures/scrapers/career_navstar/pagination_row_20/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:navstar',
+        3,
+        'career:navstar-pagination-row-30',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_navstar/pagination_row_30/response.html',
+        'tests/v2/fixtures/scrapers/career_navstar/pagination_row_30/meta.json',
+        'tests/v2/fixtures/scrapers/career_navstar/pagination_row_30/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:aurora-flight-sciences',
+        1,
+        'career:aurora-flight-sciences-pagination-row-10',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_aurora-flight-sciences/pagination_row_10/response.html',
+        'tests/v2/fixtures/scrapers/career_aurora-flight-sciences/pagination_row_10/meta.json',
+        'tests/v2/fixtures/scrapers/career_aurora-flight-sciences/pagination_row_10/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    );
 
 INSERT INTO parser_fixtures (
     source_id,

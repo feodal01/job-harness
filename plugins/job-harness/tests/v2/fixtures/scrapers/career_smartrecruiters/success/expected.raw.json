@@ -1,0 +1,65 @@
+{
+  "expected_count": 23,
+  "raw_contains": {
+    "744000134902606": {
+      "ats_platform": "smartrecruiters",
+      "department": "Product",
+      "employment_type": "Full-time",
+      "experience_level": "Mid-Senior Level",
+      "function": "Product Management",
+      "remote_locations": [
+        "United States",
+        "us"
+      ],
+      "work_format": "remote"
+    },
+    "744000134406689": {
+      "ats_platform": "smartrecruiters",
+      "department": "Engineering",
+      "employment_type": "Full-time",
+      "experience_level": "Mid-Senior Level",
+      "function": "Engineering",
+      "remote_locations": [
+        "Poland",
+        "pl"
+      ],
+      "work_format": "remote"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "United States",
+      "company": "SmartRecruiters Inc",
+      "country": "us",
+      "location_text": "United States, REMOTE, United States",
+      "native_grade": null,
+      "posted_at": "2026-06-30T01:06:01.967Z",
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "744000134902606",
+      "title": "Senior Product Manager (Career Sites)",
+      "url": "https://jobs.smartrecruiters.com/smartrecruiters/744000134902606-senior-product-manager-career-sites"
+    },
+    {
+      "city": "Poland",
+      "company": "SmartRecruiters Inc",
+      "country": "pl",
+      "location_text": "Poland, REMOTE, Poland",
+      "native_grade": null,
+      "posted_at": "2026-06-26T07:09:47.846Z",
+      "remote_global": false,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "744000134406689",
+      "title": "Senior Information Security Engineer",
+      "url": "https://jobs.smartrecruiters.com/smartrecruiters/744000134406689-senior-information-security-engineer"
+    }
+  ]
+}

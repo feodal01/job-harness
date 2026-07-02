@@ -1,0 +1,53 @@
+{
+  "expected_count": 43,
+  "raw_contains": {
+    "o2ZeAfwz": {
+      "ats_platform": "jobvite",
+      "department": "Analysis",
+      "id": "o2ZeAfwz",
+      "location": "Fort Meade, MD"
+    },
+    "oIYaAfwa": {
+      "ats_platform": "jobvite",
+      "department": "Embedded Software",
+      "id": "oIYaAfwa",
+      "location": "Fort Meade, MD"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Fort Meade",
+      "company": "Visionist",
+      "country": null,
+      "location_text": "Fort Meade, MD",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "o2ZeAfwz",
+      "title": "Signals Analyst",
+      "url": "https://jobs.jobvite.com/visionist/job/o2ZeAfwz"
+    },
+    {
+      "city": "Fort Meade",
+      "company": "Visionist",
+      "country": null,
+      "location_text": "Fort Meade, MD",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "oIYaAfwa",
+      "title": "Embedded Developer",
+      "url": "https://jobs.jobvite.com/visionist/job/oIYaAfwa"
+    }
+  ]
+}

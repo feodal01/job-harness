@@ -1,0 +1,75 @@
+{
+  "expected_count": 4,
+  "raw_contains": {
+    "744000129971988": {
+      "ats_platform": "smartrecruiters",
+      "department": "Cyber Security",
+      "employment_type": "Full-time",
+      "experience_level": "Not Applicable",
+      "function": "Information Technology",
+      "location": {
+        "city": "Bengaluru",
+        "country": "in",
+        "fullLocation": "Bengaluru, KA, India",
+        "hybrid": false,
+        "latitude": "12.9628957",
+        "longitude": "77.57754",
+        "region": "KA",
+        "remote": false
+      }
+    },
+    "744000133907678": {
+      "ats_platform": "smartrecruiters",
+      "department": "Software Development/Engineering",
+      "employment_type": "Full-time",
+      "experience_level": "Mid-Senior Level",
+      "function": "Engineering",
+      "location": {
+        "city": "Austin",
+        "country": "us",
+        "fullLocation": "Austin, TX, United States",
+        "hybrid": false,
+        "latitude": "30.267153",
+        "longitude": "-97.7430608",
+        "region": "TX",
+        "remote": false
+      }
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Austin",
+      "company": "Visa",
+      "country": "us",
+      "location_text": "Austin, TX, United States",
+      "native_grade": null,
+      "posted_at": "2026-06-24T10:00:11.853Z",
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "744000133907678",
+      "title": "Sr. Manager",
+      "url": "https://jobs.smartrecruiters.com/Visa/744000133907678-sr-manager"
+    },
+    {
+      "city": "Bengaluru",
+      "company": "Visa",
+      "country": "in",
+      "location_text": "Bengaluru, KA, India",
+      "native_grade": null,
+      "posted_at": "2026-06-03T11:08:12.368Z",
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "744000129971988",
+      "title": "Director",
+      "url": "https://jobs.smartrecruiters.com/Visa/744000129971988-director"
+    }
+  ]
+}

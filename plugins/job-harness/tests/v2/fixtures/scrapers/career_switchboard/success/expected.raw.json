@@ -1,0 +1,29 @@
+{
+  "expected_count": 1,
+  "raw_contains": {
+    "2fe592b7e1ba-customer-experience-strategist": {
+      "ats_platform": "breezy",
+      "employment_type": "Full-time",
+      "salary": "$140,000 \u2013 $150,000 / year"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Washington",
+      "company": "Switchboard",
+      "country": null,
+      "location_text": "Washington, DC",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": "$140,000 \u2013 $150,000 / year",
+      "source_listing_id": "2fe592b7e1ba-customer-experience-strategist",
+      "title": "Customer Experience Strategist",
+      "url": "https://switchboard.breezy.hr/p/2fe592b7e1ba-customer-experience-strategist"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "outcome": "success",
+  "expected_count": 9,
+  "sample_listings": [
+    {
+      "source_listing_id": "23439",
+      "title": "Senior Cybersecurity Governance Specialist",
+      "url": "https://careers-westernsouthern.icims.com/jobs/23439/senior-cybersecurity-governance-specialist/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Cincinnati",
+      "location_text": "US-OH-CINCINNATI",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "23305",
+      "title": "On Call Security Officer",
+      "url": "https://careers-westernsouthern.icims.com/jobs/23305/on-call-security-officer/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Cincinnati",
+      "location_text": "US-OH-CINCINNATI",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "22691",
+      "title": "Servicenow Configuration Management Database Analyst III",
+      "url": "https://careers-westernsouthern.icims.com/jobs/22691/servicenow-configuration-management-database-analyst-iii/job",
+      "company": "Western & Southern",
+      "country": "US",
+      "city": "Cincinnati",
+      "location_text": "US-OH-CINCINNATI",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "23439": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1",
+      "id": "23439",
+      "department": "Information Technology",
+      "location": "US-OH-CINCINNATI",
+      "metadata": {
+        "job locations": "US-OH-CINCINNATI",
+        "function": "Information Technology",
+        "id": "2025-23439",
+        "subsidiary": "Western & Southern Financial Group"
+      }
+    },
+    "23305": {
+      "ats_platform": "icims",
+      "board_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1&in_iframe=1",
+      "career_url": "https://careers-westernsouthern.icims.com/jobs/search?ss=1",
+      "id": "23305",
+      "department": "Human Resources",
+      "location": "US-OH-CINCINNATI",
+      "metadata": {
+        "job locations": "US-OH-CINCINNATI",
+        "function": "Human Resources",
+        "id": "2025-23305",
+        "subsidiary": "Western & Southern Financial Group"
+      }
+    }
+  }
+}

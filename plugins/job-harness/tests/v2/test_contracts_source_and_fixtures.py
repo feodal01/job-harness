@@ -191,6 +191,21 @@ class ParserFixtureContractTest(unittest.TestCase):
         # Assert
         self.assertEqual(_CONTRACT_TEST_SOURCE_ID, contract.descriptor.source_id)
 
+    def test_supported_source_accepts_empty_suite_when_no_fixtures_are_required(self) -> None:
+        # Arrange
+        requirements = RequiredParserFixtures(success_non_empty=False)
+        suite = ParserFixtureSuite(source_id=_CONTRACT_TEST_SOURCE_ID, cases=())
+
+        # Act
+        contract = SupportedSourceContract(
+            descriptor=_descriptor(),
+            required_fixture_kinds=requirements,
+            fixture_suite=suite,
+        )
+
+        # Assert
+        self.assertEqual(_CONTRACT_TEST_SOURCE_ID, contract.descriptor.source_id)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,53 @@
+{
+  "expected_count": 40,
+  "raw_contains": {
+    "Gsyz0IZVAd": {
+      "ats_platform": "jazzhr",
+      "department": "Applied AI",
+      "id": "Gsyz0IZVAd",
+      "location": "Chicago, IL"
+    },
+    "0Xn0l2KdbF": {
+      "ats_platform": "jazzhr",
+      "department": "Applied AI",
+      "id": "0Xn0l2KdbF",
+      "location": "Toronto, Canada"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Chicago",
+      "company": "iManage",
+      "country": null,
+      "location_text": "Chicago, IL",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "Gsyz0IZVAd",
+      "title": "Senior AI Data Engineer",
+      "url": "https://imanagecom.applytojob.com/apply/jobs/details/Gsyz0IZVAd"
+    },
+    {
+      "city": "Toronto",
+      "company": "iManage",
+      "country": null,
+      "location_text": "Toronto, Canada",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "0Xn0l2KdbF",
+      "title": "Senior AI Engineer",
+      "url": "https://imanagecom.applytojob.com/apply/jobs/details/0Xn0l2KdbF"
+    }
+  ]
+}

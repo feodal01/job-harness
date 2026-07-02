@@ -34,10 +34,7 @@ from job_harness.v2.runtime import (
     build_supported_source_catalog,
 )
 from job_harness.v2.runtime.sources import (
-    AirSlateCareerSource,
     AmoCRMCareerSource,
-    AppFollowCareerSource,
-    CoinsPaidCareerSource,
     FinderWorkSource,
     GeekJobSource,
     GetmatchSource,
@@ -47,12 +44,10 @@ from job_harness.v2.runtime.sources import (
     HirifySource,
     IBSCareerSource,
     ItJobsUzSource,
-    JetBrainsCareerSource,
     JobTurboSource,
     StaffAmSource,
     TalantoSource,
     TalentoSource,
-    TermiusCareerSource,
     VKCareerSource,
 )
 from job_harness.v2.source_catalog import source_fixture_suite
@@ -163,6 +158,17 @@ def _source_id(source: str) -> str:
 
 def _fixture_folder_from_source_id(source_id: str) -> str:
     return source_id.replace(":", "_")
+
+
+def _catalog_source(source_id: str) -> SourceScraper:
+    return build_supported_source_catalog((source_id,)).get(source_id)
+
+
+def _catalog_detail_source(source_id: str) -> DetailEnrichmentScraper:
+    source = _catalog_source(source_id)
+    if not isinstance(source, DetailEnrichmentScraper):
+        raise TypeError(f"{source_id} is not a detail enrichment scraper")
+    return source
 
 
 def _expected(source: str, case: str) -> dict[str, Any]:
@@ -1195,13 +1201,13 @@ class AmoCRMCareerSourceTest(unittest.TestCase):
                 self.assertNotIn(phrase, detailed.additional_sections[label])
 
 
-class AppFollowCareerSourceTest(unittest.TestCase):
+class AppFollowAtsSourceTest(unittest.TestCase):
     BOARD_URL = "https://api.lever.co/v0/postings/appfollow?mode=json"
 
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
-            scraper=AppFollowCareerSource(),
+            scraper=_catalog_source("career:appfollow"),
             fixture_suite=source_fixture_suite("career:appfollow"),
         )
 
@@ -1210,7 +1216,7 @@ class AppFollowCareerSourceTest(unittest.TestCase):
 
     def test_request_mapping_fetches_the_real_lever_board_for_all_queries(self) -> None:
         # Arrange
-        source = AppFollowCareerSource()
+        source = _catalog_source("career:appfollow")
 
         # Act
         product_request = source.build_search_requests(SearchRequest(query_variants=("Product",)))[0]
@@ -1224,7 +1230,7 @@ class AppFollowCareerSourceTest(unittest.TestCase):
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
-        source = AppFollowCareerSource()
+        source = _catalog_source("career:appfollow")
         expected = _expected("career_appfollow", "success")
 
         # Act
@@ -1243,13 +1249,13 @@ class AppFollowCareerSourceTest(unittest.TestCase):
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
         product_listing = _listing_by_id(parsed.listings, "f3e97cf3-9777-4e54-be7a-29525fe67b86")
-        self.assertEqual("remote", product_listing.raw["work_format"])
-        self.assertEqual("Europe", product_listing.raw["remote_locations"])
+        self.assertEqual(("remote",), product_listing.raw["work_format"])
+        self.assertEqual(("Europe",), product_listing.raw["remote_locations"])
         self.assertEqual("FI", product_listing.raw["lever_country"])
 
     def test_detail_fixture_extracts_json_ld_description_text(self) -> None:
         # Arrange
-        source = AppFollowCareerSource()
+        source = _catalog_detail_source("career:appfollow")
         listing = _detail_listing_from_input("career_appfollow")
         expected = _expected("career_appfollow", "detail")
 
@@ -1270,7 +1276,7 @@ class AppFollowCareerSourceTest(unittest.TestCase):
 
     def test_backend_detail_fixture_extracts_strong_heading_requirements(self) -> None:
         # Arrange
-        source = AppFollowCareerSource()
+        source = _catalog_detail_source("career:appfollow")
         listing = _detail_listing_from_input("career_appfollow", case="detail_backend")
         expected = _expected("career_appfollow", "detail_backend")
 
@@ -2304,13 +2310,13 @@ class StaffAmSourceTest(unittest.TestCase):
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
 
 
-class JetBrainsCareerSourceTest(unittest.TestCase):
+class JetBrainsAtsSourceTest(unittest.TestCase):
     GREENHOUSE_BOARD_URL = "https://boards-api.greenhouse.io/v1/boards/jetbrains/jobs?content=true"
 
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
-            scraper=JetBrainsCareerSource(),
+            scraper=_catalog_source("career:jetbrains"),
             fixture_suite=source_fixture_suite("career:jetbrains"),
         )
 
@@ -2319,7 +2325,7 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
 
     def test_request_mapping_fetches_the_real_greenhouse_board(self) -> None:
         # Arrange
-        source = JetBrainsCareerSource()
+        source = _catalog_source("career:jetbrains")
 
         # Act
         fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
@@ -2331,7 +2337,7 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
 
     def test_bare_remote_location_does_not_mean_global_remote(self) -> None:
         # Arrange
-        source = JetBrainsCareerSource()
+        source = _catalog_source("career:jetbrains")
         response = SourceResponseArtifact(
             source_id="career:jetbrains",
             url=self.GREENHOUSE_BOARD_URL,
@@ -2379,7 +2385,7 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
-        source = JetBrainsCareerSource()
+        source = _catalog_source("career:jetbrains")
         expected = _expected("career_jetbrains", "success")
 
         # Act
@@ -2414,13 +2420,13 @@ class JetBrainsCareerSourceTest(unittest.TestCase):
         self.assertNotIn("#LI-HYBRID", hybrid_listing.description or "")
 
 
-class CoinsPaidCareerSourceTest(unittest.TestCase):
+class CoinsPaidAtsSourceTest(unittest.TestCase):
     LEVER_BOARD_URL = "https://api.eu.lever.co/v0/postings/coinspaid?mode=json"
 
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         # Arrange / Act
         source = SupportedSource(
-            scraper=CoinsPaidCareerSource(),
+            scraper=_catalog_source("career:coinspaid"),
             fixture_suite=source_fixture_suite("career:coinspaid"),
         )
 
@@ -2429,7 +2435,7 @@ class CoinsPaidCareerSourceTest(unittest.TestCase):
 
     def test_request_mapping_fetches_the_real_lever_board(self) -> None:
         # Arrange
-        source = CoinsPaidCareerSource()
+        source = _catalog_source("career:coinspaid")
 
         # Act
         fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
@@ -2441,7 +2447,7 @@ class CoinsPaidCareerSourceTest(unittest.TestCase):
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
-        source = CoinsPaidCareerSource()
+        source = _catalog_source("career:coinspaid")
         expected = _expected("career_coinspaid", "success")
 
         # Act
@@ -2488,19 +2494,19 @@ class CoinsPaidCareerSourceTest(unittest.TestCase):
                     self.assertEqual(expected_value, actual_value, key)
 
 
-class AirSlateCareerSourceTest(unittest.TestCase):
+class AirSlateAtsSourceTest(unittest.TestCase):
     LEVER_BOARD_URL = "https://api.lever.co/v0/postings/airslate?mode=json"
 
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         source = SupportedSource(
-            scraper=AirSlateCareerSource(),
+            scraper=_catalog_source("career:airslate"),
             fixture_suite=source_fixture_suite("career:airslate"),
         )
 
         self.assertEqual("career:airslate", source.scraper.descriptor.source_id)
 
     def test_request_mapping_fetches_the_real_lever_board(self) -> None:
-        source = AirSlateCareerSource()
+        source = _catalog_source("career:airslate")
 
         fetch_request = source.build_search_requests(SearchRequest(query_variants=("QA",)))[0]
 
@@ -2509,7 +2515,7 @@ class AirSlateCareerSourceTest(unittest.TestCase):
         self.assertEqual(self.LEVER_BOARD_URL, fetch_request.url)
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
-        source = AirSlateCareerSource()
+        source = _catalog_source("career:airslate")
         expected = _expected("career_airslate", "success")
 
         parsed = source.parse_search_response(
@@ -2634,6 +2640,123 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
                     listing = _listing_by_id(parsed.listings, source_listing_id)
                     for key, expected_value in raw_fields.items():
                         self.assertEqual(expected_value, _jsonish(listing.raw.get(key)), key)
+
+    def test_confirmed_ats_pagination_links_emit_next_requests(self) -> None:
+        expected_next_urls = {
+            "career:visionist": "https://jobs.jobvite.com/visionist/search?c=Software+Engineering&p=0",
+            "career:epe-consulting": (
+                "https://careers-epeconsulting.icims.com/jobs/search"
+                "?pr=1&in_iframe=1&searchRelation=keyword_all"
+            ),
+            "career:western-southern": (
+                "https://careers-westernsouthern.icims.com/jobs/search"
+                "?pr=1&in_iframe=1&searchRelation=keyword_all"
+            ),
+            "career:keylogic": (
+                "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults"
+                "?cws=37&org=KEYLOGIC&rowFrom=10"
+            ),
+            "career:navstar": (
+                "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults"
+                "?cws=37&org=NAVSTAR&rowFrom=10"
+            ),
+            "career:aurora-flight-sciences": (
+                "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults"
+                "?cws=37&org=AURORA&rowFrom=10"
+            ),
+        }
+        sources = dict(_additional_company_sources())
+
+        for source_id, expected_next_url in expected_next_urls.items():
+            with self.subTest(source=source_id):
+                fixture_folder = _fixture_folder_from_source_id(source_id)
+                source = sources[fixture_folder]
+                fixture_case = _required_fixture_case(
+                    source_id,
+                    ParserFixtureKind.SUCCESS_NON_EMPTY,
+                )
+
+                parsed = source.parse_search_response(
+                    _fixture_response(fixture_folder, "success"),
+                    SourceFetchRequest(
+                        source_id=source_id,
+                        query_variant="QA",
+                        url=_fixture_captured_url(fixture_case),
+                    ),
+                )
+
+                self.assertIsNotNone(parsed.next_request)
+                self.assertEqual(expected_next_url, parsed.next_request.url if parsed.next_request else None)
+
+    def test_jobvite_multiple_show_more_links_are_queued(self) -> None:
+        source = _catalog_source("career:visionist")
+        initial_body = """
+        <h3 class="h2">Engineering</h3>
+        <table class="jv-job-list"><tbody>
+            <tr>
+                <td class="jv-job-list-name"><a href="/visionist/job/oTest111">Test Engineer</a></td>
+                <td class="jv-job-list-location">Remote</td>
+            </tr>
+            <tr>
+                <td><a href="/visionist/search?c=Software+Engineering&p=0"><strong>Show More</strong></a></td>
+            </tr>
+        </tbody></table>
+        <a href="/visionist/search?c=Systems&p=0"><strong>Show More</strong></a>
+        """
+        first_request = SourceFetchRequest(
+            source_id="career:visionist",
+            query_variant="QA",
+            url="https://jobs.jobvite.com/visionist",
+        )
+
+        parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="career:visionist",
+                url=first_request.url,
+                media_type="text/html",
+                body=initial_body,
+            ),
+            first_request,
+        )
+
+        self.assertIsNotNone(parsed.next_request)
+        assert parsed.next_request is not None
+        self.assertEqual(
+            "https://jobs.jobvite.com/visionist/search?c=Software+Engineering&p=0",
+            parsed.next_request.url,
+        )
+        self.assertEqual(
+            '["https://jobs.jobvite.com/visionist/search?c=Systems&p=0"]',
+            parsed.next_request.headers["x-jobvite-pending-show-more-urls"],
+        )
+
+        next_body = """
+        <table class="jv-job-list"><tbody>
+            <tr>
+                <td class="jv-job-list-name"><a href="/visionist/job/oTest222">Systems Engineer</a></td>
+                <td class="jv-job-list-location">Remote</td>
+            </tr>
+        </tbody></table>
+        """
+        next_parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="career:visionist",
+                url=parsed.next_request.url,
+                media_type="text/html",
+                body=next_body,
+            ),
+            parsed.next_request,
+        )
+
+        self.assertIsNotNone(next_parsed.next_request)
+        self.assertEqual(
+            "https://jobs.jobvite.com/visionist/search?c=Systems&p=0",
+            next_parsed.next_request.url if next_parsed.next_request else None,
+        )
+        self.assertNotIn(
+            "x-jobvite-pending-show-more-urls",
+            next_parsed.next_request.headers if next_parsed.next_request else {},
+        )
 
     def test_ashby_title_remote_marker_sets_work_format(self) -> None:
         source = build_supported_source_catalog(("career:clickhouse",)).get("career:clickhouse")
@@ -2777,9 +2900,9 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
 
 
-class TermiusCareerSourceTest(unittest.TestCase):
+class TermiusAtsSourceTest(unittest.TestCase):
     def test_remote_only_listing_does_not_surface_hidden_lever_country(self) -> None:
-        source = TermiusCareerSource()
+        source = _catalog_source("career:termius")
         parsed = source.parse_search_response(
             _fixture_response("career_termius", "success"),
             SourceFetchRequest(
@@ -2854,6 +2977,29 @@ def _additional_company_sources() -> tuple[tuple[str, SourceScraper], ...]:
         "career:social-discovery-group",
         "career:prequel",
         "career:veryfi",
+        "career:switchboard",
+        "career:apicworld",
+        "career:smartrecruiters",
+        "career:themis-insight",
+        "career:bunq",
+        "career:bosch",
+        "career:visa",
+        "career:tripleten",
+        "career:comm-it",
+        "career:progress",
+        "career:visionist",
+        "career:foundation-ai",
+        "career:imanage",
+        "career:pairsoft",
+        "career:expleo",
+        "career:epe-consulting",
+        "career:western-southern",
+        "career:keylogic",
+        "career:navstar",
+        "career:aurora-flight-sciences",
+        "career:pictet",
+        "career:brevard-county",
+        "career:mindray",
     )
     catalog = build_supported_source_catalog(source_ids)
     return tuple(
@@ -2872,6 +3018,14 @@ def _e2e_success_fixture_mapping(catalog: SourceCatalog, request: SearchRequest)
                 raise AssertionError(f"fixture URL maps to multiple payloads: {url}")
             mapping[url] = path
     return mapping
+
+
+def _success_fixture_source_ids() -> tuple[str, ...]:
+    return tuple(
+        source_id
+        for source_id in build_supported_source_catalog().source_ids
+        if _fixture_case(source_id, ParserFixtureKind.SUCCESS_NON_EMPTY) is not None
+    )
 
 
 def _e2e_success_source_fixture_mapping(
@@ -3001,7 +3155,7 @@ def _map_detail_requests_if_needed(
 class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
     async def test_new_runtime_runs_real_parser_fixtures(self) -> None:
         # Arrange
-        catalog = build_supported_source_catalog()
+        catalog = build_supported_source_catalog(_success_fixture_source_ids())
         request = SearchRequest(query_variants=(_E2E_SUCCESS_QUERY,))
         fetcher = FixtureFetcher(_e2e_success_fixture_mapping(catalog, request))
         with tempfile.TemporaryDirectory() as tmp:

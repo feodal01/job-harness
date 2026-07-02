@@ -1,0 +1,89 @@
+{
+  "outcome": "success",
+  "expected_count": 3,
+  "sample_listings": [
+    {
+      "source_listing_id": "4060",
+      "title": "Structures Engineer",
+      "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/viewRequisition?org=AURORA&cws=37&rid=4060",
+      "company": "Aurora Flight Sciences",
+      "country": null,
+      "city": "Manassas",
+      "location_text": "Manassas, VA, Cambridge, MA",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4032",
+      "title": "Supplier Program Manager",
+      "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/viewRequisition?org=AURORA&cws=37&rid=4032",
+      "company": "Aurora Flight Sciences",
+      "country": null,
+      "city": "Manassas",
+      "location_text": "Manassas, VA",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4050",
+      "title": "Technician Lead- Electrical",
+      "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/viewRequisition?org=AURORA&cws=37&rid=4050",
+      "company": "Aurora Flight Sciences",
+      "country": null,
+      "city": "Manassas",
+      "location_text": "Manassas, VA",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "4060": {
+      "ats_platform": "taleo",
+      "board_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "career_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "id": "4060",
+      "department": "Structures",
+      "employment_type": null,
+      "fields": [
+        "Structures",
+        "Manassas, VA",
+        "Cambridge, MA"
+      ],
+      "location": "Manassas, VA, Cambridge, MA"
+    },
+    "4032": {
+      "ats_platform": "taleo",
+      "board_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "career_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "id": "4032",
+      "department": "Supply Chain",
+      "employment_type": null,
+      "fields": [
+        "Supply Chain",
+        "Manassas, VA"
+      ],
+      "location": "Manassas, VA"
+    }
+  }
+}

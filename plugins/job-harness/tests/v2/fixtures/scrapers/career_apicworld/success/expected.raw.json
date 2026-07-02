@@ -1,0 +1,54 @@
+{
+  "expected_count": 2,
+  "raw_contains": {
+    "senior-php-developer-1": {
+      "ats_platform": "huntflow",
+      "location": "Cyprus / Remote",
+      "remote_locations": [
+        "Cyprus"
+      ],
+      "work_format": "remote"
+    },
+    "support-specialist-l1": {
+      "ats_platform": "huntflow",
+      "location": "Remote",
+      "work_format": "remote"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": null,
+      "company": "Apicworld",
+      "country": null,
+      "location_text": "Cyprus / Remote",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": true,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "senior-php-developer-1",
+      "title": "Senior PHP Developer",
+      "url": "https://apicworld.huntflow.io/vacancy/senior-php-developer-1"
+    },
+    {
+      "city": null,
+      "company": "Apicworld",
+      "country": null,
+      "location_text": "Remote",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "support-specialist-l1",
+      "title": "Support Specialist L1",
+      "url": "https://apicworld.huntflow.io/vacancy/support-specialist-l1"
+    }
+  ]
+}

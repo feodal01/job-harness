@@ -1,0 +1,59 @@
+{
+  "expected_count": 48,
+  "raw_contains": {
+    "ohwmAfwt": {
+      "ats_platform": "jobvite",
+      "department": "Administration",
+      "id": "ohwmAfwt",
+      "location": "Hybrid Remote, Burlington, Massachusetts",
+      "work_format": [
+        "hybrid"
+      ]
+    },
+    "oQVTzfwX": {
+      "ats_platform": "jobvite",
+      "department": "DevOps",
+      "id": "oQVTzfwX",
+      "location": "Hybrid Remote, Sofia, Bulgaria",
+      "work_format": [
+        "hybrid"
+      ]
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Burlington",
+      "company": "Progress",
+      "country": null,
+      "location_text": "Hybrid Remote, Burlington, Massachusetts",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "ohwmAfwt",
+      "title": "Executive Assistant II",
+      "url": "https://jobs.jobvite.com/progress/job/ohwmAfwt"
+    },
+    {
+      "city": "Sofia",
+      "company": "Progress",
+      "country": null,
+      "location_text": "Hybrid Remote, Sofia, Bulgaria",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "oQVTzfwX",
+      "title": "DevOps Engineer",
+      "url": "https://jobs.jobvite.com/progress/job/oQVTzfwX"
+    }
+  ]
+}

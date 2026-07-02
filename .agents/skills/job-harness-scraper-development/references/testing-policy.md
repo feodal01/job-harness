@@ -283,6 +283,35 @@ If a developer wants to handle a block pattern before it has been observed on
 the source, implement it as a shared detector rule and test it in G5. Do not add
 source-specific parser code backed only by a fabricated page.
 
+## Repeatable ATS Fixture Policy
+
+Gate map: G2 proves the shared ATS parser shape. G3 proves each configured
+company source is wired to the right ATS request and declares honest
+capabilities.
+
+For company career pages backed by a repeatable ATS, maintain the parser under a
+platform-level implementation and keep each company as data. A new company on an
+already supported ATS must still be proven from a real source artifact unless
+the contract model explicitly supports platform-level fixture suites. In the
+current v2 contract that means one source-specific non-empty success fixture per
+configured company.
+
+Once an ATS parser has fixtures from multiple independent companies, additional
+testing can be narrower:
+
+- add the company config and catalog row;
+- assert that request mapping fetches the real captured board/API URL;
+- keep one real non-empty success artifact for the company;
+- rely on the shared ATS parser's multi-company fixture suite for deep parser
+  behavior such as optional fields, pagination, detail enrichment, and
+  work-format edge cases;
+- add source-specific extra fixtures only when that company exposes a new ATS
+  variation, a new source-owned state, or company-specific config behavior.
+
+Custom company pages do not get this reduction. They need source-specific
+fixtures for every parser-owned state because there is no shared ATS contract to
+carry parser confidence.
+
 ## Fixture Layout And Assertions
 
 Gate map: G2 is primary. G6 may snapshot these fixtures.

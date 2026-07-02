@@ -1,0 +1,77 @@
+{
+  "expected_count": 100,
+  "raw_contains": {
+    "744000135493228": {
+      "ats_platform": "smartrecruiters",
+      "department": null,
+      "employment_type": "Full-time",
+      "experience_level": "Associate",
+      "function": "Supply Chain",
+      "location": {
+        "address": "Bregenzer Straße 26",
+        "city": "Stuttgart",
+        "country": "de",
+        "fullLocation": "Stuttgart, BW, Germany",
+        "hybrid": true,
+        "latitude": "48.8144274",
+        "longitude": "9.1633103",
+        "postalCode": "70469",
+        "region": "BW",
+        "remote": false
+      },
+      "work_format": "hybrid"
+    },
+    "744000135496889": {
+      "ats_platform": "smartrecruiters",
+      "department": null,
+      "employment_type": "Full-time",
+      "experience_level": "Not Applicable",
+      "function": "Production",
+      "location": {
+        "address": "Estr. Joaquim Bueno Neto - Jardim Alegre",
+        "city": "Itupeva",
+        "country": "br",
+        "fullLocation": "Itupeva, SP, Brazil",
+        "hybrid": false,
+        "region": "SP",
+        "remote": false
+      }
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Itupeva",
+      "company": "Bosch Group",
+      "country": "br",
+      "location_text": "Itupeva, SP, Brazil",
+      "native_grade": null,
+      "posted_at": "2026-07-02T12:58:27.479Z",
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "744000135496889",
+      "title": "CONFERENTE (34526)",
+      "url": "https://jobs.smartrecruiters.com/BoschGroup/744000135496889-conferente-34526"
+    },
+    {
+      "city": "Stuttgart",
+      "company": "Bosch Group",
+      "country": "de",
+      "location_text": "Stuttgart, BW, Germany",
+      "native_grade": null,
+      "posted_at": "2026-07-02T12:41:26.330Z",
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "744000135493228",
+      "title": "Zollexperte EU Zollverfahren (Gehalt: ~88.000 EUR p.a.*, w/m/div.)",
+      "url": "https://jobs.smartrecruiters.com/BoschGroup/744000135493228-zollexperte-eu-zollverfahren-gehalt-88-000-eur-p-a-w-m-div"
+    }
+  ]
+}

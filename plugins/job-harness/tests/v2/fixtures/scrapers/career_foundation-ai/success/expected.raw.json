@@ -1,0 +1,53 @@
+{
+  "expected_count": 12,
+  "raw_contains": {
+    "ZBfHaf2Nv9": {
+      "ats_platform": "jazzhr",
+      "department": null,
+      "id": "ZBfHaf2Nv9",
+      "location": "Hyderabad, India"
+    },
+    "QhIlJU3sYr": {
+      "ats_platform": "jazzhr",
+      "department": null,
+      "id": "QhIlJU3sYr",
+      "location": "Bogota, Colombia"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Hyderabad",
+      "company": "Foundation AI",
+      "country": null,
+      "location_text": "Hyderabad, India",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "ZBfHaf2Nv9",
+      "title": "Application Support Engineer",
+      "url": "https://foundationai.applytojob.com/apply/jobs/details/ZBfHaf2Nv9"
+    },
+    {
+      "city": "Bogota",
+      "company": "Foundation AI",
+      "country": null,
+      "location_text": "Bogota, Colombia",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "QhIlJU3sYr",
+      "title": "Associate Software Engineer",
+      "url": "https://foundationai.applytojob.com/apply/jobs/details/QhIlJU3sYr"
+    }
+  ]
+}

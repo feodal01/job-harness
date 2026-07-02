@@ -186,6 +186,7 @@ def _read_entries(connection: sqlite3.Connection) -> tuple[SourceCatalogEntry, .
 def _entry_from_row(connection: sqlite3.Connection, row: sqlite3.Row) -> SourceCatalogEntry:
     source_id = _row_text(row, "source_id")
     criteria = _read_criteria(connection, source_id)
+    fixture_records = _read_fixture_records(connection, source_id)
     return SourceCatalogEntry(
         source_id=source_id,
         source_type=SourceType(_row_text(row, "source_type")),
@@ -202,8 +203,8 @@ def _entry_from_row(connection: sqlite3.Connection, row: sqlite3.Row) -> SourceC
             for criterion, capability in criteria.items()
             if capability == CriterionCapability.STRUCTURED_OUTPUT
         ),
-        required_fixture_kinds=_read_required_fixture_kinds(connection, source_id),
-        fixture_records=_read_fixture_records(connection, source_id),
+        required_fixture_kinds=_read_required_fixture_kinds(connection, source_id, fixture_records),
+        fixture_records=fixture_records,
     )
 
 
@@ -252,6 +253,7 @@ def _read_criteria(
 def _read_required_fixture_kinds(
     connection: sqlite3.Connection,
     source_id: str,
+    fixture_records: tuple[SourceFixtureRecord, ...],
 ) -> RequiredParserFixtures:
     rows = _fetch_rows(
         connection,
@@ -265,6 +267,7 @@ def _read_required_fixture_kinds(
     )
     kinds = frozenset(ParserFixtureKind(_row_text(row, "kind")) for row in rows)
     return RequiredParserFixtures(
+        success_non_empty=any(record.kind == ParserFixtureKind.SUCCESS_NON_EMPTY for record in fixture_records),
         no_results=ParserFixtureKind.NO_RESULTS in kinds,
         pagination=ParserFixtureKind.PAGINATION in kinds,
         detail=ParserFixtureKind.DETAIL in kinds,

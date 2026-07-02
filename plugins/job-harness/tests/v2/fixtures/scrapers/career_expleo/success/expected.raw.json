@@ -1,0 +1,73 @@
+{
+  "expected_count": 12,
+  "raw_contains": {
+    "54343": {
+      "ats_platform": "icims",
+      "department": "IT & Digital",
+      "id": "54343",
+      "location": "IE-D-Dublin",
+      "metadata": {
+        "job locations": "IE-D-Dublin",
+        "job area": "IT & Digital",
+        "employment type": "Fixed Term Contract",
+        "workplace": "Hybrid"
+      },
+      "work_format": [
+        "hybrid"
+      ],
+      "workplace": "Hybrid"
+    },
+    "54340": {
+      "ats_platform": "icims",
+      "department": "IT & Digital",
+      "id": "54340",
+      "location": "IE-D-Dublin",
+      "metadata": {
+        "job locations": "IE-D-Dublin",
+        "job area": "IT & Digital",
+        "employment type": "Fixed Term Contract",
+        "workplace": "Hybrid"
+      },
+      "work_format": [
+        "hybrid"
+      ],
+      "workplace": "Hybrid"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Dublin",
+      "company": "Expleo",
+      "country": "IE",
+      "location_text": "IE-D-Dublin",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "54343",
+      "title": "Senior Data Analyst",
+      "url": "https://expleo-jobs-ie-en.icims.com/jobs/54343/senior-data-analyst/job"
+    },
+    {
+      "city": "Dublin",
+      "company": "Expleo",
+      "country": "IE",
+      "location_text": "IE-D-Dublin",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "54340",
+      "title": "Senior Data Engineer",
+      "url": "https://expleo-jobs-ie-en.icims.com/jobs/54340/senior-data-engineer/job"
+    }
+  ]
+}

@@ -6,6 +6,11 @@ from job_harness.v2.runtime.application_channels import (
     ApplicationChannelRunResult,
     ApplicationChannelWorkItem,
 )
+from job_harness.v2.runtime.ats_probe import (
+    AtsCompanyUrlParseResult,
+    fetch_ats_company_config_listings,
+    fetch_ats_company_listings,
+)
 from job_harness.v2.runtime.catalog import SourceCatalog, SupportedSource
 from job_harness.v2.runtime.config import (
     ApplicationChannelServiceConfig,
@@ -32,6 +37,7 @@ __all__ = [
     "ApplicationChannelRunResult",
     "ApplicationChannelServiceConfig",
     "ApplicationChannelWorkItem",
+    "AtsCompanyUrlParseResult",
     "build_supported_source_catalog",
     "ClassifiedSourceError",
     "CorpusWriter",
@@ -41,6 +47,8 @@ __all__ = [
     "DetailWorkItem",
     "HttpArtifactFetcher",
     "implemented_source_ids",
+    "fetch_ats_company_config_listings",
+    "fetch_ats_company_listings",
     "new_run_id",
     "OrchestratorConfig",
     "RetryServiceConfig",

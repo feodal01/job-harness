@@ -1,0 +1,88 @@
+{
+  "outcome": "success",
+  "expected_count": 10,
+  "sample_listings": [
+    {
+      "source_listing_id": "1002",
+      "title": "Penetration Tester, Senior",
+      "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/viewRequisition?org=NAVSTAR&cws=37&rid=1002",
+      "company": "Navstar",
+      "country": null,
+      "city": "Annapolis Junction",
+      "location_text": "Annapolis Junction, MD",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "992",
+      "title": "Scrum Master, Senior",
+      "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/viewRequisition?org=NAVSTAR&cws=37&rid=992",
+      "company": "Navstar",
+      "country": null,
+      "city": "Annapolis Junction",
+      "location_text": "Annapolis Junction, MD",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "1024",
+      "title": "Security Verification Test SWE, Senior",
+      "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/viewRequisition?org=NAVSTAR&cws=37&rid=1024",
+      "company": "Navstar",
+      "country": null,
+      "city": "Annapolis Junction",
+      "location_text": "Annapolis Junction, MD",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "1002": {
+      "ats_platform": "taleo",
+      "board_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "career_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "id": "1002",
+      "department": null,
+      "employment_type": null,
+      "fields": [
+        "Annapolis Junction, MD",
+        "TS/SCI with Polygraph"
+      ],
+      "location": "Annapolis Junction, MD"
+    },
+    "992": {
+      "ats_platform": "taleo",
+      "board_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "career_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+      "id": "992",
+      "department": null,
+      "employment_type": null,
+      "fields": [
+        "Annapolis Junction, MD",
+        "TS/SCI with Polygraph"
+      ],
+      "location": "Annapolis Junction, MD"
+    }
+  }
+}

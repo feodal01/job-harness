@@ -1,0 +1,67 @@
+{
+  "expected_count": 19,
+  "raw_contains": {
+    "2640863": {
+      "ats_platform": "recruitee",
+      "department": "Support & Operations",
+      "location": "Amsterdam, Noord-Holland, Netherlands",
+      "remote_locations": [
+        "NL",
+        "TR",
+        "BG"
+      ],
+      "work_format": [
+        "hybrid"
+      ]
+    },
+    "2642872": {
+      "ats_platform": "recruitee",
+      "department": "Support & Operations",
+      "location": "Amsterdam, Noord-Holland, Netherlands",
+      "remote_locations": [
+        "NL",
+        "TR",
+        "BG"
+      ],
+      "work_format": [
+        "hybrid"
+      ]
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Amsterdam, İstanbul, Sofia",
+      "company": "bunq",
+      "country": "NL",
+      "location_text": "Amsterdam, Noord-Holland, Netherlands",
+      "native_grade": null,
+      "posted_at": "2026-06-18T13:34:35Z",
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "2642872",
+      "title": "Reporting Expert",
+      "url": "https://careers.bunq.com/o/reporting-expert"
+    },
+    {
+      "city": "Amsterdam, İstanbul, Sofia",
+      "company": "bunq",
+      "country": "NL",
+      "location_text": "Amsterdam, Noord-Holland, Netherlands",
+      "native_grade": null,
+      "posted_at": "2026-06-15T11:21:52Z",
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "2640863",
+      "title": "Chargebacks Expert",
+      "url": "https://careers.bunq.com/o/chargebacks-expert-1"
+    }
+  ]
+}

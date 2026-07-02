@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-02",
+  "captured_url": "https://imanagecom.applytojob.com/apply/jobs",
+  "content_type": "text/html; charset=utf-8",
+  "final_url": "https://imanagecom.applytojob.com/apply/jobs",
+  "notes": "Real public JazzHR career board HTML captured for career:imanage.",
+  "source_id": "career:imanage"
+}

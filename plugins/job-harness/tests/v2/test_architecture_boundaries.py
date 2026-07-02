@@ -93,6 +93,12 @@ _ALLOWED_RUNTIME_IMPORTS = {
     ),
     "job_harness.v2.runtime.application_channel_sources": (_CONTRACTS_PREFIX,),
     "job_harness.v2.runtime.artifacts": (),
+    "job_harness.v2.runtime.ats_probe": (
+        _CONTRACTS_PREFIX,
+        _PORTS_MODULE,
+        "job_harness.v2.runtime.http",
+        "job_harness.v2.runtime.sources",
+    ),
     "job_harness.v2.runtime.catalog": (_CONTRACTS_PREFIX,),
     "job_harness.v2.runtime.company_contacts": (),
     "job_harness.v2.runtime.config": (

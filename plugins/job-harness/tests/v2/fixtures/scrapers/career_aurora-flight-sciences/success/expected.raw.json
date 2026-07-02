@@ -1,0 +1,69 @@
+{
+  "expected_count": 10,
+  "raw_contains": {
+    "3798": {
+      "ats_platform": "taleo",
+      "board_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "career_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "id": "3798",
+      "department": "Software",
+      "employment_type": null,
+      "fields": [
+        "Software",
+        "Manassas, VA",
+        "Cambridge, MA"
+      ],
+      "location": "Manassas, VA, Cambridge, MA"
+    },
+    "3894": {
+      "ats_platform": "taleo",
+      "board_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "career_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "id": "3894",
+      "department": "Software",
+      "employment_type": null,
+      "fields": [
+        "Software",
+        "Manassas, VA",
+        "Cambridge, MA"
+      ],
+      "location": "Manassas, VA, Cambridge, MA"
+    }
+  },
+  "sample_listings": [
+    {
+      "source_listing_id": "3798",
+      "title": "Autonomous Vehicle Software Engineer",
+      "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/viewRequisition?org=AURORA&cws=37&rid=3798",
+      "company": "Aurora Flight Sciences",
+      "country": null,
+      "city": "Manassas",
+      "location_text": "Manassas, VA, Cambridge, MA",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    },
+    {
+      "source_listing_id": "3894",
+      "title": "Autonomous Vehicle Software Engineer",
+      "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/viewRequisition?org=AURORA&cws=37&rid=3894",
+      "company": "Aurora Flight Sciences",
+      "country": null,
+      "city": "Manassas",
+      "location_text": "Manassas, VA, Cambridge, MA",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    }
+  ]
+}

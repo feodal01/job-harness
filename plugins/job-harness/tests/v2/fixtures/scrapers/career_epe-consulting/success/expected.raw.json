@@ -1,0 +1,65 @@
+{
+  "expected_count": 50,
+  "raw_contains": {
+    "2208": {
+      "ats_platform": "icims",
+      "department": "Transmission Planning Utilities",
+      "id": "2208",
+      "location": "US-TX-Austin",
+      "metadata": {
+        "location": "US-TX-Austin",
+        "id": "2026-2208",
+        "category": "Transmission Planning Utilities",
+        "position type": "Regular Full-Time"
+      }
+    },
+    "2207": {
+      "ats_platform": "icims",
+      "department": "Transmission Planning Utilities",
+      "id": "2207",
+      "location": "US-TX-Austin",
+      "metadata": {
+        "location": "US-TX-Austin",
+        "id": "2026-2207",
+        "category": "Transmission Planning Utilities",
+        "position type": "Regular Full-Time"
+      }
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Austin",
+      "company": "Electric Power Engineers",
+      "country": "US",
+      "location_text": "US-TX-Austin",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "2208",
+      "title": "Senior Power Systems Engineer",
+      "url": "https://careers-epeconsulting.icims.com/jobs/2208/senior-power-systems-engineer/job"
+    },
+    {
+      "city": "Austin",
+      "company": "Electric Power Engineers",
+      "country": "US",
+      "location_text": "US-TX-Austin",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "2207",
+      "title": "Engineering Manager",
+      "url": "https://careers-epeconsulting.icims.com/jobs/2207/engineering-manager/job"
+    }
+  ]
+}

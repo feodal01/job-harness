@@ -1,0 +1,93 @@
+{
+  "outcome": "success",
+  "expected_count": 10,
+  "sample_listings": [
+    {
+      "source_listing_id": "2743",
+      "title": "Records Management Program Support Analyst",
+      "url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/viewRequisition?org=KEYLOGIC&cws=37&rid=2743",
+      "company": "KeyLogic",
+      "country": null,
+      "city": null,
+      "location_text": "Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "2670",
+      "title": "Senior Electrical Design Engineer",
+      "url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/viewRequisition?org=KEYLOGIC&cws=37&rid=2670",
+      "company": "KeyLogic",
+      "country": null,
+      "city": "Oak Ridge",
+      "location_text": "Oak Ridge, TN",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "2668",
+      "title": "Senior Mechanical Design Engineer",
+      "url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/viewRequisition?org=KEYLOGIC&cws=37&rid=2668",
+      "company": "KeyLogic",
+      "country": null,
+      "city": "Oak Ridge",
+      "location_text": "Oak Ridge, TN",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "2743": {
+      "ats_platform": "taleo",
+      "board_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "career_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "id": "2743",
+      "department": null,
+      "employment_type": "Full time",
+      "fields": [
+        "Remote",
+        "Full time",
+        "2743"
+      ],
+      "location": "Remote",
+      "work_format": [
+        "remote"
+      ]
+    },
+    "2670": {
+      "ats_platform": "taleo",
+      "board_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "career_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "id": "2670",
+      "department": null,
+      "employment_type": "Full time",
+      "fields": [
+        "Oak Ridge, TN",
+        "Full time",
+        "2670"
+      ],
+      "location": "Oak Ridge, TN"
+    }
+  }
+}
