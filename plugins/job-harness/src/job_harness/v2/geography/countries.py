@@ -22,8 +22,10 @@ from job_harness.v2.geography.source_text import (
 )
 
 COUNTRY_CODE_PATTERN = re.compile(r"^[A-Z]{2}$")
-EXPLICIT_LOCATION_PAIR_PARTS = 2
+REMOTE_PARENTHESES_SUFFIX_PATTERN = re.compile(r"\s*/\s*remote\s*\([^)]*\)\s*$", re.I)
+SINGLE_LOCATION_PART_COUNTS = frozenset({2, 3})
 NON_COUNTRY_CODES = frozenset({"EU", "EZ", "QO", "UN", "ZZ"})
+LOCATION_DESCRIPTOR_PARTS = frozenset({"fully remote", "hybrid", "office", "on site", "on-site", "onsite", "remote"})
 REGION_SCOPE_ALIASES = {
     "eu": "EU",
     "europe": "EU",
@@ -114,6 +116,8 @@ def _normalize_direct_source_geography_candidate(value: str, *, has_us_context: 
     text = value.strip()
     upper = text.upper()
     lookup = _country_lookup()
+    if has_us_context and upper in US_STATE_CODES:
+        return None
     if upper in lookup.aliases:
         return lookup.aliases[upper]
     if upper in lookup.codes:
@@ -131,20 +135,44 @@ def _normalize_direct_source_geography_candidate(value: str, *, has_us_context: 
 
 
 def _paired_explicit_geographies(value: str) -> tuple[str, ...] | None:
-    parts = tuple(part.strip() for part in SOURCE_GEOGRAPHY_PAIR_SEPARATORS.split(value) if part.strip())
-    if len(parts) != EXPLICIT_LOCATION_PAIR_PARTS:
+    parts = _single_location_parts(value)
+    if len(parts) not in SINGLE_LOCATION_PART_COUNTS:
         return None
-    first_part_direct = _direct_geographies_for_text(parts[0])
-    second_part_direct = _direct_geographies_for_text(parts[1])
-    if first_part_direct or not second_part_direct:
+    has_us = has_us_context(value)
+    first_part_direct = _direct_geographies_for_text(parts[0], has_us_context=has_us)
+    following_part_direct = tuple(dict.fromkeys(
+        geography
+        for part in parts[1:]
+        for geography in _direct_geographies_for_text(part, has_us_context=has_us)
+    ))
+    if first_part_direct:
         return None
-    return second_part_direct
+    if following_part_direct:
+        return following_part_direct
+    if any(key in US_STATE_NAMES for part in parts[1:] for key in geography_text_keys(part)):
+        return ("US",)
+    return None
 
 
-def _direct_geographies_for_text(value: str) -> tuple[str, ...]:
+def _single_location_parts(value: str) -> tuple[str, ...]:
+    normalized = REMOTE_PARENTHESES_SUFFIX_PATTERN.sub("", value).strip()
+    parts: list[str] = []
+    for part in SOURCE_GEOGRAPHY_PAIR_SEPARATORS.split(normalized):
+        cleaned = part.strip()
+        if cleaned and not _is_location_descriptor_part(cleaned):
+            parts.append(cleaned)
+    return tuple(parts)
+
+
+def _is_location_descriptor_part(value: str) -> bool:
+    keys = geography_text_keys(value)
+    return bool(keys) and all(key in LOCATION_DESCRIPTOR_PARTS for key in keys)
+
+
+def _direct_geographies_for_text(value: str, *, has_us_context: bool = False) -> tuple[str, ...]:
     geographies: list[str] = []
     for candidate in source_geography_candidates(value):
-        geography = _normalize_direct_source_geography_candidate(candidate)
+        geography = _normalize_direct_source_geography_candidate(candidate, has_us_context=has_us_context)
         if geography and geography not in geographies:
             geographies.append(geography)
     return tuple(geographies)

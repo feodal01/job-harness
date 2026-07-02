@@ -1,0 +1,76 @@
+{
+  "description_contains": {
+    "a650fe6d61aa01": [
+      "Social Discovery Group",
+      "Real Estate Investment Analyst"
+    ],
+    "f0cdb435c4af01": [
+      "Senior System Analyst 1C",
+      "REMOTE OPPORTUNITY"
+    ]
+  },
+  "expected_count": 58,
+  "raw_contains": {
+    "a650fe6d61aa01": {
+      "ats_platform": "jsonld_jobposting",
+      "date_posted": "2025-11-25"
+    },
+    "f0cdb435c4af01": {
+      "ats_platform": "jsonld_jobposting",
+      "employment_type": "TEMPORARY"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Belgrade",
+      "company": "Social Discovery Group",
+      "country": "RS",
+      "location_text": "Belgrade, RS",
+      "native_grade": null,
+      "posted_at": "2025-11-25",
+      "remote_global": false,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "a650fe6d61aa01",
+      "title": "Investment Analyst",
+      "url": "https://socialdiscoverygroup.com/vacancies/job/a650fe6d61aa01-investment-analyst"
+    },
+    {
+      "city": null,
+      "company": "Social Discovery Group",
+      "country": "PL",
+      "location_text": "PL",
+      "native_grade": null,
+      "posted_at": "2025-12-22",
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "f0cdb435c4af01",
+      "title": "Senior System Analyst 1C (for project)",
+      "url": "https://socialdiscoverygroup.com/vacancies/job/f0cdb435c4af01-senior-system-analyst-1c-for-project"
+    },
+    {
+      "city": "Limassol",
+      "company": "Social Discovery Group",
+      "country": "CY",
+      "location_text": "Limassol, CY",
+      "native_grade": null,
+      "posted_at": "2026-01-13",
+      "remote_global": false,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "f85caccd54f401",
+      "title": "Senior Total Rewards Manager",
+      "url": "https://socialdiscoverygroup.com/vacancies/job/f85caccd54f401-senior-total-rewards-manager"
+    }
+  ]
+}

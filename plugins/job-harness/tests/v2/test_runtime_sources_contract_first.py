@@ -2851,6 +2851,9 @@ def _additional_company_sources() -> tuple[tuple[str, SourceScraper], ...]:
         "career:retnnet",
         "career:znanie",
         "career:nii-spetsvuzavtomatika",
+        "career:social-discovery-group",
+        "career:prequel",
+        "career:veryfi",
     )
     catalog = build_supported_source_catalog(source_ids)
     return tuple(

@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-01",
+  "captured_url": "https://www.ycombinator.com/companies/veryfi-inc/jobs",
+  "content_type": "text/html; charset=utf-8",
+  "final_url": "https://www.ycombinator.com/companies/veryfi-inc/jobs",
+  "notes": "Real public career board HTML captured for career:veryfi.",
+  "source_id": "career:veryfi"
+}
