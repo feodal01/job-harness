@@ -121,7 +121,8 @@ class ResultTablePostProcessor:
             if reasons:
                 for reason in reasons:
                     removed_counts[reason] = removed_counts.get(reason, 0) + 1
-                filtered_rows.append({**row, "decision": "filtered_out", "decision_reasons": reasons})
+                if _title_matches_query(row):
+                    filtered_rows.append({**row, "decision": "filtered_out", "decision_reasons": reasons})
                 continue
             kept_rows.append({**row, "decision": "kept", "decision_reasons": ("matches_requested_filters",)})
 
@@ -345,7 +346,8 @@ def _removal_reasons(
         reasons.append("excluded_company")
     if request.exclude_text and _text_excluded(row, request.exclude_text):
         reasons.append("excluded_text")
-    if request.grades and _text(row["native_grade"]) not in {grade.value for grade in request.grades}:
+    native_grade = _text(row["native_grade"])
+    if request.grades and native_grade and native_grade not in {grade.value for grade in request.grades}:
         reasons.append("grade_mismatch")
     if request.salary_from is not None and not _salary_matches(row, request.salary_from):
         reasons.append("salary_below_requested_minimum")
@@ -365,7 +367,8 @@ def _removal_reasons(
                 work_from_geographies=request.work_from_geographies,
             )
         )
-    if request.relocation is not None and _optional_bool(row["relocation"]) != request.relocation:
+    relocation = _optional_bool(row["relocation"])
+    if request.relocation is not None and relocation is not None and relocation != request.relocation:
         reasons.append("relocation_mismatch")
     reasons.extend(
         vacancy_geography_reasons(
@@ -375,9 +378,10 @@ def _removal_reasons(
             remote_scopes=row_remote_scopes(row),
         )
     )
-    if request.cities and not fuzzy_any_match(
+    city = _text(row["city"])
+    if request.cities and city and not fuzzy_any_match(
         request.cities,
-        _text(row["city"]),
+        city,
         bounds=_CITY_FUZZY_BOUNDS,
     ):
         reasons.append("city_mismatch")
@@ -399,6 +403,11 @@ def _query_matches(row: dict[str, object]) -> bool:
     tokens = _query_tokens(query)
     haystack = "\n".join(_field_text(row, field) for field in _QUERY_TEXT_FIELDS)
     return _query_text_matches(tokens=tokens, haystack=haystack)
+
+
+def _title_matches_query(row: dict[str, object]) -> bool:
+    query = _text(row["query_variant"]).strip()
+    return not query or _query_text_matches(tokens=_query_tokens(query), haystack=_field_text(row, "title"))
 
 
 def _query_text_matches(*, tokens: tuple[str, ...], haystack: str) -> bool:
@@ -450,17 +459,17 @@ def _salary_matches(row: dict[str, object], salary_from: int) -> bool:
     salary_min = _optional_int(row["salary_min"])
     salary_max = _optional_int(row["salary_max"])
     known_values = tuple(value for value in (salary_min, salary_max) if value is not None)
-    return bool(known_values) and max(known_values) >= salary_from
+    return not known_values or max(known_values) >= salary_from
 
 
 def _published_since(row: dict[str, object], published_since: date) -> bool:
     raw = _text(row["posted_at"])
     if not raw:
-        return False
+        return True
     try:
         return date.fromisoformat(raw[:10]) >= published_since
     except ValueError:
-        return False
+        return True
 
 
 def _text(value: object) -> str:

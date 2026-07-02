@@ -91,10 +91,7 @@ def work_format_policy_outcome(
         return WorkFormatPolicyOutcome(handles_remote_filter=False, reasons=())
 
     if not countries:
-        return WorkFormatPolicyOutcome(
-            handles_remote_filter=True,
-            reasons=tuple(f"{work_format}_geography_unknown" for work_format in accepted_formats),
-        )
+        return WorkFormatPolicyOutcome(handles_remote_filter=True, reasons=())
     if request.vacancy_geographies and not _geography_sets_intersect(
         request.work_from_geographies,
         request.vacancy_geographies,

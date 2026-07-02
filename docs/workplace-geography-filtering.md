@@ -48,8 +48,9 @@ remote, hybrid, and onsite or office formats.
    remote scope inferred from the city, for example `London` -> `country:GB` or
    `Barcelona` -> `country:ES`. Multi-city locations may produce multiple
    country scopes.
-10. Unknown geography or remote scope fails positive filters with an explicit
-   unknown diagnostic instead of being treated as a match.
+10. Unknown geography or remote scope is not a removal reason. A positive filter
+   removes a vacancy only when source evidence explicitly conflicts with the
+   request.
 
 ## Required Combinations
 
@@ -74,17 +75,12 @@ remote, hybrid, and onsite or office formats.
 | `UK` | empty | hybrid or office allowed | country `PL` | remove | Physical geography does not match work-from UK. |
 | empty | `europe` | no remote filter | country `PL` | keep | Vacancy geography alone is a market/location filter. |
 | empty | `europe` | no remote filter | country `GB` | remove | The EU scope excludes UK. |
-| empty | `europe` | no remote filter | unknown country | remove | Positive vacancy geography cannot be proven. |
+| empty | `europe` | no remote filter | unknown country | keep | Missing geography is not evidence of a mismatch. |
 
 ## Diagnostics
 
 - Remote scope mismatch: `remote_eligibility_mismatch`.
-- Unknown remote scope for compatible remote: `remote_eligibility_unknown`.
 - Non-global row under global-only search: `remote_global_mismatch`.
-- Unknown global evidence under global-only search: `remote_global_unknown`.
 - Hybrid or office outside the work-from geography:
   `hybrid_geography_mismatch` or `office_geography_mismatch`.
-- Unknown physical geography:
-  `hybrid_geography_unknown` or `office_geography_unknown`.
 - Vacancy geography mismatch: `vacancy_geography_mismatch`.
-- Unknown vacancy geography: `vacancy_geography_unknown`.

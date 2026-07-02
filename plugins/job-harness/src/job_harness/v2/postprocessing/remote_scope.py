@@ -78,14 +78,14 @@ def remote_filter_reasons(
         if "global" in remote_scopes:
             return ()
         if remote_scopes == ("unknown",):
-            return ("remote_global_unknown",)
+            return ()
         return ("remote_global_mismatch",)
 
     if remote_mode == RemoteMode.NON_REMOTE_ONLY:
         if remote_scopes == ("onsite",):
             return ()
         if remote_scopes == ("unknown",):
-            return ("remote_scope_unknown",)
+            return ()
         return ("remote_mismatch",)
 
     return ()
@@ -103,7 +103,7 @@ def vacancy_geography_reasons(
     if remote_mode in {RemoteMode.COMPATIBLE_REMOTE, RemoteMode.GLOBAL_REMOTE_ONLY} and "global" in remote_scopes:
         return ()
     if not countries:
-        return ("vacancy_geography_unknown",)
+        return ()
     if any(geography_matches_any(country, requested_geographies) for country in countries):
         return ()
     return ("vacancy_geography_mismatch",)
@@ -147,7 +147,7 @@ def _compatible_remote_filter_reasons(
 
 def _remote_eligibility_failure(remote_scopes: tuple[str, ...]) -> tuple[str, ...]:
     if remote_scopes == ("unknown",):
-        return ("remote_eligibility_unknown",)
+        return ()
     return ("remote_eligibility_mismatch",)
 
 

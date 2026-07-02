@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from tests.v2._support.contract_runtime import listing
@@ -12,6 +12,7 @@ from job_harness.v2.contracts import (
     AttemptEvidence,
     CriteriaDiagnostics,
     DescriptionAvailability,
+    Grade,
     RawSearchRecord,
     RemoteMode,
     RetryInfo,
@@ -813,6 +814,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     "1",
                     company="Collectly",
                     source="career:collectly",
+                    query_variant="Engineer",
                     title="Senior DevOps Engineer (remote from GMT-7 to GMT+4 timezones)",
                     remote_in_country=None,
                     remote_global=None,
@@ -823,10 +825,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual([], payload["results"])
-        self.assertEqual("remote", payload["filtered_out_results"][0]["display_work_format"])
-        self.assertEqual("unknown", payload["filtered_out_results"][0]["remote_scope"])
-        self.assertEqual({"remote_global_unknown": 1}, payload["removed_counts"])
+        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual("remote", payload["results"][0]["display_work_format"])
+        self.assertEqual("unknown", payload["results"][0]["remote_scope"])
+        self.assertEqual({}, payload["removed_counts"])
 
     def test_remote_eu_locations_use_region_scope(self) -> None:
         # Arrange / Act
@@ -984,6 +986,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     "1",
                     company="JetBrains",
                     source="career:jetbrains",
+                    query_variant="Campus Ambassador",
                     title="Campus Ambassador (Universities in Europe)",
                     location_text="Remote",
                     remote_in_country=None,
@@ -995,10 +998,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        row = payload["filtered_out_results"][0]
+        row = payload["results"][0]
         self.assertEqual("NL, GB", row["country"])
         self.assertEqual("unknown", row["remote_scope"])
-        self.assertEqual(["remote_eligibility_unknown"], row["decision_reasons"])
+        self.assertEqual(["matches_requested_filters"], row["decision_reasons"])
 
     def test_specific_location_does_not_merge_hidden_source_office_countries(self) -> None:
         # Arrange / Act
@@ -1266,16 +1269,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1"], [row["source_listing_id"] for row in global_payload["results"]])
-        self.assertEqual(
-            {"remote_global_mismatch": 1, "remote_global_unknown": 1},
-            global_payload["removed_counts"],
-        )
-        self.assertEqual(["1"], [row["source_listing_id"] for row in non_remote_payload["results"]])
-        self.assertEqual(
-            {"remote_mismatch": 1, "remote_scope_unknown": 1},
-            non_remote_payload["removed_counts"],
-        )
+        self.assertEqual(["1", "3"], [row["source_listing_id"] for row in global_payload["results"]])
+        self.assertEqual({"remote_global_mismatch": 1}, global_payload["removed_counts"])
+        self.assertEqual(["1", "3"], [row["source_listing_id"] for row in non_remote_payload["results"]])
+        self.assertEqual({"remote_mismatch": 1}, non_remote_payload["removed_counts"])
 
     def test_bare_remote_without_global_evidence_is_unknown_for_global_remote_only(self) -> None:
         # Arrange / Act
@@ -1295,9 +1292,9 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual([], payload["results"])
-        self.assertEqual({"remote_global_unknown": 1}, payload["removed_counts"])
-        self.assertEqual("unknown", payload["filtered_out_results"][0]["remote_scope"])
+        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({}, payload["removed_counts"])
+        self.assertEqual("unknown", payload["results"][0]["remote_scope"])
 
     def test_hybrid_and_office_flags_accept_physical_formats_in_work_from_geography(self) -> None:
         # Arrange / Act
@@ -1320,15 +1317,12 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1", "2", "3"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual(
-            {"hybrid_geography_mismatch": 1, "office_geography_unknown": 1},
-            payload["removed_counts"],
-        )
+        self.assertEqual(["1", "2", "3", "5"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({"hybrid_geography_mismatch": 1}, payload["removed_counts"])
         self.assertEqual("hybrid", payload["results"][1]["display_work_format"])
         self.assertEqual(["hybrid"], payload["results"][1]["work_formats"])
         self.assertEqual(
-            [["hybrid_geography_mismatch"], ["office_geography_unknown"]],
+            [["hybrid_geography_mismatch"]],
             [row["decision_reasons"] for row in payload["filtered_out_results"]],
         )
 
@@ -1487,6 +1481,181 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(["QA Engineer"], [row["title"] for row in payload["results"]])
+
+    def test_filtered_out_results_only_include_title_query_matches(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    title="QA Engineer",
+                    remote_in_country=False,
+                    remote_global=False,
+                ),
+                _raw_record(
+                    "2",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    title="Account Manager",
+                    remote_in_country=False,
+                    remote_global=False,
+                ),
+            ),
+            source_attempts=(
+                _attempt_record(
+                    source="career:jetbrains",
+                    source_type=SourceType.COMPANY_CAREER,
+                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
+                    native=frozenset(),
+                    structured=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
+                    postprocess=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
+                ),
+            ),
+        )
+
+        # Assert
+        self.assertEqual(0, payload["result_count"])
+        self.assertEqual(
+            {"query_mismatch": 1, "remote_global_mismatch": 2},
+            payload["removed_counts"],
+        )
+        self.assertEqual(["QA Engineer"], [row["title"] for row in payload["filtered_out_results"]])
+        self.assertEqual(["remote_global_mismatch"], payload["filtered_out_results"][0]["decision_reasons"])
+
+    def test_grade_filter_keeps_unknown_native_grade(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), grades=(Grade.MIDDLE,)),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    title="QA Engineer",
+                    native_grade=None,
+                ),
+            ),
+            source_attempts=(
+                _attempt_record(
+                    source="career:jetbrains",
+                    source_type=SourceType.COMPANY_CAREER,
+                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.GRADES}),
+                    native=frozenset(),
+                    structured=frozenset({SearchCriterion.QUERY}),
+                    unsupported=frozenset({SearchCriterion.GRADES}),
+                    postprocess=frozenset({SearchCriterion.QUERY}),
+                ),
+            ),
+        )
+
+        # Assert
+        self.assertEqual(1, payload["result_count"])
+        self.assertEqual("QA Engineer", payload["results"][0]["title"])
+        self.assertEqual({}, payload["removed_counts"])
+
+    def test_grade_filter_rejects_known_mismatched_native_grade(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("QA",), grades=(Grade.MIDDLE,)),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="Talanto",
+                    title="QA Engineer",
+                    native_grade="senior",
+                ),
+            ),
+            source_attempts=(
+                _attempt_record(
+                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.GRADES}),
+                    native=frozenset({SearchCriterion.QUERY}),
+                    structured=frozenset({SearchCriterion.GRADES}),
+                    postprocess=frozenset({SearchCriterion.GRADES}),
+                ),
+            ),
+        )
+
+        # Assert
+        self.assertEqual(0, payload["result_count"])
+        self.assertEqual({"grade_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual(["QA Engineer"], [row["title"] for row in payload["filtered_out_results"]])
+
+    def test_unknown_requested_filter_facts_do_not_remove_listing(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("QA",),
+                salary_from=100000,
+                published_since=date(2026, 1, 1),
+                relocation=True,
+                remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY,
+                vacancy_geographies=("europe",),
+                cities=("Berlin",),
+            ),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    title="QA Engineer",
+                    salary_min=None,
+                    salary_max=None,
+                    posted_at=None,
+                    relocation=None,
+                    remote_in_country=None,
+                    remote_global=None,
+                    country=None,
+                    city=None,
+                ),
+            ),
+            source_attempts=(
+                _attempt_record(
+                    source="career:jetbrains",
+                    source_type=SourceType.COMPANY_CAREER,
+                    requested=frozenset(
+                        {
+                            SearchCriterion.QUERY,
+                            SearchCriterion.SALARY_FROM,
+                            SearchCriterion.PUBLISHED_SINCE,
+                            SearchCriterion.RELOCATION,
+                            SearchCriterion.REMOTE_MODE,
+                            SearchCriterion.VACANCY_GEOGRAPHIES,
+                            SearchCriterion.CITIES,
+                        }
+                    ),
+                    native=frozenset(),
+                    structured=frozenset({SearchCriterion.QUERY}),
+                    unsupported=frozenset(
+                        {
+                            SearchCriterion.SALARY_FROM,
+                            SearchCriterion.PUBLISHED_SINCE,
+                            SearchCriterion.RELOCATION,
+                            SearchCriterion.REMOTE_MODE,
+                            SearchCriterion.VACANCY_GEOGRAPHIES,
+                            SearchCriterion.CITIES,
+                        }
+                    ),
+                    postprocess=frozenset(
+                        {
+                            SearchCriterion.QUERY,
+                            SearchCriterion.SALARY_FROM,
+                            SearchCriterion.PUBLISHED_SINCE,
+                            SearchCriterion.RELOCATION,
+                            SearchCriterion.REMOTE_MODE,
+                            SearchCriterion.VACANCY_GEOGRAPHIES,
+                            SearchCriterion.CITIES,
+                        }
+                    ),
+                ),
+            ),
+        )
+
+        # Assert
+        self.assertEqual(1, payload["result_count"])
+        self.assertEqual({}, payload["removed_counts"])
 
     def test_query_postprocess_does_not_match_description_only_role_mentions(self) -> None:
         # Arrange / Act
@@ -1687,8 +1856,13 @@ def _raw_record(
     country: str | None = None,
     city: str | None = None,
     location_text: str | None = None,
+    salary_min: int | None = None,
+    salary_max: int | None = None,
+    posted_at: str | None = None,
     remote_in_country: bool | None = None,
     remote_global: bool | None = None,
+    relocation: bool | None = None,
+    native_grade: str | None = None,
     description_availability: DescriptionAvailability = DescriptionAvailability.NOT_REQUESTED,
     detail_fetched: bool = False,
     detail_parse_error: str | None = None,
@@ -1706,10 +1880,15 @@ def _raw_record(
         country=country,
         city=city,
         location_text=location_text,
+        salary_min=salary_min,
+        salary_max=salary_max,
+        posted_at=posted_at,
         description=effective_description,
         additional_sections=additional_sections or {},
         remote_in_country=remote_in_country,
         remote_global=remote_global,
+        relocation=relocation,
+        native_grade=native_grade,
         raw_text=raw_text if raw_text is not None else effective_description,
         raw=effective_raw or {},
     )
