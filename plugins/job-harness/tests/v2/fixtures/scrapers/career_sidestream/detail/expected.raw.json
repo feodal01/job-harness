@@ -1,0 +1,16 @@
+{
+  "city": "Cologne",
+  "country": "DE",
+  "description_contains": [
+    "Why Join Sidestream?",
+    "Fullstack Development",
+    "TypeScript, Nuxt3 and Vue"
+  ],
+  "location_text": "Remote (Germany)",
+  "min_description_length": 1500,
+  "posted_at": "2026-06-19T06:46:26.566Z",
+  "raw_remote_locations": [
+    "Germany"
+  ],
+  "source_listing_id": "16328249"
+}

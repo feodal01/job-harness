@@ -28,7 +28,7 @@ from job_harness.v2.runtime.sources._html import html_to_text
 from job_harness.v2.runtime.sources._url import strip_query
 from job_harness.v2.source_catalog import source_descriptor, source_required_fixture_kinds
 
-Platform = Literal["lever", "ashby", "workable", "greenhouse", "bamboohr", "teamtailor", "workday", "personio"]
+Platform = Literal["lever", "ashby", "workable", "greenhouse", "bamboohr", "teamtailor", "workday", "personio", "join"]
 
 _SECTION_LABEL_RE = re.compile(
     r"<(?P<tag>h[1-6]|strong|b)[^>]*>(?P<label>.*?)</(?P=tag)>",
@@ -50,6 +50,11 @@ _PERSONIO_HREF_RE = re.compile(r'href="(?P<href>/job/(?P<id>\d+))"')
 _PERSONIO_TITLE_RE = re.compile(r'<h3[^>]+class="[^"]*\bjb-title\b[^"]*"[^>]*>(?P<title>.*?)</h3>', re.S)
 _PERSONIO_META_RE = re.compile(r'<span[^>]+class="[^"]*jobMetaText[^"]*"[^>]*>(?P<body>.*?)</span>', re.S)
 _PERSONIO_JSON_LD_RE = re.compile(
+    r'<script[^>]+type="application/ld\+json"[^>]*>(?P<body>.*?)</script>',
+    re.I | re.S,
+)
+_JOIN_NEXT_DATA_RE = re.compile(r'<script[^>]+id="__NEXT_DATA__"[^>]*>(?P<body>.*?)</script>', re.I | re.S)
+_JOIN_JSON_LD_RE = re.compile(
     r'<script[^>]+type="application/ld\+json"[^>]*>(?P<body>.*?)</script>',
     re.I | re.S,
 )
@@ -349,6 +354,13 @@ CONFIGURED_COMPANY_SOURCE_CONFIGS: dict[str, ConfiguredCompanySourceConfig] = {
         board_url="https://vivid.jobs.personio.de/",
         career_url="https://careers.vivid.money/#vacancies",
     ),
+    "career:sidestream": ConfiguredCompanySourceConfig(
+        source_id="career:sidestream",
+        company="Sidestream",
+        platform="join",
+        board_url="https://join.com/companies/sidestream",
+        career_url="https://sidestream.tech/jobs",
+    ),
 }
 
 
@@ -361,6 +373,8 @@ def configured_company_source(source_id: str) -> SourceScraper:
         return ConfiguredWorkdayCompanyCareerSource(config)
     if config.platform == "personio":
         return ConfiguredPersonioCompanyCareerSource(config)
+    if config.platform == "join":
+        return ConfiguredJoinCompanyCareerSource(config)
     return ConfiguredCompanyCareerSource(config)
 
 
@@ -509,6 +523,53 @@ class ConfiguredPersonioCompanyCareerSource(DetailEnrichmentScraper):
         listing: RawListing,
     ) -> RawListing:
         return _personio_detail_listing(response.body, listing, self._config)
+
+
+class ConfiguredJoinCompanyCareerSource(DetailEnrichmentScraper):
+    def __init__(self, config: ConfiguredCompanySourceConfig) -> None:
+        self._config = config
+
+    @property
+    def descriptor(self) -> SourceDescriptor:
+        return source_descriptor(self._config.source_id)
+
+    @property
+    def required_fixture_kinds(self) -> RequiredParserFixtures:
+        return source_required_fixture_kinds(self._config.source_id)
+
+    def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
+        return tuple(
+            SourceFetchRequest(
+                source_id=self.descriptor.source_id,
+                query_variant=query_variant,
+                url=self._config.board_url,
+            )
+            for query_variant in request.query_variants
+        )
+
+    def parse_search_response(
+        self,
+        response: SourceResponseArtifact,
+        _request: SourceFetchRequest,
+    ) -> SourceSearchParseResult:
+        return _parse_join(response.body, self._config)
+
+    def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
+        detail_url = _text(listing.raw.get("join_detail_url")).strip()
+        if not detail_url:
+            raise ValueError(f"{self._config.company} JOIN listing is missing detail URL")
+        return SourceFetchRequest(
+            source_id=self.descriptor.source_id,
+            query_variant=listing.title,
+            url=detail_url,
+        )
+
+    def parse_detail_response(
+        self,
+        response: SourceResponseArtifact,
+        listing: RawListing,
+    ) -> RawListing:
+        return _join_detail_listing(response.body, listing, self._config)
 
 
 def _parse_lever(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
@@ -1382,6 +1443,354 @@ def _personio_salary_text(sections: dict[str, str]) -> str | None:
         if salary_body:
             parts.append(f"{label}\n{salary_body}")
     return "\n\n".join(parts) or None
+
+
+def _parse_join(body: str, config: ConfiguredCompanySourceConfig) -> SourceSearchParseResult:
+    payload = _join_next_data(body, config)
+    jobs = _join_jobs(payload, config)
+    if not jobs:
+        return _no_results()
+    listings = tuple(_join_listing(job, config) for job in jobs if isinstance(job, dict))
+    return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
+
+
+def _join_listing(item: dict[str, Any], config: ConfiguredCompanySourceConfig) -> RawListing:
+    source_listing_id = str(item.get("id") or "").strip()
+    if not source_listing_id:
+        raise ValueError(f"{config.company} JOIN posting is missing id")
+    id_param = _required_text(item.get("idParam"), "idParam", config)
+    title = _required_text(item.get("title"), "title", config)
+    workplace_type = _text(item.get("workplaceType")).strip() or None
+    remote_type = _text(item.get("remoteType")).strip() or None
+    work_format = _work_format_from_workplace_type(workplace_type or "")
+    city = _join_city(item)
+    country = _join_country_code(item) or _join_country_name(item)
+    country_name = _join_country_name(item)
+    remote_locations = _join_remote_locations(
+        work_format=work_format,
+        remote_type=remote_type,
+        city=city,
+        country=country,
+        country_name=country_name,
+    )
+    location_text = _join_location_text(
+        work_format=work_format,
+        city=city,
+        country=country,
+        country_name=country_name,
+        remote_locations=remote_locations,
+    )
+    category = _join_nested_name(item.get("category"))
+    employment_type = _join_nested_name(item.get("employmentType"))
+    url = strip_query(urljoin(config.board_url.rstrip("/") + "/", id_param))
+    raw: dict[str, object] = _source_raw(config)
+    raw.update(
+        {
+            "id": source_listing_id,
+            "id_param": id_param,
+            "join_detail_url": url,
+            "workplace_type": workplace_type,
+            "remote_type": remote_type,
+            "city": item.get("city"),
+            "country": item.get("country"),
+            "employment_type": employment_type,
+            "category": category,
+            "salary_frequency": _text(item.get("salaryFrequency")).strip() or None,
+            "settings": item.get("settings"),
+        }
+    )
+    if work_format:
+        raw["work_format"] = (work_format,)
+    if remote_locations:
+        raw["remote_locations"] = remote_locations
+
+    return RawListing(
+        source_listing_id=source_listing_id,
+        title=title,
+        url=url,
+        source=config.source_id,
+        company=config.company,
+        country=country,
+        city=city,
+        location_text=location_text,
+        salary_text=None,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        posted_at=_text(item.get("createdAt")).strip() or None,
+        remote_in_country=_join_remote_in_country(
+            work_format=work_format,
+            remote_type=remote_type,
+            remote_locations=remote_locations,
+        ),
+        remote_global=_join_remote_global(
+            work_format=work_format,
+            remote_type=remote_type,
+            remote_locations=remote_locations,
+        ),
+        relocation=None,
+        native_grade=None,
+        description=None,
+        requirements=None,
+        additional_sections={},
+        skills=(),
+        raw_text=_join_text(title, location_text, workplace_type, remote_type, category, employment_type),
+        raw=raw,
+    )
+
+
+def _join_detail_listing(
+    body: str,
+    listing: RawListing,
+    config: ConfiguredCompanySourceConfig,
+) -> RawListing:
+    payload = _join_next_data(body, config)
+    job = _join_detail_job(payload, config)
+    posting = _join_job_posting(body)
+    title = _text(job.get("title")).strip() or _text(posting.get("title")).strip() or listing.title
+    description_html = _text(job.get("schemaDescription")).strip() or _text(posting.get("description")).strip()
+    description = (
+        html_to_text(html.unescape(description_html))
+        if description_html
+        else _text(job.get("description")).strip()
+    )
+    if not description:
+        raise ValueError(f"{config.company} JOIN detail response is missing description")
+    sections = _html_sections(description_html) if description_html else {}
+    workplace_type = _text(job.get("workplaceType")).strip() or _text(listing.raw.get("workplace_type")).strip() or None
+    remote_type = _text(job.get("remoteType")).strip() or _text(listing.raw.get("remote_type")).strip() or None
+    work_format = _work_format_from_workplace_type(workplace_type or "")
+    city = _join_city(job) or listing.city
+    country = _join_country_code(job) or listing.country or _join_country_name(job)
+    country_name = _join_country_name(job) or _join_applicant_country(posting)
+    remote_locations = _join_remote_locations(
+        work_format=work_format,
+        remote_type=remote_type,
+        city=city,
+        country=country,
+        country_name=country_name,
+    )
+    location_text = _join_location_text(
+        work_format=work_format,
+        city=city,
+        country=country,
+        country_name=country_name,
+        remote_locations=remote_locations,
+    )
+    raw_detail = {
+        "id": job.get("id"),
+        "id_param": job.get("idParam"),
+        "employment_type": job.get("employmentType"),
+        "category": job.get("category"),
+        "country": job.get("country"),
+        "city": job.get("city"),
+        "office": job.get("office"),
+        "salary_frequency": job.get("salaryFrequency"),
+        "settings": job.get("settings"),
+        "job_location_type": posting.get("jobLocationType"),
+        "applicant_location_requirements": posting.get("applicantLocationRequirements"),
+    }
+    raw = {**listing.raw, "detail": raw_detail}
+    if work_format:
+        raw["work_format"] = (work_format,)
+    if remote_locations:
+        raw["remote_locations"] = remote_locations
+    if country:
+        raw["country"] = country
+
+    return replace(
+        listing,
+        title=title,
+        url=strip_query(_text(posting.get("url")).strip() or listing.url),
+        country=country,
+        city=city,
+        location_text=location_text,
+        posted_at=_text(job.get("createdAt")).strip() or _text(posting.get("datePosted")).strip() or listing.posted_at,
+        remote_in_country=_join_remote_in_country(
+            work_format=work_format,
+            remote_type=remote_type,
+            remote_locations=remote_locations,
+        ),
+        remote_global=_join_remote_global(
+            work_format=work_format,
+            remote_type=remote_type,
+            remote_locations=remote_locations,
+        ),
+        description=description,
+        requirements=_text(job.get("requirements")).strip()
+        or _requirements(sections, config.requirements_label_markers),
+        additional_sections=sections,
+        raw_text=_join_text(listing.raw_text, location_text, workplace_type, remote_type, description),
+        raw=raw,
+    )
+
+
+def _join_next_data(body: str, config: ConfiguredCompanySourceConfig) -> dict[str, Any]:
+    match = _JOIN_NEXT_DATA_RE.search(body)
+    if match is None:
+        raise ValueError(f"{config.company} JOIN response is missing __NEXT_DATA__")
+    try:
+        value = json.loads(html.unescape(match.group("body")))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{config.company} JOIN __NEXT_DATA__ is not valid JSON") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{config.company} JOIN __NEXT_DATA__ is not a JSON object")
+    return value
+
+
+def _join_initial_state(payload: dict[str, Any], config: ConfiguredCompanySourceConfig) -> dict[str, Any]:
+    props = _dict_value(payload.get("props"))
+    page_props = _dict_value(props.get("pageProps"))
+    initial_state = page_props.get("initialState")
+    if not isinstance(initial_state, dict):
+        raise ValueError(f"{config.company} JOIN __NEXT_DATA__ is missing initialState")
+    return initial_state
+
+
+def _join_jobs(payload: dict[str, Any], config: ConfiguredCompanySourceConfig) -> list[Any]:
+    jobs = _join_initial_state(payload, config).get("jobs")
+    if not isinstance(jobs, dict):
+        raise ValueError(f"{config.company} JOIN initialState is missing jobs")
+    items = jobs.get("items")
+    if not isinstance(items, list):
+        raise ValueError(f"{config.company} JOIN jobs.items is not a JSON array")
+    return items
+
+
+def _join_detail_job(payload: dict[str, Any], config: ConfiguredCompanySourceConfig) -> dict[str, Any]:
+    job = _join_initial_state(payload, config).get("job")
+    if not isinstance(job, dict):
+        raise ValueError(f"{config.company} JOIN detail initialState is missing job")
+    return job
+
+
+def _join_job_posting(body: str) -> dict[str, Any]:
+    for match in _JOIN_JSON_LD_RE.finditer(body):
+        try:
+            value = json.loads(match.group("body"))
+        except json.JSONDecodeError:
+            continue
+        posting = _personio_job_posting_from_json(value)
+        if posting is not None:
+            return posting
+    return {}
+
+
+def _join_city(item: dict[str, Any]) -> str | None:
+    city = _dict_value(item.get("city"))
+    value = _text(city.get("cityName")).strip()
+    if value:
+        return value
+    office = _dict_value(item.get("office"))
+    office_city = _dict_value(office.get("city"))
+    return _text(office_city.get("cityName")).strip() or None
+
+
+def _join_country_code(item: dict[str, Any]) -> str | None:
+    country = _dict_value(item.get("country"))
+    value = _text(country.get("iso3166")).strip()
+    if value:
+        return value
+    office = _dict_value(item.get("office"))
+    office_city = _dict_value(office.get("city"))
+    return _text(office_city.get("countryCode")).strip().upper() or None
+
+
+def _join_country_name(item: dict[str, Any]) -> str | None:
+    country = _dict_value(item.get("country"))
+    value = _text(country.get("name")).strip()
+    if value:
+        return value
+    city = _dict_value(item.get("city"))
+    value = _text(city.get("countryName")).strip()
+    if value:
+        return value
+    office = _dict_value(item.get("office"))
+    office_city = _dict_value(office.get("city"))
+    return _text(office_city.get("countryName")).strip() or None
+
+
+def _join_nested_name(value: object) -> str | None:
+    item = _dict_value(value)
+    return _text(item.get("name")).strip() or None
+
+
+def _join_applicant_country(posting: dict[str, Any]) -> str | None:
+    requirements = posting.get("applicantLocationRequirements")
+    items = requirements if isinstance(requirements, list) else [requirements]
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        value = _text(item.get("name")).strip()
+        if value:
+            return value
+    return None
+
+
+def _join_remote_locations(
+    *,
+    work_format: str | None,
+    remote_type: str | None,
+    city: str | None,
+    country: str | None,
+    country_name: str | None,
+) -> tuple[str, ...]:
+    if work_format != "remote":
+        return ()
+    normalized_remote_type = (remote_type or "").casefold()
+    if normalized_remote_type in {"worldwide", "global"}:
+        return ()
+    if normalized_remote_type == "city" and city:
+        return (city,)
+    value = country_name or country
+    return (value,) if value else ()
+
+
+def _join_location_text(
+    *,
+    work_format: str | None,
+    city: str | None,
+    country: str | None,
+    country_name: str | None,
+    remote_locations: tuple[str, ...],
+) -> str | None:
+    if work_format == "remote":
+        if remote_locations:
+            return f"Remote ({', '.join(remote_locations)})"
+        return "Remote"
+    if city and country_name:
+        return f"{city}, {country_name}"
+    if city and country:
+        return f"{city}, {country}"
+    return city or country_name or country
+
+
+def _join_remote_in_country(
+    *,
+    work_format: str | None,
+    remote_type: str | None,
+    remote_locations: tuple[str, ...],
+) -> bool | None:
+    if work_format != "remote":
+        return None
+    normalized_remote_type = (remote_type or "").casefold()
+    if normalized_remote_type in {"worldwide", "global"}:
+        return False
+    return True if remote_locations else None
+
+
+def _join_remote_global(
+    *,
+    work_format: str | None,
+    remote_type: str | None,
+    remote_locations: tuple[str, ...],
+) -> bool | None:
+    if work_format != "remote":
+        return None
+    normalized_remote_type = (remote_type or "").casefold()
+    if normalized_remote_type in {"worldwide", "global"}:
+        return True
+    return False if remote_locations else None
 
 
 def _json_array(body: str, label: str) -> list[Any]:
