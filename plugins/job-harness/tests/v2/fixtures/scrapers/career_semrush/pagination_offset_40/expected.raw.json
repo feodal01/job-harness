@@ -1,0 +1,103 @@
+{
+  "outcome": "success",
+  "expected_count": 7,
+  "sample_listings": [
+    {
+      "source_listing_id": "JR100500",
+      "title": "Commercial Account Executive, Southern Europe (Central Sales team)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/Spain/Commercial-Account-Executive--Southern-Europe_JR100500",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "2 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100504",
+      "title": "Commercial Account Executive, Central Europe",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/United-Kingdom/Commercial-Account-Executive--Central-Europe_JR100504",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "4 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100513",
+      "title": "Commercial Solutions Engineer",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/United-States---Boston/Commercial-Solutions-Engineer_JR100513",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "4 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100238",
+      "title": "Commercial Account Executive, US & Canada (North America Sales Team)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/United-States---Dallas/SMB-Account-Executive--US---Canada--North-America-SMB-Sales-Team-_JR100238",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "2 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "JR100390",
+      "title": "Enterprise Account Executive (DACH) (German Speaker)",
+      "url": "https://semrush.wd5.myworkdayjobs.com/semrushcareers/job/United-Kingdom/Enterprise-Account-Executive--DACH---German-Speaker-_JR100390-1",
+      "company": "Semrush",
+      "country": null,
+      "city": null,
+      "location_text": "4 Locations",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "JR100500": {
+      "ats_platform": "workday",
+      "time_type": "Full time",
+      "posted_on": "Posted 30+ Days Ago"
+    }
+  }
+}

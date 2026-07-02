@@ -1,0 +1,8 @@
+{
+  "source_id": "career:semrush",
+  "captured_url": "https://semrush.wd5.myworkdayjobs.com/wday/cxs/semrush/semrushcareers/jobs?offset=40",
+  "captured_at": "2026-07-01",
+  "fixture_kind": "pagination",
+  "capture_method": "live POST to public Workday CXS jobs endpoint with desktop Chrome user-agent and Accept: application/json",
+  "notes": "Real Workday public CXS career board capture for Semrush."
+}

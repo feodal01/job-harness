@@ -1,0 +1,29 @@
+{
+  "city": "Almaty, Limassol, Barcelona, Belgrade",
+  "country": "KZ, CY, ES, RS",
+  "description_contains": [
+    "Security Engineer",
+    "cloud-native AWS environment",
+    "Your Mission"
+  ],
+  "location_text": "Almaty, KZ; Limassol, CY; Remote, CY; Barcelona, ES; Belgrade, RS",
+  "min_description_length": 1000,
+  "posted_at": "2026-05-08",
+  "raw_remote_locations": [
+    "KZ",
+    "CY",
+    "ES",
+    "RS"
+  ],
+  "salary_contains": [
+    "Compensation range"
+  ],
+  "section_labels": [
+    "About The Role",
+    "Your Mission",
+    "Your Profile",
+    "Why Join Vivid?",
+    "Compensation range"
+  ],
+  "source_listing_id": "2628973"
+}

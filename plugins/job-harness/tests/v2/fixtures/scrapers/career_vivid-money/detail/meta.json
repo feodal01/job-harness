@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-01",
+  "captured_url": "https://vivid.jobs.personio.de/job/2628973",
+  "content_type": "text/html; charset=utf-8",
+  "final_url": "https://vivid.jobs.personio.de/job/2628973",
+  "notes": "Real Personio detail HTML with schema.org JobPosting JSON-LD for Security Engineer.",
+  "source_id": "career:vivid-money"
+}

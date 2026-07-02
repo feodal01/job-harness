@@ -151,7 +151,11 @@ VALUES
     (56, 'career:flo-health', 'company_career', 'http', 100),
     (57, 'career:pandadoc', 'company_career', 'http', 100),
     (58, 'career:wrike', 'company_career', 'http', 100),
-    (59, 'career:thesoul-publishing', 'company_career', 'http', 100);
+    (59, 'career:thesoul-publishing', 'company_career', 'http', 100),
+    (60, 'career:semrush', 'company_career', 'http', 100),
+    (61, 'career:quadcode', 'company_career', 'http', 100),
+    (62, 'career:vivid-money', 'company_career', 'http', 100),
+    (63, 'career:sidestream', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -420,7 +424,8 @@ WITH lever_sources(source_id) AS (
         ('career:planner5d'),
         ('career:superannotate'),
         ('career:xsolla'),
-        ('career:unlimint')
+        ('career:unlimint'),
+        ('career:quadcode')
 ),
 lever_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -567,6 +572,69 @@ SELECT teamtailor_sources.source_id, teamtailor_criteria.criterion_order, teamta
 FROM teamtailor_sources
 CROSS JOIN teamtailor_criteria;
 
+WITH workday_sources(source_id) AS (
+    VALUES
+        ('career:semrush')
+),
+workday_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT workday_sources.source_id, workday_criteria.criterion_order, workday_criteria.criterion, workday_criteria.capability
+FROM workday_sources
+CROSS JOIN workday_criteria;
+
+WITH personio_sources(source_id) AS (
+    VALUES
+        ('career:vivid-money')
+),
+personio_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT personio_sources.source_id, personio_criteria.criterion_order, personio_criteria.criterion, personio_criteria.capability
+FROM personio_sources
+CROSS JOIN personio_criteria;
+
+WITH join_sources(source_id) AS (
+    VALUES
+        ('career:sidestream')
+),
+join_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT join_sources.source_id, join_criteria.criterion_order, join_criteria.criterion, join_criteria.capability
+FROM join_sources
+CROSS JOIN join_criteria;
+
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
     ('habr_career', 'no_results'),
@@ -603,7 +671,11 @@ VALUES
     ('career:appfollow', 'detail'),
     ('career:tradingview', 'pagination'),
     ('career:osome', 'pagination'),
-    ('career:sumsub', 'pagination');
+    ('career:sumsub', 'pagination'),
+    ('career:semrush', 'pagination'),
+    ('career:semrush', 'detail'),
+    ('career:vivid-money', 'detail'),
+    ('career:sidestream', 'detail');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -1474,7 +1546,9 @@ WITH configured_company_success_fixtures(source_id, folder) AS (
         ('career:synthesized', 'career_synthesized'),
         ('career:tradingview', 'career_tradingview'),
         ('career:osome', 'career_osome'),
-        ('career:sumsub', 'career_sumsub')
+        ('career:sumsub', 'career_sumsub'),
+        ('career:semrush', 'career_semrush'),
+        ('career:quadcode', 'career_quadcode')
 )
 INSERT INTO parser_fixtures (
     source_id,
@@ -1522,7 +1596,9 @@ WITH configured_company_success_html_fixtures(source_id, folder) AS (
         ('career:synthesized', 'career_synthesized'),
         ('career:tradingview', 'career_tradingview'),
         ('career:osome', 'career_osome'),
-        ('career:sumsub', 'career_sumsub')
+        ('career:sumsub', 'career_sumsub'),
+        ('career:vivid-money', 'career_vivid-money'),
+        ('career:sidestream', 'career_sidestream')
 )
 INSERT INTO parser_fixtures (
     source_id,
@@ -1575,3 +1651,84 @@ SELECT
     1,
     'codex_direct_fixture_review'
 FROM configured_company_pagination_fixtures;
+
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+VALUES
+    (
+        'career:semrush',
+        3,
+        'career:semrush-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_semrush/detail/response.json',
+        'tests/v2/fixtures/scrapers/career_semrush/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_semrush/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:vivid-money',
+        1,
+        'career:vivid-money-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_vivid-money/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_vivid-money/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_vivid-money/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:sidestream',
+        1,
+        'career:sidestream-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_sidestream/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_sidestream/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_sidestream/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    );
+
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+VALUES
+    (
+        'career:semrush',
+        1,
+        'career:semrush-pagination-offset-20',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_20/response.json',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_20/meta.json',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_20/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:semrush',
+        2,
+        'career:semrush-pagination-offset-40',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_40/response.json',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_40/meta.json',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_40/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    );

@@ -1,0 +1,8 @@
+{
+  "source_id": "career:semrush",
+  "captured_url": "https://semrush.wd5.myworkdayjobs.com/wday/cxs/semrush/semrushcareers/job/United-States---Boston/Enterprise-Solutions-Engineer---Americas_JR100794",
+  "captured_at": "2026-07-01",
+  "fixture_kind": "detail",
+  "capture_method": "live GET to public Workday CXS job detail endpoint with desktop Chrome user-agent and Accept: application/json",
+  "notes": "Real Workday detail capture for a Semrush United States - Boston vacancy selected from the success fixture."
+}

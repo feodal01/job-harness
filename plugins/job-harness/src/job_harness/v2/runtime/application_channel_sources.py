@@ -189,6 +189,10 @@ _COMPANY_CAREER_URLS = {
     "career:tradingview": "https://tradingview.teamtailor.com/jobs",
     "career:osome": "https://careers.osome.com/jobs",
     "career:sumsub": "https://careers.sumsub.com/jobs",
+    "career:semrush": "https://careers.semrush.com/en/jobs/",
+    "career:quadcode": "https://jobs.quadcode.com/jobs",
+    "career:vivid-money": "https://careers.vivid.money/#vacancies",
+    "career:sidestream": "https://sidestream.tech/jobs",
 }
 
 
