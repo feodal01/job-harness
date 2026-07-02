@@ -48,9 +48,12 @@ remote, hybrid, and onsite or office formats.
    remote scope inferred from the city, for example `London` -> `country:GB` or
    `Barcelona` -> `country:ES`. Multi-city locations may produce multiple
    country scopes.
-10. Unknown geography or remote scope is not a removal reason. A positive filter
-   removes a vacancy only when source evidence explicitly conflicts with the
-   request.
+10. A country or city without any remote/work-format evidence is not unknown
+   remote eligibility. It is treated as country-bound non-remote eligibility for
+   remote filters, while the displayed work format remains unknown.
+11. Unknown geography or remote scope is not a removal reason for ordinary
+   optional filters. For remote filters, unknown stays allowed only when the
+   source exposed remote eligibility but did not expose the allowed geography.
 
 ## Required Combinations
 
@@ -71,8 +74,9 @@ remote, hybrid, and onsite or office formats.
 | `UK` | `UK` | remote only | country `GB`, `hybrid` or `office` | remove | Physical formats were not requested. |
 | `UK` | empty | remote | scope `country:GB` | keep | Remote scope matches work-from UK. |
 | `UK` | empty | remote | scope `country:PL` or `region:EU` | remove | Remote scope does not include UK. |
-| `UK` | empty | hybrid or office allowed | country `GB` | keep | Physical geography matches work-from UK. |
-| `UK` | empty | hybrid or office allowed | country `PL` | remove | Physical geography does not match work-from UK. |
+| `UK` | empty | remote | country `GB`, no remote/work-format evidence | remove | Country-only evidence is not remote-compatible. |
+| `UK` | empty | hybrid or office allowed | country `GB`, explicit `hybrid` or `office` | keep | Physical geography matches work-from UK. |
+| `UK` | empty | hybrid or office allowed | country `PL`, explicit `hybrid` or `office` | remove | Physical geography does not match work-from UK. |
 | empty | `europe` | no remote filter | country `PL` | keep | Vacancy geography alone is a market/location filter. |
 | empty | `europe` | no remote filter | country `GB` | remove | The EU scope excludes UK. |
 | empty | `europe` | no remote filter | unknown country | keep | Missing geography is not evidence of a mismatch. |
@@ -80,6 +84,8 @@ remote, hybrid, and onsite or office formats.
 ## Diagnostics
 
 - Remote scope mismatch: `remote_eligibility_mismatch`.
+- Country-only evidence under a remote-compatible search:
+  `remote_eligibility_mismatch`.
 - Non-global row under global-only search: `remote_global_mismatch`.
 - Hybrid or office outside the work-from geography:
   `hybrid_geography_mismatch` or `office_geography_mismatch`.

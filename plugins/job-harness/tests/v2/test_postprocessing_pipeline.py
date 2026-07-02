@@ -719,6 +719,61 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             [row["remote_scope"] for row in payload["filtered_out_results"]],
         )
 
+    def test_country_only_listing_does_not_satisfy_compatible_remote(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(
+                query_variants=("Quality Assurance",),
+                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
+                work_from_geographies=("RU",),
+                vacancy_geographies=("RU", "AM"),
+                hybrid_ok=True,
+                office_ok=True,
+            ),
+            raw_records=(
+                _raw_record(
+                    "am",
+                    company="Coffee House Company",
+                    source="staff_am",
+                    query_variant="Quality Assurance",
+                    title="Quality Assurance Specialist",
+                    country="AM",
+                    city="Yerevan",
+                ),
+                _raw_record(
+                    "ru",
+                    company="Acme",
+                    source="staff_am",
+                    query_variant="Quality Assurance",
+                    title="Quality Assurance Engineer",
+                    country="RU",
+                    city="Moscow",
+                ),
+            ),
+            source_attempts=(
+                _attempt_record(
+                    source="staff_am",
+                    query_variant="Quality Assurance",
+                    requested=frozenset(
+                        {
+                            SearchCriterion.QUERY,
+                            SearchCriterion.REMOTE_MODE,
+                            SearchCriterion.VACANCY_GEOGRAPHIES,
+                        }
+                    ),
+                    native=frozenset({SearchCriterion.QUERY}),
+                    structured=frozenset({SearchCriterion.REMOTE_MODE, SearchCriterion.VACANCY_GEOGRAPHIES}),
+                    postprocess=frozenset({SearchCriterion.REMOTE_MODE, SearchCriterion.VACANCY_GEOGRAPHIES}),
+                ),
+            ),
+        )
+
+        # Assert
+        self.assertEqual([], payload["results"])
+        self.assertEqual({"remote_eligibility_mismatch": 2}, payload["removed_counts"])
+        self.assertEqual(["onsite", "onsite"], [row["remote_scope"] for row in payload["filtered_out_results"]])
+        self.assertEqual([None, None], [row["display_work_format"] for row in payload["filtered_out_results"]])
+
     def test_remote_scope_prefers_explicit_remote_locations_over_vacancy_locations(self) -> None:
         # Arrange / Act
         payload = _process_payload(
@@ -786,6 +841,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     "1",
                     company="Collectly",
                     source="career:collectly",
+                    query_variant="Engineer",
                     title="Senior DevOps Engineer (remote from GMT-7 to GMT+4 timezones)",
                     location_text="Barcelona",
                     remote_in_country=None,
@@ -843,6 +899,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     "1",
                     company="AppFollow",
                     source="career:appfollow",
+                    query_variant="Engineer",
                     title="Senior Backend Engineer",
                     location_text="Remote",
                     remote_in_country=None,
@@ -870,6 +927,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                 _raw_record(
                     "1",
                     company="Acme",
+                    query_variant="Engineer",
                     title="Engineer",
                     location_text="Warsaw, Bucharest, Lisbon",
                     remote_in_country=None,
@@ -901,6 +959,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     "1",
                     company="Veryfi, Inc.",
                     source="career:veryfi",
+                    query_variant="Engineer",
                     title="Senior ML Engineer",
                     location_text="San Mateo, California / Remote",
                     remote_in_country=None,
@@ -929,6 +988,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     "1",
                     company="Veryfi, Inc.",
                     source="career:veryfi",
+                    query_variant="Engineer",
                     title="Data Annotation Engineer",
                     location_text="Medellín, Antioquia, CO / Remote (Medellín, Antioquia, CO)",
                     remote_in_country=None,
@@ -957,6 +1017,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                 _raw_record(
                     "1",
                     company="Acme",
+                    query_variant="Engineer",
                     title="Engineer",
                     location_text="London",
                     remote_in_country=None,
@@ -1012,6 +1073,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     "1",
                     company="Wrike",
                     source="career:wrike",
+                    query_variant="Engineer",
                     title="AI-Enabled SW Engineer - Talent Pool",
                     location_text="Prague",
                     remote_in_country=False,
@@ -1422,20 +1484,24 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual("text_enrichment_required", actions["remote_mode"]["action"])
         self.assertTrue(actions["remote_mode"]["requires_enrichment"])
 
-    def test_filters_query_when_source_did_not_apply_native_query(self) -> None:
+    def test_filters_query_by_title_even_when_source_applied_native_query(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(query_variants=("QA",)),
             raw_records=(
-                _raw_record("1", company="JetBrains", source="career:jetbrains", title="QA Engineer"),
-                _raw_record("2", company="JetBrains", source="career:jetbrains", title="Account Manager"),
+                _raw_record("1", company="Staff", source="staff_am", title="QA Engineer"),
+                _raw_record(
+                    "2",
+                    company="Coffee House Company",
+                    source="staff_am",
+                    title="Ֆրանչայզինգային սրճարանների որակի վերահսկման մասնագետ",
+                ),
             ),
             source_attempts=(
                 _attempt_record(
-                    source="career:jetbrains",
-                    source_type=SourceType.COMPANY_CAREER,
+                    source="staff_am",
                     requested=frozenset({SearchCriterion.QUERY}),
-                    native=frozenset(),
+                    native=frozenset({SearchCriterion.QUERY}),
                     structured=frozenset({SearchCriterion.QUERY}),
                     postprocess=frozenset({SearchCriterion.QUERY}),
                 ),
@@ -1446,6 +1512,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual(1, payload["result_count"])
         self.assertEqual("QA Engineer", payload["results"][0]["title"])
         self.assertEqual({"query_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual([], payload["filtered_out_results"])
 
     def test_short_query_token_does_not_match_description_only_mentions(self) -> None:
         # Arrange / Act

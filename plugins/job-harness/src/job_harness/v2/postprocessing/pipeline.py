@@ -2,35 +2,27 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
-from datetime import date
 from enum import StrEnum
 
-from job_harness.v2.contracts import SearchRequest, TextExclusion, TextExclusionMode
-from job_harness.v2.matching import FuzzyBounds, fuzzy_any_match, fuzzy_tokens_match
+from job_harness.v2.contracts import SearchRequest
 from job_harness.v2.postprocessing.application_channels import application_channels
 from job_harness.v2.postprocessing.company_contacts import company_contacts
 from job_harness.v2.postprocessing.criteria_plan import CriteriaProcessingPlanner
+from job_harness.v2.postprocessing.filter_policy import (
+    VacancyFilterCriteria,
+    VacancyFilterFacts,
+    decide_vacancy_filter,
+)
 from job_harness.v2.postprocessing.remote_scope import (
     country_text,
     listing_countries,
     listing_remote_scopes,
-    remote_filter_reasons,
     remote_scope_text,
-    row_countries,
-    row_remote_scopes,
-    vacancy_geography_reasons,
 )
-from job_harness.v2.postprocessing.work_format import (
-    listing_work_formats,
-    row_work_formats,
-    work_format_policy_outcome,
-)
+from job_harness.v2.postprocessing.work_format import listing_work_formats
 from job_harness.v2.serialization import JsonObject, to_jsonable
 
-_TEXT_FIELDS = ("title", "description", "requirements", "additional_sections", "skills", "raw_text")
-_QUERY_TEXT_FIELDS = ("title", "skills")
 _HH_EXPERIENCE_TEXT = {
     "noExperience": "без опыта",
     "between1And3": "1–3 года",
@@ -72,8 +64,6 @@ _HH_WORKING_HOURS_TEXT = {
     "HOURS_12": "12",
     "HOURS_24": "24",
 }
-_QUERY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.78)
-_CITY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.9)
 
 
 class ProcessingPhase(StrEnum):
@@ -111,18 +101,20 @@ class ResultTablePostProcessor:
             source_attempts=source_attempts,
             rows=rows,
         )
-        native_query_attempts = _native_query_attempts(source_attempts)
         kept_rows: list[dict[str, object]] = []
         filtered_rows: list[dict[str, object]] = []
         removed_counts: dict[str, int] = {}
 
         for row in rows:
-            reasons = _removal_reasons(row, request, native_query_attempts)
-            if reasons:
-                for reason in reasons:
+            decision = decide_vacancy_filter(
+                criteria=VacancyFilterCriteria.from_search_request(request, query=_text(row["query_variant"])),
+                vacancy=_filter_facts(row),
+            )
+            if not decision.keep:
+                for reason in decision.reasons:
                     removed_counts[reason] = removed_counts.get(reason, 0) + 1
-                if _title_matches_query(row):
-                    filtered_rows.append({**row, "decision": "filtered_out", "decision_reasons": reasons})
+                if decision.include_in_filtered_out:
+                    filtered_rows.append({**row, "decision": "filtered_out", "decision_reasons": decision.reasons})
                 continue
             kept_rows.append({**row, "decision": "kept", "decision_reasons": ("matches_requested_filters",)})
 
@@ -223,6 +215,35 @@ def _dedupe_rows(rows: tuple[dict[str, object], ...]) -> tuple[dict[str, object]
     return tuple(unique_rows)
 
 
+def _filter_facts(row: dict[str, object]) -> VacancyFilterFacts:
+    return VacancyFilterFacts(
+        title=_text(row["title"]),
+        company=_optional_text(row["company"]),
+        description=_optional_text(row["description"]),
+        requirements=_optional_text(row["requirements"]),
+        additional_sections=_text_mapping(row["additional_sections"]),
+        skills=_row_text_tuple(row["skills"]),
+        raw_text=_optional_text(row["raw_text"]),
+        native_grade=_optional_text(row["native_grade"]),
+        salary_min=_optional_int(row["salary_min"]),
+        salary_max=_optional_int(row["salary_max"]),
+        posted_at=_optional_text(row["posted_at"]),
+        work_formats=_row_text_tuple(row["work_formats"]),
+        countries=_row_text_tuple(row["countries"]),
+        remote_scopes=_row_text_tuple(row["remote_scopes"]) or ("unknown",),
+        relocation=_optional_bool(row["relocation"]),
+        city=_optional_text(row["city"]),
+    )
+
+
+def _row_text_tuple(value: object) -> tuple[str, ...]:
+    if isinstance(value, tuple):
+        return tuple(_text(item) for item in value if _text(item))
+    if isinstance(value, list):
+        return tuple(_text(item) for item in value if _text(item))
+    return ()
+
+
 def _source_facts(listing: dict[str, object]) -> tuple[dict[str, str], ...]:
     source = _text(listing.get("source"))
     raw = listing.get("raw")
@@ -319,157 +340,6 @@ def _hh_compensation_text(value: object) -> str | None:
     if isinstance(value, dict) and "noCompensation" in value:
         return "не указан"
     return None
-
-
-def _native_query_attempts(source_attempts: tuple[dict[str, object], ...]) -> frozenset[tuple[str, str]]:
-    native_attempts: set[tuple[str, str]] = set()
-    for attempt in source_attempts:
-        criteria = attempt.get("criteria")
-        if not isinstance(criteria, dict):
-            continue
-        native_applied = criteria.get("native_applied")
-        if not isinstance(native_applied, list) or "query" not in native_applied:
-            continue
-        native_attempts.add((_text(attempt.get("source")), _text(attempt.get("query_variant"))))
-    return frozenset(native_attempts)
-
-
-def _removal_reasons(
-    row: dict[str, object],
-    request: SearchRequest,
-    native_query_attempts: frozenset[tuple[str, str]],
-) -> tuple[str, ...]:
-    reasons: list[str] = []
-    if _query_postprocess_required(row, native_query_attempts) and not _query_matches(row):
-        reasons.append("query_mismatch")
-    if request.exclude_companies and _company_excluded(row, request.exclude_companies):
-        reasons.append("excluded_company")
-    if request.exclude_text and _text_excluded(row, request.exclude_text):
-        reasons.append("excluded_text")
-    native_grade = _text(row["native_grade"])
-    if request.grades and native_grade and native_grade not in {grade.value for grade in request.grades}:
-        reasons.append("grade_mismatch")
-    if request.salary_from is not None and not _salary_matches(row, request.salary_from):
-        reasons.append("salary_below_requested_minimum")
-    if request.published_since is not None and not _published_since(row, request.published_since):
-        reasons.append("published_before_requested_date")
-    work_format_outcome = work_format_policy_outcome(
-        request=request,
-        work_formats=row_work_formats(row),
-        countries=row_countries(row),
-    )
-    reasons.extend(work_format_outcome.reasons)
-    if not work_format_outcome.handles_remote_filter:
-        reasons.extend(
-            remote_filter_reasons(
-                remote_mode=request.remote_mode,
-                remote_scopes=row_remote_scopes(row),
-                work_from_geographies=request.work_from_geographies,
-            )
-        )
-    relocation = _optional_bool(row["relocation"])
-    if request.relocation is not None and relocation is not None and relocation != request.relocation:
-        reasons.append("relocation_mismatch")
-    reasons.extend(
-        vacancy_geography_reasons(
-            row_countries(row),
-            request.vacancy_geographies,
-            remote_mode=request.remote_mode,
-            remote_scopes=row_remote_scopes(row),
-        )
-    )
-    city = _text(row["city"])
-    if request.cities and city and not fuzzy_any_match(
-        request.cities,
-        city,
-        bounds=_CITY_FUZZY_BOUNDS,
-    ):
-        reasons.append("city_mismatch")
-    return tuple(dict.fromkeys(reasons))
-
-
-def _query_postprocess_required(
-    row: dict[str, object],
-    native_query_attempts: frozenset[tuple[str, str]],
-) -> bool:
-    key = (_text(row["source"]), _text(row["query_variant"]))
-    return key not in native_query_attempts
-
-
-def _query_matches(row: dict[str, object]) -> bool:
-    query = _text(row["query_variant"]).strip()
-    if not query:
-        return True
-    tokens = _query_tokens(query)
-    haystack = "\n".join(_field_text(row, field) for field in _QUERY_TEXT_FIELDS)
-    return _query_text_matches(tokens=tokens, haystack=haystack)
-
-
-def _title_matches_query(row: dict[str, object]) -> bool:
-    query = _text(row["query_variant"]).strip()
-    return not query or _query_text_matches(tokens=_query_tokens(query), haystack=_field_text(row, "title"))
-
-
-def _query_text_matches(*, tokens: tuple[str, ...], haystack: str) -> bool:
-    if not tokens:
-        return True
-    return fuzzy_tokens_match(" ".join(tokens), haystack, bounds=_QUERY_FUZZY_BOUNDS)
-
-
-def _query_tokens(query: str) -> tuple[str, ...]:
-    return tuple(token.casefold() for token in re.findall(r"[\w+#.-]+", query) if token.strip())
-
-
-def _company_excluded(row: dict[str, object], excluded_companies: tuple[str, ...]) -> bool:
-    company = _text(row["company"]).casefold()
-    return bool(company) and any(excluded.casefold() in company for excluded in excluded_companies)
-
-
-def _text_excluded(row: dict[str, object], exclusions: tuple[TextExclusion, ...]) -> bool:
-    for exclusion in exclusions:
-        fields = tuple(field.value for field in exclusion.fields) or _TEXT_FIELDS
-        text = "\n".join(_field_text(row, field) for field in fields)
-        if _pattern_matches(text, exclusion):
-            return True
-    return False
-
-
-def _field_text(row: dict[str, object], field: str) -> str:
-    value = row.get(field)
-    if isinstance(value, tuple):
-        return " ".join(_text(item) for item in value)
-    if isinstance(value, dict):
-        return " ".join(_text(item) for item in value.values())
-    return _text(value)
-
-
-def _pattern_matches(text: str, exclusion: TextExclusion) -> bool:
-    if exclusion.mode == TextExclusionMode.SUBSTRING:
-        haystack = text if exclusion.case_sensitive else text.casefold()
-        needle = exclusion.pattern if exclusion.case_sensitive else exclusion.pattern.casefold()
-        return needle in haystack
-    flags = 0 if exclusion.case_sensitive else re.IGNORECASE
-    try:
-        return re.search(exclusion.pattern, text, flags=flags) is not None
-    except re.error as exc:
-        raise ValueError(f"invalid exclude_text regex: {exclusion.pattern}") from exc
-
-
-def _salary_matches(row: dict[str, object], salary_from: int) -> bool:
-    salary_min = _optional_int(row["salary_min"])
-    salary_max = _optional_int(row["salary_max"])
-    known_values = tuple(value for value in (salary_min, salary_max) if value is not None)
-    return not known_values or max(known_values) >= salary_from
-
-
-def _published_since(row: dict[str, object], published_since: date) -> bool:
-    raw = _text(row["posted_at"])
-    if not raw:
-        return True
-    try:
-        return date.fromisoformat(raw[:10]) >= published_since
-    except ValueError:
-        return True
 
 
 def _text(value: object) -> str:

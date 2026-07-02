@@ -15,6 +15,7 @@ from job_harness.v2.postprocessing.work_format import HYBRID_FORMAT, OFFICE_FORM
 _GLOBAL_REMOTE_MARKERS = frozenset({"anywhere", "global", "worldwide"})
 _ONSITE_MARKERS = frozenset({"office", "on site", "on-site", "onsite", "офис"})
 _REMOTE_MARKERS = frozenset({"remote", "удаленно", "удалённо"})
+
 def listing_countries(listing: dict[str, object]) -> tuple[str, ...]:
     return listing_country_codes(listing)
 
@@ -51,6 +52,8 @@ def listing_remote_scopes(listing: dict[str, object]) -> tuple[str, ...]:
     if HYBRID_FORMAT in work_formats:
         return ("hybrid",)
     if remote_in_country is False and remote_global is False:
+        return ("onsite",)
+    if listing_country_codes(listing) and not _has_remote_scope_hint(listing):
         return ("onsite",)
     return ("unknown",)
 
@@ -227,6 +230,15 @@ def _raw_mentions_onsite(listing: dict[str, object]) -> bool:
 
 def _raw_mentions_remote(listing: dict[str, object]) -> bool:
     return bool(_raw_remote_tokens(listing) & (_REMOTE_MARKERS | _GLOBAL_REMOTE_MARKERS))
+
+
+def _has_remote_scope_hint(listing: dict[str, object]) -> bool:
+    raw = listing.get("raw")
+    values: list[str] = []
+    if isinstance(raw, dict):
+        for key in ("remote_restrictions", "remote_locations", "eligible_locations", "remote_type"):
+            _append_raw_text_values(values, raw.get(key))
+    return bool(values)
 
 
 def _raw_remote_tokens(listing: dict[str, object]) -> frozenset[str]:
