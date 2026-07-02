@@ -1,0 +1,66 @@
+{
+  "outcome": "success",
+  "expected_count": 3,
+  "sample_listings": [
+    {
+      "source_listing_id": "430",
+      "title": "Business Development Manager",
+      "url": "https://adtechholding.bamboohr.com/careers/430",
+      "company": "AdTech Holding",
+      "country": null,
+      "city": null,
+      "location_text": "Limassol",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "431",
+      "title": "Business Development Manager (project Zeydoo)",
+      "url": "https://adtechholding.bamboohr.com/careers/431",
+      "company": "AdTech Holding",
+      "country": null,
+      "city": null,
+      "location_text": "Limassol",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "432",
+      "title": "Business Development Manager (China Team)",
+      "url": "https://adtechholding.bamboohr.com/careers/432",
+      "company": "AdTech Holding",
+      "country": null,
+      "city": null,
+      "location_text": "China",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "430": {
+      "ats_platform": "bamboohr",
+      "career_url": "https://adtechholding.bamboohr.com/careers/list"
+    }
+  }
+}

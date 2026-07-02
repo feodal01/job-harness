@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 6,
+  "sample_listings": [
+    {
+      "source_listing_id": "7A5384EB3F",
+      "title": "Creative producer (Crypto)",
+      "url": "https://apply.workable.com/thesoul-publishing-1/j/7A5384EB3F",
+      "company": "TheSoul Publishing",
+      "country": "Poland",
+      "city": null,
+      "location_text": "Poland (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-24",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "8DB6DA6B02",
+      "title": "Client Deployment Lead, AI (US market)",
+      "url": "https://apply.workable.com/thesoul-publishing-1/j/8DB6DA6B02",
+      "company": "TheSoul Publishing",
+      "country": "United States",
+      "city": "San Francisco",
+      "location_text": "San Francisco, United States",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-26",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "31F4EA435F",
+      "title": "Head of GTM",
+      "url": "https://apply.workable.com/thesoul-publishing-1/j/31F4EA435F",
+      "company": "TheSoul Publishing",
+      "country": "United States",
+      "city": "San Francisco",
+      "location_text": "San Francisco, United States",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-26",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "ECBE4F4A98",
+      "title": "Client Deployment Lead, AI (Europe market)",
+      "url": "https://apply.workable.com/thesoul-publishing-1/j/ECBE4F4A98",
+      "company": "TheSoul Publishing",
+      "country": "United Kingdom",
+      "city": "London",
+      "location_text": "London, United Kingdom",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-26",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "10D5842614",
+      "title": "System Administrator",
+      "url": "https://apply.workable.com/thesoul-publishing-1/j/10D5842614",
+      "company": "TheSoul Publishing",
+      "country": "Cyprus",
+      "city": "Limassol",
+      "location_text": "Limassol, Cyprus",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-19",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7A5384EB3F": {
+      "ats_platform": "workable",
+      "career_url": "https://apply.workable.com/thesoul-publishing-1/"
+    }
+  }
+}

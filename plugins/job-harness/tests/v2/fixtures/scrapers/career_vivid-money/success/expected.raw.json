@@ -1,0 +1,68 @@
+{
+  "expected_count": 21,
+  "raw_contains": {
+    "2628973": {
+      "ats_platform": "personio",
+      "remote_locations": [
+        "Almaty",
+        "Limassol",
+        "Barcelona",
+        "Serbia"
+      ],
+      "work_format": "remote"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Amsterdam",
+      "company": "Vivid Money",
+      "country": null,
+      "location_text": "Amsterdam",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "2602920",
+      "title": "Senior Product Engineer (m/f/d)",
+      "url": "https://vivid.jobs.personio.de/job/2602920"
+    },
+    {
+      "city": null,
+      "company": "Vivid Money",
+      "country": null,
+      "location_text": "Remote, Almaty, Limassol, Barcelona, Serbia",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": false,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "2628973",
+      "title": "Security Engineer (Hybrid or Remote)",
+      "url": "https://vivid.jobs.personio.de/job/2628973"
+    },
+    {
+      "city": null,
+      "company": "Vivid Money",
+      "country": null,
+      "location_text": "Remote, Almaty, Limassol, Barcelona, Serbia",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": false,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "2603999",
+      "title": "Senior DevOps Engineer",
+      "url": "https://vivid.jobs.personio.de/job/2603999"
+    }
+  ]
+}

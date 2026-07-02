@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from job_harness.v2.contracts import (
     DetailEnrichmentScraper,
     Grade,
+    HttpMethod,
     ParserFixtureCase,
     ParserFixtureKind,
     RawListing,
@@ -2653,6 +2654,128 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
         self.assertIsNone(listing.remote_in_country)
         self.assertFalse(listing.remote_global)
 
+    def test_workday_request_mapping_posts_cxs_search_payload(self) -> None:
+        source = build_supported_source_catalog(("career:semrush",)).get("career:semrush")
+
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("Engineer",)))[0]
+
+        self.assertEqual(HttpMethod.POST, fetch_request.method)
+        self.assertEqual("application/json", fetch_request.headers["Content-Type"])
+        self.assertEqual(
+            {"appliedFacets": {}, "limit": 20, "offset": 0, "searchText": ""},
+            json.loads((fetch_request.body or b"").decode("utf-8")),
+        )
+
+    def test_workday_detail_fixture_enriches_location_remote_and_description(self) -> None:
+        source = build_supported_source_catalog(("career:semrush",)).get("career:semrush")
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("Engineer",)))[0]
+        parsed = source.parse_search_response(
+            _fixture_response("career_semrush", "success"),
+            fetch_request,
+        )
+        expected = _expected("career_semrush", "detail")
+        listing = _listing_by_id(parsed.listings, str(expected["source_listing_id"]))
+
+        self.assertIsInstance(source, DetailEnrichmentScraper)
+        detail_source = cast(DetailEnrichmentScraper, source)
+        detail_request = detail_source.build_detail_request(listing)
+        detailed = detail_source.parse_detail_response(
+            _fixture_response("career_semrush", "detail"),
+            listing,
+        )
+
+        detail_fixture_case = _required_fixture_case("career:semrush", ParserFixtureKind.DETAIL)
+        self.assertEqual(_fixture_captured_url(detail_fixture_case), detail_request.url)
+        self.assertEqual(expected["country"], detailed.country)
+        self.assertEqual(expected["city"], detailed.city)
+        self.assertEqual(expected["location_text"], detailed.location_text)
+        self.assertEqual(expected["posted_at"], detailed.posted_at)
+        self.assertEqual(expected["raw_remote_type"], detailed.raw.get("remote_type"))
+        self.assertEqual(expected["raw_remote_locations"], _jsonish(detailed.raw.get("remote_locations")))
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
+    def test_personio_detail_fixture_enriches_location_remote_salary_and_description(self) -> None:
+        source = build_supported_source_catalog(("career:vivid-money",)).get("career:vivid-money")
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("Engineer",)))[0]
+        parsed = source.parse_search_response(
+            _fixture_response("career_vivid-money", "success"),
+            fetch_request,
+        )
+        expected = _expected("career_vivid-money", "detail")
+        listing = _listing_by_id(parsed.listings, str(expected["source_listing_id"]))
+
+        self.assertIsInstance(source, DetailEnrichmentScraper)
+        detail_source = cast(DetailEnrichmentScraper, source)
+        detail_request = detail_source.build_detail_request(listing)
+        detailed = detail_source.parse_detail_response(
+            _fixture_response("career_vivid-money", "detail"),
+            listing,
+        )
+
+        detail_fixture_case = _required_fixture_case("career:vivid-money", ParserFixtureKind.DETAIL)
+        self.assertEqual(_fixture_captured_url(detail_fixture_case), detail_request.url)
+        self.assertEqual(expected["country"], detailed.country)
+        self.assertEqual(expected["city"], detailed.city)
+        self.assertEqual(expected["location_text"], detailed.location_text)
+        self.assertEqual(expected["posted_at"], detailed.posted_at)
+        self.assertEqual(expected["salary_contains"][0], (detailed.salary_text or "").splitlines()[0])
+        self.assertEqual(expected["raw_remote_locations"], _jsonish(detailed.raw.get("remote_locations")))
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
+    def test_join_detail_fixture_enriches_remote_scope_and_description(self) -> None:
+        source = build_supported_source_catalog(("career:sidestream",)).get("career:sidestream")
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("Engineer",)))[0]
+        parsed = source.parse_search_response(
+            _fixture_response("career_sidestream", "success"),
+            fetch_request,
+        )
+        expected = _expected("career_sidestream", "detail")
+        listing = _listing_by_id(parsed.listings, str(expected["source_listing_id"]))
+
+        self.assertIsInstance(source, DetailEnrichmentScraper)
+        detail_source = cast(DetailEnrichmentScraper, source)
+        detail_request = detail_source.build_detail_request(listing)
+        detailed = detail_source.parse_detail_response(
+            _fixture_response("career_sidestream", "detail"),
+            listing,
+        )
+
+        detail_fixture_case = _required_fixture_case("career:sidestream", ParserFixtureKind.DETAIL)
+        self.assertEqual(_fixture_captured_url(detail_fixture_case), detail_request.url)
+        self.assertEqual(expected["country"], detailed.country)
+        self.assertEqual(expected["city"], detailed.city)
+        self.assertEqual(expected["location_text"], detailed.location_text)
+        self.assertEqual(expected["posted_at"], detailed.posted_at)
+        self.assertEqual(expected["raw_remote_locations"], _jsonish(detailed.raw.get("remote_locations")))
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
+    def test_dreamjob_detail_fixture_enriches_city_posted_at_and_description(self) -> None:
+        source = build_supported_source_catalog(("career:nii-spetsvuzavtomatika",)).get(
+            "career:nii-spetsvuzavtomatika"
+        )
+        fetch_request = source.build_search_requests(SearchRequest(query_variants=("Python",)))[0]
+        parsed = source.parse_search_response(
+            _fixture_response("career_nii-spetsvuzavtomatika", "success"),
+            fetch_request,
+        )
+        expected = _expected("career_nii-spetsvuzavtomatika", "detail")
+        listing = _listing_by_id(parsed.listings, str(expected["source_listing_id"]))
+
+        self.assertIsInstance(source, DetailEnrichmentScraper)
+        detail_source = cast(DetailEnrichmentScraper, source)
+        detail_request = detail_source.build_detail_request(listing)
+        detailed = detail_source.parse_detail_response(
+            _fixture_response("career_nii-spetsvuzavtomatika", "detail"),
+            listing,
+        )
+
+        detail_fixture_case = _required_fixture_case("career:nii-spetsvuzavtomatika", ParserFixtureKind.DETAIL)
+        self.assertEqual(_fixture_captured_url(detail_fixture_case), detail_request.url)
+        self.assertEqual(expected["city"], detailed.city)
+        self.assertEqual(expected["location_text"], detailed.location_text)
+        self.assertEqual(expected["posted_at"], detailed.posted_at)
+        _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
 
 class TermiusCareerSourceTest(unittest.TestCase):
     def test_remote_only_listing_does_not_surface_hidden_lever_country(self) -> None:
@@ -2690,24 +2813,44 @@ def _additional_company_sources() -> tuple[tuple[str, SourceScraper], ...]:
         "career:planner5d",
         "career:superannotate",
         "career:xsolla",
+        "career:unlimint",
         "career:clickhouse",
         "career:datafold",
         "career:inworld",
         "career:luminai",
         "career:teleport",
+        "career:mapbox",
         "career:joom",
         "career:zeptolab",
+        "career:homebuddy",
+        "career:lyka",
+        "career:thesoul-publishing",
         "career:abbyy",
         "career:ahrefs",
         "career:eqvilent",
         "career:humansignal",
+        "career:lokalise",
+        "career:flo-health",
+        "career:pandadoc",
+        "career:wrike",
+        "career:adtech-holding",
         "career:altenar",
         "career:synder",
+        "career:onemarketdata",
         "career:crystal",
         "career:synthesized",
         "career:tradingview",
         "career:osome",
         "career:sumsub",
+        "career:semrush",
+        "career:quadcode",
+        "career:vivid-money",
+        "career:sidestream",
+        "career:sbk-parus",
+        "career:softmall",
+        "career:retnnet",
+        "career:znanie",
+        "career:nii-spetsvuzavtomatika",
     )
     catalog = build_supported_source_catalog(source_ids)
     return tuple(

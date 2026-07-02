@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 65,
+  "sample_listings": [
+    {
+      "source_listing_id": "00a17a0b-1a5a-4fc8-ad24-a3cc453dcced",
+      "title": "Software Development Engineer II, Data Platform",
+      "url": "https://jobs.ashbyhq.com/Mapbox/00a17a0b-1a5a-4fc8-ad24-a3cc453dcced",
+      "company": "Mapbox",
+      "country": "United Kingdom",
+      "city": "Mapbox UK",
+      "location_text": "Mapbox UK",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-21T14:10:00.367+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "0286b424-1a74-456f-8384-c0519cec117e",
+      "title": "Senior Software Data Engineer (Roads Team)",
+      "url": "https://jobs.ashbyhq.com/Mapbox/0286b424-1a74-456f-8384-c0519cec117e",
+      "company": "Mapbox",
+      "country": "Belarus",
+      "city": "Mapbox Minsk",
+      "location_text": "Mapbox Minsk",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-12T15:17:06.127+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "029bda44-667c-4aed-8a11-7499df34a4a0",
+      "title": "Product Manager III, Navigation",
+      "url": "https://jobs.ashbyhq.com/Mapbox/029bda44-667c-4aed-8a11-7499df34a4a0",
+      "company": "Mapbox",
+      "country": null,
+      "city": null,
+      "location_text": "Mapbox US",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-01T19:36:22.663+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "06de472b-6738-4e32-8a44-836ce5a174c0",
+      "title": "Software Development Engineer II, Search Box",
+      "url": "https://jobs.ashbyhq.com/Mapbox/06de472b-6738-4e32-8a44-836ce5a174c0",
+      "company": "Mapbox",
+      "country": null,
+      "city": null,
+      "location_text": "Mapbox Japan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-29T08:43:11.008+00:00",
+      "remote_in_country": null,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "088c744c-bc52-42b0-8dd8-b1b42e9960f6",
+      "title": "Security Engineer II",
+      "url": "https://jobs.ashbyhq.com/Mapbox/088c744c-bc52-42b0-8dd8-b1b42e9960f6",
+      "company": "Mapbox",
+      "country": "Finland",
+      "city": "Mapbox Helsinki",
+      "location_text": "Mapbox Helsinki",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-01T15:46:43.778+00:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "00a17a0b-1a5a-4fc8-ad24-a3cc453dcced": {
+      "ats_platform": "ashby",
+      "career_url": "https://jobs.ashbyhq.com/Mapbox"
+    }
+  }
+}

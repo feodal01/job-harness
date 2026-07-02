@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 52,
+  "sample_listings": [
+    {
+      "source_listing_id": "7992746",
+      "title": "Account Executive",
+      "url": "https://job-boards.greenhouse.io/pandadoc/jobs/7992746",
+      "company": "PandaDoc",
+      "country": null,
+      "city": null,
+      "location_text": "Europe",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-12T07:21:19-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7950219",
+      "title": "Account Manager, Commercial",
+      "url": "https://job-boards.greenhouse.io/pandadoc/jobs/7950219",
+      "company": "PandaDoc",
+      "country": null,
+      "city": null,
+      "location_text": "Remote (USA)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-21T10:26:32-04:00",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7939539",
+      "title": "Account Manager, Small Business",
+      "url": "https://job-boards.greenhouse.io/pandadoc/jobs/7939539",
+      "company": "PandaDoc",
+      "country": null,
+      "city": null,
+      "location_text": "Remote (USA)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-19T10:23:59-04:00",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "7791702",
+      "title": "Application Security Engineer",
+      "url": "https://job-boards.greenhouse.io/pandadoc/jobs/7791702",
+      "company": "PandaDoc",
+      "country": null,
+      "city": null,
+      "location_text": "Remote (Portugal)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-08T11:44:44-04:00",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "8038508",
+      "title": "Application Security Engineer",
+      "url": "https://job-boards.greenhouse.io/pandadoc/jobs/8038508",
+      "company": "PandaDoc",
+      "country": null,
+      "city": null,
+      "location_text": "Remote (Europe)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-30T11:04:59-04:00",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "7992746": {
+      "ats_platform": "greenhouse",
+      "career_url": "https://job-boards.greenhouse.io/pandadoc"
+    }
+  }
+}

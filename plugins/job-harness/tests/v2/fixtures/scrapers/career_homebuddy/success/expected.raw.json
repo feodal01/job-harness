@@ -1,0 +1,30 @@
+{
+  "outcome": "success",
+  "expected_count": 1,
+  "sample_listings": [
+    {
+      "source_listing_id": "1FC8DB117A",
+      "title": "Join our team",
+      "url": "https://apply.workable.com/homebuddy/j/1FC8DB117A",
+      "company": "HomeBuddy",
+      "country": "Poland",
+      "city": null,
+      "location_text": "Poland (Remote)",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2024-03-06",
+      "remote_in_country": true,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "1FC8DB117A": {
+      "ats_platform": "workable",
+      "career_url": "https://apply.workable.com/homebuddy/"
+    }
+  }
+}

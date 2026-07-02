@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 10,
+  "sample_listings": [
+    {
+      "source_listing_id": "83",
+      "title": "Technical Operations Engineer",
+      "url": "https://onemarketdata.bamboohr.com/careers/83",
+      "company": "OneMarketData",
+      "country": null,
+      "city": null,
+      "location_text": "Yerevan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "92",
+      "title": "Senior Project Manager",
+      "url": "https://onemarketdata.bamboohr.com/careers/92",
+      "company": "OneMarketData",
+      "country": null,
+      "city": null,
+      "location_text": "Yerevan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "108",
+      "title": "Data Engineer (Python, Airflow, Linux)",
+      "url": "https://onemarketdata.bamboohr.com/careers/108",
+      "company": "OneMarketData",
+      "country": null,
+      "city": null,
+      "location_text": "Yerevan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "152",
+      "title": "Lead Python Implementation Engineer",
+      "url": "https://onemarketdata.bamboohr.com/careers/152",
+      "company": "OneMarketData",
+      "country": null,
+      "city": null,
+      "location_text": "Dublin, Ireland",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "153",
+      "title": "C++ Software Engineer (Junior)",
+      "url": "https://onemarketdata.bamboohr.com/careers/153",
+      "company": "OneMarketData",
+      "country": null,
+      "city": null,
+      "location_text": "Yerevan",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "83": {
+      "ats_platform": "bamboohr",
+      "career_url": "https://onemarketdata.bamboohr.com/careers/list"
+    }
+  }
+}

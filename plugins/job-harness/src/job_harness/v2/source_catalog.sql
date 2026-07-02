@@ -140,7 +140,27 @@ VALUES
     (45, 'career:synthesized', 'company_career', 'http', 100),
     (46, 'career:tradingview', 'company_career', 'http', 100),
     (47, 'career:osome', 'company_career', 'http', 100),
-    (48, 'career:sumsub', 'company_career', 'http', 100);
+    (48, 'career:sumsub', 'company_career', 'http', 100),
+    (49, 'career:unlimint', 'company_career', 'http', 100),
+    (50, 'career:mapbox', 'company_career', 'http', 100),
+    (51, 'career:homebuddy', 'company_career', 'http', 100),
+    (52, 'career:lyka', 'company_career', 'http', 100),
+    (53, 'career:lokalise', 'company_career', 'http', 100),
+    (54, 'career:adtech-holding', 'company_career', 'http', 100),
+    (55, 'career:onemarketdata', 'company_career', 'http', 100),
+    (56, 'career:flo-health', 'company_career', 'http', 100),
+    (57, 'career:pandadoc', 'company_career', 'http', 100),
+    (58, 'career:wrike', 'company_career', 'http', 100),
+    (59, 'career:thesoul-publishing', 'company_career', 'http', 100),
+    (60, 'career:semrush', 'company_career', 'http', 100),
+    (61, 'career:quadcode', 'company_career', 'http', 100),
+    (62, 'career:vivid-money', 'company_career', 'http', 100),
+    (63, 'career:sidestream', 'company_career', 'http', 100),
+    (64, 'career:sbk-parus', 'company_career', 'http', 100),
+    (65, 'career:softmall', 'company_career', 'http', 100),
+    (66, 'career:retnnet', 'company_career', 'http', 100),
+    (67, 'career:znanie', 'company_career', 'http', 100),
+    (68, 'career:nii-spetsvuzavtomatika', 'company_career', 'http', 100);
 
 INSERT INTO countries (country_code, display_name, search_enabled)
 VALUES
@@ -155,7 +175,12 @@ VALUES
     ('career:ibs', 0, 'RU'),
     ('career:amocrm', 0, 'RU'),
     ('hirehi', 0, 'RU'),
-    ('staff_am', 0, 'AM');
+    ('staff_am', 0, 'AM'),
+    ('career:sbk-parus', 0, 'RU'),
+    ('career:softmall', 0, 'RU'),
+    ('career:retnnet', 0, 'RU'),
+    ('career:znanie', 0, 'RU'),
+    ('career:nii-spetsvuzavtomatika', 0, 'RU');
 
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 VALUES
@@ -408,7 +433,9 @@ WITH lever_sources(source_id) AS (
         ('career:collectly'),
         ('career:planner5d'),
         ('career:superannotate'),
-        ('career:xsolla')
+        ('career:xsolla'),
+        ('career:unlimint'),
+        ('career:quadcode')
 ),
 lever_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -433,7 +460,8 @@ WITH ashby_sources(source_id) AS (
         ('career:datafold'),
         ('career:inworld'),
         ('career:luminai'),
-        ('career:teleport')
+        ('career:teleport'),
+        ('career:mapbox')
 ),
 ashby_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -455,7 +483,10 @@ CROSS JOIN ashby_criteria;
 WITH workable_sources(source_id) AS (
     VALUES
         ('career:joom'),
-        ('career:zeptolab')
+        ('career:zeptolab'),
+        ('career:homebuddy'),
+        ('career:lyka'),
+        ('career:thesoul-publishing')
 ),
 workable_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -479,7 +510,11 @@ WITH greenhouse_sources(source_id) AS (
         ('career:abbyy'),
         ('career:ahrefs'),
         ('career:eqvilent'),
-        ('career:humansignal')
+        ('career:humansignal'),
+        ('career:lokalise'),
+        ('career:flo-health'),
+        ('career:pandadoc'),
+        ('career:wrike')
 ),
 greenhouse_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -500,8 +535,10 @@ CROSS JOIN greenhouse_criteria;
 
 WITH bamboohr_sources(source_id) AS (
     VALUES
+        ('career:adtech-holding'),
         ('career:altenar'),
-        ('career:synder')
+        ('career:synder'),
+        ('career:onemarketdata')
 ),
 bamboohr_criteria(criterion_order, criterion, capability) AS (
     VALUES
@@ -545,6 +582,94 @@ SELECT teamtailor_sources.source_id, teamtailor_criteria.criterion_order, teamta
 FROM teamtailor_sources
 CROSS JOIN teamtailor_criteria;
 
+WITH workday_sources(source_id) AS (
+    VALUES
+        ('career:semrush')
+),
+workday_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT workday_sources.source_id, workday_criteria.criterion_order, workday_criteria.criterion, workday_criteria.capability
+FROM workday_sources
+CROSS JOIN workday_criteria;
+
+WITH personio_sources(source_id) AS (
+    VALUES
+        ('career:vivid-money')
+),
+personio_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT personio_sources.source_id, personio_criteria.criterion_order, personio_criteria.criterion, personio_criteria.capability
+FROM personio_sources
+CROSS JOIN personio_criteria;
+
+WITH join_sources(source_id) AS (
+    VALUES
+        ('career:sidestream')
+),
+join_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'unsupported'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT join_sources.source_id, join_criteria.criterion_order, join_criteria.criterion, join_criteria.capability
+FROM join_sources
+CROSS JOIN join_criteria;
+
+WITH dreamjob_sources(source_id) AS (
+    VALUES
+        ('career:sbk-parus'),
+        ('career:softmall'),
+        ('career:retnnet'),
+        ('career:znanie'),
+        ('career:nii-spetsvuzavtomatika')
+),
+dreamjob_criteria(criterion_order, criterion, capability) AS (
+    VALUES
+        (0, 'query', 'structured_output'),
+        (1, 'grades', 'unsupported'),
+        (2, 'salary_from', 'structured_output'),
+        (3, 'published_since', 'structured_output'),
+        (4, 'relocation', 'unsupported'),
+        (5, 'remote_mode', 'structured_output'),
+        (6, 'work_from_geographies', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output'),
+        (8, 'cities', 'structured_output')
+)
+INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
+SELECT dreamjob_sources.source_id, dreamjob_criteria.criterion_order, dreamjob_criteria.criterion, dreamjob_criteria.capability
+FROM dreamjob_sources
+CROSS JOIN dreamjob_criteria;
+
 INSERT INTO source_required_fixture_kinds (source_id, kind)
 VALUES
     ('habr_career', 'no_results'),
@@ -581,7 +706,17 @@ VALUES
     ('career:appfollow', 'detail'),
     ('career:tradingview', 'pagination'),
     ('career:osome', 'pagination'),
-    ('career:sumsub', 'pagination');
+    ('career:sumsub', 'pagination'),
+    ('career:semrush', 'pagination'),
+    ('career:semrush', 'detail'),
+    ('career:vivid-money', 'detail'),
+    ('career:sidestream', 'detail'),
+    ('career:sbk-parus', 'detail'),
+    ('career:softmall', 'detail'),
+    ('career:retnnet', 'detail'),
+    ('career:znanie', 'detail'),
+    ('career:nii-spetsvuzavtomatika', 'pagination'),
+    ('career:nii-spetsvuzavtomatika', 'detail');
 
 INSERT INTO parser_fixtures (
     source_id,
@@ -1427,24 +1562,34 @@ WITH configured_company_success_fixtures(source_id, folder) AS (
         ('career:planner5d', 'career_planner5d'),
         ('career:superannotate', 'career_superannotate'),
         ('career:xsolla', 'career_xsolla'),
+        ('career:unlimint', 'career_unlimint'),
         ('career:clickhouse', 'career_clickhouse'),
         ('career:datafold', 'career_datafold'),
         ('career:inworld', 'career_inworld'),
         ('career:luminai', 'career_luminai'),
         ('career:teleport', 'career_teleport'),
+        ('career:mapbox', 'career_mapbox'),
         ('career:joom', 'career_joom'),
         ('career:zeptolab', 'career_zeptolab'),
         ('career:abbyy', 'career_abbyy'),
         ('career:ahrefs', 'career_ahrefs'),
         ('career:eqvilent', 'career_eqvilent'),
         ('career:humansignal', 'career_humansignal'),
+        ('career:lokalise', 'career_lokalise'),
+        ('career:flo-health', 'career_flo-health'),
+        ('career:pandadoc', 'career_pandadoc'),
+        ('career:wrike', 'career_wrike'),
+        ('career:adtech-holding', 'career_adtech-holding'),
         ('career:altenar', 'career_altenar'),
         ('career:synder', 'career_synder'),
+        ('career:onemarketdata', 'career_onemarketdata'),
         ('career:crystal', 'career_crystal'),
         ('career:synthesized', 'career_synthesized'),
         ('career:tradingview', 'career_tradingview'),
         ('career:osome', 'career_osome'),
-        ('career:sumsub', 'career_sumsub')
+        ('career:sumsub', 'career_sumsub'),
+        ('career:semrush', 'career_semrush'),
+        ('career:quadcode', 'career_quadcode')
 )
 INSERT INTO parser_fixtures (
     source_id,
@@ -1471,6 +1616,9 @@ FROM configured_company_success_fixtures
 WHERE source_id NOT IN (
     'career:joom',
     'career:zeptolab',
+    'career:homebuddy',
+    'career:lyka',
+    'career:thesoul-publishing',
     'career:crystal',
     'career:synthesized',
     'career:tradingview',
@@ -1482,11 +1630,21 @@ WITH configured_company_success_html_fixtures(source_id, folder) AS (
     VALUES
         ('career:joom', 'career_joom'),
         ('career:zeptolab', 'career_zeptolab'),
+        ('career:homebuddy', 'career_homebuddy'),
+        ('career:lyka', 'career_lyka'),
+        ('career:thesoul-publishing', 'career_thesoul-publishing'),
         ('career:crystal', 'career_crystal'),
         ('career:synthesized', 'career_synthesized'),
         ('career:tradingview', 'career_tradingview'),
         ('career:osome', 'career_osome'),
-        ('career:sumsub', 'career_sumsub')
+        ('career:sumsub', 'career_sumsub'),
+        ('career:vivid-money', 'career_vivid-money'),
+        ('career:sidestream', 'career_sidestream'),
+        ('career:sbk-parus', 'career_sbk-parus'),
+        ('career:softmall', 'career_softmall'),
+        ('career:retnnet', 'career_retnnet'),
+        ('career:znanie', 'career_znanie'),
+        ('career:nii-spetsvuzavtomatika', 'career_nii-spetsvuzavtomatika')
 )
 INSERT INTO parser_fixtures (
     source_id,
@@ -1515,7 +1673,8 @@ WITH configured_company_pagination_fixtures(source_id, folder) AS (
     VALUES
         ('career:tradingview', 'career_tradingview'),
         ('career:osome', 'career_osome'),
-        ('career:sumsub', 'career_sumsub')
+        ('career:sumsub', 'career_sumsub'),
+        ('career:nii-spetsvuzavtomatika', 'career_nii-spetsvuzavtomatika')
 )
 INSERT INTO parser_fixtures (
     source_id,
@@ -1539,3 +1698,139 @@ SELECT
     1,
     'codex_direct_fixture_review'
 FROM configured_company_pagination_fixtures;
+
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+VALUES
+    (
+        'career:semrush',
+        3,
+        'career:semrush-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_semrush/detail/response.json',
+        'tests/v2/fixtures/scrapers/career_semrush/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_semrush/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:vivid-money',
+        1,
+        'career:vivid-money-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_vivid-money/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_vivid-money/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_vivid-money/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:sidestream',
+        1,
+        'career:sidestream-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_sidestream/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_sidestream/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_sidestream/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:sbk-parus',
+        1,
+        'career:sbk-parus-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_sbk-parus/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_sbk-parus/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_sbk-parus/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:softmall',
+        1,
+        'career:softmall-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_softmall/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_softmall/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_softmall/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:retnnet',
+        1,
+        'career:retnnet-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_retnnet/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_retnnet/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_retnnet/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:znanie',
+        1,
+        'career:znanie-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_znanie/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_znanie/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_znanie/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:nii-spetsvuzavtomatika',
+        2,
+        'career:nii-spetsvuzavtomatika-detail',
+        'detail',
+        'tests/v2/fixtures/scrapers/career_nii-spetsvuzavtomatika/detail/response.html',
+        'tests/v2/fixtures/scrapers/career_nii-spetsvuzavtomatika/detail/meta.json',
+        'tests/v2/fixtures/scrapers/career_nii-spetsvuzavtomatika/detail/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    );
+
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+VALUES
+    (
+        'career:semrush',
+        1,
+        'career:semrush-pagination-offset-20',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_20/response.json',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_20/meta.json',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_20/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    ),
+    (
+        'career:semrush',
+        2,
+        'career:semrush-pagination-offset-40',
+        'pagination',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_40/response.json',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_40/meta.json',
+        'tests/v2/fixtures/scrapers/career_semrush/pagination_offset_40/expected.raw.json',
+        1,
+        'codex_direct_fixture_review'
+    );

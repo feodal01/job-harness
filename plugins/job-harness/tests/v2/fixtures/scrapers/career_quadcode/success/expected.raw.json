@@ -1,0 +1,62 @@
+{
+  "expected_count": 19,
+  "raw_contains": {
+    "793e2d75-3d27-48e4-9bce-326f47fcfc2b": {
+      "ats_platform": "lever",
+      "workplace_type": "remote"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": null,
+      "company": "Quadcode",
+      "country": null,
+      "location_text": "Nigeria",
+      "native_grade": null,
+      "posted_at": "2026-04-14T06:26:42.509000Z",
+      "remote_global": false,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "793e2d75-3d27-48e4-9bce-326f47fcfc2b",
+      "title": "Affiliate Manager (Nigeria)",
+      "url": "https://jobs.eu.lever.co/quadcode/793e2d75-3d27-48e4-9bce-326f47fcfc2b"
+    },
+    {
+      "city": null,
+      "company": "Quadcode",
+      "country": null,
+      "location_text": "Saudi Arabia, Egypt, Jordan, Lebanon, Dubai",
+      "native_grade": null,
+      "posted_at": "2026-04-24T08:12:27.880000Z",
+      "remote_global": false,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "0d7ab9d9-4367-4b3b-af4d-d6cadaaa9aff",
+      "title": "Affiliate Manager (Saudi Arabia)",
+      "url": "https://jobs.eu.lever.co/quadcode/0d7ab9d9-4367-4b3b-af4d-d6cadaaa9aff"
+    },
+    {
+      "city": null,
+      "company": "Quadcode",
+      "country": null,
+      "location_text": "Georgia, Moldova, Belarus, Serbia, Montenegro, Kazakhstan, Uzbekistan, Kyrgyzstan, Poland, Portugal, Armenia, Dubai, Bulgaria, Azerbaijan, Thailand",
+      "native_grade": null,
+      "posted_at": "2026-05-05T17:50:43.704000Z",
+      "remote_global": false,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "000411a1-63e9-4d22-9b82-eaa323527abe",
+      "title": "AI Blogger / AI Video Content Creator (YouTube/X)",
+      "url": "https://jobs.eu.lever.co/quadcode/000411a1-63e9-4d22-9b82-eaa323527abe"
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "expected_count": 12,
+  "raw_contains": {
+    "132663798": {
+      "ats_platform": "dreamjob",
+      "published_text": "24 июня 2026",
+      "salary_text": null,
+      "tags": [
+        "От 3 до 6 лет"
+      ]
+    },
+    "134573107": {
+      "ats_platform": "dreamjob",
+      "published_text": "25 июня 2026",
+      "salary_text": null,
+      "tags": [
+        "От 1 года до 3 лет"
+      ]
+    },
+    "134678036": {
+      "ats_platform": "dreamjob",
+      "published_text": "29 июня 2026",
+      "salary_text": "до 150 000 ₽",
+      "tags": [
+        "Новая",
+        "От 1 года до 3 лет"
+      ]
+    },
+    "134723040": {
+      "ats_platform": "dreamjob",
+      "published_text": "вчера",
+      "salary_text": null,
+      "tags": [
+        "Новая",
+        "От 3 до 6 лет",
+        "Можно удаленно"
+      ],
+      "work_format": "remote"
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Москва",
+      "company": "Российское общество Знание",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "134723040",
+      "title": "Старший менеджер межведомственных проектов",
+      "url": "https://dreamjob.ru/employers/198144/vakansii/134723040"
+    },
+    {
+      "city": "Москва",
+      "company": "Российское общество Знание",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": 150000,
+      "salary_min": null,
+      "salary_text": "до 150 000 ₽",
+      "source_listing_id": "134678036",
+      "title": "Инженер технической поддержки",
+      "url": "https://dreamjob.ru/employers/198144/vakansii/134678036"
+    },
+    {
+      "city": "Москва",
+      "company": "Российское общество Знание",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "134573107",
+      "title": "Звукооператор",
+      "url": "https://dreamjob.ru/employers/198144/vakansii/134573107"
+    },
+    {
+      "city": "Москва",
+      "company": "Российское общество Знание",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "132663798",
+      "title": "Ассистент руководителя",
+      "url": "https://dreamjob.ru/employers/198144/vakansii/132663798"
+    }
+  ]
+}

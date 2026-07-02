@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 78,
+  "sample_listings": [
+    {
+      "source_listing_id": "4664056005",
+      "title": "Account Development Manager 1 -Evening shift  (15:30 - 00:00)",
+      "url": "https://job-boards.greenhouse.io/wrike/jobs/4664056005",
+      "company": "Wrike",
+      "country": null,
+      "city": "Prague",
+      "location_text": "Prague",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-02-19T05:41:46-05:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4664057005",
+      "title": "Account Development Manager 1  -Evening shift  (16:30 - 01:00) CEST",
+      "url": "https://job-boards.greenhouse.io/wrike/jobs/4664057005",
+      "company": "Wrike",
+      "country": null,
+      "city": "Nicosia",
+      "location_text": "Nicosia",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-02-19T05:41:47-05:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4238976005",
+      "title": "Account Manager L4",
+      "url": "https://job-boards.greenhouse.io/wrike/jobs/4238976005",
+      "company": "Wrike",
+      "country": null,
+      "city": null,
+      "location_text": "US - Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2023-04-14T22:21:49-04:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4710225005",
+      "title": "AI-Enabled SW Engineer - Talent Pool",
+      "url": "https://job-boards.greenhouse.io/wrike/jobs/4710225005",
+      "company": "Wrike",
+      "country": null,
+      "city": "Prague",
+      "location_text": "Prague",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-30T04:31:24-04:00",
+      "remote_in_country": false,
+      "remote_global": false,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4710558005",
+      "title": "AI-Enabled SW Engineer - Talent Pool",
+      "url": "https://job-boards.greenhouse.io/wrike/jobs/4710558005",
+      "company": "Wrike",
+      "country": null,
+      "city": null,
+      "location_text": "Portugal - Remote",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-06-30T04:42:11-04:00",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "4664056005": {
+      "ats_platform": "greenhouse",
+      "career_url": "https://job-boards.greenhouse.io/wrike"
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "outcome": "success",
+  "expected_count": 46,
+  "sample_listings": [
+    {
+      "source_listing_id": "3d6ae806-7fd8-4002-95b3-a424fc377e14",
+      "title": "Agentic Content Creator",
+      "url": "https://jobs.lever.co/unlimit/3d6ae806-7fd8-4002-95b3-a424fc377e14",
+      "company": "Unlimint",
+      "country": null,
+      "city": null,
+      "location_text": "Belgrade",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-05-08T11:00:16.234000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "03a00c90-6367-4c1e-bfe3-22014c1bc49b",
+      "title": "Agentic Design Orchestrator (Marketing)",
+      "url": "https://jobs.lever.co/unlimit/03a00c90-6367-4c1e-bfe3-22014c1bc49b",
+      "company": "Unlimint",
+      "country": null,
+      "city": null,
+      "location_text": "Belgrade, Limassol",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-04-13T07:06:44.291000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "b172b5c0-d94c-443c-9552-ac877458fb27",
+      "title": "Agentic Systems Engineer",
+      "url": "https://jobs.lever.co/unlimit/b172b5c0-d94c-443c-9552-ac877458fb27",
+      "company": "Unlimint",
+      "country": null,
+      "city": null,
+      "location_text": "Belgrade",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-10-14T20:21:53.307000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "4a892c8d-1551-4a51-9539-eb5c6a86eca6",
+      "title": "BI Developer",
+      "url": "https://jobs.lever.co/unlimit/4a892c8d-1551-4a51-9539-eb5c6a86eca6",
+      "company": "Unlimint",
+      "country": null,
+      "city": null,
+      "location_text": "Belgrade",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2025-09-29T13:48:47.446000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    },
+    {
+      "source_listing_id": "0e224be0-3096-462c-aaef-ce10c2b7b29c",
+      "title": "Business Development Manager",
+      "url": "https://jobs.lever.co/unlimit/0e224be0-3096-462c-aaef-ce10c2b7b29c",
+      "company": "Unlimint",
+      "country": null,
+      "city": null,
+      "location_text": "Sao Paolo",
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": "2026-03-31T17:56:02.935000Z",
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null,
+      "skills": []
+    }
+  ],
+  "raw_contains": {
+    "3d6ae806-7fd8-4002-95b3-a424fc377e14": {
+      "ats_platform": "lever",
+      "career_url": "https://jobs.lever.co/unlimit"
+    }
+  }
+}

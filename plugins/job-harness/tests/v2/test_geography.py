@@ -4,6 +4,7 @@ import unittest
 
 from job_harness.v2.geography import (
     geography_matches_any,
+    listing_country_codes,
     normalize_request_geography,
     normalize_source_geographies,
     normalize_source_geography,
@@ -61,6 +62,48 @@ class GeographyTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(("ES",), normalized)
+
+    def test_explicit_country_suppresses_city_name_country_fallback(self) -> None:
+        cases = (
+            ("Alexandria, Australia (Hybrid)", ("AU",)),
+            ("Cambridge, United States", ("US",)),
+        )
+        for raw, expected in cases:
+            with self.subTest(raw=raw):
+                # Arrange / Act
+                normalized = normalize_source_geographies(raw)
+
+                # Assert
+                self.assertEqual(expected, normalized)
+
+    def test_normalizes_country_suffix_in_branded_location_labels(self) -> None:
+        cases = (
+            ("Mapbox Japan", ("JP",)),
+            ("Mapbox US", ("US",)),
+            ("Remote role United States", ("US",)),
+            ("Remote role Europe", ("EU",)),
+        )
+        for raw, expected in cases:
+            with self.subTest(raw=raw):
+                # Arrange / Act
+                normalized = normalize_source_geographies(raw)
+
+                # Assert
+                self.assertEqual(expected, normalized)
+
+    def test_listing_country_prefers_explicit_country_over_city_fallback(self) -> None:
+        # Arrange
+        listing: dict[str, object] = {
+            "location_text": "Alexandria, Australia (Hybrid)",
+            "country": "Australia",
+            "city": "Alexandria",
+        }
+
+        # Act
+        countries = listing_country_codes(listing)
+
+        # Assert
+        self.assertEqual(("AU",), countries)
 
     def test_normalizes_source_locations_with_workplace_descriptors(self) -> None:
         # Arrange / Act
