@@ -15,6 +15,7 @@ from job_harness.v2.postprocessing.work_format import HYBRID_FORMAT, OFFICE_FORM
 _GLOBAL_REMOTE_MARKERS = frozenset({"anywhere", "global", "worldwide"})
 _ONSITE_MARKERS = frozenset({"office", "on site", "on-site", "onsite", "офис"})
 _REMOTE_MARKERS = frozenset({"remote", "удаленно", "удалённо"})
+
 def listing_countries(listing: dict[str, object]) -> tuple[str, ...]:
     return listing_country_codes(listing)
 
@@ -52,6 +53,8 @@ def listing_remote_scopes(listing: dict[str, object]) -> tuple[str, ...]:
         return ("hybrid",)
     if remote_in_country is False and remote_global is False:
         return ("onsite",)
+    if listing_country_codes(listing) and not _has_remote_scope_hint(listing):
+        return ("onsite",)
     return ("unknown",)
 
 
@@ -78,14 +81,14 @@ def remote_filter_reasons(
         if "global" in remote_scopes:
             return ()
         if remote_scopes == ("unknown",):
-            return ("remote_global_unknown",)
+            return ()
         return ("remote_global_mismatch",)
 
     if remote_mode == RemoteMode.NON_REMOTE_ONLY:
         if remote_scopes == ("onsite",):
             return ()
         if remote_scopes == ("unknown",):
-            return ("remote_scope_unknown",)
+            return ()
         return ("remote_mismatch",)
 
     return ()
@@ -103,7 +106,7 @@ def vacancy_geography_reasons(
     if remote_mode in {RemoteMode.COMPATIBLE_REMOTE, RemoteMode.GLOBAL_REMOTE_ONLY} and "global" in remote_scopes:
         return ()
     if not countries:
-        return ("vacancy_geography_unknown",)
+        return ()
     if any(geography_matches_any(country, requested_geographies) for country in countries):
         return ()
     return ("vacancy_geography_mismatch",)
@@ -147,7 +150,7 @@ def _compatible_remote_filter_reasons(
 
 def _remote_eligibility_failure(remote_scopes: tuple[str, ...]) -> tuple[str, ...]:
     if remote_scopes == ("unknown",):
-        return ("remote_eligibility_unknown",)
+        return ()
     return ("remote_eligibility_mismatch",)
 
 
@@ -227,6 +230,15 @@ def _raw_mentions_onsite(listing: dict[str, object]) -> bool:
 
 def _raw_mentions_remote(listing: dict[str, object]) -> bool:
     return bool(_raw_remote_tokens(listing) & (_REMOTE_MARKERS | _GLOBAL_REMOTE_MARKERS))
+
+
+def _has_remote_scope_hint(listing: dict[str, object]) -> bool:
+    raw = listing.get("raw")
+    values: list[str] = []
+    if isinstance(raw, dict):
+        for key in ("remote_restrictions", "remote_locations", "eligible_locations", "remote_type"):
+            _append_raw_text_values(values, raw.get(key))
+    return bool(values)
 
 
 def _raw_remote_tokens(listing: dict[str, object]) -> frozenset[str]:

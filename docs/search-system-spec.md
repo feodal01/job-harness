@@ -82,16 +82,16 @@ Definitions:
 - Vacancy geography means a country or explicit region in `SearchRequest.vacancy_geographies`. This is where the vacancy, office, employer market, or source card is located.
 - Vacancy country means the normalized country or region scope derived from source evidence such as `listing.country`, `location_text`, source `regions`, source `remote_restrictions`, source `remote_type`, or city inference. It can be an ISO country code such as `RU`, the `EU` region scope, or `null`.
 - Remote global means the vacancy can be performed remotely from any country unless the source exposes explicit exclusions. A plain `remote` / `удаленно` marker is not enough evidence for global remote; it becomes country-limited or `unknown` unless the source explicitly exposes `global`, `worldwide`, `anywhere`, `Весь мир`, or an equivalent structured scope.
-- Hybrid and office are physical work formats, not remote scopes. When `hybrid_ok` or `office_ok` is true with `compatible_remote`, a physical-format vacancy may satisfy the search only when the vacancy country or region intersects `work_from_geographies`; when `vacancy_geographies` is present, the same row must satisfy that location constraint too. These flags cannot be combined with `global_remote_only`, because that mode means only globally remote vacancies. They do not weaken `non_remote_only`. If the source does not expose enough geography evidence for an accepted physical format, the row is removed with a work-format geography diagnostic. When source evidence lists remote together with hybrid or onsite options, remote wins and the row is evaluated with remote-scope rules.
+- Hybrid and office are physical work formats, not remote scopes. When `hybrid_ok` or `office_ok` is true with `compatible_remote`, a physical-format vacancy may satisfy the search when the vacancy country or region intersects `work_from_geographies`; when `vacancy_geographies` is present, the same row must satisfy that location constraint too. These flags cannot be combined with `global_remote_only`, because that mode means only globally remote vacancies. They do not weaken `non_remote_only`. If the source does not expose enough geography evidence for an accepted physical format, the row is retained as unknown rather than removed. When source evidence lists remote together with hybrid or onsite options, remote wins and the row is evaluated with remote-scope rules. A country or city without any remote/work-format evidence is country-bound non-remote evidence for remote filters, while the displayed work format remains unknown.
 - Timezone ranges such as `remote from GMT-7 to GMT+4` are eligibility hints, not geography. They can support the `remote` work format but do not create a country or region scope. A remote vacancy with city-only evidence gets a country-limited remote scope inferred from the city, and multi-city locations may produce multiple country scopes.
-- Unknown means the source did not provide enough structured or text evidence. Unknown must not be silently converted to `false`; if a positive filter is requested, unknown rows should be removed with a diagnostic reason that distinguishes missing evidence from explicit mismatch.
+- Unknown means the source did not provide enough structured or text evidence. Unknown must not be silently converted to `false`; if a positive filter is requested, unknown rows stay in the funnel unless source evidence explicitly conflicts with the request. Remote filtering is stricter: a row with only country/city evidence and no remote/work-format evidence is not unknown remote eligibility and does not satisfy `compatible_remote`.
 
 `RemoteMode` values:
 
 - `any`: do not filter by remote eligibility.
-- `compatible_remote`: keep listings that are globally remote or whose remote scope intersects `work_from_geographies`. This mode requires at least one work-from geography.
-- `global_remote_only`: keep only globally remote listings.
-- `non_remote_only`: keep only listings that are known not to be remote.
+- `compatible_remote`: keep listings that are globally remote, whose remote scope intersects `work_from_geographies`, or whose remote scope is unknown because the source exposed remote eligibility without exposing the allowed geography. Country-only rows do not satisfy this mode. This mode requires at least one work-from geography.
+- `global_remote_only`: keep globally remote listings and listings with unknown remote scope; remove only listings known to be non-global.
+- `non_remote_only`: keep listings known not to be remote and listings with unknown remote scope; remove only listings known to be remote.
 
 The search request must not expose `remote_in_country` as a standalone boolean. It is a listing fact or a normalized remote scope, not a useful user intent without a work-from geography.
 
@@ -122,23 +122,24 @@ Rows assume that earlier filters such as query, title, grade, salary, publicatio
 | 13 | `europe` | `europe` | `compatible_remote` | false | `null` | `US` | `global` | any | keep | n/a |
 | 14 | empty | empty | `global_remote_only` | false | `null` | any | `global` | any | keep | n/a |
 | 15 | empty | empty | `global_remote_only` | false | `null` | any | country-limited, region-limited, or physical | any | remove | `remote_global_mismatch` |
-| 16 | empty | empty | `global_remote_only` | false | `null` | any | `unknown` | any | remove | `remote_global_unknown` |
+| 16 | empty | empty | `global_remote_only` | false | `null` | any | `unknown` | any | keep | n/a |
 | 17 | empty | empty | `non_remote_only` | false | `null` | any | `global`, country-limited, or region-limited | any | remove | `remote_mismatch` |
 | 18 | empty | empty | `non_remote_only` | false | `null` | any | `onsite` | any | keep | n/a |
-| 19 | empty | empty | `non_remote_only` | false | `null` | any | `unknown` | any | remove | `remote_scope_unknown` |
+| 19 | empty | empty | `non_remote_only` | false | `null` | any | `unknown` | any | keep | n/a |
 | 20 | `RU` | empty | `compatible_remote` | `hybrid_ok` | `null` | `RU` | `hybrid` | any | keep | n/a |
 | 21 | `RU` | empty | `compatible_remote` | `hybrid_ok` | `null` | `TR` | `hybrid` | any | remove | `hybrid_geography_mismatch` |
-| 22 | `RU` | empty | `compatible_remote` | `office_ok` | `null` | unknown | `office` | any | remove | `office_geography_unknown` |
+| 21a | `RU` | `AM` | `compatible_remote` | `hybrid_ok` and `office_ok` | `null` | `AM` | country-only evidence, no remote/work format | any | remove | `remote_eligibility_mismatch` |
+| 22 | `RU` | empty | `compatible_remote` | `office_ok` | `null` | unknown | `office` | any | keep | n/a |
 | 23 | empty | `CY` | `global_remote_only` | `office_ok` | `null` | `CY` | `office` | any | request error | `global_remote_only_conflicts_with_physical_flags` |
 | 24 | empty | `CY` | `global_remote_only` | `office_ok` | `null` | `RU` | `office` | any | request error | `global_remote_only_conflicts_with_physical_flags` |
 | 25 | `RU` | empty | `compatible_remote` | false | `true` | any | compatible with `RU` | `true` | keep | n/a |
-| 26 | `RU` | empty | `compatible_remote` | false | `true` | any | compatible with `RU` | `false` or `unknown` | remove | `relocation_mismatch` |
+| 26 | `RU` | empty | `compatible_remote` | false | `true` | any | compatible with `RU` | `false` | remove | `relocation_mismatch` |
 | 27 | `RU` | empty | `compatible_remote` | false | `false` | any | compatible with `RU` | `true` | remove | `relocation_mismatch` |
 | 28 | `RU` | empty | `compatible_remote` | false | `false` | any | compatible with `RU` | `false` or `unknown` | keep | n/a |
 
 Region scopes must be explicit. `EU` means the current European Union country list. `europe` means the project-defined Europe scope and intentionally does not include `GB` or `RU`. The system must not infer region membership from time zones, source domain, language, or source popularity.
 
-The implementation should preserve enough debug evidence for the agent to audit each decision. A filtered card should make it clear whether the row was removed because the country was explicitly different, the remote eligibility was explicitly different, or the source did not provide enough evidence.
+The implementation should preserve enough debug evidence for the agent to audit each decision. A filtered card should make it clear whether the row was removed because the country or remote eligibility was explicitly different; missing evidence should remain visible as unknown on kept rows.
 
 ## Source Capability Contract
 
@@ -164,6 +165,16 @@ For each search criterion, a source declares exactly one collection capability:
 | `unsupported` | The source cannot enforce or expose the criterion honestly. | Relocation is absent from search params and listing fields. |
 
 Free-text inference is downstream enrichment, not source support.
+
+Native source query narrows collection but does not prove final relevance. Final
+post-processing still applies the query to the vacancy title for every source;
+native query hits whose title does not match the requested variant are removed
+with `query_mismatch`.
+
+The executable single-vacancy policy entrypoint is
+`job_harness.v2.postprocessing.filter_policy.decide_vacancy_filter`. It accepts
+`VacancyFilterCriteria` and `VacancyFilterFacts` and returns a
+`VacancyFilterDecision` without reading batch state.
 
 During a run, the orchestrator derives criterion diagnostics from these static declarations. Diagnostics are data on the source attempt record, not separate outcomes:
 
@@ -294,7 +305,7 @@ Post-processing must be idempotent:
 - same raw corpus plus same processing config produces the same output;
 - dedupe keys are stable;
 - filter decisions are explainable;
-- unknown values are handled explicitly, not silently converted to false.
+- unknown values are handled explicitly and retained rather than silently converted to false.
 
 For each listing removed or kept by a requested post-processing criterion, the derived output should preserve a machine-readable decision reason. The agent can then audit why a vacancy survived or disappeared.
 

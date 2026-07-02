@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from job_harness.v2.contracts import RemoteMode, SearchRequest
+from job_harness.v2.contracts import RemoteMode
 from job_harness.v2.geography import geography_matches_any, geography_text_keys
 
 HYBRID_FORMAT = "hybrid"
@@ -75,35 +75,36 @@ def listing_work_formats(listing: dict[str, object]) -> tuple[str, ...]:
 
 def work_format_policy_outcome(
     *,
-    request: SearchRequest,
+    remote_mode: RemoteMode | None,
+    hybrid_ok: bool,
+    office_ok: bool,
+    work_from_geographies: tuple[str, ...],
+    vacancy_geographies: tuple[str, ...],
     work_formats: tuple[str, ...],
     countries: tuple[str, ...],
 ) -> WorkFormatPolicyOutcome:
-    if request.remote_mode != RemoteMode.COMPATIBLE_REMOTE:
+    if remote_mode != RemoteMode.COMPATIBLE_REMOTE:
         return WorkFormatPolicyOutcome(handles_remote_filter=False, reasons=())
 
     accepted_formats: list[str] = []
-    if request.hybrid_ok and HYBRID_FORMAT in work_formats:
+    if hybrid_ok and HYBRID_FORMAT in work_formats:
         accepted_formats.append(HYBRID_FORMAT)
-    if request.office_ok and OFFICE_FORMAT in work_formats:
+    if office_ok and OFFICE_FORMAT in work_formats:
         accepted_formats.append(OFFICE_FORMAT)
     if not accepted_formats:
         return WorkFormatPolicyOutcome(handles_remote_filter=False, reasons=())
 
     if not countries:
-        return WorkFormatPolicyOutcome(
-            handles_remote_filter=True,
-            reasons=tuple(f"{work_format}_geography_unknown" for work_format in accepted_formats),
-        )
-    if request.vacancy_geographies and not _geography_sets_intersect(
-        request.work_from_geographies,
-        request.vacancy_geographies,
+        return WorkFormatPolicyOutcome(handles_remote_filter=True, reasons=())
+    if vacancy_geographies and not _geography_sets_intersect(
+        work_from_geographies,
+        vacancy_geographies,
     ):
         return WorkFormatPolicyOutcome(
             handles_remote_filter=True,
             reasons=tuple(f"{work_format}_geography_mismatch" for work_format in accepted_formats),
         )
-    if any(geography_matches_any(country, request.work_from_geographies) for country in countries):
+    if any(geography_matches_any(country, work_from_geographies) for country in countries):
         return WorkFormatPolicyOutcome(handles_remote_filter=True, reasons=())
     return WorkFormatPolicyOutcome(
         handles_remote_filter=True,

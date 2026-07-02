@@ -65,9 +65,11 @@ proving `native_grade` is extracted from the captured source artifact.
 
 ## Filtering Semantics
 
-Current v2 post-processing keeps a listing for a grade-filtered request only
-when `row["native_grade"]` exactly matches one of the requested grades. A
-senior-only listing does not pass `grades=(Grade.MIDDLE,)`.
+Current v2 post-processing keeps a listing for a grade-filtered request when
+`row["native_grade"]` is absent or exactly matches one of the requested grades.
+Known mismatches remain strict: a senior-only listing does not pass
+`grades=(Grade.MIDDLE,)`. Unknown grade is treated as insufficient source
+evidence, not as evidence that the listing is the wrong grade.
 
 If a source does not expose grade and a grade filter is requested, the source
 should still run unless a broader source-selection policy skips it. Its
