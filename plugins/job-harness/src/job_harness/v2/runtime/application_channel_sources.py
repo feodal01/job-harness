@@ -193,6 +193,11 @@ _COMPANY_CAREER_URLS = {
     "career:quadcode": "https://jobs.quadcode.com/jobs",
     "career:vivid-money": "https://careers.vivid.money/#vacancies",
     "career:sidestream": "https://sidestream.tech/jobs",
+    "career:sbk-parus": "https://dreamjob.ru/employers/6225686/vakansii",
+    "career:softmall": "https://dreamjob.ru/employers/133227/vakansii",
+    "career:retnnet": "https://dreamjob.ru/employers/43931/vakansii",
+    "career:znanie": "https://dreamjob.ru/employers/198144/vakansii",
+    "career:nii-spetsvuzavtomatika": "https://dreamjob.ru/employers/121279/vakansii",
 }
 
 

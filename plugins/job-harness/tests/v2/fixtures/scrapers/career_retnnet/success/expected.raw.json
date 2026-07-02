@@ -1,0 +1,33 @@
+{
+  "expected_count": 1,
+  "raw_contains": {
+    "134206099": {
+      "ats_platform": "dreamjob",
+      "published_text": "сегодня",
+      "salary_text": "от 79 000 ₽",
+      "tags": [
+        "Новая",
+        "Нет опыта"
+      ]
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Санкт-Петербург",
+      "company": "РетнНет",
+      "country": null,
+      "location_text": "Санкт-Петербург",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": null,
+      "salary_min": 79000,
+      "salary_text": "от 79 000 ₽",
+      "source_listing_id": "134206099",
+      "title": "Младший инженер техподдержки (2 линия)",
+      "url": "https://dreamjob.ru/employers/43931/vakansii/134206099"
+    }
+  ]
+}

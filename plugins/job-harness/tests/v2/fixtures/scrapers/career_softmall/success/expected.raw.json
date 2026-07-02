@@ -1,0 +1,108 @@
+{
+  "expected_count": 8,
+  "raw_contains": {
+    "130687658": {
+      "ats_platform": "dreamjob",
+      "published_text": "24 июня 2026",
+      "salary_text": null,
+      "tags": [
+        "От 3 до 6 лет"
+      ]
+    },
+    "130687729": {
+      "ats_platform": "dreamjob",
+      "published_text": "24 июня 2026",
+      "salary_text": null,
+      "tags": [
+        "От 3 до 6 лет"
+      ]
+    },
+    "133702987": {
+      "ats_platform": "dreamjob",
+      "published_text": "сегодня",
+      "salary_text": "от 140 000 ₽",
+      "tags": [
+        "Новая",
+        "От 3 до 6 лет"
+      ]
+    },
+    "134163293": {
+      "ats_platform": "dreamjob",
+      "published_text": "26 июня 2026",
+      "salary_text": "70 000 - 75 000 ₽",
+      "tags": [
+        "От 3 до 6 лет"
+      ]
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Уфа",
+      "company": "ООО СофтМолл",
+      "country": null,
+      "location_text": "Уфа",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": null,
+      "salary_min": 140000,
+      "salary_text": "от 140 000 ₽",
+      "source_listing_id": "133702987",
+      "title": "Менеджер по работе с ключевыми клиентами (Уфа)",
+      "url": "https://dreamjob.ru/employers/133227/vakansii/133702987"
+    },
+    {
+      "city": "Новосибирск",
+      "company": "ООО СофтМолл",
+      "country": null,
+      "location_text": "Новосибирск",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": 75000,
+      "salary_min": 70000,
+      "salary_text": "70 000 - 75 000 ₽",
+      "source_listing_id": "134163293",
+      "title": "Специалист по кадровому делопроизводству",
+      "url": "https://dreamjob.ru/employers/133227/vakansii/134163293"
+    },
+    {
+      "city": "Новосибирск",
+      "company": "ООО СофтМолл",
+      "country": null,
+      "location_text": "Новосибирск",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "130687729",
+      "title": "Senior AI/ML Developer (г. Новосибирск)",
+      "url": "https://dreamjob.ru/employers/133227/vakansii/130687729"
+    },
+    {
+      "city": "Новосибирск",
+      "company": "ООО СофтМолл",
+      "country": null,
+      "location_text": "Новосибирск",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "130687658",
+      "title": "Senior Python Backend-разработчик (Высоконагруженные системы, AI) Новосибирск",
+      "url": "https://dreamjob.ru/employers/133227/vakansii/130687658"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "expected_count": 3,
+  "raw_contains": {
+    "132896018": {
+      "ats_platform": "dreamjob",
+      "published_text": "сегодня",
+      "salary_text": null,
+      "tags": [
+        "Новая",
+        "От 3 до 6 лет"
+      ]
+    },
+    "134106878": {
+      "ats_platform": "dreamjob",
+      "published_text": "29 июня 2026",
+      "salary_text": null,
+      "tags": [
+        "Новая",
+        "От 3 до 6 лет"
+      ]
+    },
+    "134751209": {
+      "ats_platform": "dreamjob",
+      "published_text": "сегодня",
+      "salary_text": null,
+      "tags": [
+        "Новая",
+        "От 3 до 6 лет"
+      ]
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Москва",
+      "company": "ООО СБК Парус",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "134751209",
+      "title": "BIM-инженер / BIM-моделлер (Инженерные сети / MEP)",
+      "url": "https://dreamjob.ru/employers/6225686/vakansii/134751209"
+    },
+    {
+      "city": "Москва",
+      "company": "ООО СБК Парус",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "132896018",
+      "title": "Старший финансовый менеджер",
+      "url": "https://dreamjob.ru/employers/6225686/vakansii/132896018"
+    },
+    {
+      "city": "Москва",
+      "company": "ООО СБК Парус",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": null,
+      "salary_max": null,
+      "salary_min": null,
+      "salary_text": null,
+      "source_listing_id": "134106878",
+      "title": "Менеджер проектов отдела стратегии и операционной эффективности",
+      "url": "https://dreamjob.ru/employers/6225686/vakansii/134106878"
+    }
+  ]
+}

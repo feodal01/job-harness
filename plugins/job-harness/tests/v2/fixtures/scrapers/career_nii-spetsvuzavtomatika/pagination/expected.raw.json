@@ -1,0 +1,107 @@
+{
+  "expected_count": 10,
+  "raw_contains": {
+    "133217365": {
+      "ats_platform": "dreamjob",
+      "published_text": "22 июня 2026",
+      "salary_text": "от 170 000 ₽",
+      "tags": [
+        "От 3 до 6 лет"
+      ]
+    },
+    "133298011": {
+      "ats_platform": "dreamjob",
+      "published_text": "22 июня 2026",
+      "salary_text": "150 000 - 200 000 ₽",
+      "tags": [
+        "От 3 до 6 лет"
+      ]
+    },
+    "133553030": {
+      "ats_platform": "dreamjob",
+      "published_text": "22 июня 2026",
+      "salary_text": "от 150 000 ₽",
+      "tags": [
+        "От 1 года до 3 лет"
+      ]
+    },
+    "133553268": {
+      "ats_platform": "dreamjob",
+      "published_text": "22 июня 2026",
+      "salary_text": "от 150 000 ₽",
+      "tags": [
+        "От 1 года до 3 лет"
+      ]
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Москва",
+      "company": "ФГАНУ НИИ Спецвузавтоматика",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": null,
+      "salary_min": 170000,
+      "salary_text": "от 170 000 ₽",
+      "source_listing_id": "133217365",
+      "title": "Инженер / Экспертный менеджер (космические технологии, летательные аппараты)",
+      "url": "https://dreamjob.ru/employers/121279/vakansii/133217365"
+    },
+    {
+      "city": "Москва",
+      "company": "ФГАНУ НИИ Спецвузавтоматика",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": 200000,
+      "salary_min": 150000,
+      "salary_text": "150 000 - 200 000 ₽",
+      "source_listing_id": "133298011",
+      "title": "Ведущий аналитик / Специалист по сопровождению государственных программ",
+      "url": "https://dreamjob.ru/employers/121279/vakansii/133298011"
+    },
+    {
+      "city": "Москва",
+      "company": "ФГАНУ НИИ Спецвузавтоматика",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": null,
+      "salary_min": 150000,
+      "salary_text": "от 150 000 ₽",
+      "source_listing_id": "133553030",
+      "title": "Специалиста по по взаимодействию с образовательными организациями",
+      "url": "https://dreamjob.ru/employers/121279/vakansii/133553030"
+    },
+    {
+      "city": "Москва",
+      "company": "ФГАНУ НИИ Спецвузавтоматика",
+      "country": null,
+      "location_text": "Москва",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": null,
+      "salary_min": 150000,
+      "salary_text": "от 150 000 ₽",
+      "source_listing_id": "133553268",
+      "title": "Аналитика данных",
+      "url": "https://dreamjob.ru/employers/121279/vakansii/133553268"
+    }
+  ]
+}

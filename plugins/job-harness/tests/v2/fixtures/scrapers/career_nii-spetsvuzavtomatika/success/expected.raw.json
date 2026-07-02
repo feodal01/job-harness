@@ -1,0 +1,112 @@
+{
+  "expected_count": 12,
+  "next_url": "https://dreamjob.ru/employers/121279/vakansii?page=2",
+  "raw_contains": {
+    "132284377": {
+      "ats_platform": "dreamjob",
+      "published_text": "вчера",
+      "salary_text": "100 000 - 180 000 ₽",
+      "tags": [
+        "Новая",
+        "От 3 до 6 лет"
+      ]
+    },
+    "132284785": {
+      "ats_platform": "dreamjob",
+      "published_text": "вчера",
+      "salary_text": "60 000 - 90 000 ₽",
+      "tags": [
+        "Новая",
+        "От 1 года до 3 лет"
+      ]
+    },
+    "134717087": {
+      "ats_platform": "dreamjob",
+      "published_text": "вчера",
+      "salary_text": "40 000 - 60 000 ₽",
+      "tags": [
+        "Новая",
+        "Нет опыта"
+      ]
+    },
+    "134748908": {
+      "ats_platform": "dreamjob",
+      "published_text": "сегодня",
+      "salary_text": "50 000 - 55 000 ₽",
+      "tags": [
+        "Новая",
+        "От 1 года до 3 лет"
+      ]
+    }
+  },
+  "sample_listings": [
+    {
+      "city": "Ростов-на-Дону",
+      "company": "ФГАНУ НИИ Спецвузавтоматика",
+      "country": null,
+      "location_text": "Ростов-на-Дону",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": 55000,
+      "salary_min": 50000,
+      "salary_text": "50 000 - 55 000 ₽",
+      "source_listing_id": "134748908",
+      "title": "Специалист по кадрам",
+      "url": "https://dreamjob.ru/employers/121279/vakansii/134748908"
+    },
+    {
+      "city": "Ростов-на-Дону",
+      "company": "ФГАНУ НИИ Спецвузавтоматика",
+      "country": null,
+      "location_text": "Ростов-на-Дону",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": 60000,
+      "salary_min": 40000,
+      "salary_text": "40 000 - 60 000 ₽",
+      "source_listing_id": "134717087",
+      "title": "Python-разработчик (стажёр)",
+      "url": "https://dreamjob.ru/employers/121279/vakansii/134717087"
+    },
+    {
+      "city": "Ростов-на-Дону",
+      "company": "ФГАНУ НИИ Спецвузавтоматика",
+      "country": null,
+      "location_text": "Ростов-на-Дону",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": 180000,
+      "salary_min": 100000,
+      "salary_text": "100 000 - 180 000 ₽",
+      "source_listing_id": "132284377",
+      "title": "Middle Python-разработчик",
+      "url": "https://dreamjob.ru/employers/121279/vakansii/132284377"
+    },
+    {
+      "city": "Ростов-на-Дону",
+      "company": "ФГАНУ НИИ Спецвузавтоматика",
+      "country": null,
+      "location_text": "Ростов-на-Дону",
+      "native_grade": null,
+      "posted_at": null,
+      "remote_global": null,
+      "remote_in_country": null,
+      "salary_currency": "RUB",
+      "salary_max": 90000,
+      "salary_min": 60000,
+      "salary_text": "60 000 - 90 000 ₽",
+      "source_listing_id": "132284785",
+      "title": "Junior Python-разработчик",
+      "url": "https://dreamjob.ru/employers/121279/vakansii/132284785"
+    }
+  ]
+}
