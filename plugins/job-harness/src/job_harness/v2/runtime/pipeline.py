@@ -6,11 +6,13 @@ import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from time import monotonic
 
-from job_harness.v2.contracts import DetailEnrichmentScraper, RawListing, SearchRequest, SourceAttemptRecord
+from job_harness.v2.contracts import DetailEnrichmentScraper, SearchRequest, SourceAttemptRecord
 from job_harness.v2.ports import ArtifactFetcher, RunStore, RunStoreFactory, StoredRawRecord
 from job_harness.v2.postprocessing import ProcessedResults, ProcessingPhase, ResultTablePostProcessor
 from job_harness.v2.presentation import render_processed_results_html
+from job_harness.v2.runtime.application_channel_records import listing_from_record
 from job_harness.v2.runtime.application_channels import (
     ApplicationChannelEnrichmentRunner,
     application_channel_summary,
@@ -46,6 +48,7 @@ class SearchPipelineExecution:
     processed_results: ProcessedResults
     detail_summary: JsonObject
     application_channel_summary: JsonObject
+    runtime_summary: JsonObject
 
 
 class SearchPipeline:
@@ -65,90 +68,118 @@ class SearchPipeline:
         self._catalog = catalog
 
     async def run(self, request: SearchRequest, *, run_id: str | None = None) -> SearchPipelineExecution:
-        layout = RunLayout(self._config.runs_dir)
-        paths = _resolve_paths(layout=layout, request=request, run_id=run_id)
-        service_config = self._config.service_config or SearchServiceConfig.from_package_resource()
-        fetcher = self._fetcher or HttpArtifactFetcher(timeout_seconds=service_config.fetch_timeout_seconds)
-        catalog = self._catalog or build_supported_source_catalog(self._config.source_ids)
+        pipeline_started = monotonic()
+        stage_timings: dict[str, int] = {}
+        setup_started = monotonic()
+        paths, service_config, fetcher, owned_fetcher, catalog = _pipeline_setup(
+            config=self._config,
+            request=request,
+            run_id=run_id,
+            fetcher=self._fetcher,
+            catalog=self._catalog,
+        )
+        stage_timings["setup_ms"] = _elapsed_ms(setup_started)
 
-        with self._run_store_factory(paths.database_path, run_id=paths.run_id) as store:
-            append_sequence = store.reserve_append_attempt(to_jsonable(request))
-            try:
-                search_result = await self._collect_search_records(
-                    request=request,
-                    run_id=paths.run_id,
-                    append_sequence=append_sequence,
-                    catalog=catalog,
-                    fetcher=fetcher,
-                    store=store,
-                    service_config=service_config,
-                )
-                pre_processed = self._process_records(
-                    request=request,
-                    run_id=paths.run_id,
-                    append_sequence=append_sequence,
-                    phase=ProcessingPhase.PRE_ENRICHMENT,
-                    store=store,
-                )
-                store.write_processed_results(pre_processed.payload)
+        try:
+            with self._run_store_factory(paths.database_path, run_id=paths.run_id) as store:
+                append_sequence = store.reserve_append_attempt(to_jsonable(request))
+                try:
+                    collect_started = monotonic()
+                    search_result = await self._collect_search_records(
+                        request=request,
+                        run_id=paths.run_id,
+                        append_sequence=append_sequence,
+                        catalog=catalog,
+                        fetcher=fetcher,
+                        store=store,
+                        service_config=service_config,
+                    )
+                    stage_timings["source_collection_ms"] = _elapsed_ms(collect_started)
+                    pre_process_started = monotonic()
+                    pre_processed = self._process_records(
+                        request=request,
+                        run_id=paths.run_id,
+                        append_sequence=append_sequence,
+                        phase=ProcessingPhase.PRE_ENRICHMENT,
+                        store=store,
+                    )
+                    store.write_processed_results(pre_processed.payload)
+                    stage_timings["pre_processing_ms"] = _elapsed_ms(pre_process_started)
 
-                pre_raw_rows = store.read_raw_record_rows()
-                work_items = _detail_work_items(
-                    processed_payload=pre_processed.payload,
-                    raw_rows=pre_raw_rows,
-                    catalog=catalog,
-                )
-                detail_result = await DetailEnrichmentRunner(
-                    catalog=catalog,
-                    fetcher=fetcher,
-                    writer=store,
-                    config=service_config.detail,
-                ).run(work_items)
-                detail_summary = _detail_summary(
-                    total_work_items=len(work_items),
-                    result=detail_result,
-                )
-                application_channel_raw_rows = store.read_raw_record_rows()
-                channel_work_items = application_channel_work_items(
-                    processed_payload=pre_processed.payload,
-                    raw_rows=application_channel_raw_rows,
-                )
-                application_channel_result = await ApplicationChannelEnrichmentRunner(
-                    fetcher=fetcher,
-                    writer=store,
-                    config=service_config.application_channels,
-                    request_concurrency_by_source=service_config.detail.per_source_concurrency,
-                ).run(channel_work_items)
-                channel_summary = application_channel_summary(
-                    total_work_items=len(channel_work_items),
-                    result=application_channel_result,
-                )
+                    detail_plan_started = monotonic()
+                    pre_raw_rows = store.read_raw_record_rows()
+                    work_items = _detail_work_items(
+                        processed_payload=pre_processed.payload,
+                        raw_rows=pre_raw_rows,
+                        catalog=catalog,
+                    )
+                    stage_timings["detail_planning_ms"] = _elapsed_ms(detail_plan_started)
+                    detail_started = monotonic()
+                    detail_result = await DetailEnrichmentRunner(
+                        catalog=catalog,
+                        fetcher=fetcher,
+                        writer=store,
+                        config=service_config.detail,
+                    ).run(work_items)
+                    detail_summary = _detail_summary(
+                        total_work_items=len(work_items),
+                        result=detail_result,
+                    )
+                    stage_timings["detail_enrichment_ms"] = _elapsed_ms(detail_started)
+                    channel_plan_started = monotonic()
+                    application_channel_raw_rows = store.read_raw_record_rows()
+                    channel_work_items = application_channel_work_items(
+                        processed_payload=pre_processed.payload,
+                        raw_rows=application_channel_raw_rows,
+                    )
+                    stage_timings["application_channel_planning_ms"] = _elapsed_ms(channel_plan_started)
+                    channel_started = monotonic()
+                    application_channel_result = await ApplicationChannelEnrichmentRunner(
+                        fetcher=fetcher,
+                        writer=store,
+                        config=service_config.application_channels,
+                        request_concurrency_by_source=service_config.detail.per_source_concurrency,
+                    ).run(channel_work_items)
+                    channel_summary = application_channel_summary(
+                        total_work_items=len(channel_work_items),
+                        result=application_channel_result,
+                    )
+                    stage_timings["application_channel_enrichment_ms"] = _elapsed_ms(channel_started)
 
-                final_processed = self._process_records(
-                    request=request,
-                    run_id=paths.run_id,
-                    append_sequence=append_sequence,
-                    phase=ProcessingPhase.FINAL,
-                    store=store,
-                    detail_summary=detail_summary,
-                    application_channel_summary=channel_summary,
-                )
-                store.write_processed_results(final_processed.payload)
-                _update_run_manifest(
-                    store=store,
-                    detail_summary=detail_summary,
-                    application_channel_summary=channel_summary,
-                    pre_result_count=pre_processed.result_count,
-                    final_result_count=final_processed.result_count,
-                )
-                paths.report_html_path.write_text(
-                    render_processed_results_html(final_processed.payload),
-                    encoding="utf-8",
-                )
-                store.mark_append_attempt_completed()
-            except Exception:
-                store.mark_append_attempt_failed()
-                raise
+                    final_process_started = monotonic()
+                    final_processed = self._process_records(
+                        request=request,
+                        run_id=paths.run_id,
+                        append_sequence=append_sequence,
+                        phase=ProcessingPhase.FINAL,
+                        store=store,
+                        detail_summary=detail_summary,
+                        application_channel_summary=channel_summary,
+                    )
+                    store.write_processed_results(final_processed.payload)
+                    stage_timings["final_processing_ms"] = _elapsed_ms(final_process_started)
+                    report_started = monotonic()
+                    paths.report_html_path.write_text(
+                        render_processed_results_html(final_processed.payload),
+                        encoding="utf-8",
+                    )
+                    stage_timings["report_render_write_ms"] = _elapsed_ms(report_started)
+                    runtime_summary = _runtime_summary(stage_timings, pipeline_started=pipeline_started)
+                    _update_run_manifest(
+                        store=store,
+                        detail_summary=detail_summary,
+                        application_channel_summary=channel_summary,
+                        pre_result_count=pre_processed.result_count,
+                        final_result_count=final_processed.result_count,
+                        runtime_summary=runtime_summary,
+                    )
+                    store.mark_append_attempt_completed()
+                except Exception:
+                    store.mark_append_attempt_failed()
+                    raise
+        finally:
+            if owned_fetcher is not None:
+                await owned_fetcher.aclose()
 
         return SearchPipelineExecution(
             run_id=search_result.run_id,
@@ -159,6 +190,7 @@ class SearchPipeline:
             processed_results=final_processed,
             detail_summary=detail_summary,
             application_channel_summary=channel_summary,
+            runtime_summary=runtime_summary,
         )
 
     async def _collect_search_records(
@@ -234,6 +266,38 @@ def _resolve_paths(
     return layout.create_new_run(effective_run_id)
 
 
+def _pipeline_setup(
+    *,
+    config: SearchPipelineConfig,
+    request: SearchRequest,
+    run_id: str | None,
+    fetcher: ArtifactFetcher | None,
+    catalog: SourceCatalog | None,
+) -> tuple[RunPaths, SearchServiceConfig, ArtifactFetcher, HttpArtifactFetcher | None, SourceCatalog]:
+    layout = RunLayout(config.runs_dir)
+    paths = _resolve_paths(layout=layout, request=request, run_id=run_id)
+    service_config = config.service_config or SearchServiceConfig.from_package_resource()
+    resolved_fetcher, owned_fetcher = _pipeline_fetcher(fetcher, service_config)
+    resolved_catalog = catalog or build_supported_source_catalog(_catalog_source_ids(config, request))
+    return paths, service_config, resolved_fetcher, owned_fetcher, resolved_catalog
+
+
+def _catalog_source_ids(config: SearchPipelineConfig, request: SearchRequest) -> tuple[str, ...]:
+    if config.source_ids:
+        return config.source_ids
+    return request.sources
+
+
+def _pipeline_fetcher(
+    fetcher: ArtifactFetcher | None,
+    service_config: SearchServiceConfig,
+) -> tuple[ArtifactFetcher, HttpArtifactFetcher | None]:
+    if fetcher is not None:
+        return fetcher, None
+    owned_fetcher = HttpArtifactFetcher(timeout_seconds=service_config.fetch_timeout_seconds)
+    return owned_fetcher, owned_fetcher
+
+
 def _raw_records_for_processing(raw_rows: tuple[StoredRawRecord, ...]) -> tuple[JsonObject, ...]:
     records: list[JsonObject] = []
     for row in raw_rows:
@@ -272,41 +336,10 @@ def _detail_work_items(
                 raw_record_id=raw_record_id,
                 source=source,
                 query_variant=_required_text(result, "query_variant"),
-                listing=_listing_from_record(raw_record),
+                listing=listing_from_record(raw_record),
             )
         )
     return tuple(work_items)
-
-
-def _listing_from_record(record: JsonObject) -> RawListing:
-    listing = record.get("listing")
-    if not isinstance(listing, dict):
-        raise ValueError("raw record is missing listing object")
-    return RawListing(
-        source_listing_id=_optional_text(listing, "source_listing_id"),
-        title=_required_text(listing, "title"),
-        url=_required_text(listing, "url"),
-        source=_required_text(listing, "source"),
-        company=_optional_text(listing, "company"),
-        country=_optional_text(listing, "country"),
-        city=_optional_text(listing, "city"),
-        location_text=_optional_text(listing, "location_text"),
-        salary_text=_optional_text(listing, "salary_text"),
-        salary_min=_optional_int(listing, "salary_min"),
-        salary_max=_optional_int(listing, "salary_max"),
-        salary_currency=_optional_text(listing, "salary_currency"),
-        posted_at=_optional_text(listing, "posted_at"),
-        remote_in_country=_optional_bool(listing, "remote_in_country"),
-        remote_global=_optional_bool(listing, "remote_global"),
-        relocation=_optional_bool(listing, "relocation"),
-        native_grade=_optional_text(listing, "native_grade"),
-        description=_optional_text(listing, "description"),
-        requirements=_optional_text(listing, "requirements"),
-        additional_sections=_text_mapping(listing, "additional_sections"),
-        skills=_text_tuple(listing, "skills"),
-        raw_text=_optional_text(listing, "raw_text"),
-        raw=_object_mapping(listing, "raw"),
-    )
 
 
 def _detail_summary(*, total_work_items: int, result: DetailRunResult) -> JsonObject:
@@ -326,13 +359,26 @@ def _update_run_manifest(
     application_channel_summary: JsonObject,
     pre_result_count: int,
     final_result_count: int,
+    runtime_summary: JsonObject,
 ) -> None:
     manifest = store.read_run_manifest()
     manifest["detail_enrichment"] = detail_summary
     manifest["application_channel_enrichment"] = application_channel_summary
     manifest["pre_enrichment_result_count"] = pre_result_count
     manifest["final_result_count"] = final_result_count
+    manifest["runtime_summary"] = runtime_summary
     store.replace_run_manifest(manifest)
+
+
+def _runtime_summary(stage_timings: dict[str, int], *, pipeline_started: float) -> JsonObject:
+    return {
+        "total_elapsed_ms": _elapsed_ms(pipeline_started),
+        "stages": dict(stage_timings),
+    }
+
+
+def _elapsed_ms(started: float) -> int:
+    return int((monotonic() - started) * 1000)
 
 
 def _required_text(payload: dict[str, object], key: str) -> str:
@@ -340,67 +386,3 @@ def _required_text(payload: dict[str, object], key: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{key} must be a non-empty string")
     return value
-
-
-def _optional_text(payload: dict[str, object], key: str) -> str | None:
-    value = payload.get(key)
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise ValueError(f"{key} must be a string or null")
-    return value
-
-
-def _optional_int(payload: dict[str, object], key: str) -> int | None:
-    value = payload.get(key)
-    if value is None:
-        return None
-    if not isinstance(value, int) or isinstance(value, bool):
-        raise ValueError(f"{key} must be an integer or null")
-    return value
-
-
-def _optional_bool(payload: dict[str, object], key: str) -> bool | None:
-    value = payload.get(key)
-    if value is None:
-        return None
-    if not isinstance(value, bool):
-        raise ValueError(f"{key} must be a boolean or null")
-    return value
-
-
-def _text_mapping(payload: dict[str, object], key: str) -> dict[str, str]:
-    value = payload.get(key)
-    if value is None:
-        return {}
-    if not isinstance(value, dict):
-        raise ValueError(f"{key} must be an object")
-    parsed: dict[str, str] = {}
-    for raw_key, raw_value in value.items():
-        if not isinstance(raw_key, str) or not isinstance(raw_value, str):
-            raise ValueError(f"{key} must map strings to strings")
-        parsed[raw_key] = raw_value
-    return parsed
-
-
-def _object_mapping(payload: dict[str, object], key: str) -> dict[str, object]:
-    value = payload.get(key)
-    if value is None:
-        return {}
-    if not isinstance(value, dict):
-        raise ValueError(f"{key} must be an object")
-    return dict(value)
-
-
-def _text_tuple(payload: dict[str, object], key: str) -> tuple[str, ...]:
-    value = payload.get(key)
-    if value is None:
-        return ()
-    if not isinstance(value, list):
-        raise ValueError(f"{key} must be a list")
-    parsed: list[str] = []
-    for item in value:
-        if not isinstance(item, str):
-            raise ValueError(f"{key} must contain strings")
-        parsed.append(item)
-    return tuple(parsed)

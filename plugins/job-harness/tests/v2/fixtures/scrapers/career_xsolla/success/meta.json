@@ -1,7 +1,7 @@
 {
   "source_id": "career:xsolla",
-  "captured_url": "https://api.lever.co/v0/postings/xsolla?mode=json",
-  "captured_at": "2026-07-01",
+  "captured_url": "https://api.lever.co/v0/postings/xsolla",
+  "captured_at": "2026-07-03",
   "fixture_kind": "success_non_empty",
-  "notes": "Real lever public career board capture for Xsolla."
+  "notes": "Real Lever public career board capture for Xsolla."
 }

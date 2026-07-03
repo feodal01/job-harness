@@ -282,6 +282,7 @@ def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
         "raw_records_written_this_call": execution.raw_records_written,
         "processed_result_count": execution.processed_results.result_count,
         "detail_summary": execution.detail_summary,
+        "runtime_summary": execution.runtime_summary,
         "attempts": [_attempt_payload(attempt) for attempt in execution.attempts],
     }
 

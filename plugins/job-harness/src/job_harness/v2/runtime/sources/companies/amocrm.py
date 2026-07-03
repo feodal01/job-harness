@@ -72,13 +72,12 @@ class AmoCRMCareerSource(DetailEnrichmentScraper):
         return source_required_fixture_kinds(_SOURCE_ID)
 
     def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
-        return tuple(
+        return (
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
-                query_variant=query_variant,
+                query_variant=request.query_variants[0],
                 url=_JOBS_URL,
-            )
-            for query_variant in request.query_variants
+            ),
         )
 
     def parse_search_response(

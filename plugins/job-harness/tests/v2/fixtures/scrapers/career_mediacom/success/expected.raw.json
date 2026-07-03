@@ -1,0 +1,69 @@
+{
+  "expected_count": 10,
+  "raw_contains": {
+    "19708": {
+      "ats_platform": "taleo",
+      "board_url": "https://phe.tbe.taleo.net/phe01/ats/careers/v2/searchResults?cws=46&org=MEDIACOMCC",
+      "career_url": "https://phe.tbe.taleo.net/phe01/ats/careers/v2/searchResults?cws=46&org=MEDIACOMCC",
+      "id": "19708",
+      "department": "Ad Sales",
+      "employment_type": "Full time",
+      "fields": [
+        "Ad Sales",
+        "Cedar Rapids IA OnMedia",
+        "Full time"
+      ],
+      "location": null
+    },
+    "19900": {
+      "ats_platform": "taleo",
+      "board_url": "https://phe.tbe.taleo.net/phe01/ats/careers/v2/searchResults?cws=46&org=MEDIACOMCC",
+      "career_url": "https://phe.tbe.taleo.net/phe01/ats/careers/v2/searchResults?cws=46&org=MEDIACOMCC",
+      "id": "19900",
+      "department": "Sales",
+      "employment_type": "Full time",
+      "fields": [
+        "Sales",
+        "West Des Moines IA OnMedia",
+        "Full time"
+      ],
+      "location": null
+    }
+  },
+  "sample_listings": [
+    {
+      "source_listing_id": "19708",
+      "title": "Account Executive, OnMedia",
+      "url": "https://phe.tbe.taleo.net/phe01/ats/careers/v2/viewRequisition?org=MEDIACOMCC&cws=46&rid=19708",
+      "company": "Mediacom",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    },
+    {
+      "source_listing_id": "19900",
+      "title": "Account Executive, OnMedia",
+      "url": "https://phe.tbe.taleo.net/phe01/ats/careers/v2/viewRequisition?org=MEDIACOMCC&cws=46&rid=19900",
+      "company": "Mediacom",
+      "country": null,
+      "city": null,
+      "location_text": null,
+      "salary_text": null,
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "posted_at": null,
+      "remote_in_country": null,
+      "remote_global": null,
+      "native_grade": null
+    }
+  ]
+}

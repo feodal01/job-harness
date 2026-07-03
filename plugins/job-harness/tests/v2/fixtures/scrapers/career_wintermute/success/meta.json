@@ -1,7 +1,7 @@
 {
   "source_id": "career:wintermute",
-  "captured_url": "https://api.lever.co/v0/postings/wintermute-trading?mode=json",
-  "captured_at": "2026-06-27",
+  "captured_url": "https://api.lever.co/v0/postings/wintermute-trading",
+  "captured_at": "2026-07-03",
   "fixture_kind": "success_non_empty",
   "notes": "Real Lever postings JSON minimized to four live postings covering onsite, hybrid, and source-provided multi-location metadata."
 }

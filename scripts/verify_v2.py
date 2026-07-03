@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins" / "job-harness"
 PLUGIN_ARG = PLUGIN_DIR.relative_to(ROOT).as_posix()
 V2_LIVE_E2E_SCRIPT = ROOT / "scripts" / "v2_live_e2e.py"
+V2_SPEED_GATE_SCRIPT = ROOT / "scripts" / "benchmark_v2_search.py"
+DEFAULT_V2_SPEED_PROFILE = ROOT / "benchmarks" / "v2-search-speed-gate.json"
 V2_RUFF_RULES = "E,F,W,I,B,UP,C4,SIM,RET,ARG,PLC,PLE,PLR"
 V2_RUFF_IGNORES = "PLR0911,PLR0913"
 V2_MYPY_STRICT_FLAGS = (
@@ -65,7 +67,35 @@ def main() -> int:
         default="full",
         help="Live e2e source profile to run when live checks are enabled.",
     )
+    parser.add_argument(
+        "--speed-gate",
+        action="store_true",
+        help="Run the v2 live speed gate after deterministic checks. Requires --speed-baseline.",
+    )
+    parser.add_argument(
+        "--speed-profile",
+        type=Path,
+        default=DEFAULT_V2_SPEED_PROFILE,
+        help="Benchmark profile JSON for --speed-gate.",
+    )
+    parser.add_argument(
+        "--speed-baseline",
+        type=Path,
+        help="Benchmark result JSON to compare against for --speed-gate.",
+    )
+    parser.add_argument(
+        "--speed-min-speedup",
+        type=float,
+        help="Override benchmark profile min_wall_speedup for --speed-gate.",
+    )
+    parser.add_argument(
+        "--speed-skip-shape-check",
+        action="store_true",
+        help="Run --speed-gate without requiring matching result/raw counts and outcomes.",
+    )
     args = parser.parse_args()
+    if args.speed_gate and args.speed_baseline is None:
+        parser.error("--speed-gate requires --speed-baseline")
 
     checks = [
         _run_no_compat_comments,
@@ -85,6 +115,15 @@ def main() -> int:
     ]
     if not args.skip_live:
         checks.append(lambda: _run_v2_live_e2e(args.live_profile))
+    if args.speed_gate:
+        checks.append(
+            lambda: _run_v2_speed_gate(
+                profile=args.speed_profile,
+                baseline=args.speed_baseline,
+                min_speedup=args.speed_min_speedup,
+                skip_shape_check=args.speed_skip_shape_check,
+            )
+        )
 
     for check in checks:
         code = check()
@@ -111,6 +150,7 @@ def _run_v2_lint() -> int:
             "../../scripts/check_v2_module_structure.py",
             "../../scripts/verify_v2.py",
             "../../scripts/v2_live_e2e.py",
+            "../../scripts/benchmark_v2_search.py",
         ]
     )
 
@@ -136,6 +176,7 @@ def _run_v2_types() -> int:
             "../../scripts/check_v2_module_structure.py",
             "../../scripts/verify_v2.py",
             "../../scripts/v2_live_e2e.py",
+            "../../scripts/benchmark_v2_search.py",
             *V2_MYPY_STRICT_FLAGS,
         ]
     )
@@ -278,6 +319,32 @@ def _run_v2_live_e2e(live_profile: str) -> int:
             label=_live_phase_label(live_profile, phase="append"),
         )
         return _validate_append_artifacts(first, second)
+
+
+def _run_v2_speed_gate(
+    *,
+    profile: Path,
+    baseline: Path | None,
+    min_speedup: float | None,
+    skip_shape_check: bool,
+) -> int:
+    if baseline is None:
+        print("v2 speed gate failed: baseline path is required", file=sys.stderr)
+        return 1
+    print("+ v2 live speed gate", flush=True)
+    cmd = [
+        sys.executable,
+        str(V2_SPEED_GATE_SCRIPT),
+        "--profile",
+        str(profile),
+        "--baseline",
+        str(baseline),
+    ]
+    if min_speedup is not None:
+        cmd.extend(["--min-speedup", str(min_speedup)])
+    if skip_shape_check:
+        cmd.append("--skip-shape-check")
+    return _run(cmd)
 
 
 def _live_phase_label(live_profile: str, *, phase: str) -> str:

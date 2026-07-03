@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import asyncio
+from dataclasses import dataclass, replace
 
-from job_harness.v2.contracts import RawListing, SourceFetchRequest, SourceOutcome
+from job_harness.v2.contracts import RawListing, SourceFetchRequest, SourceOutcome, SourceSearchParseResult
 from job_harness.v2.ports import ArtifactFetcher
 from job_harness.v2.runtime.http import HttpArtifactFetcher
 from job_harness.v2.runtime.sources.companies.ats import (
@@ -64,40 +65,41 @@ async def fetch_ats_company_config_listings(
     if not query_variant.strip():
         raise ValueError("query_variant must be non-empty")
 
+    config = replace(config, source_limit=source_limit)
     scraper = ats_company_source_from_config(config)
     artifact_fetcher = fetcher or HttpArtifactFetcher()
-    current_request: SourceFetchRequest | None = ats_company_initial_request(
-        config,
-        query_variant=query_variant,
+    request_batch: tuple[SourceFetchRequest, ...] = (
+        ats_company_initial_request(
+            config,
+            query_variant=query_variant,
+        ),
     )
+    seen_requests = {_request_identity(request_batch[0])}
     listings: list[RawListing] = []
     pages_visited = 0
 
-    while current_request is not None and len(listings) < source_limit:
-        response = await artifact_fetcher.fetch(current_request)
-        if response.source_id != config.source_id:
-            raise ValueError("response.source_id must match ATS config source_id")
-        parsed = scraper.parse_search_response(response, current_request)
-        pages_visited += 1
-
-        if parsed.outcome == SourceOutcome.NO_RESULTS:
-            if listings:
-                raise ValueError("no_results page after collected listings is invalid")
-            return AtsCompanyUrlParseResult(
+    while request_batch and len(listings) < source_limit:
+        responses = await asyncio.gather(*(artifact_fetcher.fetch(request) for request in request_batch))
+        next_batch: list[SourceFetchRequest] = []
+        for current_request, response in zip(request_batch, responses, strict=True):
+            if len(listings) >= source_limit:
+                break
+            if response.source_id != config.source_id:
+                raise ValueError("response.source_id must match ATS config source_id")
+            parsed = scraper.parse_search_response(response, current_request)
+            pages_visited += 1
+            page_result = _handle_parsed_page(
                 config=config,
-                listings=(),
+                parsed=parsed,
+                listings=listings,
+                source_limit=source_limit,
                 pages_visited=pages_visited,
-                limit_reached=False,
+                seen_requests=seen_requests,
             )
-        if parsed.outcome != SourceOutcome.SUCCESS:
-            raise ValueError(f"ATS parser returned unsupported outcome: {parsed.outcome.value}")
-
-        remaining = source_limit - len(listings)
-        for listing in parsed.listings[:remaining]:
-            if listing.source != config.source_id:
-                raise ValueError("listing.source must match ATS config source_id")
-            listings.append(listing)
-        current_request = parsed.next_request
+            if isinstance(page_result, AtsCompanyUrlParseResult):
+                return page_result
+            next_batch.extend(page_result)
+        request_batch = tuple(next_batch)
 
     if not listings:
         raise ValueError("ATS source produced neither listings nor explicit no_results")
@@ -106,4 +108,62 @@ async def fetch_ats_company_config_listings(
         listings=tuple(listings),
         pages_visited=pages_visited,
         limit_reached=len(listings) >= source_limit,
+    )
+
+
+def _handle_parsed_page(
+    *,
+    config: AtsCompanySourceConfig,
+    parsed: SourceSearchParseResult,
+    listings: list[RawListing],
+    source_limit: int,
+    pages_visited: int,
+    seen_requests: set[tuple[object, ...]],
+) -> AtsCompanyUrlParseResult | tuple[SourceFetchRequest, ...]:
+    if parsed.outcome == SourceOutcome.NO_RESULTS:
+        if listings:
+            raise ValueError("no_results page after collected listings is invalid")
+        return AtsCompanyUrlParseResult(
+            config=config,
+            listings=(),
+            pages_visited=pages_visited,
+            limit_reached=False,
+        )
+    if parsed.outcome != SourceOutcome.SUCCESS:
+        raise ValueError(f"ATS parser returned unsupported outcome: {parsed.outcome.value}")
+
+    remaining = source_limit - len(listings)
+    for listing in parsed.listings[:remaining]:
+        if listing.source != config.source_id:
+            raise ValueError("listing.source must match ATS config source_id")
+        listings.append(listing)
+    if len(listings) >= source_limit:
+        return ()
+    return _new_requests(parsed.parallel_requests, parsed.next_request, seen_requests)
+
+
+def _new_requests(
+    parallel_requests: tuple[SourceFetchRequest, ...],
+    next_request: SourceFetchRequest | None,
+    seen_requests: set[tuple[object, ...]],
+) -> tuple[SourceFetchRequest, ...]:
+    requests = parallel_requests or ((next_request,) if next_request is not None else ())
+    new_requests: list[SourceFetchRequest] = []
+    for request in requests:
+        identity = _request_identity(request)
+        if identity in seen_requests:
+            continue
+        seen_requests.add(identity)
+        new_requests.append(request)
+    return tuple(new_requests)
+
+
+def _request_identity(request: SourceFetchRequest) -> tuple[object, ...]:
+    return (
+        request.source_id,
+        request.query_variant,
+        request.method,
+        request.url,
+        tuple(sorted(request.headers.items())),
+        request.body,
     )

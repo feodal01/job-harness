@@ -1,0 +1,38 @@
+{
+  "name": "v2-search-speed-ats-multi-query",
+  "description": "Source-scoped live benchmark for static ATS company boards with multiple query formulations. Use this when changing ATS query-variant fanout so repeated board fetches can be removed without losing visible rows.",
+  "min_wall_speedup": 0.1,
+  "shape_policy": "presentation_at_least",
+  "max_wall_seconds": 25.0,
+  "max_source_elapsed_ms": 15000,
+  "runs_dir": ".job-harness/v2/benchmarks/runs",
+  "result_dir": ".job-harness/v2/benchmarks/results",
+  "runner": [
+    "uv",
+    "--directory",
+    "plugins/job-harness",
+    "run",
+    "job-harness-v2"
+  ],
+  "search_args": [
+    "search",
+    "--queries",
+    "Quality Assurance | QA Engineer | SDET",
+    "--grade",
+    "middle",
+    "--grade",
+    "senior",
+    "--published-since",
+    "2026-06-01",
+    "--remote-mode",
+    "compatible-remote",
+    "--work-from",
+    "RU",
+    "--vacancy-geography",
+    "RU",
+    "--source",
+    "career:jetbrains",
+    "--source",
+    "career:visa"
+  ]
+}

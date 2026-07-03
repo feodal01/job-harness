@@ -24,7 +24,7 @@ def country_text(countries: tuple[str, ...]) -> str | None:
     return ", ".join(countries) if countries else None
 
 
-def listing_remote_scopes(listing: dict[str, object]) -> tuple[str, ...]:
+def listing_remote_scopes(listing: dict[str, object], *, countries: tuple[str, ...] | None = None) -> tuple[str, ...]:
     remote_global = _optional_bool(listing.get("remote_global"))
     remote_in_country = _optional_bool(listing.get("remote_in_country"))
     work_formats = listing_work_formats(listing)
@@ -53,7 +53,7 @@ def listing_remote_scopes(listing: dict[str, object]) -> tuple[str, ...]:
         return ("hybrid",)
     if remote_in_country is False and remote_global is False:
         return ("onsite",)
-    if listing_country_codes(listing) and not _has_remote_scope_hint(listing):
+    if (countries if countries is not None else listing_country_codes(listing)) and not _has_remote_scope_hint(listing):
         return ("onsite",)
     return ("unknown",)
 

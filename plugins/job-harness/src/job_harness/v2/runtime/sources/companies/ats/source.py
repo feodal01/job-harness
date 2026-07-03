@@ -99,6 +99,7 @@ _JOBVITE_JOB_PATH_PARTS_MIN = 3
 _JAZZHR_DETAIL_PATH_PARTS_MIN = 4
 _US_STATE_CODE_LENGTH = 2
 _TALEO_DIRECT_FIELD_DEPTH = 2
+_DEFAULT_TALEO_PARALLEL_PAGINATION_WINDOW = 1
 _YCOMBINATOR_DATA_PAGE_RE = re.compile(
     r'<div[^>]+id="WaasShowJobsPage[^"]*"[^>]+data-page="(?P<body>.*?)"',
     re.I | re.S,
@@ -194,6 +195,9 @@ class AtsCompanySourceConfig:
     workday_base_url: str | None = None
     workday_tenant: str | None = None
     workday_site: str | None = None
+    source_limit: int = 200
+    smartrecruiters_parallel_pagination_window: int = 2
+    taleo_parallel_pagination_window: int = _DEFAULT_TALEO_PARALLEL_PAGINATION_WINDOW
 
 
 ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
@@ -210,7 +214,7 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         source_id="career:coinspaid",
         company="CoinsPaid",
         platform="lever",
-        board_url="https://api.eu.lever.co/v0/postings/coinspaid?mode=json",
+        board_url="https://api.eu.lever.co/v0/postings/coinspaid",
         career_url="https://jobs.eu.lever.co/coinspaid",
         lever_remote_work_format_from_location=True,
         lever_country_city_from_location=True,
@@ -262,7 +266,7 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         source_id="career:wintermute",
         company="Wintermute",
         platform="lever",
-        board_url="https://api.lever.co/v0/postings/wintermute-trading?mode=json",
+        board_url="https://api.lever.co/v0/postings/wintermute-trading",
         career_url="https://jobs.lever.co/wintermute-trading",
         remote_in_country_from_any_remote_location=True,
         non_remote_in_country=False,
@@ -458,6 +462,7 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         board_url="https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
         career_url="https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
         remote_in_country_from_any_remote_location=True,
+        taleo_parallel_pagination_window=2,
     ),
     "career:navstar": AtsCompanySourceConfig(
         source_id="career:navstar",
@@ -465,6 +470,7 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         platform="taleo",
         board_url="https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
         career_url="https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?cws=37&org=NAVSTAR",
+        taleo_parallel_pagination_window=3,
     ),
     "career:aurora-flight-sciences": AtsCompanySourceConfig(
         source_id="career:aurora-flight-sciences",
@@ -498,7 +504,7 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         source_id="career:integrate",
         company="Integrate",
         platform="lever",
-        board_url="https://api.lever.co/v0/postings/integrate?mode=json",
+        board_url="https://api.lever.co/v0/postings/integrate",
         career_url="https://jobs.lever.co/integrate",
     ),
     "career:avalanche-studios": AtsCompanySourceConfig(
@@ -512,7 +518,7 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         source_id="career:teramind",
         company="Teramind",
         platform="lever",
-        board_url="https://api.lever.co/v0/postings/teramind?mode=json",
+        board_url="https://api.lever.co/v0/postings/teramind",
         career_url="https://jobs.lever.co/teramind",
     ),
     "career:filevine": AtsCompanySourceConfig(
@@ -595,6 +601,7 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         platform="smartrecruiters",
         board_url="https://api.smartrecruiters.com/v1/companies/NielsenIQ/postings?limit=100",
         career_url="https://jobs.smartrecruiters.com/NielsenIQ",
+        smartrecruiters_parallel_pagination_window=4,
     ),
     "career:software-finder": AtsCompanySourceConfig(
         source_id="career:software-finder",
@@ -904,14 +911,14 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         source_id="career:xsolla",
         company="Xsolla",
         platform="lever",
-        board_url="https://api.lever.co/v0/postings/xsolla?mode=json",
+        board_url="https://api.lever.co/v0/postings/xsolla",
         career_url="https://jobs.lever.co/xsolla",
     ),
     "career:unlimint": AtsCompanySourceConfig(
         source_id="career:unlimint",
         company="Unlimint",
         platform="lever",
-        board_url="https://api.lever.co/v0/postings/unlimit?mode=json",
+        board_url="https://api.lever.co/v0/postings/unlimit",
         career_url="https://jobs.lever.co/unlimit",
     ),
     "career:clickhouse": AtsCompanySourceConfig(
@@ -1231,6 +1238,16 @@ def ats_company_source_from_config(config: AtsCompanySourceConfig) -> SourceScra
     return AtsCompanyCareerSource(config)
 
 
+def _config_source_limit(config: AtsCompanySourceConfig) -> int:
+    if config.source_id in ATS_COMPANY_SOURCE_CONFIGS:
+        return source_descriptor(config.source_id).source_limit
+    return config.source_limit
+
+
+def _static_board_query_variants(request: SearchRequest) -> tuple[str, ...]:
+    return request.query_variants[:1]
+
+
 def ats_company_initial_request(
     config: AtsCompanySourceConfig,
     *,
@@ -1243,7 +1260,7 @@ def ats_company_initial_request(
             url=config.board_url,
             method=HttpMethod.POST,
             headers=dict(_WORKDAY_SEARCH_HEADERS),
-            body=_workday_search_body(offset=0),
+            body=_workday_search_body(offset=0, search_text=query_variant),
         )
     return SourceFetchRequest(
         source_id=config.source_id,
@@ -1278,7 +1295,7 @@ class AtsCompanyCareerSource(SourceScraper):
                 query_variant=query_variant,
                 url=self._config.board_url,
             )
-            for query_variant in request.query_variants
+            for query_variant in _static_board_query_variants(request)
         )
 
     def parse_search_response(
@@ -1339,7 +1356,7 @@ class AtsWorkdayCompanyCareerSource(DetailEnrichmentScraper):
                 url=self._config.board_url,
                 method=HttpMethod.POST,
                 headers=dict(_WORKDAY_SEARCH_HEADERS),
-                body=_workday_search_body(offset=0),
+                body=_workday_search_body(offset=0, search_text=query_variant),
             )
             for query_variant in request.query_variants
         )
@@ -1389,7 +1406,7 @@ class AtsPersonioCompanyCareerSource(DetailEnrichmentScraper):
                 query_variant=query_variant,
                 url=self._config.board_url,
             )
-            for query_variant in request.query_variants
+            for query_variant in _static_board_query_variants(request)
         )
 
     def parse_search_response(
@@ -1436,7 +1453,7 @@ class AtsJoinCompanyCareerSource(DetailEnrichmentScraper):
                 query_variant=query_variant,
                 url=self._config.board_url,
             )
-            for query_variant in request.query_variants
+            for query_variant in _static_board_query_variants(request)
         )
 
     def parse_search_response(
@@ -1483,7 +1500,7 @@ class AtsDreamJobCompanyCareerSource(DetailEnrichmentScraper):
                 query_variant=query_variant,
                 url=self._config.board_url,
             )
-            for query_variant in request.query_variants
+            for query_variant in _static_board_query_variants(request)
         )
 
     def parse_search_response(
@@ -2135,10 +2152,17 @@ def _parse_smartrecruiters(
     listings = tuple(_smartrecruiters_listing(job, config) for job in raw_jobs if isinstance(job, dict))
     if not listings:
         raise ValueError(f"{config.company} SmartRecruiters response contains no valid postings")
+    parallel_requests = _smartrecruiters_parallel_requests(
+        payload,
+        request,
+        source_limit=_config_source_limit(config),
+        parallel_window=config.smartrecruiters_parallel_pagination_window,
+    )
     return SourceSearchParseResult(
         outcome=SourceOutcome.SUCCESS,
         listings=listings,
-        next_request=_smartrecruiters_next_request(payload, request),
+        next_request=None if parallel_requests else _smartrecruiters_next_request(payload, request),
+        parallel_requests=parallel_requests,
     )
 
 
@@ -2162,6 +2186,42 @@ def _smartrecruiters_next_request(
         source_id=request.source_id,
         query_variant=request.query_variant,
         url=next_url,
+    )
+
+
+def _smartrecruiters_parallel_requests(
+    payload: dict[str, Any],
+    request: SourceFetchRequest,
+    *,
+    source_limit: int,
+    parallel_window: int,
+) -> tuple[SourceFetchRequest, ...]:
+    total = _int_or_none(payload.get("totalFound"))
+    limit = _int_or_none(payload.get("limit"))
+    offset = _int_or_none(payload.get("offset")) or _smartrecruiters_request_offset(request.url)
+    content = payload.get("content")
+    if (
+        parallel_window < 1
+        or offset != 0
+        or total is None
+        or limit is None
+        or limit < 1
+        or not isinstance(content, list)
+        or not content
+    ):
+        return ()
+    page_step = len(content)
+    if page_step < 1:
+        return ()
+    max_records = min(total, source_limit)
+    max_records = min(max_records, offset + page_step * (parallel_window + 1))
+    return tuple(
+        SourceFetchRequest(
+            source_id=request.source_id,
+            query_variant=request.query_variant,
+            url=_smartrecruiters_page_url(request.url, offset=next_offset, limit=limit),
+        )
+        for next_offset in range(offset + page_step, max_records, page_step)
     )
 
 
@@ -2326,10 +2386,16 @@ def _parse_workday(
     listings = tuple(_workday_listing(posting, config) for posting in postings if isinstance(posting, dict))
     if not listings:
         raise ValueError(f"{config.company} Workday response contains no valid posting objects")
+    parallel_requests = _workday_parallel_requests(
+        payload,
+        request,
+        source_limit=_config_source_limit(config),
+    )
     return SourceSearchParseResult(
         outcome=SourceOutcome.SUCCESS,
         listings=listings,
-        next_request=_workday_next_request(payload, request),
+        next_request=None if parallel_requests else _workday_next_request(payload, request),
+        parallel_requests=parallel_requests,
     )
 
 
@@ -4353,10 +4419,14 @@ def _parse_icims(
     parser.feed(body)
     postings = parser.postings()
     if postings:
+        next_url = parser.next_url()
+        pagination_urls = ((next_url,) if next_url is not None else ()) + parser.page_urls()
+        parallel_requests = _icims_parallel_requests(pagination_urls, request)
         return SourceSearchParseResult(
             outcome=SourceOutcome.SUCCESS,
             listings=tuple(_icims_listing(posting, config) for posting in postings),
-            next_request=_icims_next_request(parser.next_url(), request),
+            next_request=None if parallel_requests else _icims_next_request(parser.next_url(), request),
+            parallel_requests=parallel_requests,
         )
     if "no jobs found" in body.casefold() or "no matching jobs" in body.casefold():
         return _no_results()
@@ -4527,12 +4597,16 @@ class _IcimsListParser(HTMLParser):
         self._field_value_parts: list[str] = []
         self._pending_field_label: str | None = None
         self._next_url: str | None = None
+        self._page_urls: list[str] = []
 
     def postings(self) -> tuple[_IcimsPosting, ...]:
         return tuple(self._postings)
 
     def next_url(self) -> str | None:
         return self._next_url
+
+    def page_urls(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(self._page_urls))
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = _attrs(attrs)
@@ -4541,6 +4615,10 @@ class _IcimsListParser(HTMLParser):
             if href:
                 self._next_url = href
             return
+        if tag == "a":
+            href = attributes.get("href")
+            if href and _icims_page_number(href) is not None:
+                self._page_urls.append(href)
         if tag == "ul" and _has_class(attributes, "iCIMS_JobsTable"):
             self._in_table = True
             self._table_depth = 1
@@ -4682,6 +4760,53 @@ def _icims_next_request(next_url: str | None, request: SourceFetchRequest) -> So
     )
 
 
+def _icims_parallel_requests(
+    page_urls: tuple[str, ...],
+    request: SourceFetchRequest,
+) -> tuple[SourceFetchRequest, ...]:
+    current_page = _icims_page_number(request.url) or 0
+    seen_pages = {current_page}
+    requests: list[SourceFetchRequest] = []
+    for raw_url in page_urls:
+        page_number = _icims_page_number(raw_url)
+        if page_number is None or page_number <= current_page or page_number in seen_pages:
+            continue
+        seen_pages.add(page_number)
+        url = _icims_page_url(raw_url, request)
+        if url == request.url:
+            continue
+        requests.append(
+            SourceFetchRequest(
+                source_id=request.source_id,
+                query_variant=request.query_variant,
+                url=url,
+            )
+        )
+    return tuple(requests)
+
+
+def _icims_page_url(raw_url: str, request: SourceFetchRequest) -> str:
+    url = urljoin(request.url, html.unescape(raw_url))
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query, keep_blank_values=True)
+    page_number = _query_int((query.get("pr") or [""])[0])
+    if page_number is None:
+        return url
+    normalized: dict[str, list[str]] = {"pr": [str(page_number)]}
+    for key in ("in_iframe", "searchRelation"):
+        values = query.get(key)
+        if values and values[0].strip():
+            normalized[key] = [values[0]]
+    return urlunparse(parsed._replace(query=urlencode(normalized, doseq=True)))
+
+
+def _icims_page_number(url: str) -> int | None:
+    values = parse_qs(urlparse(html.unescape(url)).query).get("pr")
+    if not values or not values[0].strip():
+        return None
+    return _query_int(values[0])
+
+
 @dataclass(frozen=True)
 class _TaleoPosting:
     source_listing_id: str
@@ -4698,14 +4823,35 @@ def _parse_taleo(
     parser = _TaleoListParser(config=config)
     parser.feed(body)
     postings = parser.postings()
+    next_href = parser.next_href()
     if postings:
+        parallel_requests = _taleo_parallel_requests(
+            next_href,
+            config,
+            request,
+            source_limit=_config_source_limit(config),
+            parallel_window=config.taleo_parallel_pagination_window,
+        )
         return SourceSearchParseResult(
             outcome=SourceOutcome.SUCCESS,
             listings=tuple(_taleo_listing(posting, config) for posting in postings),
-            next_request=_taleo_next_request(parser.next_href(), config, request),
+            next_request=None if parallel_requests else _taleo_next_request(next_href, config, request),
+            parallel_requests=parallel_requests,
         )
     if "no jobs found" in body.casefold() or "no results found" in body.casefold():
+        if _taleo_request_row_from(request.url) > 0:
+            return SourceSearchParseResult(
+                outcome=SourceOutcome.SUCCESS,
+                listings=(),
+                evidence=AttemptEvidence(multi_step_terminal=True),
+            )
         return _no_results()
+    if _taleo_terminal_page_without_rows(body, request, next_href=next_href):
+        return SourceSearchParseResult(
+            outcome=SourceOutcome.SUCCESS,
+            listings=(),
+            evidence=AttemptEvidence(multi_step_terminal=True),
+        )
     raise ValueError(f"{config.company} Taleo response contains no job rows")
 
 
@@ -4986,12 +5132,10 @@ def _taleo_next_request(
     config: AtsCompanySourceConfig,
     request: SourceFetchRequest,
 ) -> SourceFetchRequest | None:
-    if not next_href:
+    row_from = _taleo_next_row_from(next_href)
+    if row_from is None:
         return None
-    row_from_values = parse_qs(urlparse(html.unescape(next_href)).query).get("rowFrom")
-    if not row_from_values or not row_from_values[0].strip():
-        return None
-    next_url = _taleo_row_from_url(config.board_url, row_from_values[0].strip())
+    next_url = _taleo_row_from_url(config.board_url, str(row_from))
     if next_url == request.url:
         return None
     return SourceFetchRequest(
@@ -4999,6 +5143,74 @@ def _taleo_next_request(
         query_variant=request.query_variant,
         url=next_url,
     )
+
+
+def _taleo_terminal_page_without_rows(
+    body: str,
+    request: SourceFetchRequest,
+    *,
+    next_href: str | None,
+) -> bool:
+    if _taleo_request_row_from(request.url) <= 0 or next_href is not None:
+        return False
+    normalized = body.casefold()
+    return "oracletaleocwsv2-wrapper" in normalized and "job search results" in normalized
+
+
+def _taleo_parallel_requests(
+    next_href: str | None,
+    config: AtsCompanySourceConfig,
+    request: SourceFetchRequest,
+    *,
+    source_limit: int,
+    parallel_window: int,
+) -> tuple[SourceFetchRequest, ...]:
+    next_row_from = _taleo_next_row_from(next_href)
+    current_row_from = _taleo_request_row_from(request.url)
+    if (
+        parallel_window < 1
+        or current_row_from != 0
+        or next_row_from is None
+        or next_row_from <= current_row_from
+    ):
+        return ()
+    page_step = next_row_from - current_row_from
+    max_exclusive = min(
+        source_limit,
+        current_row_from + page_step * (parallel_window + 1),
+    )
+    return tuple(
+        SourceFetchRequest(
+            source_id=config.source_id,
+            query_variant=request.query_variant,
+            url=_taleo_row_from_url(config.board_url, str(row_from)),
+        )
+        for row_from in range(next_row_from, max_exclusive, page_step)
+    )
+
+
+def _taleo_next_row_from(next_href: str | None) -> int | None:
+    if not next_href:
+        return None
+    row_from_values = parse_qs(urlparse(html.unescape(next_href)).query).get("rowFrom")
+    if not row_from_values or not row_from_values[0].strip():
+        return None
+    return _query_int(row_from_values[0])
+
+
+def _taleo_request_row_from(url: str) -> int:
+    row_from_values = parse_qs(urlparse(html.unescape(url)).query).get("rowFrom")
+    if not row_from_values or not row_from_values[0].strip():
+        return 0
+    return _query_int(row_from_values[0]) or 0
+
+
+def _query_int(value: str) -> int | None:
+    try:
+        parsed = int(value.strip())
+    except ValueError:
+        return None
+    return parsed if parsed >= 0 else None
 
 
 def _taleo_row_from_url(board_url: str, row_from: str) -> str:
@@ -6381,13 +6593,13 @@ def _teamtailor_remote_locations(location_text: str | None, work_format: str | N
     )
 
 
-def _workday_search_body(*, offset: int) -> bytes:
+def _workday_search_body(*, offset: int, search_text: str) -> bytes:
     return json.dumps(
         {
             "appliedFacets": {},
             "limit": _WORKDAY_PAGE_LIMIT,
             "offset": offset,
-            "searchText": "",
+            "searchText": search_text,
         },
         separators=(",", ":"),
     ).encode("utf-8")
@@ -6409,7 +6621,33 @@ def _workday_next_request(payload: dict[str, Any], request: SourceFetchRequest) 
         url=_workday_page_url(request.url, next_offset),
         method=HttpMethod.POST,
         headers=dict(_WORKDAY_SEARCH_HEADERS),
-        body=_workday_search_body(offset=next_offset),
+        body=_workday_search_body(offset=next_offset, search_text=_workday_request_search_text(request)),
+    )
+
+
+def _workday_parallel_requests(
+    payload: dict[str, Any],
+    request: SourceFetchRequest,
+    *,
+    source_limit: int,
+) -> tuple[SourceFetchRequest, ...]:
+    total = _int_value(payload, "total")
+    postings = payload.get("jobPostings")
+    current_offset = _workday_request_offset(request)
+    if current_offset != 0 or total is None or not isinstance(postings, list) or not postings:
+        return ()
+    page_step = len(postings)
+    max_records = min(total, source_limit)
+    return tuple(
+        SourceFetchRequest(
+            source_id=request.source_id,
+            query_variant=request.query_variant,
+            url=_workday_page_url(request.url, next_offset),
+            method=HttpMethod.POST,
+            headers=dict(_WORKDAY_SEARCH_HEADERS),
+            body=_workday_search_body(offset=next_offset, search_text=_workday_request_search_text(request)),
+        )
+        for next_offset in range(current_offset + page_step, max_records, page_step)
     )
 
 
@@ -6424,6 +6662,19 @@ def _workday_request_offset(request: SourceFetchRequest) -> int:
         return 0
     offset = payload.get("offset")
     return offset if isinstance(offset, int) and offset >= 0 else 0
+
+
+def _workday_request_search_text(request: SourceFetchRequest) -> str:
+    if request.body is None:
+        return ""
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return ""
+    if not isinstance(payload, dict):
+        return ""
+    search_text = payload.get("searchText")
+    return search_text if isinstance(search_text, str) else ""
 
 
 def _workday_source_listing_id(posting: dict[str, Any], external_path: str) -> str:

@@ -30,6 +30,7 @@ _CITY_DOMINANT_MIN_POPULATION = 100_000
 _MIN_CITY_COUNTRY_CANDIDATES = 2
 
 
+@lru_cache(maxsize=8192)
 def city_country_code_for_keys(keys: tuple[str, ...]) -> str | None:
     city_lookup = _city_country_lookup()
     for key in keys:
