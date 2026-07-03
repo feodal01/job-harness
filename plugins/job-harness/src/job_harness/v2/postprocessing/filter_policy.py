@@ -19,7 +19,7 @@ CITY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.9)
 
 @dataclass(frozen=True)
 class VacancyFilterCriteria:
-    query: str
+    queries: tuple[str, ...]
     exclude_companies: tuple[str, ...] = ()
     exclude_text: tuple[TextExclusion, ...] = ()
     grades: tuple[str, ...] = ()
@@ -34,9 +34,9 @@ class VacancyFilterCriteria:
     cities: tuple[str, ...] = ()
 
     @classmethod
-    def from_search_request(cls, request: SearchRequest, *, query: str) -> VacancyFilterCriteria:
+    def from_search_request(cls, request: SearchRequest) -> VacancyFilterCriteria:
         return cls(
-            query=query,
+            queries=request.query_variants,
             exclude_companies=request.exclude_companies,
             exclude_text=request.exclude_text,
             grades=tuple(grade.value for grade in request.grades),
@@ -88,7 +88,7 @@ def decide_vacancy_filter(
     """Return the keep/remove decision for one normalized vacancy."""
 
     reasons: list[str] = []
-    title_matches = _title_matches_query(criteria.query, vacancy.title)
+    title_matches = _title_matches_any_query(criteria.queries, vacancy.title)
 
     if not title_matches:
         reasons.append("query_mismatch")
@@ -151,9 +151,9 @@ def decide_vacancy_filter(
     )
 
 
-def _title_matches_query(query: str, title: str) -> bool:
-    query = query.strip()
-    return not query or _query_text_matches(tokens=_query_tokens(query), haystack=title)
+def _title_matches_any_query(queries: tuple[str, ...], title: str) -> bool:
+    cleaned = tuple(query.strip() for query in queries if query.strip())
+    return not cleaned or any(_query_text_matches(tokens=_query_tokens(query), haystack=title) for query in cleaned)
 
 
 def _query_text_matches(*, tokens: tuple[str, ...], haystack: str) -> bool:

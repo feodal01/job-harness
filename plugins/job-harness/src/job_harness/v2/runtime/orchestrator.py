@@ -22,6 +22,7 @@ from job_harness.v2.contracts import (
     SourceDescriptor,
     SourceFetchRequest,
     SourceOutcome,
+    SourceResponseArtifact,
     SourceScraper,
     SourceSearchParseResult,
 )
@@ -104,6 +105,7 @@ class SearchOrchestrator:
             raise ValueError("append_sequence must be >= 0")
         effective_run_id = _resolve_run_id(request, run_id)
         jobs = self._build_jobs(request)
+        fetch_cache: dict[tuple[object, ...], asyncio.Task[SourceResponseArtifact]] = {}
         tasks = {
             asyncio.create_task(
                 self._run_job(
@@ -111,6 +113,7 @@ class SearchOrchestrator:
                     search_request=request,
                     run_id=effective_run_id,
                     append_sequence=append_sequence,
+                    fetch_cache=fetch_cache,
                 )
             ): job
             for job in jobs
@@ -177,6 +180,7 @@ class SearchOrchestrator:
         search_request: SearchRequest,
         run_id: str,
         append_sequence: int,
+        fetch_cache: dict[tuple[object, ...], asyncio.Task[SourceResponseArtifact]],
     ) -> SourceAttemptRecord:
         policy = self._config.retry_policy
         for attempt in range(1, policy.max_attempts + 1):
@@ -186,6 +190,7 @@ class SearchOrchestrator:
                 run_id=run_id,
                 append_sequence=append_sequence,
                 attempt=attempt,
+                fetch_cache=fetch_cache,
             )
             next_action = policy.next_action(
                 outcome=record.outcome,
@@ -208,6 +213,7 @@ class SearchOrchestrator:
         run_id: str,
         append_sequence: int,
         attempt: int,
+        fetch_cache: dict[tuple[object, ...], asyncio.Task[SourceResponseArtifact]],
     ) -> SourceAttemptRecord:
         started_at = datetime.now(UTC)
         started = monotonic()
@@ -218,7 +224,7 @@ class SearchOrchestrator:
 
         try:
             parsed = await asyncio.wait_for(
-                self._fetch_search_pages(job),
+                self._fetch_search_pages(job, fetch_cache=fetch_cache),
                 timeout=self._config.source_attempt_timeout_seconds,
             )
             listings = self._validated_listings(job, parsed.listings)
@@ -250,7 +256,7 @@ class SearchOrchestrator:
         return SourceAttemptRecord(
             source=descriptor.source_id,
             source_type=descriptor.source_type,
-            query_variant=job.request.query_variant,
+            query_variant=_request_query_variant_label(job.request),
             attempt=attempt,
             outcome=outcome,
             started_at=started_at,
@@ -268,50 +274,70 @@ class SearchOrchestrator:
             evidence=evidence,
         )
 
-    async def _fetch_search_pages(self, job: _SearchJob) -> _ParsedAttempt:
+    async def _fetch_search_pages(
+        self,
+        job: _SearchJob,
+        *,
+        fetch_cache: dict[tuple[object, ...], asyncio.Task[SourceResponseArtifact]],
+    ) -> _ParsedAttempt:
         descriptor = job.scraper.descriptor
         listings: list[_CollectedListing] = []
-        current_request: SourceFetchRequest | None = job.request
+        request_batch: tuple[SourceFetchRequest, ...] = (job.request,)
+        seen_requests = {_request_identity(job.request)}
         pages_visited = 0
         last_evidence = AttemptEvidence()
 
-        while current_request is not None and len(listings) < descriptor.source_limit:
-            response = await self._fetcher.fetch(current_request)
-            if response.source_id != descriptor.source_id:
-                raise ValueError("response.source_id must match scraper descriptor")
-
-            result = job.scraper.parse_search_response(response, current_request)
-            if not isinstance(result, SourceSearchParseResult):
-                raise ValueError("parse_search_response must return SourceSearchParseResult")
-
-            pages_visited += 1
-            last_evidence = result.evidence
-
-            if result.outcome == SourceOutcome.NO_RESULTS:
-                if listings:
-                    raise ValueError("no_results page after collected listings is invalid")
-                return _ParsedAttempt(
-                    outcome=SourceOutcome.NO_RESULTS,
-                    listings=(),
-                    evidence=result.evidence,
-                    pages_visited=pages_visited,
-                )
-
-            remaining = descriptor.source_limit - len(listings)
-            page_listings = result.listings[:remaining]
-            listings.extend(
-                _CollectedListing(
-                    listing=listing,
-                    description_availability=(
-                        DescriptionAvailability.PRESENT
-                        if listing.description
-                        else DescriptionAvailability.NOT_REQUESTED
-                    ),
-                    detail_fetched=False,
-                )
-                for listing in page_listings
+        while request_batch and len(listings) < descriptor.source_limit:
+            responses = await asyncio.gather(
+                *(self._fetch_response(request, fetch_cache=fetch_cache) for request in request_batch)
             )
-            current_request = result.next_request
+            next_batch: list[SourceFetchRequest] = []
+            for current_request, response in zip(request_batch, responses, strict=True):
+                if len(listings) >= descriptor.source_limit:
+                    break
+                if response.source_id != descriptor.source_id:
+                    raise ValueError("response.source_id must match scraper descriptor")
+
+                result = job.scraper.parse_search_response(response, current_request)
+                if not isinstance(result, SourceSearchParseResult):
+                    raise ValueError("parse_search_response must return SourceSearchParseResult")
+
+                pages_visited += 1
+                last_evidence = result.evidence
+
+                if result.outcome == SourceOutcome.NO_RESULTS:
+                    if listings:
+                        raise ValueError("no_results page after collected listings is invalid")
+                    return _ParsedAttempt(
+                        outcome=SourceOutcome.NO_RESULTS,
+                        listings=(),
+                        evidence=result.evidence,
+                        pages_visited=pages_visited,
+                    )
+
+                remaining = descriptor.source_limit - len(listings)
+                page_listings = result.listings[:remaining]
+                listings.extend(
+                    _CollectedListing(
+                        listing=listing,
+                        description_availability=(
+                            DescriptionAvailability.PRESENT
+                            if listing.description
+                            else DescriptionAvailability.NOT_REQUESTED
+                        ),
+                        detail_fetched=False,
+                    )
+                    for listing in page_listings
+                )
+                if len(listings) < descriptor.source_limit:
+                    next_batch.extend(
+                        _new_pagination_requests(
+                            result,
+                            descriptor=descriptor,
+                            seen_requests=seen_requests,
+                        )
+                    )
+            request_batch = tuple(next_batch)
 
         if not listings:
             raise ValueError("source produced neither listings nor explicit no_results")
@@ -322,6 +348,28 @@ class SearchOrchestrator:
             evidence=last_evidence,
             pages_visited=pages_visited,
         )
+
+    async def _fetch_response(
+        self,
+        request: SourceFetchRequest,
+        *,
+        fetch_cache: dict[tuple[object, ...], asyncio.Task[SourceResponseArtifact]],
+    ) -> SourceResponseArtifact:
+        identity = _network_request_identity(request)
+        task = fetch_cache.get(identity)
+        if task is None:
+            task = asyncio.create_task(self._fetcher.fetch(request))
+            fetch_cache[identity] = task
+        try:
+            return await task
+        except asyncio.CancelledError:
+            if fetch_cache.get(identity) is task:
+                fetch_cache.pop(identity)
+            raise
+        except Exception:
+            if fetch_cache.get(identity) is task:
+                fetch_cache.pop(identity)
+            raise
 
     def _validated_listings(
         self,
@@ -352,7 +400,7 @@ class SearchOrchestrator:
                 RawSearchRecord(
                     run_id=run_id,
                     append_sequence=append_sequence,
-                    query_variant=job.request.query_variant,
+                    query_variant=_request_query_variant_label(job.request),
                     source=descriptor.source_id,
                     source_type=descriptor.source_type,
                     collected_at=datetime.now(UTC),
@@ -383,7 +431,7 @@ class SearchOrchestrator:
             record = SourceAttemptRecord(
                 source=descriptor.source_id,
                 source_type=descriptor.source_type,
-                query_variant=job.request.query_variant,
+                query_variant=_request_query_variant_label(job.request),
                 attempt=1,
                 outcome=SourceOutcome.RUN_TIMEOUT,
                 started_at=now,
@@ -448,6 +496,51 @@ def _with_retry(
         ),
         evidence=record.evidence,
     )
+
+
+def _new_pagination_requests(
+    result: SourceSearchParseResult,
+    *,
+    descriptor: SourceDescriptor,
+    seen_requests: set[tuple[object, ...]],
+) -> tuple[SourceFetchRequest, ...]:
+    requests = result.parallel_requests or ((result.next_request,) if result.next_request is not None else ())
+    new_requests: list[SourceFetchRequest] = []
+    for request in requests:
+        if request.source_id != descriptor.source_id:
+            raise ValueError("pagination request source_id must match scraper descriptor")
+        identity = _request_identity(request)
+        if identity in seen_requests:
+            continue
+        seen_requests.add(identity)
+        new_requests.append(request)
+    return tuple(new_requests)
+
+
+def _request_identity(request: SourceFetchRequest) -> tuple[object, ...]:
+    return (
+        request.source_id,
+        request.query_variant,
+        request.query_variants,
+        request.method,
+        request.url,
+        tuple(sorted(request.headers.items())),
+        request.body,
+    )
+
+
+def _network_request_identity(request: SourceFetchRequest) -> tuple[object, ...]:
+    return (
+        request.source_id,
+        request.method,
+        request.url,
+        tuple(sorted(request.headers.items())),
+        request.body,
+    )
+
+
+def _request_query_variant_label(request: SourceFetchRequest) -> str:
+    return " | ".join(request.query_variants)
 
 
 def _resolve_run_id(request: SearchRequest, explicit_run_id: str | None) -> str:

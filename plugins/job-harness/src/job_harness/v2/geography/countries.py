@@ -61,6 +61,7 @@ def normalize_source_geography(value: str) -> str | None:
     return geographies[0] if geographies else None
 
 
+@lru_cache(maxsize=8192)
 def normalize_source_geographies(value: str) -> tuple[str, ...]:
     paired_geographies = _paired_explicit_geographies(value)
     if paired_geographies is not None:
@@ -75,6 +76,7 @@ def normalize_source_geographies(value: str) -> tuple[str, ...]:
     return tuple(geographies)
 
 
+@lru_cache(maxsize=8192)
 def has_specific_location_hint(value: str) -> bool:
     for candidate in source_geography_candidates(value):
         keys = geography_text_keys(candidate)
@@ -87,6 +89,7 @@ def has_specific_location_hint(value: str) -> bool:
     return False
 
 
+@lru_cache(maxsize=8192)
 def _normalize_source_geography_candidate(value: str, *, has_us_context: bool) -> str | None:
     geography = _normalize_direct_source_geography_candidate(value, has_us_context=has_us_context)
     if geography:
@@ -102,6 +105,7 @@ def _normalize_source_geography_candidate(value: str, *, has_us_context: bool) -
     return None
 
 
+@lru_cache(maxsize=8192)
 def _normalize_direct_source_geography_candidate(value: str, *, has_us_context: bool = False) -> str | None:
     keys = geography_text_keys(value)
     for key in keys:
@@ -154,6 +158,7 @@ def _paired_explicit_geographies(value: str) -> tuple[str, ...] | None:
     return None
 
 
+@lru_cache(maxsize=8192)
 def _single_location_parts(value: str) -> tuple[str, ...]:
     normalized = REMOTE_PARENTHESES_SUFFIX_PATTERN.sub("", value).strip()
     parts: list[str] = []
@@ -164,11 +169,13 @@ def _single_location_parts(value: str) -> tuple[str, ...]:
     return tuple(parts)
 
 
+@lru_cache(maxsize=8192)
 def _is_location_descriptor_part(value: str) -> bool:
     keys = geography_text_keys(value)
     return bool(keys) and all(key in LOCATION_DESCRIPTOR_PARTS for key in keys)
 
 
+@lru_cache(maxsize=8192)
 def _direct_geographies_for_text(value: str, *, has_us_context: bool = False) -> tuple[str, ...]:
     geographies: list[str] = []
     for candidate in source_geography_candidates(value):

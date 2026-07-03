@@ -1,0 +1,39 @@
+{
+  "name": "v2-search-speed-workday-nvidia-native-query",
+  "description": "Source-scoped live benchmark for Workday native searchText changes on career:nvidia. Raw listings may decrease when server-side query is enabled, so compare presentation rows instead of raw corpus size.",
+  "min_wall_speedup": 0.1,
+  "shape_policy": "presentation_at_least",
+  "shape_sources": [
+    "career:nvidia"
+  ],
+  "max_wall_seconds": 20.0,
+  "max_source_elapsed_ms": 15000,
+  "runs_dir": ".job-harness/v2/benchmarks/runs",
+  "result_dir": ".job-harness/v2/benchmarks/results",
+  "runner": [
+    "uv",
+    "--directory",
+    "plugins/job-harness",
+    "run",
+    "job-harness-v2"
+  ],
+  "search_args": [
+    "search",
+    "--query",
+    "Quality Assurance",
+    "--grade",
+    "middle",
+    "--grade",
+    "senior",
+    "--published-since",
+    "2026-06-01",
+    "--remote-mode",
+    "compatible-remote",
+    "--work-from",
+    "RU",
+    "--vacancy-geography",
+    "RU",
+    "--source",
+    "career:nvidia"
+  ]
+}

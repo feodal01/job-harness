@@ -80,13 +80,26 @@ class HirifySource(DetailEnrichmentScraper):
             if listing is not None
         )
 
+        parallel_requests = _parallel_page_requests(
+            request,
+            current_page=current_page,
+            last_page=last_page,
+            page_size=_positive_int(payload.get("per_page")) or len(items),
+            source_limit=self.descriptor.source_limit,
+        )
         next_request = (
             _next_page_request(request, page=current_page + 1)
-            if current_page < last_page
+            if current_page < last_page and not parallel_requests
             else None
         )
 
         if not listings:
+            if parallel_requests:
+                return SourceSearchParseResult(
+                    outcome=SourceOutcome.SUCCESS,
+                    listings=(),
+                    parallel_requests=parallel_requests,
+                )
             if next_request is not None:
                 return SourceSearchParseResult(
                     outcome=SourceOutcome.SUCCESS,
@@ -109,6 +122,7 @@ class HirifySource(DetailEnrichmentScraper):
             outcome=SourceOutcome.SUCCESS,
             listings=listings,
             next_request=next_request,
+            parallel_requests=parallel_requests,
         )
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
@@ -155,6 +169,23 @@ def _next_page_request(request: SourceFetchRequest, *, page: int) -> SourceFetch
         source_id=request.source_id,
         query_variant=request.query_variant,
         url=urlunparse(parsed._replace(query=urlencode(params))),
+    )
+
+
+def _parallel_page_requests(
+    request: SourceFetchRequest,
+    *,
+    current_page: int,
+    last_page: int,
+    page_size: int,
+    source_limit: int,
+) -> tuple[SourceFetchRequest, ...]:
+    if current_page != 1 or page_size < 1:
+        return ()
+    last_needed_page = min(last_page, (source_limit + page_size - 1) // page_size)
+    return tuple(
+        _next_page_request(request, page=page)
+        for page in range(current_page + 1, last_needed_page + 1)
     )
 
 

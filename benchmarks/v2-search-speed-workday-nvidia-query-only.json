@@ -1,0 +1,27 @@
+{
+  "name": "v2-search-speed-workday-nvidia-query-only",
+  "description": "Source-scoped live benchmark for Workday query-only behavior on career:nvidia. Use this to verify native Workday searchText keeps visible query-matching rows while reducing raw pagination.",
+  "min_wall_speedup": 0.1,
+  "shape_policy": "presentation_at_least",
+  "shape_sources": [
+    "career:nvidia"
+  ],
+  "max_wall_seconds": 20.0,
+  "max_source_elapsed_ms": 15000,
+  "runs_dir": ".job-harness/v2/benchmarks/runs",
+  "result_dir": ".job-harness/v2/benchmarks/results",
+  "runner": [
+    "uv",
+    "--directory",
+    "plugins/job-harness",
+    "run",
+    "job-harness-v2"
+  ],
+  "search_args": [
+    "search",
+    "--query",
+    "Quality Assurance",
+    "--source",
+    "career:nvidia"
+  ]
+}

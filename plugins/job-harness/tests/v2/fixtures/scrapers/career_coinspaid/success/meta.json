@@ -1,7 +1,7 @@
 {
   "source_id": "career:coinspaid",
-  "captured_url": "https://api.eu.lever.co/v0/postings/coinspaid?mode=json",
-  "capture_date": "2026-06-25",
+  "captured_url": "https://api.eu.lever.co/v0/postings/coinspaid",
+  "capture_date": "2026-07-03",
   "capture_method": "curl -L against the public Lever EU postings JSON API with the job-harness-v2 HTTP user-agent",
   "fixture_kind": "success_non_empty",
   "redactions": [

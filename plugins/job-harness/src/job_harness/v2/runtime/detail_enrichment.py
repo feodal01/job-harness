@@ -149,7 +149,7 @@ class DetailEnrichmentRunner:
 
         workers = tuple(
             asyncio.create_task(worker())
-            for _ in range(min(self._config.per_source_concurrency, len(work_items)))
+            for _ in range(min(self._config.concurrency_for_source(source), len(work_items)))
         )
         await asyncio.gather(*workers)
         return DetailRunResult(

@@ -841,6 +841,17 @@ class SourceCatalogTableTest(unittest.TestCase):
             tuple(case.kind for case in fixture_suite.cases),
         )
 
+    def test_workday_catalog_rows_declare_native_query_contract(self) -> None:
+        for source_id in ("career:semrush", "career:nvidia"):
+            with self.subTest(source_id=source_id):
+                descriptor = source_descriptor(source_id)
+
+                self.assertEqual(SourceType.COMPANY_CAREER, descriptor.source_type)
+                self.assertEqual(Transport.HTTP, descriptor.transport)
+                self.assertEqual(frozenset({SearchCriterion.QUERY}), descriptor.native_request_criteria)
+                self.assertIn(SearchCriterion.PUBLISHED_SINCE, descriptor.structured_output_criteria)
+                self.assertIn(SearchCriterion.REMOTE_MODE, descriptor.structured_output_criteria)
+
     def test_catalog_fixture_paths_exist_under_plugin_root(self) -> None:
         for entry in source_catalog_entries():
             with self.subTest(source_id=entry.source_id):

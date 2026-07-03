@@ -8,10 +8,16 @@
   },
   "detail": {
     "per_source_concurrency": 2,
+    "per_source_concurrency_by_source": {
+      "hirify": 4,
+      "talento": 4
+    },
     "default_request_delay_seconds": 0.75,
     "request_delay_seconds_by_source": {
       "hh_ru": 1.5,
-      "hirify": 0.75
+      "hirify": 0.1,
+      "talanto": 0.1,
+      "talento": 0.1
     },
     "stop_on_blocked": true,
     "stop_on_rate_limited": true

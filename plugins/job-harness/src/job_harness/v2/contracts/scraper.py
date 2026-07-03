@@ -20,6 +20,7 @@ class SourceFetchRequest:
     method: HttpMethod = HttpMethod.GET
     headers: dict[str, str] = field(default_factory=dict)
     body: bytes | None = None
+    query_variants: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.source_id.strip():
@@ -28,6 +29,11 @@ class SourceFetchRequest:
             raise ValueError("query_variant must be non-empty")
         if not self.url.startswith(("http://", "https://")):
             raise ValueError("url must be an absolute http(s) URL")
+        variants = self.query_variants or (self.query_variant,)
+        cleaned_variants = tuple(variant.strip() for variant in variants)
+        if not cleaned_variants or any(not variant for variant in cleaned_variants):
+            raise ValueError("query_variants must contain non-empty values")
+        object.__setattr__(self, "query_variants", cleaned_variants)
 
 
 @dataclass(frozen=True)
@@ -52,12 +58,16 @@ class SourceSearchParseResult:
     listings: tuple[RawListing, ...]
     evidence: AttemptEvidence = field(default_factory=AttemptEvidence)
     next_request: SourceFetchRequest | None = None
+    parallel_requests: tuple[SourceFetchRequest, ...] = ()
 
     def __post_init__(self) -> None:
+        if self.next_request is not None and self.parallel_requests:
+            raise ValueError("parse result must not include both next_request and parallel_requests")
         if (
             self.outcome == SourceOutcome.SUCCESS
             and not self.listings
             and self.next_request is None
+            and not self.parallel_requests
             and not self.evidence.multi_step_terminal
         ):
             raise ValueError("success parse result requires at least one listing")
@@ -68,6 +78,8 @@ class SourceSearchParseResult:
                 raise ValueError("no_results parse result requires explicit evidence")
             if self.next_request is not None:
                 raise ValueError("no_results parse result must not include next_request")
+            if self.parallel_requests:
+                raise ValueError("no_results parse result must not include parallel_requests")
 
 
 class SourceScraper(ABC):

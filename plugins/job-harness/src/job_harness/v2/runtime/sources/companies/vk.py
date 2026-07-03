@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
@@ -39,13 +39,12 @@ class VKCareerSource(DetailEnrichmentScraper):
         return source_required_fixture_kinds("career:vk")
 
     def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
-        return tuple(
+        return (
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
-                query_variant=query_variant,
+                query_variant=request.query_variants[0],
                 url=_build_vk_api_url(use_remote_collection_hint=_use_remote_collection_hint(request)),
-            )
-            for query_variant in request.query_variants
+            ),
         )
 
     def parse_search_response(
@@ -68,19 +67,25 @@ class VKCareerSource(DetailEnrichmentScraper):
         if not items:
             raise ValueError("VK vacancies API returned an empty page before completion")
 
+        parallel_requests = _parallel_page_requests(
+            request=_request,
+            total_count=total_count,
+            source_limit=self.descriptor.source_limit,
+        )
         next_request = (
             SourceFetchRequest(
                 source_id=_request.source_id,
                 query_variant=_request.query_variant,
                 url=next_url,
             )
-            if isinstance(next_url, str) and next_url
+            if isinstance(next_url, str) and next_url and not parallel_requests
             else None
         )
         return SourceSearchParseResult(
             outcome=SourceOutcome.SUCCESS,
             listings=tuple(_vk_listing(item) for item in items if isinstance(item, dict)),
             next_request=next_request,
+            parallel_requests=parallel_requests,
         )
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
@@ -116,6 +121,57 @@ def _build_vk_api_url(*, use_remote_collection_hint: bool) -> str:
     if use_remote_collection_hint:
         params["remote"] = "true"
     return f"{_API_URL}?{urlencode(params)}"
+
+
+def _parallel_page_requests(
+    *,
+    request: SourceFetchRequest,
+    total_count: int,
+    source_limit: int,
+) -> tuple[SourceFetchRequest, ...]:
+    current_offset = _request_offset(request.url)
+    limit = _request_limit(request.url)
+    if current_offset != 0 or limit < 1 or total_count <= limit:
+        return ()
+    max_records = min(total_count, source_limit)
+    return tuple(
+        SourceFetchRequest(
+            source_id=request.source_id,
+            query_variant=request.query_variant,
+            url=_page_url(request.url, offset=offset),
+        )
+        for offset in range(current_offset + limit, max_records, limit)
+    )
+
+
+def _request_offset(url: str) -> int:
+    values = parse_qs(urlparse(url).query).get("offset")
+    if not values:
+        return 0
+    return _positive_int_text(values[0]) or 0
+
+
+def _request_limit(url: str) -> int:
+    values = parse_qs(urlparse(url).query).get("limit")
+    if not values:
+        return _PAGE_LIMIT
+    return _positive_int_text(values[0]) or _PAGE_LIMIT
+
+
+def _page_url(url: str, *, offset: int) -> str:
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    query["offset"] = [str(offset)]
+    normalized = {key: values[-1] for key, values in query.items() if values}
+    return urlunparse(parsed._replace(query=urlencode(normalized)))
+
+
+def _positive_int_text(value: str) -> int | None:
+    try:
+        parsed = int(value)
+    except ValueError:
+        return None
+    return parsed if parsed > 0 else None
 
 
 def _extract_json_object(body: str) -> dict[str, Any]:

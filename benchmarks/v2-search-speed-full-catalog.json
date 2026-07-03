@@ -1,0 +1,35 @@
+{
+  "name": "v2-search-speed-full-catalog",
+  "description": "Full-catalog live stress benchmark for broad search latency. This profile is intentionally volatile and should be used to diagnose long-tail source timing, not as a strict per-commit blocking gate or acceptance signal for source-specific speed changes.",
+  "min_wall_speedup": 0.1,
+  "require_speedup": false,
+  "shape_policy": "at_least_baseline",
+  "max_wall_seconds": 90.0,
+  "max_source_elapsed_ms": 30000,
+  "runs_dir": ".job-harness/v2/benchmarks/runs",
+  "result_dir": ".job-harness/v2/benchmarks/results",
+  "runner": [
+    "uv",
+    "--directory",
+    "plugins/job-harness",
+    "run",
+    "job-harness-v2"
+  ],
+  "search_args": [
+    "search",
+    "--query",
+    "Quality Assurance",
+    "--grade",
+    "middle",
+    "--grade",
+    "senior",
+    "--published-since",
+    "2026-06-01",
+    "--remote-mode",
+    "compatible-remote",
+    "--work-from",
+    "RU",
+    "--vacancy-geography",
+    "RU"
+  ]
+}

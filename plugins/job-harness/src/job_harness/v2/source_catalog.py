@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
+from functools import cache
 from importlib.resources import files
 from typing import cast
 
@@ -128,6 +129,7 @@ def source_fixture_suite(source_id: str) -> ParserFixtureSuite:
     return source_catalog_entry(source_id).fixture_suite()
 
 
+@cache
 def _load_catalog() -> tuple[SourceCatalogEntry, ...]:
     connection = sqlite3.connect(":memory:")
     connection.row_factory = sqlite3.Row
@@ -138,6 +140,7 @@ def _load_catalog() -> tuple[SourceCatalogEntry, ...]:
         connection.close()
 
 
+@cache
 def _load_countries() -> tuple[CountryCatalogEntry, ...]:
     connection = sqlite3.connect(":memory:")
     connection.row_factory = sqlite3.Row

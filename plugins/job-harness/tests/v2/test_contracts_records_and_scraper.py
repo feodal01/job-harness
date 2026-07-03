@@ -124,6 +124,41 @@ class RawRecordTest(unittest.TestCase):
             )
 
 
+class SourceFetchRequestTest(unittest.TestCase):
+    def test_defaults_query_variants_to_query_variant(self) -> None:
+        # Arrange / Act
+        request = SourceFetchRequest(
+            source_id="hh_ru",
+            query_variant="QA",
+            url="https://example.test/search?q=QA",
+        )
+
+        # Assert
+        self.assertEqual(("QA",), request.query_variants)
+
+    def test_accepts_grouped_query_variants(self) -> None:
+        # Arrange / Act
+        request = SourceFetchRequest(
+            source_id="geekjob",
+            query_variant="Quality Assurance",
+            query_variants=("Quality Assurance", "QA Engineer", "SDET"),
+            url="https://example.test/search",
+        )
+
+        # Assert
+        self.assertEqual(("Quality Assurance", "QA Engineer", "SDET"), request.query_variants)
+
+    def test_rejects_empty_grouped_query_variant(self) -> None:
+        # Arrange / Act / Assert
+        with self.assertRaisesRegex(ValueError, "query_variants"):
+            SourceFetchRequest(
+                source_id="geekjob",
+                query_variant="QA",
+                query_variants=("QA", " "),
+                url="https://example.test/search",
+            )
+
+
 class SourceAttemptRecordTest(unittest.TestCase):
     def test_success_requires_written_listing(self) -> None:
         # Arrange / Act / Assert
@@ -203,6 +238,61 @@ class SourceAttemptRecordTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(SourceOutcome.SUCCESS, record.outcome)
+
+
+class SourceSearchParseResultTest(unittest.TestCase):
+    def test_success_can_continue_with_parallel_requests_without_current_listings(self) -> None:
+        # Arrange / Act
+        result = SourceSearchParseResult(
+            outcome=SourceOutcome.SUCCESS,
+            listings=(),
+            parallel_requests=(
+                SourceFetchRequest(
+                    source_id="hh_ru",
+                    query_variant="QA",
+                    url="https://example.test/search?page=2",
+                ),
+            ),
+        )
+
+        # Assert
+        self.assertEqual(1, len(result.parallel_requests))
+
+    def test_parse_result_rejects_mixed_sequential_and_parallel_pagination(self) -> None:
+        # Arrange / Act / Assert
+        with self.assertRaisesRegex(ValueError, "both next_request and parallel_requests"):
+            SourceSearchParseResult(
+                outcome=SourceOutcome.SUCCESS,
+                listings=(_listing(),),
+                next_request=SourceFetchRequest(
+                    source_id="hh_ru",
+                    query_variant="QA",
+                    url="https://example.test/search?page=2",
+                ),
+                parallel_requests=(
+                    SourceFetchRequest(
+                        source_id="hh_ru",
+                        query_variant="QA",
+                        url="https://example.test/search?page=3",
+                    ),
+                ),
+            )
+
+    def test_no_results_rejects_parallel_requests(self) -> None:
+        # Arrange / Act / Assert
+        with self.assertRaisesRegex(ValueError, "parallel_requests"):
+            SourceSearchParseResult(
+                outcome=SourceOutcome.NO_RESULTS,
+                listings=(),
+                evidence=AttemptEvidence(no_results=True),
+                parallel_requests=(
+                    SourceFetchRequest(
+                        source_id="hh_ru",
+                        query_variant="QA",
+                        url="https://example.test/search?page=2",
+                    ),
+                ),
+            )
 
 
 class ScraperAbcTest(unittest.TestCase):

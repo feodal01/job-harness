@@ -7,6 +7,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 from urllib.parse import urlparse
 
 from tests.v2._support.contract_runtime import (
@@ -25,6 +26,7 @@ from job_harness.v2.contracts import (
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
+    SourceSearchParseResult,
     SourceType,
 )
 from job_harness.v2.persistence import SqliteRunStore
@@ -141,6 +143,80 @@ class FakeDetailScraper(FakeScraper, DetailEnrichmentScraper):
         )
 
 
+class ParallelPaginationScraper(FakeScraper):
+    def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
+        return tuple(
+            SourceFetchRequest(
+                source_id=self.descriptor.source_id,
+                query_variant=query_variant,
+                url=f"https://example.test/{self.descriptor.source_id}/search?q={query_variant}&page=1",
+            )
+            for query_variant in request.query_variants
+        )
+
+    def parse_search_response(
+        self,
+        _response: SourceResponseArtifact,
+        request: SourceFetchRequest,
+    ) -> SourceSearchParseResult:
+        page = _page_number(request.url)
+        parallel_requests: tuple[SourceFetchRequest, ...] = ()
+        if page == 1:
+            parallel_requests = (
+                _page_request(request, page=2),
+                _page_request(request, page=3),
+            )
+        return SourceSearchParseResult(
+            outcome=SourceOutcome.SUCCESS,
+            listings=(listing(self.descriptor.source_id, str(page)),),
+            parallel_requests=parallel_requests,
+        )
+
+
+class QueryInsensitiveScraper(FakeScraper):
+    def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
+        return tuple(
+            SourceFetchRequest(
+                source_id=self.descriptor.source_id,
+                query_variant=query_variant,
+                url=f"https://example.test/{self.descriptor.source_id}/search",
+            )
+            for query_variant in request.query_variants
+        )
+
+    def parse_search_response(
+        self,
+        _response: SourceResponseArtifact,
+        request: SourceFetchRequest,
+    ) -> SourceSearchParseResult:
+        return SourceSearchParseResult(
+            outcome=SourceOutcome.SUCCESS,
+            listings=(listing(self.descriptor.source_id, request.query_variant),),
+        )
+
+
+class GroupedQueryScraper(FakeScraper):
+    def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
+        return (
+            SourceFetchRequest(
+                source_id=self.descriptor.source_id,
+                query_variant=request.query_variants[0],
+                query_variants=request.query_variants,
+                url=f"https://example.test/{self.descriptor.source_id}/search",
+            ),
+        )
+
+    def parse_search_response(
+        self,
+        _response: SourceResponseArtifact,
+        request: SourceFetchRequest,
+    ) -> SourceSearchParseResult:
+        return SourceSearchParseResult(
+            outcome=SourceOutcome.SUCCESS,
+            listings=tuple(listing(self.descriptor.source_id, query) for query in request.query_variants),
+        )
+
+
 class FakeApplicationChannelFetcher:
     def __init__(self, body_by_url: dict[str, str] | None = None) -> None:
         self.body_by_url = body_by_url or {}
@@ -162,8 +238,10 @@ class ConcurrentFetcher:
     def __init__(self) -> None:
         self.active = 0
         self.max_active = 0
+        self.calls: list[SourceFetchRequest] = []
 
     async def fetch(self, request: SourceFetchRequest) -> SourceResponseArtifact:
+        self.calls.append(request)
         self.active += 1
         self.max_active = max(self.max_active, self.active)
         await asyncio.sleep(0.01)
@@ -202,6 +280,21 @@ class ConcurrentContactPageFetcher:
         )
 
 
+def _page_request(request: SourceFetchRequest, *, page: int) -> SourceFetchRequest:
+    parsed = urlparse(request.url)
+    base = parsed._replace(query="")
+    return SourceFetchRequest(
+        source_id=request.source_id,
+        query_variant=request.query_variant,
+        url=f"{base.geturl()}?page={page}",
+    )
+
+
+def _page_number(url: str) -> int:
+    query = dict(part.split("=", 1) for part in urlparse(url).query.split("&") if "=" in part)
+    return int(query.get("page", "1"))
+
+
 class SearchServiceConfigTest(unittest.TestCase):
     def test_packaged_config_uses_two_detail_workers_per_source(self) -> None:
         # Act
@@ -209,6 +302,20 @@ class SearchServiceConfigTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(2, config.detail.per_source_concurrency)
+        self.assertEqual(2, config.detail.concurrency_for_source("talanto"))
+        self.assertEqual(4, config.detail.concurrency_for_source("hirify"))
+        self.assertEqual(4, config.detail.concurrency_for_source("talento"))
+
+    def test_packaged_config_uses_fast_detail_pacing_for_safe_sources(self) -> None:
+        # Act
+        config = SearchServiceConfig.from_package_resource()
+
+        # Assert
+        self.assertEqual(0.75, config.detail.default_request_delay_seconds)
+        self.assertEqual(1.5, config.detail.delay_for_source("hh_ru"))
+        self.assertEqual(0.1, config.detail.delay_for_source("hirify"))
+        self.assertEqual(0.1, config.detail.delay_for_source("talanto"))
+        self.assertEqual(0.1, config.detail.delay_for_source("talento"))
 
 
 class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
@@ -388,6 +495,114 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
                 ["QA", "quality assurance"],
                 [record["query_variant"] for record in raw_records],
             )
+
+    async def test_parallel_pagination_requests_are_fetched_in_one_batch(self) -> None:
+        # Arrange
+        scraper = ParallelPaginationScraper(
+            source_descriptor=descriptor("parallel_jobs"),
+        )
+        fetcher = ConcurrentFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with _store(Path(tmp)) as writer:
+                orchestrator = SearchOrchestrator(
+                    catalog=SourceCatalog((supported(scraper),)),
+                    fetcher=fetcher,
+                    writer=writer,
+                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+                )
+
+                # Act
+                result = await orchestrator.run(SearchRequest(query_variants=("QA",)), run_id="r-test")
+
+            # Assert
+            raw_records = _read_raw_records(Path(tmp))
+
+        self.assertEqual(SourceOutcome.SUCCESS, result.attempts[0].outcome)
+        self.assertEqual(3, result.raw_records_written)
+        self.assertEqual(3, result.attempts[0].counts.pages_visited)
+        self.assertEqual(2, fetcher.max_active)
+        self.assertEqual(["1", "2", "3"], [record["listing"]["source_listing_id"] for record in raw_records])
+
+    async def test_query_variants_run_as_parallel_source_jobs(self) -> None:
+        # Arrange
+        scraper = FakeScraper(
+            source_descriptor=descriptor("variant_jobs"),
+            raw_listings=(listing("variant_jobs"),),
+        )
+        fetcher = ConcurrentFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp), query_variants=("QA", "SDET")) as writer:
+            orchestrator = SearchOrchestrator(
+                catalog=SourceCatalog((supported(scraper),)),
+                fetcher=fetcher,
+                writer=writer,
+                config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+            )
+
+            # Act
+            result = await orchestrator.run(SearchRequest(query_variants=("QA", "SDET")), run_id="r-test")
+
+        self.assertEqual(2, len(result.attempts))
+        self.assertEqual(2, result.raw_records_written)
+        self.assertEqual(2, fetcher.max_active)
+        self.assertEqual({"QA", "SDET"}, {call.query_variant for call in fetcher.calls})
+
+    async def test_identical_network_requests_share_fetch_without_dropping_query_jobs(self) -> None:
+        # Arrange
+        scraper = QueryInsensitiveScraper(
+            source_descriptor=descriptor("query_insensitive_jobs"),
+        )
+        fetcher = ConcurrentFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp), query_variants=("QA", "SDET")) as writer:
+            orchestrator = SearchOrchestrator(
+                catalog=SourceCatalog((supported(scraper),)),
+                fetcher=fetcher,
+                writer=writer,
+                config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+            )
+
+            # Act
+            result = await orchestrator.run(SearchRequest(query_variants=("QA", "SDET")), run_id="r-test")
+
+            # Assert
+            raw_records = _read_raw_records(Path(tmp))
+
+        self.assertEqual(2, len(result.attempts))
+        self.assertEqual(2, result.raw_records_written)
+        self.assertEqual(1, len(fetcher.calls))
+        self.assertEqual("QA", fetcher.calls[0].query_variant)
+        self.assertEqual(["QA", "SDET"], [record["query_variant"] for record in raw_records])
+
+    async def test_grouped_query_request_records_combined_query_label(self) -> None:
+        # Arrange
+        scraper = GroupedQueryScraper(
+            source_descriptor=descriptor("grouped_query_jobs"),
+        )
+        fetcher = ConcurrentFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp), query_variants=("QA", "SDET")) as writer:
+            orchestrator = SearchOrchestrator(
+                catalog=SourceCatalog((supported(scraper),)),
+                fetcher=fetcher,
+                writer=writer,
+                config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+            )
+
+            # Act
+            result = await orchestrator.run(SearchRequest(query_variants=("QA", "SDET")), run_id="r-test")
+
+            # Assert
+            raw_records = _read_raw_records(Path(tmp))
+            source_attempts = _read_source_attempts(Path(tmp))
+
+        self.assertEqual(1, len(result.attempts))
+        self.assertEqual(2, result.raw_records_written)
+        self.assertEqual(1, len(fetcher.calls))
+        self.assertEqual(("QA", "SDET"), fetcher.calls[0].query_variants)
+        self.assertEqual(["QA | SDET"], [attempt["query_variant"] for attempt in source_attempts])
+        self.assertEqual(["QA | SDET", "QA | SDET"], [record["query_variant"] for record in raw_records])
 
     async def test_run_timeout_records_unfinished_source_without_waiting_for_source_timeout(self) -> None:
         # Arrange
@@ -658,6 +873,42 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(2, result.attempted)
         self.assertEqual(2, result.enriched)
         self.assertEqual(2, fetcher.max_active)
+
+    async def test_detail_runner_uses_source_specific_concurrency_override(self) -> None:
+        # Arrange
+        raw_listings = (
+            listing("detail_jobs", "1"),
+            listing("detail_jobs", "2"),
+            listing("detail_jobs", "3"),
+        )
+        scraper = FakeDetailScraper(
+            source_descriptor=descriptor("detail_jobs"),
+        )
+        fetcher = ConcurrentFetcher()
+
+        with tempfile.TemporaryDirectory() as tmp, _store(Path(tmp)) as writer:
+            work_items = _append_detail_work_items(writer, raw_listings)
+            runner = DetailEnrichmentRunner(
+                catalog=SourceCatalog((supported(scraper),)),
+                fetcher=fetcher,
+                writer=writer,
+                config=DetailServiceConfig(
+                    per_source_concurrency=1,
+                    default_request_delay_seconds=0.0,
+                    request_delay_seconds_by_source={},
+                    stop_on_blocked=True,
+                    stop_on_rate_limited=True,
+                    per_source_concurrency_by_source={"detail_jobs": 3},
+                ),
+            )
+
+            # Act
+            result = await runner.run(work_items)
+
+        # Assert
+        self.assertEqual(3, result.attempted)
+        self.assertEqual(3, result.enriched)
+        self.assertEqual(3, fetcher.max_active)
 
     async def test_application_channel_runner_resolves_career_link_from_company_site(self) -> None:
         # Arrange
@@ -1544,6 +1795,42 @@ class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual("final", final_processed["phase"])
             self.assertEqual(1, final_processed["result_count"])
             self.assertEqual(1, len(final_processed["filtered_out_results"]))
+
+    async def test_pipeline_builds_catalog_from_request_source_subset(self) -> None:
+        # Arrange
+        scraper = FakeScraper(
+            source_descriptor=descriptor("fast_jobs"),
+            raw_listings=(listing("fast_jobs", "1"),),
+        )
+        catalog = SourceCatalog((supported(scraper),))
+        fetcher = FakeFetcher()
+        with tempfile.TemporaryDirectory() as tmp:
+            pipeline = SearchPipeline(
+                config=SearchPipelineConfig(
+                    runs_dir=Path(tmp),
+                    service_config=_service_config(),
+                ),
+                fetcher=fetcher,
+                postprocessor=ResultTablePostProcessor(),
+                run_store_factory=_store_factory,
+            )
+
+            # Act
+            with patch(
+                "job_harness.v2.runtime.pipeline.build_supported_source_catalog",
+                return_value=catalog,
+            ) as build_catalog:
+                execution = await pipeline.run(
+                    SearchRequest(
+                        query_variants=("QA",),
+                        sources=("fast_jobs",),
+                    ),
+                    run_id="r-test",
+                )
+
+        # Assert
+        build_catalog.assert_called_once_with(("fast_jobs",))
+        self.assertEqual(1, execution.raw_records_written)
 
 
 if __name__ == "__main__":

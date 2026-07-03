@@ -1,0 +1,42 @@
+{
+  "name": "v2-search-speed-gate-multi-query",
+  "description": "Bounded live v2 search profile for query-variant scheduling checks. It verifies that repeated query formulations do not become a hidden sequential source loop.",
+  "min_wall_speedup": 0.1,
+  "shape_policy": "presentation_at_least",
+  "max_wall_seconds": 45.0,
+  "max_source_elapsed_ms": 15000,
+  "runs_dir": ".job-harness/v2/benchmarks/runs",
+  "result_dir": ".job-harness/v2/benchmarks/results",
+  "runner": [
+    "uv",
+    "--directory",
+    "plugins/job-harness",
+    "run",
+    "job-harness-v2"
+  ],
+  "search_args": [
+    "search",
+    "--queries",
+    "Quality Assurance | QA Engineer | SDET",
+    "--grade",
+    "middle",
+    "--grade",
+    "senior",
+    "--published-since",
+    "2026-06-01",
+    "--remote-mode",
+    "compatible-remote",
+    "--work-from",
+    "RU",
+    "--vacancy-geography",
+    "RU",
+    "--source",
+    "hh_ru",
+    "--source",
+    "hirify",
+    "--source",
+    "career:jetbrains",
+    "--source",
+    "career:visa"
+  ]
+}

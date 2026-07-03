@@ -1,7 +1,7 @@
 {
   "source_id": "career:unlimint",
-  "captured_url": "https://api.lever.co/v0/postings/unlimit?mode=json",
-  "captured_at": "2026-07-01",
+  "captured_url": "https://api.lever.co/v0/postings/unlimit",
+  "captured_at": "2026-07-03",
   "fixture_kind": "success_non_empty",
   "notes": "Real Lever public career board capture for Unlimint."
 }

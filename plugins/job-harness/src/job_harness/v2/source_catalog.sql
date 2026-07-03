@@ -683,7 +683,7 @@ WITH workday_sources(source_id) AS (
 ),
 workday_criteria(criterion_order, criterion, capability) AS (
     VALUES
-        (0, 'query', 'structured_output'),
+        (0, 'query', 'native_request'),
         (1, 'grades', 'unsupported'),
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
@@ -2277,7 +2277,8 @@ WITH taleo_success_fixtures(source_id, folder) AS (
     VALUES
         ('career:keylogic', 'career_keylogic'),
         ('career:navstar', 'career_navstar'),
-        ('career:aurora-flight-sciences', 'career_aurora-flight-sciences')
+        ('career:aurora-flight-sciences', 'career_aurora-flight-sciences'),
+        ('career:mediacom', 'career_mediacom')
 )
 INSERT INTO parser_fixtures (
     source_id,
@@ -2360,6 +2361,29 @@ SELECT
     1,
     'codex_direct_fixture_review'
 FROM ats_company_pagination_fixtures;
+
+INSERT INTO parser_fixtures (
+    source_id,
+    fixture_order,
+    name,
+    kind,
+    captured_artifact_path,
+    metadata_path,
+    golden_path,
+    real_capture,
+    golden_reviewed_by
+)
+VALUES (
+    'career:mediacom',
+    1,
+    'career:mediacom-pagination-terminal',
+    'pagination',
+    'tests/v2/fixtures/scrapers/career_mediacom/pagination_terminal/response.html',
+    'tests/v2/fixtures/scrapers/career_mediacom/pagination_terminal/meta.json',
+    'tests/v2/fixtures/scrapers/career_mediacom/pagination_terminal/expected.raw.json',
+    1,
+    'codex_direct_fixture_review'
+);
 
 INSERT INTO parser_fixtures (
     source_id,

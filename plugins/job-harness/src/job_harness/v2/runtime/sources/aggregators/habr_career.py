@@ -82,11 +82,18 @@ class HabrCareerSource(DetailEnrichmentScraper):
             )
 
         listings = tuple(_habr_listing(item) for item in items if isinstance(item, dict))
-        next_request = _next_page_request(meta=meta, request=request)
+        parallel_requests = _parallel_page_requests(
+            meta=meta,
+            request=request,
+            page_size=len(listings),
+            source_limit=self.descriptor.source_limit,
+        )
+        next_request = None if parallel_requests else _next_page_request(meta=meta, request=request)
         return SourceSearchParseResult(
             outcome=SourceOutcome.SUCCESS,
             listings=listings,
             next_request=next_request,
+            parallel_requests=parallel_requests,
         )
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
@@ -399,6 +406,31 @@ def _next_page_request(
         method=request.method,
         headers=dict(request.headers),
         body=request.body,
+    )
+
+
+def _parallel_page_requests(
+    *,
+    meta: dict[str, Any],
+    request: SourceFetchRequest,
+    page_size: int,
+    source_limit: int,
+) -> tuple[SourceFetchRequest, ...]:
+    current_page = _int_value(meta.get("currentPage")) or 1
+    total_pages = _int_value(meta.get("totalPages")) or 0
+    if current_page != 1 or page_size < 1 or current_page >= total_pages:
+        return ()
+    last_needed_page = min(total_pages, (source_limit + page_size - 1) // page_size)
+    return tuple(
+        SourceFetchRequest(
+            source_id=request.source_id,
+            query_variant=request.query_variant,
+            url=update_query(request.url, {"page": str(page)}),
+            method=request.method,
+            headers=dict(request.headers),
+            body=request.body,
+        )
+        for page in range(current_page + 1, last_needed_page + 1)
     )
 
 

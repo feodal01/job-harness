@@ -47,13 +47,17 @@ class StaffAmSource(DetailEnrichmentScraper):
         return source_required_fixture_kinds("staff_am")
 
     def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
+        grouped_queries: dict[str, list[str]] = {}
+        for query_variant in request.query_variants:
+            grouped_queries.setdefault(_search_url(query_variant), []).append(query_variant)
         return tuple(
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
-                query_variant=query_variant,
-                url=_search_url(query_variant),
+                query_variant=query_variants[0],
+                url=url,
+                query_variants=tuple(query_variants),
             )
-            for query_variant in request.query_variants
+            for url, query_variants in grouped_queries.items()
         )
 
     def parse_search_response(
@@ -78,7 +82,7 @@ class StaffAmSource(DetailEnrichmentScraper):
             for job in jobs
             if isinstance(job, dict)
             for listing in (_listing_from_job(job),)
-            if listing is not None and _listing_matches_query(listing, request.query_variant)
+            if listing is not None and _listing_matches_any_query(listing, request.query_variants)
         )
         if not listings:
             return SourceSearchParseResult(
@@ -241,6 +245,10 @@ def _listing_matches_query(listing: RawListing, query: str) -> bool:
         )
     ).casefold()
     return any(token in searchable for token in tokens)
+
+
+def _listing_matches_any_query(listing: RawListing, queries: tuple[str, ...]) -> bool:
+    return any(_listing_matches_query(listing, query) for query in queries)
 
 
 def _query_tokens(query: str) -> set[str]:

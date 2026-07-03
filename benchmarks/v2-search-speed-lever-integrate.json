@@ -1,0 +1,39 @@
+{
+  "name": "v2-search-speed-lever-integrate",
+  "description": "Source-scoped live benchmark for Lever request-shape changes on career:integrate. Use this profile when changing the Integrate Lever board URL so unrelated catalog volatility cannot affect the decision.",
+  "min_wall_speedup": 0.1,
+  "shape_policy": "at_least_baseline",
+  "shape_sources": [
+    "career:integrate"
+  ],
+  "max_wall_seconds": 20.0,
+  "max_source_elapsed_ms": 15000,
+  "runs_dir": ".job-harness/v2/benchmarks/runs",
+  "result_dir": ".job-harness/v2/benchmarks/results",
+  "runner": [
+    "uv",
+    "--directory",
+    "plugins/job-harness",
+    "run",
+    "job-harness-v2"
+  ],
+  "search_args": [
+    "search",
+    "--query",
+    "Quality Assurance",
+    "--grade",
+    "middle",
+    "--grade",
+    "senior",
+    "--published-since",
+    "2026-06-01",
+    "--remote-mode",
+    "compatible-remote",
+    "--work-from",
+    "RU",
+    "--vacancy-geography",
+    "RU",
+    "--source",
+    "career:integrate"
+  ]
+}

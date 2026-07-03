@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib.resources import files
 
 from job_harness.v2.runtime.retry import RetryPolicy
@@ -37,6 +37,7 @@ class DetailServiceConfig:
     request_delay_seconds_by_source: dict[str, float]
     stop_on_blocked: bool
     stop_on_rate_limited: bool
+    per_source_concurrency_by_source: dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.per_source_concurrency < 1:
@@ -48,9 +49,17 @@ class DetailServiceConfig:
                 raise ValueError("detail.request_delay_seconds_by_source keys must be non-empty")
             if delay < 0:
                 raise ValueError("detail.request_delay_seconds_by_source delays must be >= 0")
+        for source_id, concurrency in self.per_source_concurrency_by_source.items():
+            if not source_id.strip():
+                raise ValueError("detail.per_source_concurrency_by_source keys must be non-empty")
+            if concurrency < 1:
+                raise ValueError("detail.per_source_concurrency_by_source values must be >= 1")
 
     def delay_for_source(self, source_id: str) -> float:
         return self.request_delay_seconds_by_source.get(source_id, self.default_request_delay_seconds)
+
+    def concurrency_for_source(self, source_id: str) -> int:
+        return self.per_source_concurrency_by_source.get(source_id, self.per_source_concurrency)
 
 
 @dataclass(frozen=True)
@@ -105,6 +114,10 @@ class SearchServiceConfig:
                 ),
                 stop_on_blocked=_required_bool(detail, "stop_on_blocked"),
                 stop_on_rate_limited=_required_bool(detail, "stop_on_rate_limited"),
+                per_source_concurrency_by_source=_int_mapping(
+                    detail,
+                    "per_source_concurrency_by_source",
+                ),
             ),
             application_channels=ApplicationChannelServiceConfig(
                 enabled=_optional_bool(application_channels, "enabled", default=True),
@@ -169,4 +182,18 @@ def _float_mapping(payload: JsonObject, key: str) -> dict[str, float]:
         if not isinstance(raw_value, int | float) or isinstance(raw_value, bool):
             raise ValueError(f"{key}.{raw_key} must be a number")
         parsed[raw_key] = float(raw_value)
+    return parsed
+
+
+def _int_mapping(payload: JsonObject, key: str) -> dict[str, int]:
+    value = payload.get(key, {})
+    if not isinstance(value, dict):
+        raise ValueError(f"{key} must be a JSON object")
+    parsed: dict[str, int] = {}
+    for raw_key, raw_value in value.items():
+        if not isinstance(raw_key, str):
+            raise ValueError(f"{key} keys must be strings")
+        if not isinstance(raw_value, int) or isinstance(raw_value, bool):
+            raise ValueError(f"{key}.{raw_key} must be an integer")
+        parsed[raw_key] = raw_value
     return parsed

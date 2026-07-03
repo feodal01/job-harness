@@ -1,0 +1,39 @@
+{
+  "name": "v2-search-speed-workday-nvidia",
+  "description": "Source-scoped live benchmark for Workday pagination changes on career:nvidia. Use this profile when changing Workday request sizing or pagination so unrelated catalog volatility cannot affect the decision.",
+  "min_wall_speedup": 0.1,
+  "shape_policy": "at_least_baseline",
+  "shape_sources": [
+    "career:nvidia"
+  ],
+  "max_wall_seconds": 20.0,
+  "max_source_elapsed_ms": 15000,
+  "runs_dir": ".job-harness/v2/benchmarks/runs",
+  "result_dir": ".job-harness/v2/benchmarks/results",
+  "runner": [
+    "uv",
+    "--directory",
+    "plugins/job-harness",
+    "run",
+    "job-harness-v2"
+  ],
+  "search_args": [
+    "search",
+    "--query",
+    "Quality Assurance",
+    "--grade",
+    "middle",
+    "--grade",
+    "senior",
+    "--published-since",
+    "2026-06-01",
+    "--remote-mode",
+    "compatible-remote",
+    "--work-from",
+    "RU",
+    "--vacancy-geography",
+    "RU",
+    "--source",
+    "career:nvidia"
+  ]
+}

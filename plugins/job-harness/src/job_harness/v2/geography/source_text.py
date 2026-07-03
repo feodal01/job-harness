@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from functools import lru_cache
 
 SOURCE_GEOGRAPHY_CANDIDATE_SEPARATORS = re.compile(r"[/(),;|]+")
 SOURCE_GEOGRAPHY_PAIR_SEPARATORS = re.compile(r"[/,;|]+")
@@ -61,6 +62,7 @@ US_STATE_NAMES = frozenset(
 )
 
 
+@lru_cache(maxsize=8192)
 def geography_text_keys(value: str) -> tuple[str, ...]:
     folded = COUNTRY_NAME_SEPARATORS.sub(" ", value).casefold().strip()
     words = " ".join(COUNTRY_WORD_PATTERN.findall(folded))
@@ -68,6 +70,7 @@ def geography_text_keys(value: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(key for key in (folded, words, ascii_words) if key))
 
 
+@lru_cache(maxsize=8192)
 def source_geography_candidates(value: str) -> tuple[str, ...]:
     text = value.strip()
     if not text:
@@ -90,6 +93,7 @@ def source_geography_candidates(value: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(candidates))
 
 
+@lru_cache(maxsize=8192)
 def has_us_context(value: str) -> bool:
     if SOURCE_US_CONTEXT_PATTERN.search(value):
         return True

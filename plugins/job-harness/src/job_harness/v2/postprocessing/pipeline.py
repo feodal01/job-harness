@@ -107,7 +107,7 @@ class ResultTablePostProcessor:
 
         for row in rows:
             decision = decide_vacancy_filter(
-                criteria=VacancyFilterCriteria.from_search_request(request, query=_text(row["query_variant"])),
+                criteria=VacancyFilterCriteria.from_search_request(request),
                 vacancy=_filter_facts(row),
             )
             if not decision.keep:
@@ -157,7 +157,7 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
         if not isinstance(listing, dict):
             raise ValueError("raw listing record is missing listing object")
         countries = listing_countries(listing)
-        remote_scopes = listing_remote_scopes(listing)
+        remote_scopes = listing_remote_scopes(listing, countries=countries)
         work_formats = listing_work_formats(listing)
         row: dict[str, object] = {
             "raw_record_id": _optional_int(record.get("raw_record_id")),

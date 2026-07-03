@@ -1549,6 +1549,36 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         # Assert
         self.assertEqual(["QA Engineer"], [row["title"] for row in payload["results"]])
 
+    def test_query_filter_matches_any_request_query_variant(self) -> None:
+        # Arrange / Act
+        payload = _process_payload(
+            request=SearchRequest(query_variants=("Quality Assurance", "SDET")),
+            raw_records=(
+                _raw_record(
+                    "1",
+                    company="JetBrains",
+                    source="career:jetbrains",
+                    query_variant="Quality Assurance",
+                    title="Senior SDET Engineer",
+                ),
+            ),
+            source_attempts=(
+                _attempt_record(
+                    source="career:jetbrains",
+                    source_type=SourceType.COMPANY_CAREER,
+                    query_variant="Quality Assurance",
+                    requested=frozenset({SearchCriterion.QUERY}),
+                    native=frozenset(),
+                    structured=frozenset({SearchCriterion.QUERY}),
+                    postprocess=frozenset({SearchCriterion.QUERY}),
+                ),
+            ),
+        )
+
+        # Assert
+        self.assertEqual(1, payload["result_count"])
+        self.assertEqual(["Senior SDET Engineer"], [row["title"] for row in payload["results"]])
+
     def test_filtered_out_results_only_include_title_query_matches(self) -> None:
         # Arrange / Act
         payload = _process_payload(

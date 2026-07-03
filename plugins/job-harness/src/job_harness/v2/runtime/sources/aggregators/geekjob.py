@@ -45,13 +45,13 @@ class GeekJobSource(DetailEnrichmentScraper):
         return source_required_fixture_kinds("geekjob")
 
     def build_search_requests(self, request: SearchRequest) -> tuple[SourceFetchRequest, ...]:
-        return tuple(
+        return (
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
-                query_variant=query_variant,
+                query_variant=request.query_variants[0],
                 url=_SEARCH_URL,
-            )
-            for query_variant in request.query_variants
+                query_variants=request.query_variants,
+            ),
         )
 
     def parse_search_response(
@@ -62,7 +62,7 @@ class GeekJobSource(DetailEnrichmentScraper):
         listings = tuple(
             listing
             for listing in _parse_listings(response.body)
-            if _listing_matches_query(listing, request.query_variant)
+            if _listing_matches_any_query(listing, request.query_variants)
         )
         if not listings:
             return SourceSearchParseResult(
@@ -259,6 +259,10 @@ def _listing_matches_query(listing: RawListing, query: str) -> bool:
         )
     ).casefold()
     return any(token in searchable for token in tokens)
+
+
+def _listing_matches_any_query(listing: RawListing, queries: tuple[str, ...]) -> bool:
+    return any(_listing_matches_query(listing, query) for query in queries)
 
 
 def _merge_company_facts(raw: dict[str, object], facts: dict[str, object]) -> dict[str, object]:

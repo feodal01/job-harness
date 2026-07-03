@@ -47,6 +47,7 @@ class V2SearchExecution:
     raw_records_written: int
     processed_results: ProcessedResults
     detail_summary: dict[str, object]
+    runtime_summary: dict[str, object]
 
 
 class V2SearchApplication:
@@ -84,6 +85,7 @@ class V2SearchApplication:
             raw_records_written=execution.raw_records_written,
             processed_results=execution.processed_results,
             detail_summary=execution.detail_summary,
+            runtime_summary=execution.runtime_summary,
         )
 
 
