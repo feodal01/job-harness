@@ -911,7 +911,7 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         source_id="career:xsolla",
         company="Xsolla",
         platform="lever",
-        board_url="https://api.lever.co/v0/postings/xsolla",
+        board_url="https://api.lever.co/v0/postings/xsolla?mode=json",
         career_url="https://jobs.lever.co/xsolla",
     ),
     "career:unlimint": AtsCompanySourceConfig(
