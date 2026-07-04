@@ -15,6 +15,34 @@ and employer career pages using the **v2 contract-first engine** (`job-harness-v
 Search broadly, save artifacts under `.job-harness/v2/`, and present curated
 results from processed exports — not from raw scrape dumps.
 
+## Runtime version drift
+
+If runtime behavior looks older than expected - for example a recently merged
+source, parser fix, CLI flag, filter policy, speed improvement, or report field
+does not appear in a run - check for plugin version drift before debugging the
+scraper or changing search policy.
+
+1. Identify which runtime the host is using.
+   - Repository/worktree: run the CLI from the checkout with
+     `uv --directory plugins/job-harness run job-harness-v2 ...`.
+   - Codex: installed plugins may run from a Codex plugin cache rather than the
+     repo checkout. Inspect the active plugin root or cached
+     `.codex-plugin/plugin.json` when available.
+   - Claude Code: inspect `CLAUDE_PLUGIN_ROOT` when set, or the plugin shown by
+     `/plugins`; update through the host plugin UI or `claude plugin update`
+     when that runtime is stale.
+   - Cursor: this repository normally uses `AGENTS.md` plus the repo CLI. If a
+     local plugin copy is used, update that copy and reload Cursor; do not
+     assume a Codex or Claude update path applies.
+2. Compare the active runtime version with the repo or published version in
+   `plugins/job-harness/.codex-plugin/plugin.json` and
+   `plugins/job-harness/pyproject.toml`.
+3. If the active runtime is stale, report the exact version and path found,
+   update manually when the host allows it, then rerun the same search before
+   treating the result as scraper, filtering, or source drift.
+
+Do not assume Codex, Claude Code, and Cursor consume the same plugin root.
+
 ## Workflow
 
 1. **Confirm artifact root** — Before creating files, inspect
