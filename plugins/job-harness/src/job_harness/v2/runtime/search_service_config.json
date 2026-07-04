@@ -15,6 +15,7 @@
     "default_request_delay_seconds": 0.75,
     "request_delay_seconds_by_source": {
       "hh_ru": 1.5,
+      "habr_career": 0.1,
       "hirify": 0.1,
       "talanto": 0.1,
       "talento": 0.1
