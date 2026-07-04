@@ -1,0 +1,45 @@
+{
+  "name": "v2-search-speed-agg3-six-query",
+  "description": "Source-scoped live benchmark for Getmatch, Habr Career, and Hirify under a broad six-query QA search. Use this profile when changing multi-query source scheduling, detail enrichment, or application-channel pacing for these sources.",
+  "min_wall_speedup": 0.1,
+  "shape_policy": "presentation_at_least",
+  "shape_sources": [
+    "getmatch",
+    "habr_career",
+    "hirify"
+  ],
+  "max_wall_seconds": 45.0,
+  "max_source_elapsed_ms": 15000,
+  "runs_dir": ".job-harness/v2/benchmarks/runs",
+  "result_dir": ".job-harness/v2/benchmarks/results",
+  "runner": [
+    "uv",
+    "--directory",
+    "plugins/job-harness",
+    "run",
+    "job-harness-v2"
+  ],
+  "search_args": [
+    "search",
+    "--queries",
+    "Quality Assurance | QA Engineer | SDET | QA Automation | Manual QA | Test Engineer",
+    "--grade",
+    "middle",
+    "--grade",
+    "senior",
+    "--published-since",
+    "2026-06-01",
+    "--remote-mode",
+    "compatible-remote",
+    "--work-from",
+    "RU",
+    "--vacancy-geography",
+    "RU",
+    "--source",
+    "getmatch",
+    "--source",
+    "habr_career",
+    "--source",
+    "hirify"
+  ]
+}
