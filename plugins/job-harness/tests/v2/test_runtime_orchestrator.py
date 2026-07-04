@@ -317,6 +317,13 @@ class SearchServiceConfigTest(unittest.TestCase):
         self.assertEqual(0.1, config.detail.delay_for_source("talanto"))
         self.assertEqual(0.1, config.detail.delay_for_source("talento"))
 
+    def test_packaged_config_uses_parallel_application_channel_requests(self) -> None:
+        # Act
+        config = SearchServiceConfig.from_package_resource()
+
+        # Assert
+        self.assertEqual(4, config.application_channels.request_concurrency_by_source)
+
 
 class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):
     async def test_runs_success_and_explicit_no_results_sources(self) -> None:

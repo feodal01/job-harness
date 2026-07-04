@@ -23,6 +23,7 @@
     "stop_on_rate_limited": true
   },
   "application_channels": {
-    "enabled": true
+    "enabled": true,
+    "request_concurrency_by_source": 4
   }
 }
