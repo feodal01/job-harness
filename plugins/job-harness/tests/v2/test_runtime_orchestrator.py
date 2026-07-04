@@ -313,9 +313,17 @@ class SearchServiceConfigTest(unittest.TestCase):
         # Assert
         self.assertEqual(0.75, config.detail.default_request_delay_seconds)
         self.assertEqual(1.5, config.detail.delay_for_source("hh_ru"))
+        self.assertEqual(0.1, config.detail.delay_for_source("habr_career"))
         self.assertEqual(0.1, config.detail.delay_for_source("hirify"))
         self.assertEqual(0.1, config.detail.delay_for_source("talanto"))
         self.assertEqual(0.1, config.detail.delay_for_source("talento"))
+
+    def test_packaged_config_uses_parallel_application_channel_requests(self) -> None:
+        # Act
+        config = SearchServiceConfig.from_package_resource()
+
+        # Assert
+        self.assertEqual(4, config.application_channels.request_concurrency_by_source)
 
 
 class SearchOrchestratorTest(unittest.IsolatedAsyncioTestCase):

@@ -138,7 +138,7 @@ class SearchPipeline:
                         fetcher=fetcher,
                         writer=store,
                         config=service_config.application_channels,
-                        request_concurrency_by_source=service_config.detail.per_source_concurrency,
+                        request_concurrency_by_source=service_config.application_channels.request_concurrency_by_source,
                     ).run(channel_work_items)
                     channel_summary = application_channel_summary(
                         total_work_items=len(channel_work_items),

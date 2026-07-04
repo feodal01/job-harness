@@ -65,6 +65,11 @@ class DetailServiceConfig:
 @dataclass(frozen=True)
 class ApplicationChannelServiceConfig:
     enabled: bool = True
+    request_concurrency_by_source: int = 1
+
+    def __post_init__(self) -> None:
+        if self.request_concurrency_by_source < 1:
+            raise ValueError("application_channels.request_concurrency_by_source must be >= 1")
 
 
 @dataclass(frozen=True)
@@ -121,6 +126,11 @@ class SearchServiceConfig:
             ),
             application_channels=ApplicationChannelServiceConfig(
                 enabled=_optional_bool(application_channels, "enabled", default=True),
+                request_concurrency_by_source=_optional_int(
+                    application_channels,
+                    "request_concurrency_by_source",
+                    default=1,
+                ),
             ),
         )
 
@@ -168,6 +178,15 @@ def _optional_bool(payload: JsonObject, key: str, *, default: bool) -> bool:
         return default
     if not isinstance(value, bool):
         raise ValueError(f"{key} must be a boolean")
+    return value
+
+
+def _optional_int(payload: JsonObject, key: str, *, default: int) -> int:
+    value = payload.get(key)
+    if value is None:
+        return default
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"{key} must be an integer")
     return value
 
 

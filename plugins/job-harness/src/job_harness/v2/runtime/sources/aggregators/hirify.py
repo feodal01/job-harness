@@ -24,6 +24,7 @@ from job_harness.v2.source_catalog import source_descriptor, source_required_fix
 
 _API_URL = "https://api.hirify.me/api/vacancies"
 _PUBLIC_BASE_URL = "https://hirify.me/jobs"
+_PARALLEL_PAGINATION_WINDOW = 3
 
 
 class HirifySource(DetailEnrichmentScraper):
@@ -180,12 +181,13 @@ def _parallel_page_requests(
     page_size: int,
     source_limit: int,
 ) -> tuple[SourceFetchRequest, ...]:
-    if current_page != 1 or page_size < 1:
+    if page_size < 1:
         return ()
     last_needed_page = min(last_page, (source_limit + page_size - 1) // page_size)
+    last_window_page = min(last_needed_page, current_page + _PARALLEL_PAGINATION_WINDOW)
     return tuple(
         _next_page_request(request, page=page)
-        for page in range(current_page + 1, last_needed_page + 1)
+        for page in range(current_page + 1, last_window_page + 1)
     )
 
 

@@ -15,6 +15,45 @@ and employer career pages using the **v2 contract-first engine** (`job-harness-v
 Search broadly, save artifacts under `.job-harness/v2/`, and present curated
 results from processed exports — not from raw scrape dumps.
 
+## Runtime refresh before search
+
+Before starting a job search session, refresh the available Job Harness plugin
+runtime unconditionally. Do this as routine setup before the search: the agent
+does not know which fixes have been merged or which cached plugin version the
+host will load.
+
+Use the host-appropriate update path:
+
+- Codex:
+
+  ```bash
+  codex plugin marketplace upgrade
+  codex plugin add job-harness@job-harness
+  ```
+
+  If the marketplace name is different, inspect it with
+  `codex plugin marketplace list` and install `job-harness` from the configured
+  marketplace that provides this plugin.
+- Claude Code:
+
+  ```bash
+  claude plugin update job-harness
+  ```
+
+  If Claude reports a different installation scope, rerun the update with the
+  reported `--scope` value or update through `/plugins`.
+- Cursor: there is no confirmed universal update CLI for this plugin. If Cursor
+  uses a local plugin copy, refresh that local copy by the configured project
+  mechanism and reload Cursor before searching. If Cursor is operating directly
+  in this repository, use the repo/worktree CLI below.
+- Repository/worktree CLI: use the checkout directly with
+  `uv --directory plugins/job-harness run job-harness-v2 ...`. Do not run
+  `git pull` or overwrite the working tree without explicit user approval.
+
+After the refresh attempt, continue the search workflow. If a host update
+command is unavailable or fails, tell the user which command failed and which
+runtime path will be used for the search.
+
 ## Workflow
 
 1. **Confirm artifact root** — Before creating files, inspect

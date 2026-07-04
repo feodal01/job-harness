@@ -2085,6 +2085,92 @@ class HirifySourceTest(unittest.TestCase):
             [request.url for request in parsed.parallel_requests],
         )
 
+    def test_success_fixture_emits_bounded_parallel_pagination_window(self) -> None:
+        # Arrange
+        source = HirifySource()
+        payload = {
+            "data": [
+                {
+                    "id": 673690,
+                    "slug": "673690-qa-analyst-gamedev",
+                    "title": "QA Analyst (Gamedev)",
+                    "company_title": "%hirify_global%",
+                }
+            ],
+            "total": 150,
+            "current_page": 1,
+            "last_page": 10,
+            "per_page": 15,
+        }
+
+        # Act
+        parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="hirify",
+                url=self.QA_URL,
+                media_type="application/json",
+                body=json.dumps(payload),
+            ),
+            SourceFetchRequest(
+                source_id="hirify",
+                query_variant="QA",
+                url=self.QA_URL,
+            ),
+        )
+
+        # Assert
+        self.assertEqual(
+            [
+                "https://api.hirify.me/api/vacancies?search=QA&page=2",
+                "https://api.hirify.me/api/vacancies?search=QA&page=3",
+                "https://api.hirify.me/api/vacancies?search=QA&page=4",
+            ],
+            [request.url for request in parsed.parallel_requests],
+        )
+
+    def test_pagination_batch_continues_bounded_parallel_window(self) -> None:
+        # Arrange
+        source = HirifySource()
+        payload = {
+            "data": [
+                {
+                    "id": 673690,
+                    "slug": "673690-qa-analyst-gamedev",
+                    "title": "QA Analyst (Gamedev)",
+                    "company_title": "%hirify_global%",
+                }
+            ],
+            "total": 150,
+            "current_page": 4,
+            "last_page": 10,
+            "per_page": 15,
+        }
+
+        # Act
+        parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="hirify",
+                url="https://api.hirify.me/api/vacancies?search=QA&page=4",
+                media_type="application/json",
+                body=json.dumps(payload),
+            ),
+            SourceFetchRequest(
+                source_id="hirify",
+                query_variant="QA",
+                url="https://api.hirify.me/api/vacancies?search=QA&page=4",
+            ),
+        )
+
+        # Assert
+        self.assertEqual(
+            [
+                "https://api.hirify.me/api/vacancies?search=QA&page=5",
+                "https://api.hirify.me/api/vacancies?search=QA&page=6",
+                "https://api.hirify.me/api/vacancies?search=QA&page=7",
+            ],
+            [request.url for request in parsed.parallel_requests],
+        )
+
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
         # Arrange
         source = HirifySource()
