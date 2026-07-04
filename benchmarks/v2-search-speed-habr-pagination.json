@@ -27,12 +27,12 @@
     "senior",
     "--published-since",
     "2026-06-01",
-    "--remote-mode",
-    "compatible-remote",
-    "--work-from",
-    "RU",
+    "--work-format",
+    "remote",
+    "--remote-scope",
+    "country:RU",
     "--vacancy-geography",
-    "RU",
+    "country:RU",
     "--source",
     "habr_career"
   ]

@@ -11,7 +11,6 @@ from job_harness.v2.contracts import (
     AttemptEvidence,
     DetailEnrichmentScraper,
     RawListing,
-    RemoteMode,
     RequiredParserFixtures,
     SearchRequest,
     SourceDescriptor,
@@ -19,6 +18,7 @@ from job_harness.v2.contracts import (
     SourceOutcome,
     SourceResponseArtifact,
     SourceSearchParseResult,
+    WorkFormat,
 )
 from job_harness.v2.runtime.sources._html import ClassTextCollector
 from job_harness.v2.runtime.sources._url import absolute_url
@@ -113,7 +113,7 @@ class VKCareerSource(DetailEnrichmentScraper):
 
 
 def _use_remote_collection_hint(request: SearchRequest) -> bool:
-    return request.remote_mode == RemoteMode.COMPATIBLE_REMOTE
+    return WorkFormat.REMOTE in request.work_formats
 
 
 def _build_vk_api_url(*, use_remote_collection_hint: bool) -> str:

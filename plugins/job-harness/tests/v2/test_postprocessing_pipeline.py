@@ -14,7 +14,6 @@ from job_harness.v2.contracts import (
     DescriptionAvailability,
     Grade,
     RawSearchRecord,
-    RemoteMode,
     RetryInfo,
     RetryNextAction,
     SearchCriterion,
@@ -23,6 +22,7 @@ from job_harness.v2.contracts import (
     SourceOutcome,
     SourceType,
     TextExclusion,
+    WorkFormat,
 )
 from job_harness.v2.postprocessing import ProcessingPhase, ResultTablePostProcessor
 from job_harness.v2.serialization import to_jsonable
@@ -80,7 +80,6 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual(
             {
                 "append_to_run_id": None,
-                "cities": [],
                 "exclude_companies": ["blocked"],
                 "exclude_text": [
                     {
@@ -91,17 +90,15 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     }
                 ],
                 "grades": [],
-                "hybrid_ok": False,
-                "office_ok": False,
                 "published_since": None,
                 "query_variants": ["QA"],
                 "relocation": None,
-                "remote_mode": None,
+                "remote_scopes": [],
                 "salary_from": None,
                 "source_types": [],
                 "sources": [],
                 "vacancy_geographies": [],
-                "work_from_geographies": [],
+                "work_formats": [],
             },
             payload["search_request"],
         )
@@ -354,10 +351,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("UK",),
-                vacancy_geographies=("UK",),
-                hybrid_ok=True,
+                work_formats=(WorkFormat.REMOTE, WorkFormat.HYBRID),
+                remote_scopes=("country:GB",),
+                vacancy_geographies=("country:GB",),
+
             ),
             raw_records=(
                 _raw_record(
@@ -386,11 +383,11 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual(["45608"], [row["source_listing_id"] for row in payload["results"]])
         self.assertEqual("hybrid", payload["results"][0]["display_work_format"])
         self.assertEqual(["hybrid"], payload["results"][0]["work_formats"])
-        self.assertEqual("hybrid", payload["results"][0]["remote_scope"])
+        self.assertEqual("unknown", payload["results"][0]["remote_scope"])
         self.assertEqual("hybrid", payload["filtered_out_results"][0]["display_work_format"])
         self.assertEqual(["hybrid"], payload["filtered_out_results"][0]["work_formats"])
-        self.assertEqual("hybrid", payload["filtered_out_results"][0]["remote_scope"])
-        self.assertEqual({"hybrid_geography_mismatch": 1, "vacancy_geography_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual("unknown", payload["filtered_out_results"][0]["remote_scope"])
+        self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
 
     def test_linkedin_workplace_tags_are_fallback_after_explicit_work_format(self) -> None:
         # Arrange / Act
@@ -423,20 +420,20 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["office", "remote", "office"], [
+        self.assertEqual(["office", "remote, hybrid", "office"], [
             row["display_work_format"] for row in payload["results"]
         ])
-        self.assertEqual([["office"], ["remote"], ["office"]], [
+        self.assertEqual([["office"], ["remote", "hybrid"], ["office"]], [
             row["work_formats"] for row in payload["results"]
         ])
 
-    def test_remote_work_format_wins_when_source_lists_multiple_workplace_options(self) -> None:
+    def test_source_lists_multiple_workplace_options_without_collapsing_work_formats(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("europe",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("region:EU",),
             ),
             raw_records=(
                 _raw_record(
@@ -465,23 +462,23 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         # Assert
         self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
         self.assertEqual(
-            [["remote_eligibility_mismatch"]],
+            [["remote_scope_mismatch"]],
             [row["decision_reasons"] for row in payload["filtered_out_results"]],
         )
-        self.assertEqual("remote", payload["results"][0]["display_work_format"])
-        self.assertEqual(["remote"], payload["results"][0]["work_formats"])
+        self.assertEqual("remote, hybrid", payload["results"][0]["display_work_format"])
+        self.assertEqual(["remote", "hybrid"], payload["results"][0]["work_formats"])
         self.assertEqual("region:EU", payload["results"][0]["remote_scope"])
-        self.assertEqual("remote", payload["filtered_out_results"][0]["display_work_format"])
-        self.assertEqual(["remote"], payload["filtered_out_results"][0]["work_formats"])
+        self.assertEqual("remote, office", payload["filtered_out_results"][0]["display_work_format"])
+        self.assertEqual(["remote", "office"], payload["filtered_out_results"][0]["work_formats"])
         self.assertEqual("country:US", payload["filtered_out_results"][0]["remote_scope"])
 
-    def test_linkedin_remote_tag_drives_remote_scope_before_onsite_booleans(self) -> None:
+    def test_linkedin_remote_tag_drives_remote_scope_before_boolean_fallbacks(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("US",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:US",),
             ),
             raw_records=(
                 _raw_record(
@@ -509,16 +506,16 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
         self.assertEqual("country:US", payload["results"][0]["remote_scope"])
         self.assertEqual("remote", payload["results"][0]["display_work_format"])
-        self.assertEqual({"remote_eligibility_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual({"work_format_mismatch": 1}, payload["removed_counts"])
 
-    def test_hybrid_ok_accepts_linkedin_hybrid_tag_with_matching_geography(self) -> None:
+    def test_requested_hybrid_accepts_linkedin_hybrid_tag_with_matching_geography(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("CY",),
-                hybrid_ok=True,
+                work_formats=(WorkFormat.REMOTE, WorkFormat.HYBRID),
+                remote_scopes=("country:CY",),
+                vacancy_geographies=("country:CY",),
             ),
             raw_records=(
                 _raw_record(
@@ -546,8 +543,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         # Assert
         self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
         self.assertEqual("hybrid", payload["results"][0]["display_work_format"])
-        self.assertEqual("hybrid", payload["results"][0]["remote_scope"])
-        self.assertEqual({"hybrid_geography_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual("unknown", payload["results"][0]["remote_scope"])
+        self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
 
     def test_normalizes_country_values_during_postprocessing(self) -> None:
         # Arrange / Act
@@ -624,7 +621,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
     def test_country_filter_uses_normalized_country_values(self) -> None:
         # Arrange / Act
         payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("CY",)),
+            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("country:CY",)),
             raw_records=(
                 _raw_record("1", company="Acme", country="Кипр"),
                 _raw_record("2", company="Acme", country="Украина"),
@@ -640,7 +637,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
     def test_country_filter_matches_any_normalized_country_value(self) -> None:
         # Arrange / Act
         payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("RU",)),
+            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("country:RU",)),
             raw_records=(
                 _raw_record("1", company="Acme", country="BY", location_text="Россия, Беларусь"),
                 _raw_record("2", company="Acme", country="BY", location_text="Минск, Беларусь"),
@@ -656,7 +653,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
     def test_country_filter_uses_explicit_region_scope_membership(self) -> None:
         # Arrange / Act
         payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("PL",)),
+            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("country:PL",)),
             raw_records=(
                 _raw_record("1", company="Acme", country="europe"),
                 _raw_record("2", company="Acme", country="EU"),
@@ -673,7 +670,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
     def test_country_filter_does_not_treat_russia_as_europe_scope_member(self) -> None:
         # Arrange / Act
         payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("RU",)),
+            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("country:RU",)),
             raw_records=(
                 _raw_record("1", company="Acme", country="europe"),
                 _raw_record("2", company="Acme", country="Russia"),
@@ -686,13 +683,13 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
         self.assertEqual("EU", payload["filtered_out_results"][0]["country"])
 
-    def test_compatible_remote_matches_global_and_intersecting_work_from_scope(self) -> None:
+    def test_remote_scope_filter_matches_global_and_intersecting_scope(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("europe",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("region:EU",),
             ),
             raw_records=(
                 _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
@@ -713,22 +710,21 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(["1", "3", "5"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual({"remote_eligibility_mismatch": 2}, payload["removed_counts"])
+        self.assertEqual({"remote_scope_mismatch": 2}, payload["removed_counts"])
         self.assertEqual(
             ["country:US", "country:RU"],
             [row["remote_scope"] for row in payload["filtered_out_results"]],
         )
 
-    def test_country_only_listing_does_not_satisfy_compatible_remote(self) -> None:
+    def test_country_only_listing_does_not_satisfy_requested_remote_work_format(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("Quality Assurance",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("RU",),
-                vacancy_geographies=("RU", "AM"),
-                hybrid_ok=True,
-                office_ok=True,
+                work_formats=(WorkFormat.REMOTE, WorkFormat.HYBRID, WorkFormat.OFFICE),
+                remote_scopes=("country:RU",),
+                vacancy_geographies=("country:RU", "country:AM"),
+
             ),
             raw_records=(
                 _raw_record(
@@ -757,21 +753,21 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     requested=frozenset(
                         {
                             SearchCriterion.QUERY,
-                            SearchCriterion.REMOTE_MODE,
+                            SearchCriterion.WORK_FORMATS,
                             SearchCriterion.VACANCY_GEOGRAPHIES,
                         }
                     ),
                     native=frozenset({SearchCriterion.QUERY}),
-                    structured=frozenset({SearchCriterion.REMOTE_MODE, SearchCriterion.VACANCY_GEOGRAPHIES}),
-                    postprocess=frozenset({SearchCriterion.REMOTE_MODE, SearchCriterion.VACANCY_GEOGRAPHIES}),
+                    structured=frozenset({SearchCriterion.WORK_FORMATS, SearchCriterion.VACANCY_GEOGRAPHIES}),
+                    postprocess=frozenset({SearchCriterion.WORK_FORMATS, SearchCriterion.VACANCY_GEOGRAPHIES}),
                 ),
             ),
         )
 
         # Assert
         self.assertEqual([], payload["results"])
-        self.assertEqual({"remote_eligibility_mismatch": 2}, payload["removed_counts"])
-        self.assertEqual(["onsite", "onsite"], [row["remote_scope"] for row in payload["filtered_out_results"]])
+        self.assertEqual({"work_format_mismatch": 2}, payload["removed_counts"])
+        self.assertEqual(["unknown", "unknown"], [row["remote_scope"] for row in payload["filtered_out_results"]])
         self.assertEqual([None, None], [row["display_work_format"] for row in payload["filtered_out_results"]])
 
     def test_remote_scope_prefers_explicit_remote_locations_over_vacancy_locations(self) -> None:
@@ -779,8 +775,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("BY",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:BY",),
             ),
             raw_records=(
                 _raw_record(
@@ -798,7 +794,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual([], payload["results"])
-        self.assertEqual({"remote_eligibility_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual({"remote_scope_mismatch": 1}, payload["removed_counts"])
         self.assertEqual("country:RU", payload["filtered_out_results"][0]["remote_scope"])
         self.assertEqual("BY, RU", payload["filtered_out_results"][0]["country"])
 
@@ -807,8 +803,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("RU",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:RU",),
             ),
             raw_records=(
                 _raw_record(
@@ -833,8 +829,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("Engineer",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("ES",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:ES",),
             ),
             raw_records=(
                 _raw_record(
@@ -858,12 +854,12 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual("remote", payload["results"][0]["display_work_format"])
         self.assertEqual("country:ES", payload["results"][0]["remote_scope"])
 
-    def test_remote_timezone_hint_without_geography_keeps_unknown_scope(self) -> None:
+    def test_remote_timezone_hint_without_geography_is_removed_from_global_remote_scope(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("Engineer",),
-                remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY,
+                work_formats=(WorkFormat.REMOTE,), remote_scopes=("global",),
             ),
             raw_records=(
                 _raw_record(
@@ -881,18 +877,18 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual("remote", payload["results"][0]["display_work_format"])
-        self.assertEqual("unknown", payload["results"][0]["remote_scope"])
-        self.assertEqual({}, payload["removed_counts"])
+        self.assertEqual([], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual("remote", payload["filtered_out_results"][0]["display_work_format"])
+        self.assertEqual("unknown", payload["filtered_out_results"][0]["remote_scope"])
+        self.assertEqual({"remote_scope_mismatch": 1}, payload["removed_counts"])
 
     def test_remote_eu_locations_use_region_scope(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("Engineer",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("EU",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("region:EU",),
             ),
             raw_records=(
                 _raw_record(
@@ -920,8 +916,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("Engineer",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("PT",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:PT",),
             ),
             raw_records=(
                 _raw_record(
@@ -951,8 +947,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("Engineer",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("US",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:US",),
             ),
             raw_records=(
                 _raw_record(
@@ -980,8 +976,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("Engineer",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("CO",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:CO",),
             ),
             raw_records=(
                 _raw_record(
@@ -1009,9 +1005,9 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("Engineer",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("GB",),
-                hybrid_ok=True,
+                work_formats=(WorkFormat.REMOTE, WorkFormat.HYBRID),
+                remote_scopes=("country:GB",),
+                vacancy_geographies=("country:GB",),
             ),
             raw_records=(
                 _raw_record(
@@ -1031,16 +1027,16 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         # Assert
         self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
         self.assertEqual("GB", payload["results"][0]["country"])
-        self.assertEqual("hybrid", payload["results"][0]["remote_scope"])
+        self.assertEqual("unknown", payload["results"][0]["remote_scope"])
 
     def test_source_offices_contribute_vacancy_country_but_not_remote_scope(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("Campus Ambassador",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("GB",),
-                vacancy_geographies=("europe",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:GB",),
+                vacancy_geographies=("region:EU",),
             ),
             raw_records=(
                 _raw_record(
@@ -1059,10 +1055,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        row = payload["results"][0]
+        row = payload["filtered_out_results"][0]
         self.assertEqual("NL, GB", row["country"])
         self.assertEqual("unknown", row["remote_scope"])
-        self.assertEqual(["matches_requested_filters"], row["decision_reasons"])
+        self.assertEqual(["remote_scope_mismatch"], row["decision_reasons"])
 
     def test_specific_location_does_not_merge_hidden_source_office_countries(self) -> None:
         # Arrange / Act
@@ -1087,7 +1083,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         # Assert
         row = payload["results"][0]
         self.assertEqual("CZ", row["country"])
-        self.assertEqual("onsite", row["remote_scope"])
+        self.assertEqual("unknown", row["remote_scope"])
 
     def test_lever_country_contributes_to_specific_locations_only(self) -> None:
         # Arrange / Act
@@ -1144,14 +1140,14 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertIsNone(rows["remote"]["country"])
         self.assertEqual("unknown", rows["remote"]["remote_scope"])
 
-    def test_vacancy_geography_keeps_global_remote_scope_for_remote_search(self) -> None:
+    def test_vacancy_geography_removes_global_remote_without_matching_vacancy_location(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("europe",),
-                vacancy_geographies=("europe",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("region:EU",),
+                vacancy_geographies=("region:EU",),
             ),
             raw_records=(
                 _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
@@ -1162,19 +1158,18 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1", "2", "3"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual({}, payload["removed_counts"])
+        self.assertEqual(["2"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({"vacancy_geography_mismatch": 2}, payload["removed_counts"])
 
-    def test_work_from_uk_and_vacancy_europe_keeps_global_and_mixed_scope_remote(self) -> None:
+    def test_country_gb_remote_scope_and_region_eu_vacancy_require_both_dimensions(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("UK",),
-                vacancy_geographies=("europe",),
-                hybrid_ok=True,
-                office_ok=True,
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:GB",),
+                vacancy_geographies=("region:EU",),
+
             ),
             raw_records=(
                 _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
@@ -1208,28 +1203,28 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1", "4"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual(["4"], [row["source_listing_id"] for row in payload["results"]])
         self.assertEqual(
             {
-                "remote_eligibility_mismatch": 2,
-                "hybrid_geography_mismatch": 2,
-                "office_geography_mismatch": 1,
+                "remote_scope_mismatch": 2,
+                "vacancy_geography_mismatch": 1,
+                "work_format_mismatch": 3,
             },
             payload["removed_counts"],
         )
         self.assertEqual(
-            ["country:PL", "region:EU", "hybrid", "onsite", "hybrid"],
+            ["global", "country:PL", "region:EU", "unknown", "unknown", "unknown"],
             [row["remote_scope"] for row in payload["filtered_out_results"]],
         )
 
-    def test_work_from_uk_and_vacancy_europe_keeps_remote_country_gb_inside_multi_country_listing(self) -> None:
+    def test_region_eu_vacancy_keeps_country_gb_inside_multi_country_listing(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("UK",),
-                vacancy_geographies=("europe",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:GB",),
+                vacancy_geographies=("region:EU",),
             ),
             raw_records=(
                 _raw_record(
@@ -1263,16 +1258,14 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             payload["results"][0]["remote_scope"],
         )
 
-    def test_work_from_uk_and_vacancy_uk_accepts_requested_physical_and_remote_formats(self) -> None:
+    def test_country_gb_vacancy_accepts_requested_physical_and_remote_formats(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("UK",),
-                vacancy_geographies=("UK",),
-                hybrid_ok=True,
-                office_ok=True,
+                work_formats=(WorkFormat.REMOTE, WorkFormat.HYBRID, WorkFormat.OFFICE),
+                remote_scopes=("country:GB",),
+                vacancy_geographies=("country:GB",),
             ),
             raw_records=(
                 _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
@@ -1284,17 +1277,19 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1", "2", "3", "4"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual({}, payload["removed_counts"])
+        self.assertEqual(["2", "3", "4"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
 
-    def test_work_from_uk_and_vacancy_uk_remote_only_accepts_in_country_and_global_remote(self) -> None:
+    def test_country_gb_vacancy_remote_only_rejects_global_with_mismatched_vacancy_location(
+        self,
+    ) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("UK",),
-                vacancy_geographies=("UK",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:GB",),
+                vacancy_geographies=("country:GB",),
             ),
             raw_records=(
                 _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
@@ -1306,13 +1301,13 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1", "2"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual({"remote_eligibility_mismatch": 2}, payload["removed_counts"])
+        self.assertEqual(["2"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({"vacancy_geography_mismatch": 1, "work_format_mismatch": 2}, payload["removed_counts"])
 
-    def test_remote_modes_distinguish_unknown_global_and_non_remote_evidence(self) -> None:
+    def test_work_formats_and_remote_scopes_distinguish_unknown_global_and_physical_evidence(self) -> None:
         # Arrange / Act
         global_payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY),
+            request=SearchRequest(query_variants=("QA",), work_formats=(WorkFormat.REMOTE,), remote_scopes=("global",)),
             raw_records=(
                 _raw_record("1", company="Acme", remote_in_country=True, remote_global=True),
                 _raw_record("2", company="Acme", remote_in_country=True, remote_global=False, country="PL"),
@@ -1321,7 +1316,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
             source_attempts=(_attempt_record(),),
         )
         non_remote_payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.NON_REMOTE_ONLY),
+            request=SearchRequest(query_variants=("QA",), work_formats=(WorkFormat.HYBRID, WorkFormat.OFFICE)),
             raw_records=(
                 _raw_record("1", company="Acme", remote_in_country=False, remote_global=False),
                 _raw_record("2", company="Acme", remote_in_country=True, remote_global=True),
@@ -1331,15 +1326,15 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1", "3"], [row["source_listing_id"] for row in global_payload["results"]])
-        self.assertEqual({"remote_global_mismatch": 1}, global_payload["removed_counts"])
-        self.assertEqual(["1", "3"], [row["source_listing_id"] for row in non_remote_payload["results"]])
-        self.assertEqual({"remote_mismatch": 1}, non_remote_payload["removed_counts"])
+        self.assertEqual(["1"], [row["source_listing_id"] for row in global_payload["results"]])
+        self.assertEqual({"remote_scope_mismatch": 1, "work_format_mismatch": 1}, global_payload["removed_counts"])
+        self.assertEqual(["1"], [row["source_listing_id"] for row in non_remote_payload["results"]])
+        self.assertEqual({"work_format_mismatch": 2}, non_remote_payload["removed_counts"])
 
-    def test_bare_remote_without_global_evidence_is_unknown_for_global_remote_only(self) -> None:
+    def test_bare_remote_without_global_evidence_is_removed_from_global_remote_scope(self) -> None:
         # Arrange / Act
         payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY),
+            request=SearchRequest(query_variants=("QA",), work_formats=(WorkFormat.REMOTE,), remote_scopes=("global",)),
             raw_records=(
                 _raw_record(
                     "1",
@@ -1354,19 +1349,18 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual({}, payload["removed_counts"])
-        self.assertEqual("unknown", payload["results"][0]["remote_scope"])
+        self.assertEqual([], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({"remote_scope_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual("unknown", payload["filtered_out_results"][0]["remote_scope"])
 
-    def test_hybrid_and_office_flags_accept_physical_formats_in_work_from_geography(self) -> None:
+    def test_requested_hybrid_and_office_accept_physical_formats_in_vacancy_geography(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("RU",),
-                hybrid_ok=True,
-                office_ok=True,
+                work_formats=(WorkFormat.REMOTE, WorkFormat.HYBRID, WorkFormat.OFFICE),
+                remote_scopes=("country:RU",),
+                vacancy_geographies=("country:RU",),
             ),
             raw_records=(
                 _raw_record("1", company="Acme", country="US", remote_in_country=True, remote_global=True),
@@ -1379,22 +1373,26 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["1", "2", "3", "5"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual({"hybrid_geography_mismatch": 1}, payload["removed_counts"])
-        self.assertEqual("hybrid", payload["results"][1]["display_work_format"])
-        self.assertEqual(["hybrid"], payload["results"][1]["work_formats"])
+        self.assertEqual(["2", "3"], [row["source_listing_id"] for row in payload["results"]])
+        self.assertEqual({"vacancy_geography_mismatch": 3}, payload["removed_counts"])
+        self.assertEqual("hybrid", payload["results"][0]["display_work_format"])
+        self.assertEqual(["hybrid"], payload["results"][0]["work_formats"])
         self.assertEqual(
-            [["hybrid_geography_mismatch"]],
+            [
+                ["vacancy_geography_mismatch"],
+                ["vacancy_geography_mismatch"],
+                ["vacancy_geography_mismatch"],
+            ],
             [row["decision_reasons"] for row in payload["filtered_out_results"]],
         )
 
-    def test_hybrid_and_office_do_not_bypass_remote_policy_without_flags(self) -> None:
+    def test_hybrid_and_office_do_not_bypass_remote_policy_when_not_requested(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("RU",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:RU",),
             ),
             raw_records=(
                 _raw_record("1", company="Acme", country="RU", remote_in_country=True, raw={"work_format": "hybrid"}),
@@ -1407,16 +1405,16 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         # Assert
         self.assertEqual(["3"], [row["source_listing_id"] for row in payload["results"]])
         self.assertEqual(
-            {"remote_eligibility_mismatch": 2},
+            {"work_format_mismatch": 2},
             payload["removed_counts"],
         )
 
-    def test_global_remote_only_removes_physical_formats(self) -> None:
+    def test_global_remote_scope_removes_physical_formats(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY,
+                work_formats=(WorkFormat.REMOTE,), remote_scopes=("global",),
             ),
             raw_records=(
                 _raw_record("1", company="Acme", country="CY", raw={"work_format": "office"}),
@@ -1429,13 +1427,13 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         # Assert
         self.assertEqual(["3"], [row["source_listing_id"] for row in payload["results"]])
         self.assertEqual(
-            {"remote_global_mismatch": 2},
+            {"work_format_mismatch": 2},
             payload["removed_counts"],
         )
         self.assertEqual(
             [
-                ["remote_global_mismatch"],
-                ["remote_global_mismatch"],
+                ["work_format_mismatch"],
+                ["work_format_mismatch"],
             ],
             [row["decision_reasons"] for row in payload["filtered_out_results"]],
         )
@@ -1443,7 +1441,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
     def test_explicit_onsite_work_format_overrides_raw_global_marker(self) -> None:
         # Arrange / Act
         payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY),
+            request=SearchRequest(query_variants=("QA",), work_formats=(WorkFormat.REMOTE,), remote_scopes=("global",)),
             raw_records=(
                 _raw_record(
                     "1",
@@ -1458,31 +1456,31 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual([], payload["results"])
-        self.assertEqual({"remote_global_mismatch": 1}, payload["removed_counts"])
-        self.assertEqual("onsite", payload["filtered_out_results"][0]["remote_scope"])
+        self.assertEqual({"work_format_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual("unknown", payload["filtered_out_results"][0]["remote_scope"])
 
     def test_marks_text_enrichment_required_from_source_attempt_diagnostics(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY,
+                work_formats=(WorkFormat.REMOTE,), remote_scopes=("global",),
             ),
             raw_records=(_raw_record("1", company="Acme"),),
             source_attempts=(
                 _attempt_record(
-                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
+                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.WORK_FORMATS}),
                     native=frozenset({SearchCriterion.QUERY}),
-                    unsupported=frozenset({SearchCriterion.REMOTE_MODE}),
-                    postprocess=frozenset({SearchCriterion.REMOTE_MODE}),
+                    unsupported=frozenset({SearchCriterion.WORK_FORMATS}),
+                    postprocess=frozenset({SearchCriterion.WORK_FORMATS}),
                 ),
             ),
         )
 
         # Assert
         actions = {action["criterion"]: action for action in payload["source_criteria_plan"][0]["actions"]}
-        self.assertEqual("text_enrichment_required", actions["remote_mode"]["action"])
-        self.assertTrue(actions["remote_mode"]["requires_enrichment"])
+        self.assertEqual("text_enrichment_required", actions["work_formats"]["action"])
+        self.assertTrue(actions["work_formats"]["requires_enrichment"])
 
     def test_filters_query_by_title_even_when_source_applied_native_query(self) -> None:
         # Arrange / Act
@@ -1582,7 +1580,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
     def test_filtered_out_results_only_include_title_query_matches(self) -> None:
         # Arrange / Act
         payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY),
+            request=SearchRequest(query_variants=("QA",), work_formats=(WorkFormat.REMOTE,), remote_scopes=("global",)),
             raw_records=(
                 _raw_record(
                     "1",
@@ -1605,10 +1603,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                 _attempt_record(
                     source="career:jetbrains",
                     source_type=SourceType.COMPANY_CAREER,
-                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
+                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.WORK_FORMATS}),
                     native=frozenset(),
-                    structured=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
-                    postprocess=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
+                    structured=frozenset({SearchCriterion.QUERY, SearchCriterion.WORK_FORMATS}),
+                    postprocess=frozenset({SearchCriterion.QUERY, SearchCriterion.WORK_FORMATS}),
                 ),
             ),
         )
@@ -1616,11 +1614,11 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         # Assert
         self.assertEqual(0, payload["result_count"])
         self.assertEqual(
-            {"query_mismatch": 1, "remote_global_mismatch": 2},
+            {"query_mismatch": 1, "work_format_mismatch": 2},
             payload["removed_counts"],
         )
         self.assertEqual(["QA Engineer"], [row["title"] for row in payload["filtered_out_results"]])
-        self.assertEqual(["remote_global_mismatch"], payload["filtered_out_results"][0]["decision_reasons"])
+        self.assertEqual(["work_format_mismatch"], payload["filtered_out_results"][0]["decision_reasons"])
 
     def test_grade_filter_keeps_unknown_native_grade(self) -> None:
         # Arrange / Act
@@ -1688,9 +1686,9 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                 salary_from=100000,
                 published_since=date(2026, 1, 1),
                 relocation=True,
-                remote_mode=RemoteMode.GLOBAL_REMOTE_ONLY,
-                vacancy_geographies=("europe",),
-                cities=("Berlin",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("global",),
+                vacancy_geographies=("city:Berlin",),
             ),
             raw_records=(
                 _raw_record(
@@ -1718,9 +1716,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                             SearchCriterion.SALARY_FROM,
                             SearchCriterion.PUBLISHED_SINCE,
                             SearchCriterion.RELOCATION,
-                            SearchCriterion.REMOTE_MODE,
+                            SearchCriterion.WORK_FORMATS,
                             SearchCriterion.VACANCY_GEOGRAPHIES,
-                            SearchCriterion.CITIES,
                         }
                     ),
                     native=frozenset(),
@@ -1730,9 +1727,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                             SearchCriterion.SALARY_FROM,
                             SearchCriterion.PUBLISHED_SINCE,
                             SearchCriterion.RELOCATION,
-                            SearchCriterion.REMOTE_MODE,
+                            SearchCriterion.WORK_FORMATS,
                             SearchCriterion.VACANCY_GEOGRAPHIES,
-                            SearchCriterion.CITIES,
                         }
                     ),
                     postprocess=frozenset(
@@ -1741,9 +1737,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                             SearchCriterion.SALARY_FROM,
                             SearchCriterion.PUBLISHED_SINCE,
                             SearchCriterion.RELOCATION,
-                            SearchCriterion.REMOTE_MODE,
+                            SearchCriterion.WORK_FORMATS,
                             SearchCriterion.VACANCY_GEOGRAPHIES,
-                            SearchCriterion.CITIES,
                         }
                     ),
                 ),
@@ -1751,8 +1746,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(1, payload["result_count"])
-        self.assertEqual({}, payload["removed_counts"])
+        self.assertEqual(0, payload["result_count"])
+        self.assertEqual({"work_format_mismatch": 1, "vacancy_geography_mismatch": 1}, payload["removed_counts"])
 
     def test_query_postprocess_does_not_match_description_only_role_mentions(self) -> None:
         # Arrange / Act
@@ -1867,23 +1862,23 @@ class ResultTablePostProcessorTest(unittest.TestCase):
     def test_fuzzy_city_filter_matches_case_and_inflection(self) -> None:
         # Arrange / Act
         payload = _process_payload(
-            request=SearchRequest(query_variants=("QA",), cities=("москве",)),
+            request=SearchRequest(query_variants=("QA",), vacancy_geographies=("city:москве",)),
             raw_records=(
                 _raw_record("1", company="VK", city="Москва"),
                 _raw_record("2", company="VK", city="Санкт-Петербург"),
             ),
             source_attempts=(
                 _attempt_record(
-                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.CITIES}),
-                    structured=frozenset({SearchCriterion.CITIES}),
-                    postprocess=frozenset({SearchCriterion.CITIES}),
+                    requested=frozenset({SearchCriterion.QUERY, SearchCriterion.VACANCY_GEOGRAPHIES}),
+                    structured=frozenset({SearchCriterion.VACANCY_GEOGRAPHIES}),
+                    postprocess=frozenset({SearchCriterion.VACANCY_GEOGRAPHIES}),
                 ),
             ),
         )
 
         # Assert
         self.assertEqual(["Москва"], [row["city"] for row in payload["results"]])
-        self.assertEqual({"city_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual({"vacancy_geography_mismatch": 1}, payload["removed_counts"])
 
     def test_preserves_additional_sections_when_title_matches_query(self) -> None:
         # Arrange / Act

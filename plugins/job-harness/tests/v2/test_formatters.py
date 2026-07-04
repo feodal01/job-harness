@@ -179,9 +179,9 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
             "removed_counts": {"grade_mismatch": 1},
             "search_request": {
                 "query_variants": ["QA"],
-                "remote_mode": "compatible_remote",
-                "work_from_geographies": ["RU"],
-                "vacancy_geographies": ["RU"],
+                "work_formats": ["remote"],
+                "remote_scopes": ["country:RU"],
+                "vacancy_geographies": ["country:RU"],
                 "sources": ["hh_ru"],
             },
             "results": [
@@ -260,10 +260,11 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertNotIn("`${text(channel.label)} · ${status}`", html)
         self.assertIn("className = \"skill\"", html)
         self.assertIn('debugField("Filter reason", removalReasonText(row))', html)
-        self.assertIn('debugField("Raw remote in country", booleanText(row.remote_in_country))', html)
-        self.assertIn('debugField("Raw remote global", booleanText(row.remote_global))', html)
+        self.assertIn('debugField("Vacancy geography", row.vacancy_geography)', html)
+        self.assertNotIn('debugField("Raw remote in country", booleanText(row.remote_in_country))', html)
+        self.assertNotIn('debugField("Raw remote global", booleanText(row.remote_global))', html)
         self.assertIn('["grade_mismatch", "Experience"]', html)
-        self.assertIn('["remote_eligibility_mismatch", "Remote scope"]', html)
+        self.assertIn('["remote_scope_mismatch", "Remote scope"]', html)
         self.assertIn('"decision_reasons": ["grade_mismatch"]', html)
         self.assertNotIn("workMode(row)", html)
         self.assertNotIn("|| row.native_grade", html)
@@ -366,9 +367,9 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertIn('requestField("Grade", listText(request.grades, "N/a"))', html)
         self.assertIn('requestField("Salary from", text(request.salary_from) || "N/a")', html)
         self.assertIn('requestField("Published since", text(request.published_since) || "N/a")', html)
-        self.assertIn('requestField("Work from", listText(request.work_from_geographies, "N/a"))', html)
+        self.assertIn('requestField("Work format", listText(request.work_formats, "N/a"))', html)
+        self.assertIn('requestField("Remote scope", listText(request.remote_scopes, "N/a"))', html)
         self.assertIn('requestField("Vacancy geography", listText(request.vacancy_geographies, "N/a"))', html)
-        self.assertIn('requestField("Cities", listText(request.cities, "N/a"))', html)
         self.assertIn('requestField("Exclude companies", listText(request.exclude_companies, "N/a"))', html)
         self.assertIn('requestField("Exclude text", exclusionText(request.exclude_text) || "N/a")', html)
         self.assertIn('return "N/a";', html)

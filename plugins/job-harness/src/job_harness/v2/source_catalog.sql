@@ -32,10 +32,9 @@ CREATE TABLE source_criteria (
             'salary_from',
             'published_since',
             'relocation',
-            'remote_mode',
-            'work_from_geographies',
-            'vacancy_geographies',
-            'cities'
+            'work_formats',
+            'remote_scopes',
+            'vacancy_geographies'
         )
     ),
     capability TEXT NOT NULL CHECK (
@@ -269,244 +268,217 @@ VALUES
     ('habr_career', 2, 'salary_from', 'native_request'),
     ('habr_career', 3, 'published_since', 'structured_output'),
     ('habr_career', 4, 'relocation', 'unsupported'),
-    ('habr_career', 5, 'remote_mode', 'structured_output'),
-    ('habr_career', 6, 'work_from_geographies', 'structured_output'),
+    ('habr_career', 5, 'work_formats', 'structured_output'),
+    ('habr_career', 6, 'remote_scopes', 'structured_output'),
     ('habr_career', 7, 'vacancy_geographies', 'structured_output'),
-    ('habr_career', 8, 'cities', 'structured_output'),
     ('hh_ru', 0, 'query', 'native_request'),
     ('hh_ru', 1, 'grades', 'structured_output'),
     ('hh_ru', 2, 'salary_from', 'native_request'),
     ('hh_ru', 3, 'published_since', 'structured_output'),
     ('hh_ru', 4, 'relocation', 'unsupported'),
-    ('hh_ru', 5, 'remote_mode', 'structured_output'),
-    ('hh_ru', 6, 'work_from_geographies', 'structured_output'),
+    ('hh_ru', 5, 'work_formats', 'structured_output'),
+    ('hh_ru', 6, 'remote_scopes', 'structured_output'),
     ('hh_ru', 7, 'vacancy_geographies', 'structured_output'),
-    ('hh_ru', 8, 'cities', 'structured_output'),
     ('talanto', 0, 'query', 'native_request'),
     ('talanto', 1, 'grades', 'structured_output'),
     ('talanto', 2, 'salary_from', 'structured_output'),
     ('talanto', 3, 'published_since', 'structured_output'),
     ('talanto', 4, 'relocation', 'unsupported'),
-    ('talanto', 5, 'remote_mode', 'structured_output'),
-    ('talanto', 6, 'work_from_geographies', 'structured_output'),
+    ('talanto', 5, 'work_formats', 'structured_output'),
+    ('talanto', 6, 'remote_scopes', 'structured_output'),
     ('talanto', 7, 'vacancy_geographies', 'structured_output'),
-    ('talanto', 8, 'cities', 'structured_output'),
     ('career:vk', 0, 'query', 'structured_output'),
     ('career:vk', 1, 'grades', 'unsupported'),
     ('career:vk', 2, 'salary_from', 'unsupported'),
     ('career:vk', 3, 'published_since', 'unsupported'),
     ('career:vk', 4, 'relocation', 'unsupported'),
-    ('career:vk', 5, 'remote_mode', 'structured_output'),
-    ('career:vk', 6, 'work_from_geographies', 'structured_output'),
+    ('career:vk', 5, 'work_formats', 'structured_output'),
+    ('career:vk', 6, 'remote_scopes', 'structured_output'),
     ('career:vk', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:vk', 8, 'cities', 'structured_output'),
     ('career:jetbrains', 0, 'query', 'structured_output'),
     ('career:jetbrains', 1, 'grades', 'unsupported'),
     ('career:jetbrains', 2, 'salary_from', 'unsupported'),
     ('career:jetbrains', 3, 'published_since', 'structured_output'),
     ('career:jetbrains', 4, 'relocation', 'unsupported'),
-    ('career:jetbrains', 5, 'remote_mode', 'structured_output'),
-    ('career:jetbrains', 6, 'work_from_geographies', 'structured_output'),
+    ('career:jetbrains', 5, 'work_formats', 'structured_output'),
+    ('career:jetbrains', 6, 'remote_scopes', 'structured_output'),
     ('career:jetbrains', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:jetbrains', 8, 'cities', 'structured_output'),
     ('career:ibs', 0, 'query', 'structured_output'),
     ('career:ibs', 1, 'grades', 'unsupported'),
     ('career:ibs', 2, 'salary_from', 'unsupported'),
     ('career:ibs', 3, 'published_since', 'unsupported'),
     ('career:ibs', 4, 'relocation', 'unsupported'),
-    ('career:ibs', 5, 'remote_mode', 'structured_output'),
-    ('career:ibs', 6, 'work_from_geographies', 'structured_output'),
+    ('career:ibs', 5, 'work_formats', 'structured_output'),
+    ('career:ibs', 6, 'remote_scopes', 'structured_output'),
     ('career:ibs', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:ibs', 8, 'cities', 'unsupported'),
     ('geekjob', 0, 'query', 'structured_output'),
     ('geekjob', 1, 'grades', 'unsupported'),
     ('geekjob', 2, 'salary_from', 'structured_output'),
     ('geekjob', 3, 'published_since', 'structured_output'),
     ('geekjob', 4, 'relocation', 'unsupported'),
-    ('geekjob', 5, 'remote_mode', 'structured_output'),
-    ('geekjob', 6, 'work_from_geographies', 'structured_output'),
+    ('geekjob', 5, 'work_formats', 'structured_output'),
+    ('geekjob', 6, 'remote_scopes', 'structured_output'),
     ('geekjob', 7, 'vacancy_geographies', 'structured_output'),
-    ('geekjob', 8, 'cities', 'unsupported'),
     ('talento', 0, 'query', 'native_request'),
     ('talento', 1, 'grades', 'unsupported'),
     ('talento', 2, 'salary_from', 'unsupported'),
     ('talento', 3, 'published_since', 'unsupported'),
     ('talento', 4, 'relocation', 'unsupported'),
-    ('talento', 5, 'remote_mode', 'unsupported'),
-    ('talento', 6, 'work_from_geographies', 'unsupported'),
+    ('talento', 5, 'work_formats', 'unsupported'),
+    ('talento', 6, 'remote_scopes', 'unsupported'),
     ('talento', 7, 'vacancy_geographies', 'unsupported'),
-    ('talento', 8, 'cities', 'unsupported'),
     ('finder_work', 0, 'query', 'native_request'),
     ('finder_work', 1, 'grades', 'structured_output'),
     ('finder_work', 2, 'salary_from', 'native_request'),
     ('finder_work', 3, 'published_since', 'structured_output'),
     ('finder_work', 4, 'relocation', 'unsupported'),
-    ('finder_work', 5, 'remote_mode', 'structured_output'),
-    ('finder_work', 6, 'work_from_geographies', 'structured_output'),
+    ('finder_work', 5, 'work_formats', 'structured_output'),
+    ('finder_work', 6, 'remote_scopes', 'structured_output'),
     ('finder_work', 7, 'vacancy_geographies', 'structured_output'),
-    ('finder_work', 8, 'cities', 'structured_output'),
     ('getmatch', 0, 'query', 'native_request'),
     ('getmatch', 1, 'grades', 'unsupported'),
     ('getmatch', 2, 'salary_from', 'unsupported'),
     ('getmatch', 3, 'published_since', 'structured_output'),
     ('getmatch', 4, 'relocation', 'unsupported'),
-    ('getmatch', 5, 'remote_mode', 'structured_output'),
-    ('getmatch', 6, 'work_from_geographies', 'structured_output'),
+    ('getmatch', 5, 'work_formats', 'structured_output'),
+    ('getmatch', 6, 'remote_scopes', 'structured_output'),
     ('getmatch', 7, 'vacancy_geographies', 'structured_output'),
-    ('getmatch', 8, 'cities', 'structured_output'),
     ('it_jobs_uz', 0, 'query', 'native_request'),
     ('it_jobs_uz', 1, 'grades', 'structured_output'),
     ('it_jobs_uz', 2, 'salary_from', 'native_request'),
     ('it_jobs_uz', 3, 'published_since', 'structured_output'),
     ('it_jobs_uz', 4, 'relocation', 'unsupported'),
-    ('it_jobs_uz', 5, 'remote_mode', 'structured_output'),
-    ('it_jobs_uz', 6, 'work_from_geographies', 'structured_output'),
+    ('it_jobs_uz', 5, 'work_formats', 'structured_output'),
+    ('it_jobs_uz', 6, 'remote_scopes', 'structured_output'),
     ('it_jobs_uz', 7, 'vacancy_geographies', 'structured_output'),
-    ('it_jobs_uz', 8, 'cities', 'structured_output'),
     ('hirify', 0, 'query', 'native_request'),
     ('hirify', 1, 'grades', 'structured_output'),
     ('hirify', 2, 'salary_from', 'native_request'),
     ('hirify', 3, 'published_since', 'structured_output'),
     ('hirify', 4, 'relocation', 'unsupported'),
-    ('hirify', 5, 'remote_mode', 'structured_output'),
-    ('hirify', 6, 'work_from_geographies', 'structured_output'),
+    ('hirify', 5, 'work_formats', 'structured_output'),
+    ('hirify', 6, 'remote_scopes', 'structured_output'),
     ('hirify', 7, 'vacancy_geographies', 'structured_output'),
-    ('hirify', 8, 'cities', 'structured_output'),
     ('jobturbo', 0, 'query', 'structured_output'),
     ('jobturbo', 1, 'grades', 'structured_output'),
     ('jobturbo', 2, 'salary_from', 'structured_output'),
     ('jobturbo', 3, 'published_since', 'unsupported'),
     ('jobturbo', 4, 'relocation', 'unsupported'),
-    ('jobturbo', 5, 'remote_mode', 'structured_output'),
-    ('jobturbo', 6, 'work_from_geographies', 'structured_output'),
+    ('jobturbo', 5, 'work_formats', 'structured_output'),
+    ('jobturbo', 6, 'remote_scopes', 'structured_output'),
     ('jobturbo', 7, 'vacancy_geographies', 'unsupported'),
-    ('jobturbo', 8, 'cities', 'unsupported'),
     ('hirehi', 0, 'query', 'native_request'),
     ('hirehi', 1, 'grades', 'structured_output'),
     ('hirehi', 2, 'salary_from', 'structured_output'),
     ('hirehi', 3, 'published_since', 'unsupported'),
     ('hirehi', 4, 'relocation', 'unsupported'),
-    ('hirehi', 5, 'remote_mode', 'structured_output'),
-    ('hirehi', 6, 'work_from_geographies', 'structured_output'),
+    ('hirehi', 5, 'work_formats', 'structured_output'),
+    ('hirehi', 6, 'remote_scopes', 'structured_output'),
     ('hirehi', 7, 'vacancy_geographies', 'structured_output'),
-    ('hirehi', 8, 'cities', 'structured_output'),
     ('staff_am', 0, 'query', 'native_request'),
     ('staff_am', 1, 'grades', 'structured_output'),
     ('staff_am', 2, 'salary_from', 'unsupported'),
     ('staff_am', 3, 'published_since', 'structured_output'),
     ('staff_am', 4, 'relocation', 'structured_output'),
-    ('staff_am', 5, 'remote_mode', 'structured_output'),
-    ('staff_am', 6, 'work_from_geographies', 'structured_output'),
+    ('staff_am', 5, 'work_formats', 'structured_output'),
+    ('staff_am', 6, 'remote_scopes', 'structured_output'),
     ('staff_am', 7, 'vacancy_geographies', 'structured_output'),
-    ('staff_am', 8, 'cities', 'structured_output'),
     ('career:amocrm', 0, 'query', 'structured_output'),
     ('career:amocrm', 1, 'grades', 'unsupported'),
     ('career:amocrm', 2, 'salary_from', 'unsupported'),
     ('career:amocrm', 3, 'published_since', 'unsupported'),
     ('career:amocrm', 4, 'relocation', 'unsupported'),
-    ('career:amocrm', 5, 'remote_mode', 'unsupported'),
-    ('career:amocrm', 6, 'work_from_geographies', 'unsupported'),
+    ('career:amocrm', 5, 'work_formats', 'unsupported'),
+    ('career:amocrm', 6, 'remote_scopes', 'unsupported'),
     ('career:amocrm', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:amocrm', 8, 'cities', 'unsupported'),
     ('career:coinspaid', 0, 'query', 'structured_output'),
     ('career:coinspaid', 1, 'grades', 'unsupported'),
     ('career:coinspaid', 2, 'salary_from', 'unsupported'),
     ('career:coinspaid', 3, 'published_since', 'structured_output'),
     ('career:coinspaid', 4, 'relocation', 'unsupported'),
-    ('career:coinspaid', 5, 'remote_mode', 'structured_output'),
-    ('career:coinspaid', 6, 'work_from_geographies', 'structured_output'),
+    ('career:coinspaid', 5, 'work_formats', 'structured_output'),
+    ('career:coinspaid', 6, 'remote_scopes', 'structured_output'),
     ('career:coinspaid', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:coinspaid', 8, 'cities', 'structured_output'),
     ('career:appfollow', 0, 'query', 'structured_output'),
     ('career:appfollow', 1, 'grades', 'unsupported'),
     ('career:appfollow', 2, 'salary_from', 'unsupported'),
     ('career:appfollow', 3, 'published_since', 'structured_output'),
     ('career:appfollow', 4, 'relocation', 'unsupported'),
-    ('career:appfollow', 5, 'remote_mode', 'structured_output'),
-    ('career:appfollow', 6, 'work_from_geographies', 'structured_output'),
+    ('career:appfollow', 5, 'work_formats', 'structured_output'),
+    ('career:appfollow', 6, 'remote_scopes', 'structured_output'),
     ('career:appfollow', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:appfollow', 8, 'cities', 'unsupported'),
     ('career:airslate', 0, 'query', 'structured_output'),
     ('career:airslate', 1, 'grades', 'unsupported'),
     ('career:airslate', 2, 'salary_from', 'unsupported'),
     ('career:airslate', 3, 'published_since', 'structured_output'),
     ('career:airslate', 4, 'relocation', 'unsupported'),
-    ('career:airslate', 5, 'remote_mode', 'structured_output'),
-    ('career:airslate', 6, 'work_from_geographies', 'structured_output'),
+    ('career:airslate', 5, 'work_formats', 'structured_output'),
+    ('career:airslate', 6, 'remote_scopes', 'structured_output'),
     ('career:airslate', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:airslate', 8, 'cities', 'unsupported'),
     ('career:wintermute', 0, 'query', 'structured_output'),
     ('career:wintermute', 1, 'grades', 'unsupported'),
     ('career:wintermute', 2, 'salary_from', 'unsupported'),
     ('career:wintermute', 3, 'published_since', 'structured_output'),
     ('career:wintermute', 4, 'relocation', 'unsupported'),
-    ('career:wintermute', 5, 'remote_mode', 'structured_output'),
-    ('career:wintermute', 6, 'work_from_geographies', 'structured_output'),
+    ('career:wintermute', 5, 'work_formats', 'structured_output'),
+    ('career:wintermute', 6, 'remote_scopes', 'structured_output'),
     ('career:wintermute', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:wintermute', 8, 'cities', 'unsupported'),
     ('career:truv', 0, 'query', 'structured_output'),
     ('career:truv', 1, 'grades', 'unsupported'),
     ('career:truv', 2, 'salary_from', 'unsupported'),
     ('career:truv', 3, 'published_since', 'structured_output'),
     ('career:truv', 4, 'relocation', 'unsupported'),
-    ('career:truv', 5, 'remote_mode', 'structured_output'),
-    ('career:truv', 6, 'work_from_geographies', 'structured_output'),
+    ('career:truv', 5, 'work_formats', 'structured_output'),
+    ('career:truv', 6, 'remote_scopes', 'structured_output'),
     ('career:truv', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:truv', 8, 'cities', 'unsupported'),
     ('career:termius', 0, 'query', 'structured_output'),
     ('career:termius', 1, 'grades', 'unsupported'),
     ('career:termius', 2, 'salary_from', 'unsupported'),
     ('career:termius', 3, 'published_since', 'structured_output'),
     ('career:termius', 4, 'relocation', 'unsupported'),
-    ('career:termius', 5, 'remote_mode', 'structured_output'),
-    ('career:termius', 6, 'work_from_geographies', 'structured_output'),
+    ('career:termius', 5, 'work_formats', 'structured_output'),
+    ('career:termius', 6, 'remote_scopes', 'structured_output'),
     ('career:termius', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:termius', 8, 'cities', 'unsupported'),
     ('career:outschool', 0, 'query', 'structured_output'),
     ('career:outschool', 1, 'grades', 'unsupported'),
     ('career:outschool', 2, 'salary_from', 'unsupported'),
     ('career:outschool', 3, 'published_since', 'structured_output'),
     ('career:outschool', 4, 'relocation', 'unsupported'),
-    ('career:outschool', 5, 'remote_mode', 'structured_output'),
-    ('career:outschool', 6, 'work_from_geographies', 'structured_output'),
+    ('career:outschool', 5, 'work_formats', 'structured_output'),
+    ('career:outschool', 6, 'remote_scopes', 'structured_output'),
     ('career:outschool', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:outschool', 8, 'cities', 'unsupported'),
     ('career:zeroavia', 0, 'query', 'structured_output'),
     ('career:zeroavia', 1, 'grades', 'unsupported'),
     ('career:zeroavia', 2, 'salary_from', 'unsupported'),
     ('career:zeroavia', 3, 'published_since', 'structured_output'),
     ('career:zeroavia', 4, 'relocation', 'unsupported'),
-    ('career:zeroavia', 5, 'remote_mode', 'structured_output'),
-    ('career:zeroavia', 6, 'work_from_geographies', 'unsupported'),
+    ('career:zeroavia', 5, 'work_formats', 'structured_output'),
+    ('career:zeroavia', 6, 'remote_scopes', 'unsupported'),
     ('career:zeroavia', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:zeroavia', 8, 'cities', 'structured_output'),
     ('career:wallarm', 0, 'query', 'structured_output'),
     ('career:wallarm', 1, 'grades', 'unsupported'),
     ('career:wallarm', 2, 'salary_from', 'structured_output'),
     ('career:wallarm', 3, 'published_since', 'structured_output'),
     ('career:wallarm', 4, 'relocation', 'unsupported'),
-    ('career:wallarm', 5, 'remote_mode', 'structured_output'),
-    ('career:wallarm', 6, 'work_from_geographies', 'structured_output'),
+    ('career:wallarm', 5, 'work_formats', 'structured_output'),
+    ('career:wallarm', 6, 'remote_scopes', 'structured_output'),
     ('career:wallarm', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:wallarm', 8, 'cities', 'structured_output'),
     ('career:chainstack', 0, 'query', 'structured_output'),
     ('career:chainstack', 1, 'grades', 'unsupported'),
     ('career:chainstack', 2, 'salary_from', 'unsupported'),
     ('career:chainstack', 3, 'published_since', 'unsupported'),
     ('career:chainstack', 4, 'relocation', 'unsupported'),
-    ('career:chainstack', 5, 'remote_mode', 'structured_output'),
-    ('career:chainstack', 6, 'work_from_geographies', 'unsupported'),
+    ('career:chainstack', 5, 'work_formats', 'structured_output'),
+    ('career:chainstack', 6, 'remote_scopes', 'unsupported'),
     ('career:chainstack', 7, 'vacancy_geographies', 'unsupported'),
-    ('career:chainstack', 8, 'cities', 'unsupported'),
     ('career:3commas', 0, 'query', 'structured_output'),
     ('career:3commas', 1, 'grades', 'unsupported'),
     ('career:3commas', 2, 'salary_from', 'unsupported'),
     ('career:3commas', 3, 'published_since', 'structured_output'),
     ('career:3commas', 4, 'relocation', 'unsupported'),
-    ('career:3commas', 5, 'remote_mode', 'structured_output'),
-    ('career:3commas', 6, 'work_from_geographies', 'structured_output'),
-    ('career:3commas', 7, 'vacancy_geographies', 'structured_output'),
-    ('career:3commas', 8, 'cities', 'structured_output');
+    ('career:3commas', 5, 'work_formats', 'structured_output'),
+    ('career:3commas', 6, 'remote_scopes', 'structured_output'),
+    ('career:3commas', 7, 'vacancy_geographies', 'structured_output');
 
 WITH lever_sources(source_id) AS (
     VALUES
@@ -529,10 +501,9 @@ lever_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'unsupported')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT lever_sources.source_id, lever_criteria.criterion_order, lever_criteria.criterion, lever_criteria.capability
@@ -556,10 +527,9 @@ ashby_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT ashby_sources.source_id, ashby_criteria.criterion_order, ashby_criteria.criterion, ashby_criteria.capability
@@ -584,10 +554,9 @@ workable_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'unsupported'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'unsupported'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT workable_sources.source_id, workable_criteria.criterion_order, workable_criteria.criterion, workable_criteria.capability
@@ -612,10 +581,9 @@ greenhouse_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'unsupported')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT greenhouse_sources.source_id, greenhouse_criteria.criterion_order, greenhouse_criteria.criterion, greenhouse_criteria.capability
@@ -637,10 +605,9 @@ bamboohr_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'unsupported'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'unsupported'),
-        (7, 'vacancy_geographies', 'unsupported'),
-        (8, 'cities', 'unsupported')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'unsupported'),
+        (7, 'vacancy_geographies', 'unsupported')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT bamboohr_sources.source_id, bamboohr_criteria.criterion_order, bamboohr_criteria.criterion, bamboohr_criteria.capability
@@ -666,10 +633,9 @@ teamtailor_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'unsupported'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'unsupported')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT teamtailor_sources.source_id, teamtailor_criteria.criterion_order, teamtailor_criteria.criterion, teamtailor_criteria.capability
@@ -688,10 +654,9 @@ workday_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT workday_sources.source_id, workday_criteria.criterion_order, workday_criteria.criterion, workday_criteria.capability
@@ -713,10 +678,9 @@ personio_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT personio_sources.source_id, personio_criteria.criterion_order, personio_criteria.criterion, personio_criteria.capability
@@ -737,10 +701,9 @@ join_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT join_sources.source_id, join_criteria.criterion_order, join_criteria.criterion, join_criteria.capability
@@ -763,10 +726,9 @@ dreamjob_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'structured_output'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT dreamjob_sources.source_id, dreamjob_criteria.criterion_order, dreamjob_criteria.criterion, dreamjob_criteria.capability
@@ -784,10 +746,9 @@ jsonld_jobposting_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -811,10 +772,9 @@ ycombinator_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'structured_output'),
         (3, 'published_since', 'unsupported'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -840,10 +800,9 @@ breezy_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'structured_output'),
         (3, 'published_since', 'unsupported'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'unsupported'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'unsupported'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -869,10 +828,9 @@ huntflow_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'unsupported'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'unsupported')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -897,10 +855,9 @@ smartrecruiters_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -925,10 +882,9 @@ recruitee_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'structured_output'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -954,10 +910,9 @@ comeet_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -984,10 +939,9 @@ jobvite_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'unsupported'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -1015,10 +969,9 @@ jazzhr_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'unsupported'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -1045,10 +998,9 @@ icims_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'unsupported'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -1075,10 +1027,9 @@ taleo_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'unsupported'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT
@@ -1104,10 +1055,9 @@ successfactors_criteria(criterion_order, criterion, capability) AS (
         (2, 'salary_from', 'unsupported'),
         (3, 'published_since', 'structured_output'),
         (4, 'relocation', 'unsupported'),
-        (5, 'remote_mode', 'structured_output'),
-        (6, 'work_from_geographies', 'structured_output'),
-        (7, 'vacancy_geographies', 'structured_output'),
-        (8, 'cities', 'structured_output')
+        (5, 'work_formats', 'structured_output'),
+        (6, 'remote_scopes', 'structured_output'),
+        (7, 'vacancy_geographies', 'structured_output')
 )
 INSERT INTO source_criteria (source_id, criterion_order, criterion, capability)
 SELECT

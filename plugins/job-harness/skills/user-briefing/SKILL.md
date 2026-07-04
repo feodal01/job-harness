@@ -63,13 +63,13 @@ Use this template as the full coverage checklist:
 
 ### Location & Relocation
 - Country of residence: [where you live now]
-- Target countries/cities: [where you want to work; use CIS country names or codes when possible so search can pass `country`]
+- Target vacancy geography: [where the vacancy should be based; use `country:RU`, `region:EU`, or `city:<name>` style when possible]
 - Relocation: [willing to relocate? if yes, to which countries?]
 - Relocation requirement: [must have explicit relocation support in the vacancy, or any vacancy in target countries is fine?]
 
 ### Work format
 - Format: [office / remote / hybrid]
-- If remote: [remote within your country, or worldwide?]
+- If remote: [remote scope: worldwide, within a country, or within a region; unknown can be included only alongside a concrete scope]
 
 ### Compensation
 - Salary expectations: [range or "not a priority"]

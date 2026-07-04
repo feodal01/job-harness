@@ -86,11 +86,11 @@ runtime path will be used for the search.
      --queries "QA | AQA | SDET | quality assurance | тестировщик" \
      --grade middle \
      --salary-from 150000 \
-     --remote-mode compatible-remote \
-     --hybrid-ok \
-     --work-from RU \
-     --vacancy-geography RU \
-     --vacancy-geography AM \
+     --work-format remote \
+     --remote-scope global \
+     --remote-scope country:RU \
+     --vacancy-geography country:RU \
+     --vacancy-geography country:AM \
      --runs-dir .job-harness/v2/runs
    ```
 
@@ -154,17 +154,21 @@ runtime path will be used for the search.
 | `--exclude-text` | `exclude_text` | Repeatable substring exclusions |
 | `--exclude-regex` | `exclude_regex` | Repeatable regex exclusions |
 | `--relocation` | `relocation` | `true` / `false` |
-| `--remote-mode` | `remote_mode` | `any`, `compatible-remote`, `global-remote-only`, `non-remote-only` |
-| `--hybrid-ok` | `hybrid_ok` | Allows hybrid vacancies when their country or region matches the requested search geography |
-| `--office-ok` | `office_ok` | Allows office vacancies when their country or region matches the requested search geography |
-| `--work-from` | `work_from_geographies` | Repeatable country or region; required for `compatible-remote` |
-| `--vacancy-geography` | `vacancy_geographies` | Repeatable country or region for vacancy location filtering |
-| `--city` | `cities` | Repeatable city names |
+| `--work-format` | `work_formats` | `remote`, `hybrid`, `office`, `unknown`; repeatable. `unknown` must be paired with a concrete format. |
+| `--remote-scope` | `remote_scopes` | Remote eligibility only: `global`, `country:<code>`, `region:<code>`, or `unknown`; repeatable and only meaningful with `--work-format remote`. `unknown` must be paired with a concrete scope. |
+| `--vacancy-geography` | `vacancy_geographies` | Vacancy market/location: `country:<code>`, `region:<code>`, `city:<name>`, or `unknown`; repeatable. `unknown` must be paired with a concrete geography. |
 | `--source` | `sources` | Repeatable exact source ids; omit for full catalog |
 | `--source-type` | `source_types` | `aggregator` or `company_career` |
 | `--append-to-run-id` | append mode | Adds to existing run corpus |
 | `--run-id` | explicit run id | Optional; auto-generated when omitted |
 | `--runs-dir` | artifact root | Default `.job-harness/v2/runs` |
+
+If a workplace, remote-scope, or vacancy-geography criterion is not strict, add
+`unknown` alongside the concrete value to increase recall. For example, use both
+`--remote-scope country:RU` and `--remote-scope unknown` when country-limited
+remote evidence is useful but missing source evidence should still be reviewed.
+Do not request only `unknown`; the CLI rejects pure-unknown filters because they
+are not a useful search target.
 
 Call `list-sources` to see per-source `native_request_criteria` vs
 `structured_output_criteria` — unsupported criteria are still collected raw and

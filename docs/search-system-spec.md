@@ -54,12 +54,9 @@ The public search request should contain:
 - `exclude_companies: list[str] | null`: optional case-insensitive company exclusion. This applies both to returned listings and, when possible, to source/company target selection.
 - `exclude_text: list[TextExclusion] | null`: optional post-processing exclusions over vacancy text.
 - `relocation: bool | null`: optional relocation support filter.
-- `remote_mode: RemoteMode | null`: optional remote intent. Valid values are `any`, `compatible_remote`, `global_remote_only`, and `non_remote_only`.
-- `hybrid_ok: bool`: whether hybrid vacancies may satisfy the search when their geography matches the requested search geography.
-- `office_ok: bool`: whether office vacancies may satisfy the search when their geography matches the requested search geography.
-- `work_from_geographies: list[Country | RegionScope] | null`: optional countries or explicit regions from which the applicant wants to work remotely, for example `["RU"]` or `["europe"]`.
-- `vacancy_geographies: list[Country | RegionScope] | null`: optional countries or explicit regions where the vacancy, office, employer market, or source card is located.
-- `cities: list[str] | null`: optional vacancy city list. Cities must not require an exhaustive enum.
+- `work_formats: list[WorkFormat] | null`: optional workplace format set. Valid values are `remote`, `hybrid`, `office`, and `unknown`. `unknown` can expand a concrete request but cannot be the only value.
+- `remote_scopes: list[RemoteScope] | null`: optional remote eligibility scopes. Valid values are `global`, `country:<code>`, `region:<code>`, and `unknown`. This field is only meaningful with `work_formats` containing `remote`; `unknown` can expand a concrete request but cannot be the only value.
+- `vacancy_geographies: list[VacancyGeography] | null`: optional vacancy, office, employer market, or source-card geography. Valid values are `country:<code>`, `region:<code>`, `city:<name>`, and `unknown`. `unknown` can expand a concrete request but cannot be the only value.
 - `max_results: int`: final desired result count after filtering. `0` means no final presentation cap; source-local limits and run deadlines still apply.
 - `sources: list[str] | null`: optional exact source ids.
 - `source_groups: list[SourceType] | null`: optional broad source selection.
@@ -72,70 +69,72 @@ The public search request should contain:
 - `case_sensitive: bool`
 - `fields: list["title" | "description" | "requirements" | "skills" | "raw_text"] | null`
 
-## Country And Remote Filter Semantics
+## Workplace And Geography Filter Semantics
 
-This section is the target behavior for interpreting geography and remote filters together. It is intentionally explicit because a source can use the same words for different concepts: the country where the employer is located, the country shown on a vacancy card, the country from which remote work is allowed, and a broader remote region such as `EU`, `europe`, or `global`.
+This section is the target behavior for interpreting workplace, remote-scope,
+and vacancy-geography filters together. It is intentionally explicit because a
+source can use the same words for different concepts: the country where the
+employer is located, the country shown on a vacancy card, the country from which
+remote work is allowed, and a broader remote region such as `region:EU` or
+`global`.
 
 Definitions:
 
-- Work-from geography means a country or explicit region in `SearchRequest.work_from_geographies`, for example `RU`, `EU`, or `europe`. This is where the applicant wants to be located while working remotely.
-- Vacancy geography means a country or explicit region in `SearchRequest.vacancy_geographies`. This is where the vacancy, office, employer market, or source card is located.
-- Vacancy country means the normalized country or region scope derived from source evidence such as `listing.country`, `location_text`, source `regions`, source `remote_restrictions`, source `remote_type`, or city inference. It can be an ISO country code such as `RU`, the `EU` region scope, or `null`.
+- Work format means a normalized workplace format in `SearchRequest.work_formats`: `remote`, `hybrid`, `office`, or `unknown`.
+- Remote scope means a normalized remote eligibility scope in `SearchRequest.remote_scopes`: `global`, `country:<code>`, `region:<code>`, or `unknown`. Physical formats must not be stored here.
+- Vacancy geography means a normalized location scope in `SearchRequest.vacancy_geographies`: `country:<code>`, `region:<code>`, `city:<name>`, or `unknown`.
+- Vacancy country means the normalized country or region scope derived from source evidence such as `listing.country`, `location_text`, source `regions`, source `remote_restrictions`, source `remote_type`, or city inference.
 - Remote global means the vacancy can be performed remotely from any country unless the source exposes explicit exclusions. A plain `remote` / `удаленно` marker is not enough evidence for global remote; it becomes country-limited or `unknown` unless the source explicitly exposes `global`, `worldwide`, `anywhere`, `Весь мир`, or an equivalent structured scope.
-- Hybrid and office are physical work formats, not remote scopes. When `hybrid_ok` or `office_ok` is true with `compatible_remote`, a physical-format vacancy may satisfy the search when the vacancy country or region intersects `work_from_geographies`; when `vacancy_geographies` is present, the same row must satisfy that location constraint too. These flags cannot be combined with `global_remote_only`, because that mode means only globally remote vacancies. They do not weaken `non_remote_only`. If the source does not expose enough geography evidence for an accepted physical format, the row is retained as unknown rather than removed. When source evidence lists remote together with hybrid or onsite options, remote wins and the row is evaluated with remote-scope rules. A country or city without any remote/work-format evidence is country-bound non-remote evidence for remote filters, while the displayed work format remains unknown.
+- Hybrid and office are physical work formats, not remote scopes. Request them through `work_formats`; constrain their location through `vacancy_geographies`.
+- When source evidence lists remote together with hybrid or onsite options, all supported formats are preserved. Remote-scope rules apply to the remote branch of the filter AST. A country or city without any remote/work-format evidence remains `work_format=unknown` and does not satisfy requested workplace filters by default.
+- A `remote_scopes=["global"]` request is global-only. A `country:<code>` or `region:<code>` request uses scope intersection, so globally remote rows also satisfy it.
 - Timezone ranges such as `remote from GMT-7 to GMT+4` are eligibility hints, not geography. They can support the `remote` work format but do not create a country or region scope. A remote vacancy with city-only evidence gets a country-limited remote scope inferred from the city, and multi-city locations may produce multiple country scopes.
-- Unknown means the source did not provide enough structured or text evidence. Unknown must not be silently converted to `false`; if a positive filter is requested, unknown rows stay in the funnel unless source evidence explicitly conflicts with the request. Remote filtering is stricter: a row with only country/city evidence and no remote/work-format evidence is not unknown remote eligibility and does not satisfy `compatible_remote`.
+- Unknown means the source did not provide enough structured or text evidence. Unknown must not be silently converted to `false`. For requested workplace/geography filters, unknown rows are removed by default unless the generated filter AST explicitly includes `unknown` alongside at least one concrete requested value for that field.
 
-`RemoteMode` values:
+Search request parameters compile into a filter AST. For example:
 
-- `any`: do not filter by remote eligibility.
-- `compatible_remote`: keep listings that are globally remote, whose remote scope intersects `work_from_geographies`, or whose remote scope is unknown because the source exposed remote eligibility without exposing the allowed geography. Country-only rows do not satisfy this mode. This mode requires at least one work-from geography.
-- `global_remote_only`: keep globally remote listings and listings with unknown remote scope; remove only listings known to be non-global.
-- `non_remote_only`: keep listings known not to be remote and listings with unknown remote scope; remove only listings known to be remote.
+```json
+{
+  "all": [
+    {"field": "work_format", "op": "any_of", "values": ["remote"]},
+    {"field": "remote_scope", "op": "any_of", "values": ["global"]},
+    {"field": "vacancy_geography", "op": "intersects", "values": ["country:RU"]}
+  ]
+}
+```
 
-The search request must not expose `remote_in_country` as a standalone boolean. It is a listing fact or a normalized remote scope, not a useful user intent without a work-from geography.
+The search request must not expose `remote_in_country` or `remote_global` as standalone booleans. They are source facts that normalize into `remote_scope`.
 
-The search request also must not expose a broad "any remote" final filter. A source-native broad remote parameter such as `remote=true` can still be useful for collecting candidate rows, but final post-processing should express user intent as `compatible_remote`, `global_remote_only`, `non_remote_only`, or no remote filter.
+The search request also must not expose a broad "any remote" final filter. A source-native broad remote parameter such as `remote=true` can still be useful for collecting candidate rows, but final post-processing should express user intent through `work_formats` and `remote_scopes`.
 
 `docs/workplace-geography-filtering.md` is the focused contract for workplace
 and geography edge cases. The matrix below keeps the broader search-system
 summary in sync with that file.
 
-For this matrix, vacancy remote scope is the normalized post-processing interpretation of source evidence. It does not have to be one raw field. Examples are `global`, `country:RU`, `country:TR`, `region:EU`, `onsite`, and `unknown`.
+For this matrix, vacancy remote scope is the normalized post-processing interpretation of source evidence. It does not have to be one raw field. Examples are `global`, `country:RU`, `country:TR`, `region:EU`, and `unknown`. Physical formats such as `hybrid` and `office` live in `work_format`, not in `remote_scope`.
 
-Rows assume that earlier filters such as query, title, grade, salary, publication date, excluded company, and excluded text did not already remove the vacancy. When both `work_from_geographies` and `vacancy_geographies` are specified, both dimensions must pass. A limited remote vacancy can satisfy those dimensions with separate row facts: its remote scope must intersect `work_from_geographies`, and its vacancy countries must satisfy `vacancy_geographies`. Physical formats cannot bridge non-intersecting request geographies. A global remote vacancy satisfies the vacancy geography dimension when the user explicitly searches remote through `compatible_remote` or `global_remote_only`, because global remote is not tied to one vacancy country.
+Rows assume that earlier filters such as query, title, grade, salary, publication date, excluded company, and excluded text did not already remove the vacancy.
 
-| Case | Request `work_from_geographies` | Request `vacancy_geographies` | Request `remote_mode` | Request physical flag | Request `relocation` | Vacancy country / region | Vacancy remote scope / format | Vacancy relocation | Decision | Reason if removed |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | empty | empty | `any` or `null` | false | `null` | any | any | any | keep | n/a |
-| 2 | empty | empty | `compatible_remote` | false | `null` | any | any | any | request error | `work_from_geography_required` |
-| 3 | `europe` | empty | `compatible_remote` | false | `null` | `US` | `global` | any | keep | n/a |
-| 4 | `europe` | empty | `compatible_remote` | false | `null` | `US` | `country:US` | any | remove | `remote_eligibility_mismatch` |
-| 5 | `europe` | empty | `compatible_remote` | false | `null` | `PL` | `country:PL` | any | keep | n/a |
-| 6 | `europe` | empty | `compatible_remote` | false | `null` | `RU` | `country:RU` | any | remove, because the project Europe scope excludes `RU` | `remote_eligibility_mismatch` |
-| 7 | `RU` | empty | `compatible_remote` | false | `null` | `US` | `global` | any | keep | n/a |
-| 8 | `RU` | empty | `compatible_remote` | false | `null` | `TR` | `country:TR` | any | remove | `remote_eligibility_mismatch` |
-| 9 | `CY` | empty | `compatible_remote` | false | `null` | `region:EU` | `region:EU` | any | keep | n/a |
-| 10 | `RU` | empty | `compatible_remote` | false | `null` | `region:EU` | `region:EU` | any | remove, because `RU` is not an EU country | `remote_eligibility_mismatch` |
-| 11 | empty | `europe` | `any` or `null` | false | `null` | `PL` | any | any | keep | n/a |
-| 12 | empty | `europe` | `any` or `null` | false | `null` | `US` | `global` | any | remove, because global remote does not satisfy vacancy location intent | `vacancy_geography_mismatch` |
-| 13 | `europe` | `europe` | `compatible_remote` | false | `null` | `US` | `global` | any | keep | n/a |
-| 14 | empty | empty | `global_remote_only` | false | `null` | any | `global` | any | keep | n/a |
-| 15 | empty | empty | `global_remote_only` | false | `null` | any | country-limited, region-limited, or physical | any | remove | `remote_global_mismatch` |
-| 16 | empty | empty | `global_remote_only` | false | `null` | any | `unknown` | any | keep | n/a |
-| 17 | empty | empty | `non_remote_only` | false | `null` | any | `global`, country-limited, or region-limited | any | remove | `remote_mismatch` |
-| 18 | empty | empty | `non_remote_only` | false | `null` | any | `onsite` | any | keep | n/a |
-| 19 | empty | empty | `non_remote_only` | false | `null` | any | `unknown` | any | keep | n/a |
-| 20 | `RU` | empty | `compatible_remote` | `hybrid_ok` | `null` | `RU` | `hybrid` | any | keep | n/a |
-| 21 | `RU` | empty | `compatible_remote` | `hybrid_ok` | `null` | `TR` | `hybrid` | any | remove | `hybrid_geography_mismatch` |
-| 21a | `RU` | `AM` | `compatible_remote` | `hybrid_ok` and `office_ok` | `null` | `AM` | country-only evidence, no remote/work format | any | remove | `remote_eligibility_mismatch` |
-| 22 | `RU` | empty | `compatible_remote` | `office_ok` | `null` | unknown | `office` | any | keep | n/a |
-| 23 | empty | `CY` | `global_remote_only` | `office_ok` | `null` | `CY` | `office` | any | request error | `global_remote_only_conflicts_with_physical_flags` |
-| 24 | empty | `CY` | `global_remote_only` | `office_ok` | `null` | `RU` | `office` | any | request error | `global_remote_only_conflicts_with_physical_flags` |
-| 25 | `RU` | empty | `compatible_remote` | false | `true` | any | compatible with `RU` | `true` | keep | n/a |
-| 26 | `RU` | empty | `compatible_remote` | false | `true` | any | compatible with `RU` | `false` | remove | `relocation_mismatch` |
-| 27 | `RU` | empty | `compatible_remote` | false | `false` | any | compatible with `RU` | `true` | remove | `relocation_mismatch` |
-| 28 | `RU` | empty | `compatible_remote` | false | `false` | any | compatible with `RU` | `false` or `unknown` | keep | n/a |
+| Case | Request `work_formats` | Request `remote_scopes` | Request `vacancy_geographies` | Request `relocation` | Vacancy geography | Vacancy scope / work format | Vacancy relocation | Decision | Reason if removed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | empty | empty | empty | `null` | any | any | any | keep | n/a |
+| 2 | `remote` | `global` | empty | `null` | any | `global`, `remote` | any | keep | n/a |
+| 3 | `remote` | `global` | empty | `null` | any | `country:US`, `remote` | any | remove | `remote_scope_mismatch` |
+| 4 | `remote` | `country:RU` | `country:RU` | `null` | `RU` | `global`, `remote` | any | keep | n/a |
+| 5 | `remote` | `country:RU` | empty | `null` | `RU` | `country:RU`, `remote` | any | keep | n/a |
+| 6 | `remote` | `country:RU` | empty | `null` | `TR` | `country:TR`, `remote` | any | remove | `remote_scope_mismatch` |
+| 7 | `remote` | `region:EU` | empty | `null` | `PL` | `region:EU`, `remote` | any | keep | n/a |
+| 8 | `remote` | `region:EU` | empty | `null` | `RU` | `country:RU`, `remote` | any | remove, because the project EU scope excludes `RU` | `remote_scope_mismatch` |
+| 9 | `remote` | `global` | `region:EU` | `null` | `PL` | `global`, `remote` | any | keep | n/a |
+| 10 | `remote` | `global` | `region:EU` | `null` | unknown | `global`, `remote` | any | remove | `vacancy_geography_mismatch` |
+| 11 | `hybrid` | empty | `country:GB` | `null` | `GB` | `hybrid` | any | keep | n/a |
+| 12 | `hybrid` | empty | `country:GB` | `null` | `PL` | `hybrid` | any | remove | `vacancy_geography_mismatch` |
+| 13 | `remote` | `global` | empty | `null` | `GB` | `hybrid` | any | remove | `work_format_mismatch` |
+| 14 | `hybrid, office` | empty | empty | `null` | any | `remote`, `global` | any | remove | `work_format_mismatch` |
+| 15 | `remote` | `global, unknown` | empty | `null` | any | `unknown`, `remote` | any | keep | n/a |
+| 16 | `unknown` | empty | empty | `null` | any | no work-format evidence | any | invalid request | pure `unknown` work-format filters are rejected |
+| 17 | `remote` | `global` | empty | `true` | any | `global`, `remote` | `false` | remove | `relocation_mismatch` |
+| 18 | `remote` | `global` | empty | `false` | any | `global`, `remote` | `false` or `unknown` | keep | n/a |
 
 Region scopes must be explicit. `EU` means the current European Union country list. `europe` means the project-defined Europe scope and intentionally does not include `GB` or `RU`. The system must not infer region membership from time zones, source domain, language, or source popularity.
 
@@ -272,7 +271,7 @@ Zero listings is not an error by itself. It is a successful no-result outcome on
 
 The search tool must support appending to an existing run/corpus.
 
-Append mode is used when the agent wants to add additional query variants, work-from geographies, vacancy geographies, cities, or sources after inspecting early results.
+Append mode is used when the agent wants to add additional query variants, work formats, remote scopes, vacancy geographies, or sources after inspecting early results.
 
 Append behavior:
 
@@ -362,12 +361,12 @@ The source attempt record shape is:
     "raw_listings_written": 34,
     "pages_visited": 3
   },
-  "criteria": {
-    "requested": ["query", "salary_from", "remote_mode"],
+    "criteria": {
+    "requested": ["query", "salary_from", "work_formats", "remote_scopes"],
     "native_applied": ["query", "salary_from"],
     "structured_evidence_available": [],
-    "unsupported": ["remote_mode"],
-    "postprocess": ["remote_mode"]
+    "unsupported": ["work_formats", "remote_scopes"],
+    "postprocess": ["work_formats", "remote_scopes"]
   },
   "retry": {
     "attempts": 1,

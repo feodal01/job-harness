@@ -69,19 +69,19 @@ Impact: vacancy search results can mix actual vacancies with "employer career en
 
 ### 3. Remote And Relocation Semantics Are Under-Modeled
 
-Target spec: separate `relocation`, `remote_in_country`, and `remote_global`.
+Target spec: separate `relocation`, `work_format`, and `remote_scope`.
 
 Current code: request and raw models mostly have one `remote_only`/`remote` boolean. See `plugins/job-harness/src/job_harness/models.py:15` and `plugins/job-harness/src/job_harness/types.py:101`.
 
 Impact: the system cannot distinguish "remote inside country", "remote worldwide", and "relocation supported". Post-processing can only infer this ad hoc from text.
 
-### 4. Country And City Search Are Too Narrow
+### 4. Vacancy Geography Search Is Too Narrow
 
-Target spec: `countries: list[Country]` and free-form `cities: list[str]`.
+Target spec: `vacancy_geography` values such as `country:RU`, `region:EU`, and `city:<name>`.
 
 Current code: request has one `country` and one `location` string. See `plugins/job-harness/src/job_harness/types.py:99`.
 
-Impact: multi-country or many-city searches require multiple runs or ambiguous location strings. This complicates broad job search for an agent.
+Impact: multi-country, regional, or many-city searches require multiple runs or ambiguous location strings. This complicates broad job search for an agent.
 
 ### 5. Outcome Taxonomy Does Not Match The Policy
 

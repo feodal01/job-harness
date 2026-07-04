@@ -7,14 +7,19 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 
-from job_harness.v2.contracts import RemoteMode, SearchRequest, TextExclusion, TextExclusionMode
-from job_harness.v2.matching import FuzzyBounds, fuzzy_any_match, fuzzy_tokens_match
-from job_harness.v2.postprocessing.remote_scope import remote_filter_reasons, vacancy_geography_reasons
-from job_harness.v2.postprocessing.work_format import work_format_policy_outcome
+from job_harness.v2.contracts import SearchRequest, TextExclusion, TextExclusionMode
+from job_harness.v2.matching import FuzzyBounds, fuzzy_tokens_match
+from job_harness.v2.postprocessing.filter_ast import (
+    EMPTY_FILTER,
+    FilterExpression,
+    FilterFacts,
+    evaluate_filter_ast,
+    filter_ast_from_parameters,
+    filter_ast_from_search_request,
+)
 
 DEFAULT_EXCLUSION_FIELDS = ("title", "description", "requirements", "additional_sections", "skills", "raw_text")
 QUERY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.78)
-CITY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.9)
 
 
 @dataclass(frozen=True)
@@ -26,12 +31,22 @@ class VacancyFilterCriteria:
     salary_from: int | None = None
     published_since: date | None = None
     relocation: bool | None = None
-    remote_mode: RemoteMode | None = None
-    hybrid_ok: bool = False
-    office_ok: bool = False
-    work_from_geographies: tuple[str, ...] = ()
+    work_formats: tuple[str, ...] = ()
+    remote_scopes: tuple[str, ...] = ()
     vacancy_geographies: tuple[str, ...] = ()
-    cities: tuple[str, ...] = ()
+    filter_ast: FilterExpression | None = None
+
+    def __post_init__(self) -> None:
+        if self.filter_ast is None:
+            object.__setattr__(
+                self,
+                "filter_ast",
+                filter_ast_from_parameters(
+                    work_formats=self.work_formats,
+                    remote_scopes=self.remote_scopes,
+                    vacancy_geographies=self.vacancy_geographies,
+                ),
+            )
 
     @classmethod
     def from_search_request(cls, request: SearchRequest) -> VacancyFilterCriteria:
@@ -43,12 +58,10 @@ class VacancyFilterCriteria:
             salary_from=request.salary_from,
             published_since=request.published_since,
             relocation=request.relocation,
-            remote_mode=request.remote_mode,
-            hybrid_ok=request.hybrid_ok,
-            office_ok=request.office_ok,
-            work_from_geographies=request.work_from_geographies,
+            work_formats=tuple(item.value for item in request.work_formats),
+            remote_scopes=request.remote_scopes,
             vacancy_geographies=request.vacancy_geographies,
-            cities=request.cities,
+            filter_ast=filter_ast_from_search_request(request),
         )
 
 
@@ -68,8 +81,13 @@ class VacancyFilterFacts:
     work_formats: tuple[str, ...] = ()
     countries: tuple[str, ...] = ()
     remote_scopes: tuple[str, ...] = ("unknown",)
+    vacancy_geographies: tuple[str, ...] = ("unknown",)
     relocation: bool | None = None
     city: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.vacancy_geographies == ("unknown",):
+            object.__setattr__(self, "vacancy_geographies", _vacancy_geographies(self.countries, self.city))
 
 
 @dataclass(frozen=True)
@@ -103,44 +121,19 @@ def decide_vacancy_filter(
     if criteria.published_since is not None and not _published_since(vacancy.posted_at, criteria.published_since):
         reasons.append("published_before_requested_date")
 
-    work_format_outcome = work_format_policy_outcome(
-        remote_mode=criteria.remote_mode,
-        hybrid_ok=criteria.hybrid_ok,
-        office_ok=criteria.office_ok,
-        work_from_geographies=criteria.work_from_geographies,
-        vacancy_geographies=criteria.vacancy_geographies,
-        work_formats=vacancy.work_formats,
-        countries=vacancy.countries,
+    filter_ast = criteria.filter_ast if criteria.filter_ast is not None else EMPTY_FILTER
+    ast_evaluation = evaluate_filter_ast(
+        filter_ast,
+        FilterFacts(
+            work_formats=vacancy.work_formats,
+            remote_scopes=vacancy.remote_scopes,
+            vacancy_geographies=vacancy.vacancy_geographies,
+        ),
     )
-    reasons.extend(work_format_outcome.reasons)
-
-    if not work_format_outcome.handles_remote_filter:
-        reasons.extend(
-            remote_filter_reasons(
-                remote_mode=criteria.remote_mode,
-                remote_scopes=vacancy.remote_scopes,
-                work_from_geographies=criteria.work_from_geographies,
-            )
-        )
+    reasons.extend(ast_evaluation.reasons)
 
     if criteria.relocation is not None and vacancy.relocation is not None and vacancy.relocation != criteria.relocation:
         reasons.append("relocation_mismatch")
-
-    reasons.extend(
-        vacancy_geography_reasons(
-            vacancy.countries,
-            criteria.vacancy_geographies,
-            remote_mode=criteria.remote_mode,
-            remote_scopes=vacancy.remote_scopes,
-        )
-    )
-
-    if criteria.cities and vacancy.city and not fuzzy_any_match(
-        criteria.cities,
-        vacancy.city,
-        bounds=CITY_FUZZY_BOUNDS,
-    ):
-        reasons.append("city_mismatch")
 
     unique_reasons = tuple(dict.fromkeys(reasons))
     return VacancyFilterDecision(
@@ -164,6 +157,19 @@ def _query_text_matches(*, tokens: tuple[str, ...], haystack: str) -> bool:
 
 def _query_tokens(query: str) -> tuple[str, ...]:
     return tuple(token.casefold() for token in re.findall(r"[\w+#.-]+", query) if token.strip())
+
+
+def _vacancy_geographies(countries: tuple[str, ...], city: str | None) -> tuple[str, ...]:
+    geographies: list[str] = []
+    for country in countries:
+        scope = f"country:{country}"
+        if scope not in geographies:
+            geographies.append(scope)
+    if city:
+        scope = f"city:{city}"
+        if scope not in geographies:
+            geographies.append(scope)
+    return tuple(geographies) or ("unknown",)
 
 
 def _company_excluded(company: str | None, excluded_companies: tuple[str, ...]) -> bool:

@@ -35,10 +35,9 @@ class SearchCriterionDescriptorTest(unittest.TestCase):
             SearchCriterion.GRADES,
             SearchCriterion.SALARY_FROM,
             SearchCriterion.RELOCATION,
-            SearchCriterion.REMOTE_MODE,
-            SearchCriterion.WORK_FROM_GEOGRAPHIES,
+            SearchCriterion.WORK_FORMATS,
+            SearchCriterion.REMOTE_SCOPES,
             SearchCriterion.VACANCY_GEOGRAPHIES,
-            SearchCriterion.CITIES,
         ):
             with self.subTest(criterion=criterion):
                 descriptor = search_criterion_descriptor(criterion)
@@ -81,28 +80,27 @@ class SearchCriterionDescriptorTest(unittest.TestCase):
                 "salary_from",
                 "published_since",
                 "relocation",
-                "remote_mode",
-                "work_from_geographies",
+                "work_formats",
+                "remote_scopes",
                 "vacancy_geographies",
-                "cities",
             ),
             criteria,
         )
 
     def test_remote_geography_descriptors_read_postprocessing_facts(self) -> None:
         # Arrange / Act
-        remote_mode = search_criterion_descriptor(SearchCriterion.REMOTE_MODE)
-        work_from = search_criterion_descriptor(SearchCriterion.WORK_FROM_GEOGRAPHIES)
+        work_formats = search_criterion_descriptor(SearchCriterion.WORK_FORMATS)
+        remote_scopes = search_criterion_descriptor(SearchCriterion.REMOTE_SCOPES)
         vacancy = search_criterion_descriptor(SearchCriterion.VACANCY_GEOGRAPHIES)
 
         # Assert
         self.assertEqual(
-            ("remote_in_country", "remote_global", "country", "location_text", "raw"),
-            remote_mode.source_fact_fields,
+            ("work_format", "remote_in_country", "remote_global", "location_text", "raw"),
+            work_formats.source_fact_fields,
         )
         self.assertEqual(
             ("remote_in_country", "remote_global", "country", "location_text", "raw"),
-            work_from.source_fact_fields,
+            remote_scopes.source_fact_fields,
         )
         self.assertEqual(
             ("country", "city", "location_text", "raw"),

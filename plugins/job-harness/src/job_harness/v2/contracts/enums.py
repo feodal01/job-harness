@@ -29,6 +29,13 @@ class Grade(StrEnum):
     LEAD = "lead"
 
 
+class WorkFormat(StrEnum):
+    REMOTE = "remote"
+    HYBRID = "hybrid"
+    OFFICE = "office"
+    UNKNOWN = "unknown"
+
+
 class TextExclusionMode(StrEnum):
     SUBSTRING = "substring"
     REGEX = "regex"
@@ -42,23 +49,15 @@ class TextField(StrEnum):
     RAW_TEXT = "raw_text"
 
 
-class RemoteMode(StrEnum):
-    ANY = "any"
-    COMPATIBLE_REMOTE = "compatible_remote"
-    GLOBAL_REMOTE_ONLY = "global_remote_only"
-    NON_REMOTE_ONLY = "non_remote_only"
-
-
 class SearchCriterion(StrEnum):
     QUERY = "query"
     GRADES = "grades"
     SALARY_FROM = "salary_from"
     PUBLISHED_SINCE = "published_since"
     RELOCATION = "relocation"
-    REMOTE_MODE = "remote_mode"
-    WORK_FROM_GEOGRAPHIES = "work_from_geographies"
+    WORK_FORMATS = "work_formats"
+    REMOTE_SCOPES = "remote_scopes"
     VACANCY_GEOGRAPHIES = "vacancy_geographies"
-    CITIES = "cities"
 
 
 class CriterionCapability(StrEnum):

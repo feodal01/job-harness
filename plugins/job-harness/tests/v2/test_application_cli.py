@@ -14,10 +14,10 @@ from job_harness.v2.contracts import (
     ParserFixtureCase,
     ParserFixtureKind,
     RawListing,
-    RemoteMode,
     SearchRequest,
     SourceFetchRequest,
     SourceResponseArtifact,
+    WorkFormat,
 )
 from job_harness.v2.persistence import SqliteRunStore
 from job_harness.v2.runtime import (
@@ -293,11 +293,14 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
         search_help = stdout.getvalue()
         self.assertIn("--queries", search_help)
         self.assertIn("--source", search_help)
-        self.assertIn("--remote-mode", search_help)
-        self.assertIn("--hybrid-ok", search_help)
-        self.assertIn("--office-ok", search_help)
-        self.assertIn("--work-from", search_help)
+        self.assertIn("--work-format", search_help)
+        self.assertIn("--remote-scope", search_help)
         self.assertIn("--vacancy-geography", search_help)
+        self.assertNotIn("--remote-mode", search_help)
+        self.assertNotIn("--hybrid-ok", search_help)
+        self.assertNotIn("--office-ok", search_help)
+        self.assertNotIn("--work-from", search_help)
+        self.assertNotIn("--city", search_help)
         self.assertNotIn("--remote-in-country", search_help)
         self.assertNotIn("--remote-global", search_help)
         self.assertNotIn("--country", search_help)
@@ -306,12 +309,12 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("--fetch-timeout", search_help)
         self.assertNotIn("--retry-attempts", search_help)
 
-    async def test_cli_rejects_any_remote_mode(self) -> None:
+    async def test_cli_rejects_unknown_work_format(self) -> None:
         # Arrange / Act / Assert
         with self.assertRaises(SystemExit):
-            _build_parser().parse_args(["search", "--queries", "QA", "--remote-mode", "any-remote"])
+            _build_parser().parse_args(["search", "--queries", "QA", "--work-format", "any-remote"])
 
-    async def test_cli_rejects_invalid_remote_geography_combination(self) -> None:
+    async def test_cli_rejects_remote_scope_without_remote_work_format(self) -> None:
         # Arrange
         stderr = io.StringIO()
 
@@ -322,39 +325,16 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                     "search",
                     "--queries",
                     "QA",
-                    "--remote-mode",
-                    "global-remote-only",
-                    "--work-from",
-                    "RU",
+                    "--work-format",
+                    "office",
+                    "--remote-scope",
+                    "global",
                 ]
             )
 
         # Assert
         self.assertEqual(1, code)
-        self.assertIn("work_from_geographies", stderr.getvalue())
-
-    async def test_cli_rejects_global_remote_with_physical_format_flags(self) -> None:
-        for flag in ("--hybrid-ok", "--office-ok"):
-            with self.subTest(flag=flag):
-                # Arrange
-                stderr = io.StringIO()
-
-                # Act
-                with contextlib.redirect_stderr(stderr):
-                    code = cli_main(
-                        [
-                            "search",
-                            "--queries",
-                            "QA",
-                            "--remote-mode",
-                            "global-remote-only",
-                            flag,
-                        ]
-                    )
-
-                # Assert
-                self.assertEqual(1, code)
-                self.assertIn("global_remote_only", stderr.getvalue())
+        self.assertIn("remote_scopes", stderr.getvalue())
 
     async def test_cli_rejects_invalid_geography_token(self) -> None:
         for args in (
@@ -362,12 +342,12 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                 "search",
                 "--queries",
                 "QA",
-                "--remote-mode",
-                "compatible-remote",
-                "--work-from",
-                "global",
+                "--work-format",
+                "remote",
+                "--remote-scope",
+                "RU",
             ],
-            ["search", "--queries", "QA", "--vacancy-geography", "moon"],
+            ["search", "--queries", "QA", "--vacancy-geography", "RU"],
         ):
             with self.subTest(args=args):
                 # Arrange
@@ -379,7 +359,25 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
 
                 # Assert
                 self.assertEqual(1, code)
-                self.assertIn("unsupported geography", stderr.getvalue())
+                self.assertIn("must use", stderr.getvalue())
+
+    async def test_cli_rejects_pure_unknown_workplace_filters(self) -> None:
+        for args in (
+            ["search", "--queries", "QA", "--work-format", "unknown"],
+            ["search", "--queries", "QA", "--work-format", "remote", "--remote-scope", "unknown"],
+            ["search", "--queries", "QA", "--vacancy-geography", "unknown"],
+        ):
+            with self.subTest(args=args):
+                # Arrange
+                stderr = io.StringIO()
+
+                # Act
+                with contextlib.redirect_stderr(stderr):
+                    code = cli_main(args)
+
+                # Assert
+                self.assertEqual(1, code)
+                self.assertIn("only unknown", stderr.getvalue())
 
     async def test_cli_builds_remote_geography_request_fields(self) -> None:
         # Arrange
@@ -388,14 +386,24 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                 "search",
                 "--queries",
                 "QA",
-                "--remote-mode",
-                "compatible-remote",
-                "--hybrid-ok",
-                "--office-ok",
-                "--work-from",
-                "europe",
+                "--work-format",
+                "remote",
+                "--work-format",
+                "hybrid",
+                "--work-format",
+                "unknown",
+                "--remote-scope",
+                "global",
+                "--remote-scope",
+                "unknown",
+                "--remote-scope",
+                "country:RU",
                 "--vacancy-geography",
-                "CY",
+                "unknown",
+                "--vacancy-geography",
+                "country:CY",
+                "--vacancy-geography",
+                "city:Limassol",
             ]
         )
 
@@ -403,11 +411,9 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
         request = _request_from_args(args)
 
         # Assert
-        self.assertEqual(RemoteMode.COMPATIBLE_REMOTE, request.remote_mode)
-        self.assertTrue(request.hybrid_ok)
-        self.assertTrue(request.office_ok)
-        self.assertEqual(("EU",), request.work_from_geographies)
-        self.assertEqual(("CY",), request.vacancy_geographies)
+        self.assertEqual((WorkFormat.REMOTE, WorkFormat.HYBRID, WorkFormat.UNKNOWN), request.work_formats)
+        self.assertEqual(("global", "unknown", "country:RU"), request.remote_scopes)
+        self.assertEqual(("unknown", "country:CY", "city:Limassol"), request.vacancy_geographies)
 
     async def test_cli_rejects_empty_pipe_separated_query_variant(self) -> None:
         # Arrange

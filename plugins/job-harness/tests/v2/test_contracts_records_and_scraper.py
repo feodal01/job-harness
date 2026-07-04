@@ -45,10 +45,10 @@ def _listing() -> RawListing:
 
 def _criteria_diagnostics() -> CriteriaDiagnostics:
     return CriteriaDiagnostics(
-        requested=frozenset({SearchCriterion.QUERY, SearchCriterion.REMOTE_MODE}),
+        requested=frozenset({SearchCriterion.QUERY, SearchCriterion.WORK_FORMATS}),
         native_applied=frozenset({SearchCriterion.QUERY}),
-        unsupported=frozenset({SearchCriterion.REMOTE_MODE}),
-        postprocess=frozenset({SearchCriterion.REMOTE_MODE}),
+        unsupported=frozenset({SearchCriterion.WORK_FORMATS}),
+        postprocess=frozenset({SearchCriterion.WORK_FORMATS}),
     )
 
 
