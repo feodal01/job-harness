@@ -15,7 +15,6 @@ from job_harness.v2.contracts.enums import (
     HttpMethod,
     ParserFixtureKind,
     ProcessingDecision,
-    RemoteMode,
     RetryNextAction,
     SearchCriterion,
     SourceOutcome,
@@ -23,6 +22,7 @@ from job_harness.v2.contracts.enums import (
     TextExclusionMode,
     TextField,
     Transport,
+    WorkFormat,
 )
 from job_harness.v2.contracts.errors import ClassifiedSourceError
 from job_harness.v2.contracts.fixtures import (
@@ -67,7 +67,6 @@ __all__ = [
     "RequiredParserFixtures",
     "ParserFixtureSuite",
     "ProcessingDecision",
-    "RemoteMode",
     "RawListing",
     "RawSearchRecord",
     "RetryInfo",
@@ -90,6 +89,7 @@ __all__ = [
     "TextEnrichmentPolicy",
     "TextField",
     "Transport",
+    "WorkFormat",
     "all_search_criterion_descriptors",
     "search_criterion_descriptor",
 ]

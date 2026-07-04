@@ -58,11 +58,11 @@ class SourceDescriptorTest(unittest.TestCase):
         incomplete = tuple(
             CriterionDeclaration(criterion, CriterionCapability.UNSUPPORTED)
             for criterion in ALL_SEARCH_CRITERIA
-            if criterion != SearchCriterion.CITIES
+            if criterion != SearchCriterion.VACANCY_GEOGRAPHIES
         )
 
         # Act / Assert
-        with self.assertRaisesRegex(ValueError, "missing: cities"):
+        with self.assertRaisesRegex(ValueError, "missing: vacancy_geographies"):
             SourceDescriptor(
                 source_id="hh_ru",
                 source_type=SourceType.AGGREGATOR,
@@ -119,7 +119,7 @@ class SourceDescriptorTest(unittest.TestCase):
             {SearchCriterion.PUBLISHED_SINCE},
             descriptor.structured_output_criteria,
         )
-        self.assertIn(SearchCriterion.CITIES, descriptor.unsupported_criteria)
+        self.assertIn(SearchCriterion.VACANCY_GEOGRAPHIES, descriptor.unsupported_criteria)
 
 
 class ParserFixtureContractTest(unittest.TestCase):

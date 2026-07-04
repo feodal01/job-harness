@@ -93,11 +93,9 @@ class SourceCatalogTableTest(unittest.TestCase):
             frozenset(
                 {
                     SearchCriterion.QUERY,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -138,8 +136,8 @@ class SourceCatalogTableTest(unittest.TestCase):
             frozenset(
                 {
                     SearchCriterion.QUERY,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
                     SearchCriterion.VACANCY_GEOGRAPHIES,
                 }
             ),
@@ -211,8 +209,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
                     SearchCriterion.VACANCY_GEOGRAPHIES,
                 }
             ),
@@ -255,11 +253,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -298,11 +294,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                     SearchCriterion.GRADES,
                     SearchCriterion.SALARY_FROM,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -336,8 +330,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                     SearchCriterion.QUERY,
                     SearchCriterion.SALARY_FROM,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
                     SearchCriterion.VACANCY_GEOGRAPHIES,
                 }
             ),
@@ -400,11 +394,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -436,11 +428,9 @@ class SourceCatalogTableTest(unittest.TestCase):
             frozenset(
                 {
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -474,11 +464,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -512,11 +500,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -550,8 +536,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                     SearchCriterion.QUERY,
                     SearchCriterion.GRADES,
                     SearchCriterion.SALARY_FROM,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
                 }
             ),
             descriptor.structured_output_criteria,
@@ -581,11 +567,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.GRADES,
                     SearchCriterion.SALARY_FROM,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -617,11 +601,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                     SearchCriterion.GRADES,
                     SearchCriterion.PUBLISHED_SINCE,
                     SearchCriterion.RELOCATION,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -654,11 +636,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -683,8 +663,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
                     SearchCriterion.VACANCY_GEOGRAPHIES,
                 }
             ),
@@ -706,8 +686,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
                     SearchCriterion.VACANCY_GEOGRAPHIES,
                 },
             ),
@@ -717,8 +697,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
                     SearchCriterion.VACANCY_GEOGRAPHIES,
                 },
             ),
@@ -728,8 +708,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
                     SearchCriterion.VACANCY_GEOGRAPHIES,
                 },
             ),
@@ -739,8 +719,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
                     SearchCriterion.VACANCY_GEOGRAPHIES,
                 },
             ),
@@ -750,10 +730,8 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                },
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                },
             ),
             (
                 "career:wallarm",
@@ -762,18 +740,16 @@ class SourceCatalogTableTest(unittest.TestCase):
                     SearchCriterion.QUERY,
                     SearchCriterion.SALARY_FROM,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                },
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                },
             ),
             (
                 "career:chainstack",
                 100,
                 {
                     SearchCriterion.QUERY,
-                    SearchCriterion.REMOTE_MODE,
+                    SearchCriterion.WORK_FORMATS,
                 },
             ),
             (
@@ -782,11 +758,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                },
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                },
             ),
         )
 
@@ -827,11 +801,9 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.PUBLISHED_SINCE,
-                    SearchCriterion.REMOTE_MODE,
-                    SearchCriterion.WORK_FROM_GEOGRAPHIES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,
-                    SearchCriterion.CITIES,
-                }
+                    SearchCriterion.WORK_FORMATS,
+                    SearchCriterion.REMOTE_SCOPES,
+                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -850,7 +822,7 @@ class SourceCatalogTableTest(unittest.TestCase):
                 self.assertEqual(Transport.HTTP, descriptor.transport)
                 self.assertEqual(frozenset({SearchCriterion.QUERY}), descriptor.native_request_criteria)
                 self.assertIn(SearchCriterion.PUBLISHED_SINCE, descriptor.structured_output_criteria)
-                self.assertIn(SearchCriterion.REMOTE_MODE, descriptor.structured_output_criteria)
+                self.assertIn(SearchCriterion.WORK_FORMATS, descriptor.structured_output_criteria)
 
     def test_catalog_fixture_paths_exist_under_plugin_root(self) -> None:
         for entry in source_catalog_entries():

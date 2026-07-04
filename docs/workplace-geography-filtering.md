@@ -1,18 +1,24 @@
 # Workplace And Geography Filtering
 
 This file is the focused post-processing contract for the interaction between
-`work_from_geographies`, `vacancy_geographies`, remote eligibility, global
-remote, hybrid, and onsite or office formats.
+`work_formats`, `remote_scopes`, `vacancy_geographies`, global remote, hybrid,
+and onsite or office formats.
 
 ## Definitions
 
-- `work_from_geographies` is where the applicant will physically be while doing
-  remote work.
+- `work_formats` is the requested workplace format set. Valid request values
+  are `remote`, `hybrid`, `office`, and `unknown`.
+- `remote_scopes` is remote eligibility only. Valid request values are `global`,
+  limited scopes such as `country:GB` or `region:EU`, and `unknown`. Physical
+  formats never appear here.
 - `vacancy_geographies` is the market, office, employer, or vacancy-card
-  geography the user wants to search.
-- `remote_global` means the vacancy explicitly allows work from anywhere.
-- `remote_in_country` is not a user intent. It is a source fact that becomes a
-  limited remote scope such as `country:GB`, `country:PL`, or `region:EU`.
+  geography the user wants to search. Valid request values are `country:<code>`,
+  `region:<code>`, `city:<name>`, and `unknown`.
+- `remote_scope` is the normalized remote eligibility scope. Valid result values
+  are `global`, limited scopes such as `country:GB` or `region:EU`, and
+  `unknown`.
+- `remote_global` and `remote_in_country` are source facts. They are normalized
+  into `remote_scope` and are not user-facing filter parameters.
 - `hybrid` and `office` are physical formats. They never become remote
   eligibility by themselves.
 - `EU` and `europe` mean the European Union country set. This intentionally
@@ -20,73 +26,69 @@ remote, hybrid, and onsite or office formats.
 - Timezone ranges such as `remote from GMT-7 to GMT+4` are eligibility hints,
   not geography. They can make the work format remote, but they do not create a
   remote country or region scope.
+- In requests, `unknown` is an opt-in expansion for an otherwise concrete
+  filter. It cannot be the only requested value for `work_formats`,
+  `remote_scopes`, or `vacancy_geographies`.
 
 ## Core Rules
 
-1. `compatible_remote` requires at least one `work_from_geographies` value.
-2. A globally remote vacancy satisfies `compatible_remote` from any
-   `work_from_geographies` value.
-3. A limited remote vacancy satisfies `compatible_remote` only when its remote
-   scope intersects `work_from_geographies`.
+1. `work_formats` is a positive filter. If it is empty, workplace format does
+   not filter rows. If it is present, unknown rows pass only when `unknown` is
+   explicitly requested alongside a concrete format.
+2. `remote_scopes` applies only to rows whose normalized `work_format` includes
+   `remote`. Request `global` by itself for global-only remote. Request
+   `country:<code>` or `region:<code>` when that geography is acceptable;
+   globally remote rows satisfy country and region requests because `global` is
+   a superset.
+3. A request cannot include only `unknown` remote scope. To keep rows with
+   unknown remote eligibility, request at least one concrete scope plus
+   `unknown`.
 4. `vacancy_geographies` is an additional market/location constraint. It does
-   not make a limited remote scope compatible with the applicant's work-from
-   geography.
-5. When both `work_from_geographies` and `vacancy_geographies` are present,
-   both dimensions must pass. `remote_global` passes the vacancy geography
-   dimension because it is not tied to one vacancy country.
-6. If `work_from_geographies` and `vacancy_geographies` do not intersect,
-   a limited remote vacancy can still pass when its remote scope intersects
-   `work_from_geographies` and the row's vacancy countries separately satisfy
-   `vacancy_geographies`.
-7. `hybrid_ok` and `office_ok` only allow physical vacancies whose normalized
-   country intersects `work_from_geographies`. When `vacancy_geographies` is
-   also present, the same vacancy must satisfy that constraint too. Physical
-   formats must not bridge non-intersecting request geographies.
-8. When a source lists remote together with hybrid or onsite options, the final
-   work format is remote and remote-scope rules apply.
-9. A remote vacancy with city-only location evidence gets a country-limited
+   not make a remote scope compatible by itself.
+5. When both `remote_scopes` and `vacancy_geographies` are present, both
+   dimensions must pass. `remote_scope=global` satisfies only the remote-scope
+   dimension; it does not replace separate vacancy geography evidence.
+6. `hybrid` and `office` are requested through `work_formats`. They are then
+   checked against `vacancy_geographies` like any other row location.
+7. When a source lists remote together with hybrid or onsite options, all
+   supported formats are preserved. Remote-scope rules apply to the remote
+   branch of the filter AST.
+8. A remote vacancy with city-only location evidence gets a country-limited
    remote scope inferred from the city, for example `London` -> `country:GB` or
    `Barcelona` -> `country:ES`. Multi-city locations may produce multiple
    country scopes.
-10. A country or city without any remote/work-format evidence is not unknown
-   remote eligibility. It is treated as country-bound non-remote eligibility for
-   remote filters, while the displayed work format remains unknown.
-11. Unknown geography or remote scope is not a removal reason for ordinary
-   optional filters. For remote filters, unknown stays allowed only when the
-   source exposed remote eligibility but did not expose the allowed geography.
+9. A country or city without any remote/work-format evidence remains
+   `work_format=unknown` and `remote_scope=unknown`; requested positive
+   workplace filters remove it by default.
+10. Unknown geography or remote scope is removed for requested positive
+   workplace/geography filters unless the generated filter AST explicitly
+   includes `unknown` alongside a concrete requested value for that field.
 
 ## Required Combinations
 
-| Work from | Vacancy geography | Requested formats | Vacancy evidence | Decision | Primary reason |
+| Remote scope request | Vacancy geography request | Requested formats | Vacancy evidence | Decision | Primary reason |
 | --- | --- | --- | --- | --- | --- |
-| `UK` | `europe` | remote | `remote_global=true` | keep | Global remote is compatible from UK. |
-| `UK` | `europe` | remote | `remote_in_country=true`, scope `country:PL` | remove | Remote scope does not include UK. |
-| `UK` | `europe` | remote | `remote_in_country=true`, scope `region:EU` | remove | The EU scope excludes UK. |
-| `UK` | `europe` | remote | scope `country:GB`, vacancy country includes `GB` and `EU` | remove | Vacancy geography does not match EU. |
-| `UK` | `europe` | remote | scope `country:GB`, vacancy country only `GB` | remove | Vacancy geography does not match Europe. |
-| `UK` | `europe` | hybrid allowed | country `PL`, `hybrid` | remove | Physical work in Europe is not workable from UK. |
-| `UK` | `europe` | hybrid allowed | country `GB` and `europe`, `hybrid` | remove | Physical formats cannot bridge non-intersecting request geographies. |
-| `UK` | `europe` | office allowed | country `PL`, `office` | remove | Physical work in Europe is not workable from UK. |
-| `UK` | `UK` | remote | scope `country:GB` | keep | UK remote-in-country matches work-from UK. |
-| `UK` | `UK` | remote | `remote_global=true` | keep | Global remote is a superset of UK-compatible remote. |
-| `UK` | `UK` | hybrid allowed | country `GB`, `hybrid` | keep | Physical geography matches both work-from and vacancy geography. |
-| `UK` | `UK` | office allowed | country `GB`, `office` | keep | Physical geography matches both work-from and vacancy geography. |
-| `UK` | `UK` | remote only | country `GB`, `hybrid` or `office` | remove | Physical formats were not requested. |
-| `UK` | empty | remote | scope `country:GB` | keep | Remote scope matches work-from UK. |
-| `UK` | empty | remote | scope `country:PL` or `region:EU` | remove | Remote scope does not include UK. |
-| `UK` | empty | remote | country `GB`, no remote/work-format evidence | remove | Country-only evidence is not remote-compatible. |
-| `UK` | empty | hybrid or office allowed | country `GB`, explicit `hybrid` or `office` | keep | Physical geography matches work-from UK. |
-| `UK` | empty | hybrid or office allowed | country `PL`, explicit `hybrid` or `office` | remove | Physical geography does not match work-from UK. |
+| `global` | `region:EU` | remote | scope `global`, vacancy country `PL` | keep | Global remote scope matches and vacancy geography matches EU. |
+| `global` | `region:EU` | remote | scope `global`, unknown vacancy country | remove | Vacancy geography requires matching evidence by default. |
+| `country:GB` | `region:EU` | remote | scope `country:PL` | remove | Remote scope was not requested. |
+| `country:GB` | `region:EU` | remote | scope `region:EU` | remove | `country:GB` was requested exactly; `region:EU` is a different scope. |
+| `country:GB` | `region:EU` | remote | scope `country:GB`, vacancy country includes `GB` and `EU` | keep | Both remote scope and vacancy geography match. |
+| `country:GB` | `region:EU` | remote | scope `country:GB`, vacancy country only `GB` | remove | Vacancy geography does not match EU. |
+| empty | `region:EU` | hybrid | country `PL`, `hybrid` | keep | Physical format and vacancy geography were explicitly requested. |
+| empty | `region:EU` | hybrid | country `GB`, `hybrid` | remove | The EU scope excludes `GB`. |
+| empty | `country:GB` | office | country `GB`, `office` | keep | Physical format and vacancy geography match. |
+| `country:GB` | `country:GB` | remote | scope `country:GB` | keep | Requested country-limited remote scope matches. |
+| `country:GB` | `country:GB` | remote | scope `global`, vacancy country `GB` | keep | Global remote is a superset of the requested country scope. |
+| `country:GB` | `country:GB` | remote | country `GB`, `hybrid` or `office` | remove | Physical formats were not requested. |
+| `country:GB` | empty | remote | scope `country:GB` | keep | Remote scope matches. |
+| `country:GB` | empty | remote | scope `country:PL` or `region:EU` | remove | Remote scope was not requested. |
+| `country:GB` | empty | remote | country `GB`, no remote/work-format evidence | remove | Country-only evidence is not remote-compatible. |
 | empty | `europe` | no remote filter | country `PL` | keep | Vacancy geography alone is a market/location filter. |
 | empty | `europe` | no remote filter | country `GB` | remove | The EU scope excludes UK. |
-| empty | `europe` | no remote filter | unknown country | keep | Missing geography is not evidence of a mismatch. |
+| empty | `europe` | no remote filter | unknown country | remove | Requested vacancy geography requires matching evidence by default. |
 
 ## Diagnostics
 
-- Remote scope mismatch: `remote_eligibility_mismatch`.
-- Country-only evidence under a remote-compatible search:
-  `remote_eligibility_mismatch`.
-- Non-global row under global-only search: `remote_global_mismatch`.
-- Hybrid or office outside the work-from geography:
-  `hybrid_geography_mismatch` or `office_geography_mismatch`.
+- Work format mismatch: `work_format_mismatch`.
+- Remote scope mismatch: `remote_scope_mismatch`.
 - Vacancy geography mismatch: `vacancy_geography_mismatch`.

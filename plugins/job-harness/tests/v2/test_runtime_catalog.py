@@ -38,7 +38,7 @@ class SourceCatalogTest(unittest.TestCase):
         request = SearchRequest(
             query_variants=("QA",),
             source_types=(SourceType.COMPANY_CAREER,),
-            vacancy_geographies=("US",),
+            vacancy_geographies=("country:US",),
         )
 
         # Act

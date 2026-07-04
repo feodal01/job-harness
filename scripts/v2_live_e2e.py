@@ -256,7 +256,7 @@ def _initial_live_request(profile: str) -> SearchRequest:
         query_variants=("QA",),
         grades=(Grade.MIDDLE,),
         salary_from=150_000,
-        vacancy_geographies=("RU", "AM"),
+        vacancy_geographies=("country:RU", "country:AM"),
     )
 
 
@@ -276,7 +276,7 @@ def _append_live_request(profile: str, *, append_to_run_id: str) -> SearchReques
         raise ValueError(f"unknown live e2e profile: {profile}")
     return SearchRequest(
         query_variants=("тестировщик",),
-        vacancy_geographies=("RU", "AM"),
+        vacancy_geographies=("country:RU", "country:AM"),
         exclude_text=(
             TextExclusion(
                 pattern="zzzzzz-no-live-e2e-match",

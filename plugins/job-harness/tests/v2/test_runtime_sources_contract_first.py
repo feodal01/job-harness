@@ -15,13 +15,13 @@ from job_harness.v2.contracts import (
     ParserFixtureCase,
     ParserFixtureKind,
     RawListing,
-    RemoteMode,
     SearchRequest,
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
     SourceScraper,
     SourceSearchParseResult,
+    WorkFormat,
 )
 from job_harness.v2.geography import normalize_source_geographies
 from job_harness.v2.persistence import SqliteRunStore
@@ -910,8 +910,8 @@ class VKCareerSourceTest(unittest.TestCase):
         remote_request = source.build_search_requests(
             SearchRequest(
                 query_variants=("backend developer",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("RU",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:RU",),
             )
         )[0]
 
@@ -1028,8 +1028,8 @@ class IBSCareerSourceTest(unittest.TestCase):
         remote_request = source.build_search_requests(
             SearchRequest(
                 query_variants=("QA",),
-                remote_mode=RemoteMode.COMPATIBLE_REMOTE,
-                work_from_geographies=("RU",),
+                work_formats=(WorkFormat.REMOTE,),
+                remote_scopes=("country:RU",),
             )
         )[0]
         parsed_remote = source.parse_search_response(_fixture_response("career_ibs", "success"), remote_request)

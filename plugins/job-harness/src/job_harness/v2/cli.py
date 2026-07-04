@@ -17,12 +17,12 @@ from job_harness.v2.application import (
 )
 from job_harness.v2.contracts import (
     Grade,
-    RemoteMode,
     SearchRequest,
     SourceAttemptRecord,
     SourceType,
     TextExclusion,
     TextExclusionMode,
+    WorkFormat,
 )
 from job_harness.v2.persistence import read_processed_results_payload
 from job_harness.v2.presentation import render_processed_results_markdown
@@ -78,33 +78,33 @@ def _build_parser() -> argparse.ArgumentParser:
     search.add_argument("--exclude-regex", action="append", default=[])
     search.add_argument("--relocation", choices=("true", "false"))
     search.add_argument(
-        "--remote-mode",
-        choices=_remote_mode_values(),
-        help="Remote policy: any, compatible-remote, global-remote-only, or non-remote-only.",
+        "--work-format",
+        action="append",
+        choices=_work_format_values(),
+        default=[],
+        help=(
+            "Workplace format: remote, hybrid, office, or unknown. "
+            "Repeatable; unknown must be paired with a concrete format."
+        ),
     )
     search.add_argument(
-        "--hybrid-ok",
-        action="store_true",
-        help="Allow hybrid vacancies when their geography matches the requested search geography.",
-    )
-    search.add_argument(
-        "--office-ok",
-        action="store_true",
-        help="Allow office vacancies when their geography matches the requested search geography.",
-    )
-    search.add_argument(
-        "--work-from",
+        "--remote-scope",
         action="append",
         default=[],
-        help="Applicant work-from country or region for compatible_remote. Repeatable.",
+        help=(
+            "Remote eligibility scope: global, country:<code>, region:<code>, or unknown. "
+            "Repeatable; unknown must be paired with a concrete scope."
+        ),
     )
     search.add_argument(
         "--vacancy-geography",
         action="append",
         default=[],
-        help="Country or region attached to the vacancy itself. Repeatable.",
+        help=(
+            "Vacancy geography scope: country:<code>, region:<code>, city:<name>, or unknown. "
+            "Repeatable; unknown must be paired with a concrete geography."
+        ),
     )
-    search.add_argument("--city", action="append", default=[])
     search.add_argument("--source", action="append", default=[])
     search.add_argument("--source-type", action="append", choices=_source_type_values(), default=[])
     search.add_argument("--append-to-run-id")
@@ -181,12 +181,9 @@ def _request_from_args(args: argparse.Namespace) -> SearchRequest:
         exclude_companies=tuple(args.exclude_company),
         exclude_text=_text_exclusions(args),
         relocation=_optional_bool(args.relocation),
-        remote_mode=_optional_remote_mode(args.remote_mode),
-        hybrid_ok=args.hybrid_ok,
-        office_ok=args.office_ok,
-        work_from_geographies=tuple(args.work_from),
+        work_formats=tuple(WorkFormat(value) for value in args.work_format),
+        remote_scopes=tuple(args.remote_scope),
         vacancy_geographies=tuple(args.vacancy_geography),
-        cities=tuple(args.city),
         sources=tuple(args.source),
         source_types=tuple(SourceType(value) for value in args.source_type),
         append_to_run_id=args.append_to_run_id,
@@ -382,14 +379,8 @@ def _ats_platform_values() -> tuple[str, ...]:
     )
 
 
-def _remote_mode_values() -> tuple[str, ...]:
-    return tuple(item.value.replace("_", "-") for item in RemoteMode)
-
-
-def _optional_remote_mode(value: str | None) -> RemoteMode | None:
-    if value is None:
-        return None
-    return RemoteMode(value.replace("-", "_"))
+def _work_format_values() -> tuple[str, ...]:
+    return tuple(item.value for item in WorkFormat)
 
 
 def _print_json(payload: object) -> None:

@@ -8,13 +8,13 @@ from datetime import date
 
 from job_harness.v2.contracts.enums import (
     Grade,
-    RemoteMode,
     SearchCriterion,
     SourceType,
     TextExclusionMode,
     TextField,
+    WorkFormat,
 )
-from job_harness.v2.geography import normalize_request_geography
+from job_harness.v2.geography import is_region_scope, normalize_request_geography
 
 
 @dataclass(frozen=True)
@@ -41,12 +41,9 @@ class SearchRequest:
     exclude_companies: tuple[str, ...] = ()
     exclude_text: tuple[TextExclusion, ...] = ()
     relocation: bool | None = None
-    remote_mode: RemoteMode | None = None
-    hybrid_ok: bool = False
-    office_ok: bool = False
-    work_from_geographies: tuple[str, ...] = ()
+    work_formats: tuple[WorkFormat, ...] = ()
+    remote_scopes: tuple[str, ...] = ()
     vacancy_geographies: tuple[str, ...] = ()
-    cities: tuple[str, ...] = ()
     sources: tuple[str, ...] = ()
     source_types: tuple[SourceType, ...] = ()
     append_to_run_id: str | None = None
@@ -68,38 +65,41 @@ class SearchRequest:
             ),
         )
         object.__setattr__(self, "exclude_text", _dedupe_tuple(self.exclude_text, "exclude_text"))
-        remote_mode = _normalize_remote_mode(self.remote_mode)
-        object.__setattr__(self, "remote_mode", remote_mode)
         object.__setattr__(
             self,
-            "work_from_geographies",
-            _normalize_geographies(self.work_from_geographies, "work_from_geographies"),
+            "work_formats",
+            _normalize_work_formats(self.work_formats),
+        )
+        object.__setattr__(
+            self,
+            "remote_scopes",
+            _normalize_scopes(self.remote_scopes, "remote_scopes", allow_city=False),
         )
         object.__setattr__(
             self,
             "vacancy_geographies",
-            _normalize_geographies(self.vacancy_geographies, "vacancy_geographies"),
-        )
-        object.__setattr__(
-            self,
-            "cities",
-            _clean_string_tuple(self.cities, "cities", allow_empty=True),
+            _normalize_scopes(self.vacancy_geographies, "vacancy_geographies", allow_city=True),
         )
         object.__setattr__(self, "sources", _clean_string_tuple(self.sources, "sources", allow_empty=True))
         object.__setattr__(self, "source_types", _dedupe_tuple(self.source_types, "source_types"))
 
         if self.salary_from is not None and self.salary_from < 1:
             raise ValueError("salary_from must be >= 1 when provided")
-        if not isinstance(self.hybrid_ok, bool):
-            raise ValueError("hybrid_ok must be a boolean")
-        if not isinstance(self.office_ok, bool):
-            raise ValueError("office_ok must be a boolean")
-        if remote_mode == RemoteMode.GLOBAL_REMOTE_ONLY and (self.hybrid_ok or self.office_ok):
-            raise ValueError("hybrid_ok and office_ok cannot be used with global_remote_only")
-        if self.remote_mode == RemoteMode.COMPATIBLE_REMOTE and not self.work_from_geographies:
-            raise ValueError("work_from_geographies are required for compatible_remote")
-        if self.remote_mode != RemoteMode.COMPATIBLE_REMOTE and self.work_from_geographies:
-            raise ValueError("work_from_geographies are only valid with compatible_remote")
+        if self.work_formats == (WorkFormat.UNKNOWN,):
+            raise ValueError(
+                "work_formats cannot contain only unknown; include a concrete work format or omit the filter"
+            )
+        if self.remote_scopes == ("unknown",):
+            raise ValueError(
+                "remote_scopes cannot contain only unknown; include a concrete remote scope or omit the filter"
+            )
+        if self.vacancy_geographies == ("unknown",):
+            raise ValueError(
+                "vacancy_geographies cannot contain only unknown; "
+                "include a concrete vacancy geography or omit the filter"
+            )
+        if self.remote_scopes and WorkFormat.REMOTE not in self.work_formats:
+            raise ValueError("remote_scopes require work_formats to include remote")
         if self.append_to_run_id is not None and not self.append_to_run_id.strip():
             raise ValueError("append_to_run_id must be non-empty when provided")
 
@@ -114,16 +114,12 @@ class SearchRequest:
             criteria.add(SearchCriterion.PUBLISHED_SINCE)
         if self.relocation is not None:
             criteria.add(SearchCriterion.RELOCATION)
-        if self.remote_mode is not None and self.remote_mode != RemoteMode.ANY:
-            criteria.add(SearchCriterion.REMOTE_MODE)
-        if self.hybrid_ok or self.office_ok:
-            criteria.add(SearchCriterion.REMOTE_MODE)
-        if self.work_from_geographies:
-            criteria.add(SearchCriterion.WORK_FROM_GEOGRAPHIES)
+        if self.work_formats:
+            criteria.add(SearchCriterion.WORK_FORMATS)
+        if self.remote_scopes:
+            criteria.add(SearchCriterion.REMOTE_SCOPES)
         if self.vacancy_geographies:
             criteria.add(SearchCriterion.VACANCY_GEOGRAPHIES)
-        if self.cities:
-            criteria.add(SearchCriterion.CITIES)
         return frozenset(criteria)
 
 
@@ -160,19 +156,49 @@ def _dedupe_tuple[T](values: Iterable[T], field_name: str) -> tuple[T, ...]:
     return tuple(result)
 
 
-def _normalize_remote_mode(value: RemoteMode | str | None) -> RemoteMode | None:
-    if value is None or isinstance(value, RemoteMode):
-        return value
-    return RemoteMode(str(value))
+def _normalize_work_formats(values: Iterable[WorkFormat | str]) -> tuple[WorkFormat, ...]:
+    result: list[WorkFormat] = []
+    for raw in values:
+        value = raw if isinstance(raw, WorkFormat) else WorkFormat(str(raw).strip())
+        if value not in result:
+            result.append(value)
+    return tuple(result)
 
 
-def _normalize_geographies(values: Iterable[str], field_name: str) -> tuple[str, ...]:
+def _normalize_scopes(values: Iterable[str], field_name: str, *, allow_city: bool) -> tuple[str, ...]:
     normalized: list[str] = []
     seen: set[str] = set()
     for raw in _clean_string_tuple(values, field_name, allow_empty=True):
-        geography = normalize_request_geography(raw)
-        if geography.casefold() in seen:
+        scope = _normalize_scope(raw, field_name=field_name, allow_city=allow_city)
+        if scope.casefold() in seen:
             continue
-        seen.add(geography.casefold())
-        normalized.append(geography)
+        seen.add(scope.casefold())
+        normalized.append(scope)
     return tuple(normalized)
+
+
+def _normalize_scope(value: str, *, field_name: str, allow_city: bool) -> str:
+    if value == "unknown":
+        return value
+    if value == "global" and field_name == "remote_scopes":
+        return value
+    if allow_city and value.startswith("city:"):
+        city = value.removeprefix("city:").strip()
+        if city:
+            return f"city:{city}"
+        raise ValueError(f"{field_name} city scope must be non-empty")
+    if value.startswith("country:"):
+        geography = normalize_request_geography(value.removeprefix("country:"))
+        if is_region_scope(geography):
+            raise ValueError(f"{field_name} country scope must contain a country")
+        return f"country:{geography}"
+    if value.startswith("region:"):
+        geography = normalize_request_geography(value.removeprefix("region:"))
+        if not is_region_scope(geography):
+            raise ValueError(f"{field_name} region scope must contain a region")
+        return f"region:{geography}"
+    if allow_city:
+        expected = "unknown, country:<code>, region:<code>, or city:<name>"
+    else:
+        expected = "global, unknown, country:<code>, or region:<code>"
+    raise ValueError(f"{field_name} must use {expected}")

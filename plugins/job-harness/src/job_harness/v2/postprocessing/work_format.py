@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from job_harness.v2.contracts import RemoteMode
-from job_harness.v2.geography import geography_matches_any, geography_text_keys
+from job_harness.v2.geography import geography_text_keys
 
 HYBRID_FORMAT = "hybrid"
 OFFICE_FORMAT = "office"
@@ -33,17 +30,7 @@ _LINKEDIN_WORKPLACE_TAGS = {
     "#li-onsite": OFFICE_FORMAT,
     "#li-remote": REMOTE_FORMAT,
 }
-_WORK_FORMAT_RESTRICTIVENESS = {
-    REMOTE_FORMAT: 0,
-    HYBRID_FORMAT: 1,
-    OFFICE_FORMAT: 2,
-}
-
-
-@dataclass(frozen=True)
-class WorkFormatPolicyOutcome:
-    handles_remote_filter: bool
-    reasons: tuple[str, ...]
+_WORK_FORMAT_ORDER = (REMOTE_FORMAT, HYBRID_FORMAT, OFFICE_FORMAT)
 
 
 def listing_work_formats(listing: dict[str, object]) -> tuple[str, ...]:
@@ -54,15 +41,15 @@ def listing_work_formats(listing: dict[str, object]) -> tuple[str, ...]:
         for key in ("work_format", "remote_type", "employment_type"):
             _append_work_format_text(formats, raw.get(key))
         if formats:
-            return _preferred_work_formats(formats)
+            return _normalized_work_formats(formats)
         _append_linkedin_workplace_tags(formats, raw.get("linkedin_workplace_tags"))
         if formats:
-            return _preferred_work_formats(formats)
+            return _normalized_work_formats(formats)
 
     _append_work_format_text(formats, listing.get("location_text"))
     _append_title_remote_format(formats, listing.get("title"))
     if formats:
-        return _preferred_work_formats(formats)
+        return _normalized_work_formats(formats)
 
     remote_global = _optional_bool(listing.get("remote_global"))
     remote_in_country = _optional_bool(listing.get("remote_in_country"))
@@ -70,46 +57,7 @@ def listing_work_formats(listing: dict[str, object]) -> tuple[str, ...]:
         _append_unique(formats, REMOTE_FORMAT)
     if remote_global is False and remote_in_country is False:
         _append_unique(formats, OFFICE_FORMAT)
-    return _preferred_work_formats(formats)
-
-
-def work_format_policy_outcome(
-    *,
-    remote_mode: RemoteMode | None,
-    hybrid_ok: bool,
-    office_ok: bool,
-    work_from_geographies: tuple[str, ...],
-    vacancy_geographies: tuple[str, ...],
-    work_formats: tuple[str, ...],
-    countries: tuple[str, ...],
-) -> WorkFormatPolicyOutcome:
-    if remote_mode != RemoteMode.COMPATIBLE_REMOTE:
-        return WorkFormatPolicyOutcome(handles_remote_filter=False, reasons=())
-
-    accepted_formats: list[str] = []
-    if hybrid_ok and HYBRID_FORMAT in work_formats:
-        accepted_formats.append(HYBRID_FORMAT)
-    if office_ok and OFFICE_FORMAT in work_formats:
-        accepted_formats.append(OFFICE_FORMAT)
-    if not accepted_formats:
-        return WorkFormatPolicyOutcome(handles_remote_filter=False, reasons=())
-
-    if not countries:
-        return WorkFormatPolicyOutcome(handles_remote_filter=True, reasons=())
-    if vacancy_geographies and not _geography_sets_intersect(
-        work_from_geographies,
-        vacancy_geographies,
-    ):
-        return WorkFormatPolicyOutcome(
-            handles_remote_filter=True,
-            reasons=tuple(f"{work_format}_geography_mismatch" for work_format in accepted_formats),
-        )
-    if any(geography_matches_any(country, work_from_geographies) for country in countries):
-        return WorkFormatPolicyOutcome(handles_remote_filter=True, reasons=())
-    return WorkFormatPolicyOutcome(
-        handles_remote_filter=True,
-        reasons=tuple(f"{work_format}_geography_mismatch" for work_format in accepted_formats),
-    )
+    return _normalized_work_formats(formats)
 
 
 def row_work_formats(row: dict[str, object]) -> tuple[str, ...]:
@@ -119,10 +67,6 @@ def row_work_formats(row: dict[str, object]) -> tuple[str, ...]:
     if isinstance(value, list):
         return tuple(_text(item) for item in value if _text(item))
     return ()
-
-
-def _geography_sets_intersect(left: tuple[str, ...], right: tuple[str, ...]) -> bool:
-    return any(geography_matches_any(geography, right) for geography in left)
 
 
 def _append_hh_work_formats(formats: list[str], value: object) -> None:
@@ -182,17 +126,8 @@ def _append_unique(values: list[str], value: str) -> None:
         values.append(value)
 
 
-def _preferred_work_formats(values: list[str]) -> tuple[str, ...]:
-    if not values:
-        return ()
-    if REMOTE_FORMAT in values:
-        return (REMOTE_FORMAT,)
-    return (
-        max(
-            values,
-            key=lambda value: _WORK_FORMAT_RESTRICTIVENESS.get(value, -1),
-        ),
-    )
+def _normalized_work_formats(values: list[str]) -> tuple[str, ...]:
+    return tuple(work_format for work_format in _WORK_FORMAT_ORDER if work_format in values)
 
 
 def _optional_bool(value: object) -> bool | None:

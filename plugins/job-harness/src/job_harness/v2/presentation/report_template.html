@@ -411,12 +411,9 @@
         requestField("Grade", listText(request.grades, "N/a")),
         requestField("Salary from", text(request.salary_from) || "N/a"),
         requestField("Published since", text(request.published_since) || "N/a"),
-        requestField("Remote mode", remoteModeText(request.remote_mode)),
-        requestField("Hybrid ok", booleanFlagText(request.hybrid_ok)),
-        requestField("Office ok", booleanFlagText(request.office_ok)),
-        requestField("Work from", listText(request.work_from_geographies, "N/a")),
+        requestField("Work format", listText(request.work_formats, "N/a")),
+        requestField("Remote scope", listText(request.remote_scopes, "N/a")),
         requestField("Vacancy geography", listText(request.vacancy_geographies, "N/a")),
-        requestField("Cities", listText(request.cities, "N/a")),
         requestField("Sources", listText(request.sources, "Full catalog")),
         requestField("Source types", listText(request.source_types, "All types")),
         requestField("Relocation", optionalBooleanText(request.relocation)),
@@ -440,14 +437,6 @@
       if (value === true) return "Required";
       if (value === false) return "Excluded";
       return "N/a";
-    }
-
-    function booleanFlagText(value) {
-      return value === true ? "yes" : "no";
-    }
-
-    function remoteModeText(value) {
-      return text(value) || "N/a";
     }
 
     function exclusionText(value) {
@@ -565,8 +554,7 @@
         debugField("Source listing ID", row.source_listing_id),
         debugField("Query", row.query_variant),
         debugField("Work formats", list(row.work_formats).join(", ")),
-        debugField("Raw remote in country", booleanText(row.remote_in_country)),
-        debugField("Raw remote global", booleanText(row.remote_global)),
+        debugField("Vacancy geography", row.vacancy_geography),
         debugField("Description", row.description_availability),
         debugField("Detail fetched", booleanText(row.detail_fetched)),
         debugField("Detail parse error", row.detail_parse_error)
@@ -618,17 +606,9 @@
         ["salary_below_requested_minimum", "Salary"],
         ["published_before_requested_date", "Posted"],
         ["vacancy_geography_mismatch", "Country"],
-        ["city_mismatch", "Location"],
-        ["remote_eligibility_mismatch", "Remote scope"],
-        ["remote_global_mismatch", "Remote scope"],
-        ["remote_mismatch", "Remote scope"],
-        ["remote_global_mismatch", "Work format"],
-        ["remote_eligibility_mismatch", "Work format"],
-        ["remote_mismatch", "Work format"],
-        ["hybrid_geography_mismatch", "Work format"],
-        ["office_geography_mismatch", "Work format"],
-        ["hybrid_geography_mismatch", "Country"],
-        ["office_geography_mismatch", "Country"],
+        ["vacancy_geography_mismatch", "Location"],
+        ["remote_scope_mismatch", "Remote scope"],
+        ["work_format_mismatch", "Work format"],
         ["relocation_mismatch", "Relocation"]
       ];
       for (const [reason, label] of mappings) {

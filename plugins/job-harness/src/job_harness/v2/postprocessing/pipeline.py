@@ -157,8 +157,9 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
         if not isinstance(listing, dict):
             raise ValueError("raw listing record is missing listing object")
         countries = listing_countries(listing)
-        remote_scopes = listing_remote_scopes(listing, countries=countries)
+        remote_scopes = listing_remote_scopes(listing)
         work_formats = listing_work_formats(listing)
+        vacancy_geographies = _vacancy_geographies(listing, countries)
         row: dict[str, object] = {
             "raw_record_id": _optional_int(record.get("raw_record_id")),
             "source": _text(record.get("source")),
@@ -172,6 +173,8 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
             "countries": countries,
             "city": _optional_text(listing.get("city")),
             "location_text": _optional_text(listing.get("location_text")),
+            "vacancy_geography": remote_scope_text(vacancy_geographies),
+            "vacancy_geographies": vacancy_geographies,
             "salary_text": _optional_text(listing.get("salary_text")),
             "salary_min": _optional_int(listing.get("salary_min")),
             "salary_max": _optional_int(listing.get("salary_max")),
@@ -231,6 +234,7 @@ def _filter_facts(row: dict[str, object]) -> VacancyFilterFacts:
         work_formats=_row_text_tuple(row["work_formats"]),
         countries=_row_text_tuple(row["countries"]),
         remote_scopes=_row_text_tuple(row["remote_scopes"]) or ("unknown",),
+        vacancy_geographies=_row_text_tuple(row["vacancy_geographies"]) or ("unknown",),
         relocation=_optional_bool(row["relocation"]),
         city=_optional_text(row["city"]),
     )
@@ -256,6 +260,20 @@ def _source_facts(listing: dict[str, object]) -> tuple[dict[str, str], ...]:
     _append_fact(facts, "Schedule", _mapped_list(raw.get("workScheduleByDays"), _HH_WORK_SCHEDULE_TEXT))
     _append_fact(facts, "Working hours", _mapped_list(raw.get("workingHours"), _HH_WORKING_HOURS_TEXT))
     return tuple(facts)
+
+
+def _vacancy_geographies(listing: dict[str, object], countries: tuple[str, ...]) -> tuple[str, ...]:
+    geographies: list[str] = []
+    for country in countries:
+        scope = f"country:{country}"
+        if scope not in geographies:
+            geographies.append(scope)
+    city = _optional_text(listing.get("city"))
+    if city:
+        scope = f"city:{city}"
+        if scope not in geographies:
+            geographies.append(scope)
+    return tuple(geographies) or ("unknown",)
 
 
 def _display_salary(listing: dict[str, object]) -> str | None:
