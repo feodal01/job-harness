@@ -5,6 +5,7 @@ from __future__ import annotations
 import httpx
 
 from job_harness.v2.contracts import SourceFetchRequest, SourceOutcome, SourceResponseArtifact
+from job_harness.v2.ports import HttpAction, HttpResponse
 from job_harness.v2.runtime.errors import ClassifiedSourceError
 
 _USER_AGENT = (
@@ -72,6 +73,50 @@ class HttpArtifactFetcher:
                     max_keepalive_connections=_MAX_KEEPALIVE_CONNECTIONS,
                 ),
                 timeout=self._timeout_seconds,
+                transport=self._transport,
+            )
+        return self._client
+
+
+class HttpxTransport:
+    def __init__(self, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
+        self._transport = transport
+        self._client: httpx.AsyncClient | None = None
+
+    async def send(self, action: HttpAction, *, timeout_seconds: float) -> HttpResponse:
+        try:
+            response = await self._http_client().request(
+                action.method,
+                action.url,
+                content=action.body,
+                headers={"User-Agent": _USER_AGENT, **action.headers},
+                timeout=timeout_seconds,
+            )
+        except httpx.HTTPError as exc:
+            raise OSError(str(exc)) from exc
+        return HttpResponse(
+            requested_url=action.url,
+            final_url=str(response.url),
+            status_code=response.status_code,
+            media_type=_media_type(response),
+            body=response.content,
+            headers=dict(response.headers),
+        )
+
+    async def aclose(self) -> None:
+        if self._client is None:
+            return
+        await self._client.aclose()
+        self._client = None
+
+    def _http_client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                follow_redirects=False,
+                limits=httpx.Limits(
+                    max_connections=_MAX_CONNECTIONS,
+                    max_keepalive_connections=_MAX_KEEPALIVE_CONNECTIONS,
+                ),
                 transport=self._transport,
             )
         return self._client

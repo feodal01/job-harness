@@ -28,10 +28,11 @@ _FILESYSTEM_ALLOWED_MODULES = {
     _APPLICATION_MODULE,
     _CLI_MODULE,
     _SOURCE_CATALOG_MODULE,
-    "job_harness.v2.persistence.sqlite_run_store",
+    "job_harness.v2.persistence.graph_repository",
     "job_harness.v2.presentation.report",
     "job_harness.v2.runtime.config",
-    "job_harness.v2.runtime.pipeline",
+    "job_harness.v2.runtime.graph_pipeline",
+    "job_harness.v2.runtime.resource_gate",
     "job_harness.v2.runtime.run_layout",
 }
 _FILESYSTEM_IMPORTS = {
@@ -61,17 +62,6 @@ _COUNTRY_NORMALIZATION_HELPER_NAMES = frozenset(
 )
 
 _ALLOWED_RUNTIME_IMPORTS = {
-    "job_harness.v2.runtime.application_channels": (
-        _CONTRACTS_PREFIX,
-        _PORTS_MODULE,
-        _SERIALIZATION_MODULE,
-        "job_harness.v2.runtime.application_channel_profiles",
-        "job_harness.v2.runtime.application_channel_records",
-        "job_harness.v2.runtime.application_channel_resolver",
-        "job_harness.v2.runtime.application_channel_sources",
-        "job_harness.v2.runtime.company_contacts",
-        "job_harness.v2.runtime.config",
-    ),
     "job_harness.v2.runtime.application_channel_profiles": (
         _CONTRACTS_PREFIX,
         _PORTS_MODULE,
@@ -79,10 +69,6 @@ _ALLOWED_RUNTIME_IMPORTS = {
         "job_harness.v2.runtime.application_channel_sources",
         "job_harness.v2.runtime.company_contacts",
         "job_harness.v2.runtime.errors",
-    ),
-    "job_harness.v2.runtime.application_channel_records": (
-        _CONTRACTS_PREFIX,
-        _SERIALIZATION_MODULE,
     ),
     "job_harness.v2.runtime.application_channel_resolver": (
         _CONTRACTS_PREFIX,
@@ -105,49 +91,72 @@ _ALLOWED_RUNTIME_IMPORTS = {
         "job_harness.v2.runtime.retry",
         _SERIALIZATION_MODULE,
     ),
-    "job_harness.v2.runtime.detail_enrichment": (
-        _CONTRACTS_PREFIX,
-        _PORTS_MODULE,
-        "job_harness.v2.runtime.catalog",
-        "job_harness.v2.runtime.config",
-        "job_harness.v2.runtime.errors",
-    ),
     "job_harness.v2.runtime.errors": (_CONTRACTS_PREFIX,),
     "job_harness.v2.runtime.http": (
         _CONTRACTS_PREFIX,
+        _PORTS_MODULE,
         "job_harness.v2.runtime.errors",
     ),
-    "job_harness.v2.runtime.orchestrator": (
+    "job_harness.v2.runtime.executors": (
         _CONTRACTS_PREFIX,
+        _PERSISTENCE_PREFIX,
         _PORTS_MODULE,
-        "job_harness.v2.runtime.catalog",
-        "job_harness.v2.runtime.errors",
-        "job_harness.v2.runtime.retry",
     ),
-    "job_harness.v2.runtime.pipeline": (
+    "job_harness.v2.runtime.fact_derivers": (
         _CONTRACTS_PREFIX,
+        _GEOGRAPHY_MODULE,
+        _SERIALIZATION_MODULE,
+    ),
+    "job_harness.v2.runtime.final_assembly": (
+        _PERSISTENCE_PREFIX,
+        _SERIALIZATION_MODULE,
+        "job_harness.v2.runtime.public_projection",
+    ),
+    "job_harness.v2.runtime.graph_coordinator": (
+        _CONTRACTS_PREFIX,
+        _PERSISTENCE_PREFIX,
+        _SERIALIZATION_MODULE,
+        "job_harness.v2.runtime.fact_derivers",
+        "job_harness.v2.runtime.selection",
+    ),
+    "job_harness.v2.runtime.graph_pipeline": (
+        _CONTRACTS_PREFIX,
+        _PERSISTENCE_PREFIX,
         _PORTS_MODULE,
-        _POSTPROCESSING_PREFIX,
         _PRESENTATION_PREFIX,
         _SERIALIZATION_MODULE,
-        "job_harness.v2.runtime.application_channels",
+        "job_harness.v2.runtime.executors",
+        "job_harness.v2.runtime.final_assembly",
+        "job_harness.v2.runtime.graph_coordinator",
+        "job_harness.v2.runtime.run_layout",
+    ),
+    "job_harness.v2.runtime.parser_runtime": (
+        _PORTS_MODULE,
+        "job_harness.v2.runtime.resource_gate",
+    ),
+    "job_harness.v2.runtime.public_projection": (_SERIALIZATION_MODULE,),
+    "job_harness.v2.runtime.resource_gate": (_PORTS_MODULE,),
+    "job_harness.v2.runtime.selection": (
+        _CONTRACTS_PREFIX,
+        _GEOGRAPHY_MODULE,
+        _POSTPROCESSING_PREFIX,
+        _SERIALIZATION_MODULE,
+    ),
+    "job_harness.v2.runtime.source_bundles": (
+        _CONTRACTS_PREFIX,
+        _PORTS_MODULE,
+        _SERIALIZATION_MODULE,
         "job_harness.v2.runtime.application_channel_profiles",
-        "job_harness.v2.runtime.application_channel_records",
         "job_harness.v2.runtime.application_channel_resolver",
         "job_harness.v2.runtime.application_channel_sources",
-        "job_harness.v2.runtime.catalog",
-        "job_harness.v2.runtime.config",
-        "job_harness.v2.runtime.detail_enrichment",
-        "job_harness.v2.runtime.http",
-        "job_harness.v2.runtime.orchestrator",
-        "job_harness.v2.runtime.run_layout",
-        "job_harness.v2.runtime.source_registry",
+        "job_harness.v2.runtime.company_contacts",
     ),
     "job_harness.v2.runtime.retry": (_CONTRACTS_PREFIX,),
     "job_harness.v2.runtime.run_layout": ("job_harness.v2.runtime.artifacts",),
     "job_harness.v2.runtime.source_registry": (
         _CONTRACTS_PREFIX,
         "job_harness.v2.runtime.catalog",
+        "job_harness.v2.runtime.source_bundles",
         "job_harness.v2.runtime.sources",
         _SOURCE_CATALOG_MODULE,
     ),
@@ -156,11 +165,11 @@ _PURE_HELPER_MODULES = {
     _GEOGRAPHY_CITIES_MODULE,
     _GEOGRAPHY_SOURCE_TEXT_MODULE,
     _MATCHING_MODULE,
-    _SERIALIZATION_MODULE,
 }
 _DIRECT_ALLOWED_PREFIXES = {
     _GEOGRAPHY_COUNTRIES_MODULE: (_GEOGRAPHY_CITIES_MODULE, _GEOGRAPHY_SOURCE_TEXT_MODULE),
     _GEOGRAPHY_LISTINGS_MODULE: (_GEOGRAPHY_COUNTRIES_MODULE,),
+    _SERIALIZATION_MODULE: ("job_harness.v2.contracts.json_types",),
 }
 
 

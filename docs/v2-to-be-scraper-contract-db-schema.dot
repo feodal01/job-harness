@@ -1,0 +1,550 @@
+digraph IndependentScraperDatabase {
+  graph [
+    rankdir=LR,
+    bgcolor="#ffffff",
+    pad=0.35,
+    nodesep=0.45,
+    ranksep=1.15,
+    splines=polyline,
+    compound=true,
+    newrank=true,
+    fontname="Arial",
+    fontsize=22,
+    labelloc=t,
+    label="V2: durable scraper graph plus deployment-scoped resource limiter"
+  ];
+
+  node [shape=plain, fontname="Arial", fontsize=8];
+  edge [fontname="Arial", fontsize=7, arrowsize=0.6, color="#64748b"];
+
+  subgraph cluster_planning {
+    label="1. Run and execution planning";
+    color="#2563eb";
+    style="rounded";
+
+    runs [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#2563eb">
+        <TR><TD BGCOLOR="#dbeafe" COLSPAN="2"><B>runs</B></TD></TR>
+        <TR><TD PORT="run_id"><B>run_id</B></TD><TD>PK</TD></TR>
+        <TR><TD>created_at</TD><TD></TD></TR>
+        <TR><TD>updated_at</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    search_intents [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#2563eb">
+        <TR><TD BGCOLOR="#dbeafe" COLSPAN="2"><B>search_intents</B></TD></TR>
+        <TR><TD PORT="intent_id"><B>intent_id</B></TD><TD>PK</TD></TR>
+        <TR><TD>schema_id</TD><TD></TD></TR>
+        <TR><TD>intent_json</TD><TD>business criteria only</TD></TR>
+        <TR><TD>created_at</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    search_executions [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#2563eb">
+        <TR><TD BGCOLOR="#dbeafe" COLSPAN="2"><B>search_executions</B></TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="run_id"><B>run_id</B></TD><TD>FK runs</TD></TR>
+        <TR><TD PORT="intent_id"><B>intent_id</B></TD><TD>FK search_intents</TD></TR>
+        <TR><TD>append_sequence</TD><TD>UQ(run_id, append_sequence)</TD></TR>
+        <TR><TD>status</TD><TD>running | stopping | assembling | completed | failed</TD></TR>
+        <TR><TD>policy_version</TD><TD>selection + identity + projection</TD></TR>
+        <TR><TD>runtime_config_version</TD><TD></TD></TR>
+        <TR><TD>deadline_at</TD><TD></TD></TR>
+        <TR><TD>discovery_plan_budget</TD><TD>service-owned execution limit</TD></TR>
+        <TR><TD>discovery_plans_created</TD><TD>durable counter</TD></TR>
+        <TR><TD>coordinator_owner + token + lease_until</TD><TD>one execution-scoped consumer lease</TD></TR>
+        <TR><TD>completion_reason</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    source_plans [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#2563eb">
+        <TR><TD BGCOLOR="#dbeafe" COLSPAN="2"><B>source_plans</B></TD></TR>
+        <TR><TD PORT="source_plan_id"><B>source_plan_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="origin_event_id"><B>origin_event_id</B></TD><TD>FK domain_events, nullable</TD></TR>
+        <TR><TD PORT="origin_company_id"><B>origin_company_id</B></TD><TD>FK companies, nullable</TD></TR>
+        <TR><TD PORT="origin_endpoint_id"><B>origin_endpoint_id</B></TD><TD>FK discovered_endpoints, nullable</TD></TR>
+        <TR><TD>source_id</TD><TD></TD></TR>
+        <TR><TD>parser_id + version</TD><TD>pinned listing bundle</TD></TR>
+        <TR><TD>query_mode</TD><TD>per_query | query_group | downstream_only</TD></TR>
+        <TR><TD>queries_json</TD><TD></TD></TR>
+        <TR><TD>unit / item / invocation_budget</TD><TD></TD></TR>
+        <TR><TD>units / items / invocations_used</TD><TD></TD></TR>
+        <TR><TD>status</TD><TD>planned | running | succeeded | no_results | partial | limit_reached | failed | cancelled</TD></TR>
+        <TR><TD>terminal_reason</TD><TD>nullable</TD></TR>
+      </TABLE>
+    >];
+
+    criterion_requirements [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#2563eb">
+        <TR><TD BGCOLOR="#dbeafe" COLSPAN="2"><B>criterion_requirements</B></TD></TR>
+        <TR><TD PORT="requirement_id"><B>requirement_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="source_plan_id"><B>source_plan_id</B></TD><TD>FK source_plans</TD></TR>
+        <TR><TD>criterion</TD><TD></TD></TR>
+        <TR><TD>required_fact_path</TD><TD></TD></TR>
+        <TR><TD>comparison_json</TD><TD></TD></TR>
+        <TR><TD>unsupported_reason</TD><TD>nullable</TD></TR>
+      </TABLE>
+    >];
+
+    fact_providers [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#2563eb">
+        <TR><TD BGCOLOR="#dbeafe" COLSPAN="2"><B>fact_providers</B></TD></TR>
+        <TR><TD PORT="provider_id"><B>provider_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="requirement_id"><B>requirement_id</B></TD><TD>FK criterion_requirements</TD></TR>
+        <TR><TD>provider_stage</TD><TD>native | listing | detail | profile | site | derived_fact | unavailable</TD></TR>
+        <TR><TD>parser_id + version</TD><TD>nullable</TD></TR>
+        <TR><TD>deriver_id + version</TD><TD>nullable</TD></TR>
+        <TR><TD>fact_path</TD><TD></TD></TR>
+        <TR><TD>depends_on_fact_paths_json</TD><TD></TD></TR>
+        <TR><TD>required_for_final</TD><TD>boolean</TD></TR>
+        <TR><TD>cost_class + ordering</TD><TD></TD></TR>
+      </TABLE>
+    >];
+  }
+
+  subgraph cluster_graph {
+    label="2. Durable invocation graph and outbox";
+    color="#f59e0b";
+    style="rounded";
+
+    parser_invocations [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#f59e0b">
+        <TR><TD BGCOLOR="#ffedd5" COLSPAN="2"><B>parser_invocations</B></TD></TR>
+        <TR><TD PORT="invocation_id"><B>invocation_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="source_plan_id"><B>source_plan_id</B></TD><TD>FK source_plans, nullable</TD></TR>
+        <TR><TD PORT="parent_invocation_id"><B>parent_invocation_id</B></TD><TD>FK parser_invocations, nullable; lineage only</TD></TR>
+        <TR><TD PORT="cause_event_id"><B>cause_event_id</B></TD><TD>FK domain_events, nullable</TD></TR>
+        <TR><TD>task_key</TD><TD>UQ(execution_id, task_key)</TD></TR>
+        <TR><TD>parser_id + version + type</TD><TD>pinned</TD></TR>
+        <TR><TD>input_schema_id + input_json</TD><TD></TD></TR>
+        <TR><TD>task_class</TD><TD>listing | detail | profile | site</TD></TR>
+        <TR><TD>reserved_collection_units</TD><TD>session_batch allowance; nullable</TD></TR>
+        <TR><TD>status</TD><TD>queued | leased | retry_wait | succeeded | failed | cancelled</TD></TR>
+        <TR><TD>available_at</TD><TD></TD></TR>
+        <TR><TD>lease_owner + token + until</TD><TD>nullable</TD></TR>
+        <TR><TD>result_kind + outcome</TD><TD>nullable</TD></TR>
+      </TABLE>
+    >];
+
+    parser_attempts [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#f59e0b">
+        <TR><TD BGCOLOR="#ffedd5" COLSPAN="2"><B>parser_attempts</B></TD></TR>
+        <TR><TD PORT="parser_attempt_id"><B>parser_attempt_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="invocation_id"><B>invocation_id</B></TD><TD>FK parser_invocations</TD></TR>
+        <TR><TD>attempt_number</TD><TD>UQ(invocation_id, attempt_number)</TD></TR>
+        <TR><TD>started_at + finished_at</TD><TD></TD></TR>
+        <TR><TD>outcome + failure_kind</TD><TD></TD></TR>
+        <TR><TD>retryable</TD><TD>boolean</TD></TR>
+        <TR><TD>network_action_count + network_elapsed_ms</TD><TD>aggregate only</TD></TR>
+        <TR><TD>last_status_code + last_error_class</TD><TD>nullable</TD></TR>
+      </TABLE>
+    >];
+
+    listing_enrichment_requests [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#f59e0b">
+        <TR><TD BGCOLOR="#ffedd5" COLSPAN="2"><B>listing_enrichment_requests</B></TD></TR>
+        <TR><TD PORT="enrichment_request_id"><B>enrichment_request_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="listing_id"><B>listing_id</B></TD><TD>FK vacancy_listings</TD></TR>
+        <TR><TD PORT="invocation_id"><B>invocation_id</B></TD><TD>FK parser_invocations, nullable</TD></TR>
+        <TR><TD PORT="provider_id"><B>provider_id</B></TD><TD>FK fact_providers</TD></TR>
+        <TR><TD>required</TD><TD>boolean</TD></TR>
+        <TR><TD>status</TD><TD>waiting | satisfied | terminal</TD></TR>
+        <TR><TD>resolution_outcome + terminal_reason</TD><TD>nullable</TD></TR>
+        <TR><TD COLSPAN="2">UQ(execution_id, listing_id, provider_id)</TD></TR>
+      </TABLE>
+    >];
+
+    domain_events [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#f59e0b">
+        <TR><TD BGCOLOR="#ffedd5" COLSPAN="2"><B>domain_events</B></TD></TR>
+        <TR><TD PORT="event_id"><B>event_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="producer_invocation_id"><B>producer_invocation_id</B></TD><TD>FK parser_invocations, nullable</TD></TR>
+        <TR><TD>event_key</TD><TD>UQ(execution_id, event_key)</TD></TR>
+        <TR><TD>event_type + schema_version</TD><TD></TD></TR>
+        <TR><TD>payload_json</TD><TD>immutable observation/resource ids</TD></TR>
+        <TR><TD>occurred_at</TD><TD></TD></TR>
+        <TR><TD>processed_at</TD><TD>nullable</TD></TR>
+      </TABLE>
+    >];
+  }
+
+  subgraph cluster_identity {
+    label="3. Shared run identity corpus";
+    color="#0f766e";
+    style="rounded";
+
+    vacancy_resources [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#0f766e">
+        <TR><TD BGCOLOR="#ccfbf1" COLSPAN="2"><B>vacancy_resources</B></TD></TR>
+        <TR><TD PORT="vacancy_id"><B>vacancy_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="run_id"><B>run_id</B></TD><TD>FK runs</TD></TR>
+        <TR><TD>target_provider_id</TD><TD></TD></TR>
+        <TR><TD>source_listing_id</TD><TD>nullable</TD></TR>
+        <TR><TD>canonical_url</TD><TD></TD></TR>
+        <TR><TD>identity_key + schema_version</TD><TD>UQ(run_id, identity_key)</TD></TR>
+        <TR><TD>created_at</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    vacancy_url_aliases [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#0f766e">
+        <TR><TD BGCOLOR="#ccfbf1" COLSPAN="2"><B>vacancy_url_aliases</B></TD></TR>
+        <TR><TD PORT="vacancy_url_alias_id"><B>vacancy_url_alias_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="vacancy_id"><B>vacancy_id</B></TD><TD>FK vacancy_resources</TD></TR>
+        <TR><TD>normalized_url</TD><TD>UQ(vacancy_id, normalized_url)</TD></TR>
+        <TR><TD>normalizer_version</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    companies [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#0f766e">
+        <TR><TD BGCOLOR="#ccfbf1" COLSPAN="2"><B>companies</B></TD></TR>
+        <TR><TD PORT="company_id"><B>company_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="run_id"><B>run_id</B></TD><TD>FK runs</TD></TR>
+        <TR><TD>display_name</TD><TD>nullable convenience value</TD></TR>
+        <TR><TD>created_at</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    company_identity_claims [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#0f766e">
+        <TR><TD BGCOLOR="#ccfbf1" COLSPAN="2"><B>company_identity_claims</B></TD></TR>
+        <TR><TD PORT="company_claim_id"><B>company_claim_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="run_id"><B>run_id</B></TD><TD>FK runs</TD></TR>
+        <TR><TD PORT="company_id"><B>company_id</B></TD><TD>FK companies</TD></TR>
+        <TR><TD>claim_type</TD><TD>provider_id | profile_url | verified_domain</TD></TR>
+        <TR><TD>claim_value</TD><TD></TD></TR>
+        <TR><TD PORT="listing_observation_id"><B>listing_observation_id</B></TD><TD>FK listing_observations, nullable</TD></TR>
+        <TR><TD PORT="detail_observation_id"><B>detail_observation_id</B></TD><TD>FK vacancy_detail_observations, nullable</TD></TR>
+        <TR><TD PORT="profile_observation_id"><B>profile_observation_id</B></TD><TD>FK company_profile_observations, nullable</TD></TR>
+        <TR><TD PORT="site_observation_id"><B>site_observation_id</B></TD><TD>FK company_site_observations, nullable</TD></TR>
+        <TR><TD>status</TD><TD>active | disputed | superseded</TD></TR>
+        <TR><TD COLSPAN="2">UQ(run_id, claim_type, claim_value)</TD></TR>
+        <TR><TD COLSPAN="2">CHECK(exactly one observation FK is non-null)</TD></TR>
+      </TABLE>
+    >];
+
+    company_merges [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#0f766e">
+        <TR><TD BGCOLOR="#ccfbf1" COLSPAN="2"><B>company_merges</B></TD></TR>
+        <TR><TD PORT="company_merge_id"><B>company_merge_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="from_company_id"><B>from_company_id</B></TD><TD>FK companies</TD></TR>
+        <TR><TD PORT="into_company_id"><B>into_company_id</B></TD><TD>FK companies</TD></TR>
+        <TR><TD>reason + policy_version</TD><TD></TD></TR>
+        <TR><TD>created_at</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    vacancy_listings [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#0f766e">
+        <TR><TD BGCOLOR="#ccfbf1" COLSPAN="2"><B>vacancy_listings</B></TD></TR>
+        <TR><TD PORT="listing_id"><B>listing_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="run_id"><B>run_id</B></TD><TD>FK runs</TD></TR>
+        <TR><TD PORT="vacancy_id"><B>vacancy_id</B></TD><TD>FK vacancy_resources</TD></TR>
+        <TR><TD PORT="company_id"><B>company_id</B></TD><TD>FK companies, nullable</TD></TR>
+        <TR><TD>source_id</TD><TD></TD></TR>
+        <TR><TD>source_listing_id</TD><TD>nullable</TD></TR>
+        <TR><TD>identity_key</TD><TD>UQ(run_id, source_id, identity_key)</TD></TR>
+        <TR><TD>created_at</TD><TD>last seen derived from observations</TD></TR>
+      </TABLE>
+    >];
+  }
+
+  subgraph cluster_observations {
+    label="4. Immutable scraper observations";
+    color="#16a34a";
+    style="rounded";
+
+    listing_observations [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#16a34a">
+        <TR><TD BGCOLOR="#dcfce7" COLSPAN="2"><B>listing_observations</B></TD></TR>
+        <TR><TD PORT="listing_observation_id"><B>listing_observation_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="listing_id"><B>listing_id</B></TD><TD>FK vacancy_listings</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="source_plan_id"><B>source_plan_id</B></TD><TD>FK source_plans</TD></TR>
+        <TR><TD PORT="invocation_id"><B>invocation_id</B></TD><TD>FK parser_invocations</TD></TR>
+        <TR><TD>output_schema_id</TD><TD></TD></TR>
+        <TR><TD>item_key</TD><TD>UQ(invocation_id, item_key)</TD></TR>
+        <TR><TD>payload_json</TD><TD>SearchListingOutput</TD></TR>
+        <TR><TD>observed_at</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    vacancy_detail_observations [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#16a34a">
+        <TR><TD BGCOLOR="#dcfce7" COLSPAN="2"><B>vacancy_detail_observations</B></TD></TR>
+        <TR><TD PORT="detail_observation_id"><B>detail_observation_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="vacancy_id"><B>vacancy_id</B></TD><TD>FK vacancy_resources</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="invocation_id"><B>invocation_id</B></TD><TD>FK parser_invocations</TD></TR>
+        <TR><TD>output_schema_id</TD><TD></TD></TR>
+        <TR><TD>payload_json</TD><TD>VacancyDetailOutput</TD></TR>
+        <TR><TD>observed_at</TD><TD></TD></TR>
+        <TR><TD COLSPAN="2">UQ(invocation_id)</TD></TR>
+      </TABLE>
+    >];
+
+    company_profile_observations [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#16a34a">
+        <TR><TD BGCOLOR="#dcfce7" COLSPAN="2"><B>company_profile_observations</B></TD></TR>
+        <TR><TD PORT="profile_observation_id"><B>profile_observation_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="company_id"><B>company_id</B></TD><TD>FK companies</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="invocation_id"><B>invocation_id</B></TD><TD>FK parser_invocations</TD></TR>
+        <TR><TD>output_schema_id</TD><TD></TD></TR>
+        <TR><TD>profile_url</TD><TD></TD></TR>
+        <TR><TD>payload_json</TD><TD>CompanyProfileOutput</TD></TR>
+        <TR><TD>observed_at</TD><TD></TD></TR>
+        <TR><TD COLSPAN="2">UQ(invocation_id)</TD></TR>
+      </TABLE>
+    >];
+
+    company_site_observations [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#16a34a">
+        <TR><TD BGCOLOR="#dcfce7" COLSPAN="2"><B>company_site_observations</B></TD></TR>
+        <TR><TD PORT="site_observation_id"><B>site_observation_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="company_id"><B>company_id</B></TD><TD>FK companies</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="invocation_id"><B>invocation_id</B></TD><TD>FK parser_invocations</TD></TR>
+        <TR><TD>output_schema_id</TD><TD></TD></TR>
+        <TR><TD>canonical_site_url</TD><TD></TD></TR>
+        <TR><TD>payload_json</TD><TD>CompanySiteOutput</TD></TR>
+        <TR><TD>observed_at</TD><TD></TD></TR>
+        <TR><TD COLSPAN="2">UQ(invocation_id)</TD></TR>
+      </TABLE>
+    >];
+
+    discovered_endpoints [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#16a34a">
+        <TR><TD BGCOLOR="#dcfce7" COLSPAN="2"><B>discovered_endpoints</B></TD></TR>
+        <TR><TD PORT="endpoint_id"><B>endpoint_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="company_id"><B>company_id</B></TD><TD>FK companies</TD></TR>
+        <TR><TD PORT="profile_observation_id"><B>profile_observation_id</B></TD><TD>FK company_profile_observations, nullable</TD></TR>
+        <TR><TD PORT="site_observation_id"><B>site_observation_id</B></TD><TD>FK company_site_observations, nullable</TD></TR>
+        <TR><TD>origin_key</TD><TD>UQ; deterministic observation reference</TD></TR>
+        <TR><TD>kind + normalized_url</TD><TD></TD></TR>
+        <TR><TD>provider_hint</TD><TD>nullable</TD></TR>
+        <TR><TD>confidence + discovery_method</TD><TD></TD></TR>
+        <TR><TD>resolution_status</TD><TD>resolved | unsupported | ambiguous | rejected</TD></TR>
+        <TR><TD>resolved_parser_id + version</TD><TD>nullable</TD></TR>
+        <TR><TD COLSPAN="2">CHECK(exactly one observation FK is non-null)</TD></TR>
+      </TABLE>
+    >];
+  }
+
+  subgraph cluster_derived {
+    label="5. Execution-scoped derivations, decisions, and duplicate groups";
+    color="#7c3aed";
+    style="rounded";
+
+    fact_derivations [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#7c3aed">
+        <TR><TD BGCOLOR="#ede9fe" COLSPAN="2"><B>fact_derivations</B></TD></TR>
+        <TR><TD PORT="fact_derivation_id"><B>fact_derivation_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="listing_id"><B>listing_id</B></TD><TD>FK vacancy_listings</TD></TR>
+        <TR><TD>deriver_id + version</TD><TD></TD></TR>
+        <TR><TD>input_evidence_refs_json</TD><TD>validated observation ids</TD></TR>
+        <TR><TD>input_fingerprint</TD><TD></TD></TR>
+        <TR><TD>output_schema_id + payload_json</TD><TD></TD></TR>
+        <TR><TD COLSPAN="2">UQ(execution_id, listing_id, deriver_id, version, input_fingerprint)</TD></TR>
+      </TABLE>
+    >];
+
+    fact_sets [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#7c3aed">
+        <TR><TD BGCOLOR="#ede9fe" COLSPAN="2"><B>fact_sets</B></TD></TR>
+        <TR><TD PORT="fact_set_id"><B>fact_set_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="listing_id"><B>listing_id</B></TD><TD>FK vacancy_listings</TD></TR>
+        <TR><TD PORT="evidence_refs_json"><B>evidence_refs_json</B></TD><TD>validated observation + derivation ids</TD></TR>
+        <TR><TD>materialized_facts_json</TD><TD>single selector read</TD></TR>
+        <TR><TD>fingerprint</TD><TD>UQ(execution_id, listing_id, fingerprint)</TD></TR>
+        <TR><TD>created_at</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    selection_evaluations [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#7c3aed">
+        <TR><TD BGCOLOR="#ede9fe" COLSPAN="2"><B>selection_evaluations</B></TD></TR>
+        <TR><TD PORT="evaluation_id"><B>evaluation_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="listing_id"><B>listing_id</B></TD><TD>FK vacancy_listings</TD></TR>
+        <TR><TD PORT="fact_set_id"><B>fact_set_id</B></TD><TD>FK fact_sets</TD></TR>
+        <TR><TD>stage</TD><TD>preliminary | final</TD></TR>
+        <TR><TD>outcome</TD><TD>reject | enrich | keep</TD></TR>
+        <TR><TD>reason_codes_json</TD><TD></TD></TR>
+        <TR><TD COLSPAN="2">UQ(execution_id, listing_id, stage, fact_set_id)</TD></TR>
+      </TABLE>
+    >];
+
+    vacancy_duplicate_groups [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#7c3aed">
+        <TR><TD BGCOLOR="#ede9fe" COLSPAN="2"><B>vacancy_duplicate_groups</B></TD></TR>
+        <TR><TD PORT="duplicate_group_id"><B>duplicate_group_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD>confidence</TD><TD>exact | probable</TD></TR>
+        <TR><TD>evidence_json + policy_version</TD><TD></TD></TR>
+        <TR><TD>created_at</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    vacancy_duplicate_members [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#7c3aed">
+        <TR><TD BGCOLOR="#ede9fe" COLSPAN="2"><B>vacancy_duplicate_members</B></TD></TR>
+        <TR><TD PORT="duplicate_group_id"><B>duplicate_group_id</B></TD><TD>PK, FK vacancy_duplicate_groups</TD></TR>
+        <TR><TD PORT="listing_id"><B>listing_id</B></TD><TD>PK, FK vacancy_listings</TD></TR>
+        <TR><TD>member_role</TD><TD>representative | variant</TD></TR>
+      </TABLE>
+    >];
+
+    final_vacancies [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#7c3aed">
+        <TR><TD BGCOLOR="#ede9fe" COLSPAN="2"><B>final_vacancies</B></TD></TR>
+        <TR><TD PORT="final_vacancy_id"><B>final_vacancy_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="execution_id"><B>execution_id</B></TD><TD>FK search_executions</TD></TR>
+        <TR><TD PORT="listing_id"><B>listing_id</B></TD><TD>FK vacancy_listings</TD></TR>
+        <TR><TD PORT="evaluation_id"><B>evaluation_id</B></TD><TD>FK selection_evaluations</TD></TR>
+        <TR><TD PORT="duplicate_group_id"><B>duplicate_group_id</B></TD><TD>FK vacancy_duplicate_groups, nullable</TD></TR>
+        <TR><TD>snapshot_version</TD><TD></TD></TR>
+        <TR><TD>score + payload_json</TD><TD>immutable public projection</TD></TR>
+        <TR><TD COLSPAN="2">UQ(execution_id, listing_id, snapshot_version)</TD></TR>
+      </TABLE>
+    >];
+  }
+
+  subgraph cluster_operational {
+    label="6. Low-write operational diagnostics";
+    color="#64748b";
+    style="rounded";
+
+    artifact_index [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#64748b">
+        <TR><TD BGCOLOR="#e2e8f0" COLSPAN="2"><B>artifact_index</B></TD></TR>
+        <TR><TD PORT="artifact_id"><B>artifact_id</B></TD><TD>PK</TD></TR>
+        <TR><TD PORT="parser_attempt_id"><B>parser_attempt_id</B></TD><TD>FK parser_attempts</TD></TR>
+        <TR><TD>artifact_type</TD><TD>html | json | screenshot | log</TD></TR>
+        <TR><TD>storage_uri + checksum</TD><TD></TD></TR>
+        <TR><TD>capture_reason</TD><TD>failure | debug | fixture</TD></TR>
+        <TR><TD>expires_at</TD><TD>nullable</TD></TR>
+      </TABLE>
+    >];
+
+    network_telemetry_jsonl [
+      shape=folder,
+      label="Buffered network telemetry JSONL\nappend-only, batch flushed\noutside graph result transaction"
+    ];
+  }
+
+  subgraph cluster_deployment_limiter {
+    label="7. Separate deployment DB: {runsRoot}/_runtime/resource-gate.sqlite";
+    color="#4d7c0f";
+    style="rounded";
+
+    deployment_resource_state [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#4d7c0f">
+        <TR><TD BGCOLOR="#ecfccb" COLSPAN="2"><B>resource_state</B></TD></TR>
+        <TR><TD PORT="resource_key"><B>resource_key</B></TD><TD>PK</TD></TR>
+        <TR><TD>policy_version</TD><TD></TD></TR>
+        <TR><TD>next_start_at</TD><TD>deployment pacing</TD></TR>
+        <TR><TD>breaker_state + breaker_until</TD><TD></TD></TR>
+        <TR><TD>updated_at</TD><TD></TD></TR>
+      </TABLE>
+    >];
+
+    deployment_resource_slots [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#4d7c0f">
+        <TR><TD BGCOLOR="#ecfccb" COLSPAN="2"><B>resource_slots</B></TD></TR>
+        <TR><TD PORT="resource_key"><B>resource_key</B></TD><TD>PK, FK resource_state</TD></TR>
+        <TR><TD PORT="slot_number"><B>slot_number</B></TD><TD>PK; fixed 1..maxConcurrency</TD></TR>
+        <TR><TD>operation_id</TD><TD>direct call id or managed invocation id</TD></TR>
+        <TR><TD>owner_id</TD><TD>process/worker owner</TD></TR>
+        <TR><TD>lease_until</TD><TD>nullable; crash recovery</TD></TR>
+      </TABLE>
+    >];
+  }
+
+  search_executions:run_id:e -> runs:run_id:w [label="N:1"];
+  search_executions:intent_id:e -> search_intents:intent_id:w [label="N:1"];
+  source_plans:execution_id:e -> search_executions:execution_id:w [label="N:1"];
+  source_plans:origin_event_id:e -> domain_events:event_id:w [style=dashed, label="discovered by"];
+  source_plans:origin_company_id:e -> companies:company_id:w [style=dashed, label="for company"];
+  source_plans:origin_endpoint_id:e -> discovered_endpoints:endpoint_id:w [style=dashed, label="from endpoint"];
+  criterion_requirements:source_plan_id:e -> source_plans:source_plan_id:w [label="N:1"];
+  fact_providers:requirement_id:e -> criterion_requirements:requirement_id:w [label="N:1"];
+
+  parser_invocations:execution_id:e -> search_executions:execution_id:w [label="N:1"];
+  parser_invocations:source_plan_id:e -> source_plans:source_plan_id:w [style=dashed, label="listing branch"];
+  parser_invocations:parent_invocation_id:e -> parser_invocations:invocation_id:w [style=dashed, label="lineage"];
+  parser_invocations:cause_event_id:e -> domain_events:event_id:w [style=dashed, label="caused by"];
+  parser_attempts:invocation_id:e -> parser_invocations:invocation_id:w [label="N:1"];
+  listing_enrichment_requests:execution_id:e -> search_executions:execution_id:w;
+  listing_enrichment_requests:listing_id:e -> vacancy_listings:listing_id:w [label="consumer"];
+  listing_enrichment_requests:invocation_id:e -> parser_invocations:invocation_id:w [style=dashed, label="shared task when resolved"];
+  listing_enrichment_requests:provider_id:e -> fact_providers:provider_id:w [label="needed provider"];
+  domain_events:execution_id:e -> search_executions:execution_id:w;
+  domain_events:producer_invocation_id:e -> parser_invocations:invocation_id:w [style=dashed, label="producer"];
+
+  vacancy_resources:run_id:e -> runs:run_id:w;
+  vacancy_url_aliases:vacancy_id:e -> vacancy_resources:vacancy_id:w;
+  companies:run_id:e -> runs:run_id:w;
+  company_identity_claims:run_id:e -> runs:run_id:w;
+  company_identity_claims:company_id:e -> companies:company_id:w;
+  company_identity_claims:listing_observation_id:e -> listing_observations:listing_observation_id:w [style=dashed];
+  company_identity_claims:detail_observation_id:e -> vacancy_detail_observations:detail_observation_id:w [style=dashed];
+  company_identity_claims:profile_observation_id:e -> company_profile_observations:profile_observation_id:w [style=dashed];
+  company_identity_claims:site_observation_id:e -> company_site_observations:site_observation_id:w [style=dashed];
+  company_merges:from_company_id:e -> companies:company_id:w [label="from"];
+  company_merges:into_company_id:e -> companies:company_id:w [label="into"];
+  vacancy_listings:run_id:e -> runs:run_id:w;
+  vacancy_listings:vacancy_id:e -> vacancy_resources:vacancy_id:w [label="occurrence of"];
+  vacancy_listings:company_id:e -> companies:company_id:w [style=dashed, label="resolved company"];
+
+  listing_observations:listing_id:e -> vacancy_listings:listing_id:w;
+  listing_observations:execution_id:e -> search_executions:execution_id:w;
+  listing_observations:source_plan_id:e -> source_plans:source_plan_id:w;
+  listing_observations:invocation_id:e -> parser_invocations:invocation_id:w;
+  vacancy_detail_observations:vacancy_id:e -> vacancy_resources:vacancy_id:w [label="standalone detail"];
+  vacancy_detail_observations:execution_id:e -> search_executions:execution_id:w;
+  vacancy_detail_observations:invocation_id:e -> parser_invocations:invocation_id:w;
+  company_profile_observations:company_id:e -> companies:company_id:w;
+  company_profile_observations:execution_id:e -> search_executions:execution_id:w;
+  company_profile_observations:invocation_id:e -> parser_invocations:invocation_id:w;
+  company_site_observations:company_id:e -> companies:company_id:w;
+  company_site_observations:execution_id:e -> search_executions:execution_id:w;
+  company_site_observations:invocation_id:e -> parser_invocations:invocation_id:w;
+  discovered_endpoints:company_id:e -> companies:company_id:w;
+  discovered_endpoints:profile_observation_id:e -> company_profile_observations:profile_observation_id:w [style=dashed];
+  discovered_endpoints:site_observation_id:e -> company_site_observations:site_observation_id:w [style=dashed];
+
+  fact_derivations:execution_id:e -> search_executions:execution_id:w;
+  fact_derivations:listing_id:e -> vacancy_listings:listing_id:w;
+  fact_sets:execution_id:e -> search_executions:execution_id:w;
+  fact_sets:listing_id:e -> vacancy_listings:listing_id:w;
+  fact_sets:evidence_refs_json:e -> listing_observations:listing_observation_id:w [style=dotted, arrowhead=none, label="validated JSON ids; no member rows"];
+  fact_sets:evidence_refs_json:e -> vacancy_detail_observations:detail_observation_id:w [style=dotted, arrowhead=none];
+  fact_sets:evidence_refs_json:e -> company_profile_observations:profile_observation_id:w [style=dotted, arrowhead=none];
+  fact_sets:evidence_refs_json:e -> company_site_observations:site_observation_id:w [style=dotted, arrowhead=none];
+  fact_sets:evidence_refs_json:e -> fact_derivations:fact_derivation_id:w [style=dotted, arrowhead=none];
+  selection_evaluations:execution_id:e -> search_executions:execution_id:w;
+  selection_evaluations:listing_id:e -> vacancy_listings:listing_id:w;
+  selection_evaluations:fact_set_id:e -> fact_sets:fact_set_id:w [label="exact evidence"];
+  vacancy_duplicate_groups:execution_id:e -> search_executions:execution_id:w;
+  vacancy_duplicate_members:duplicate_group_id:e -> vacancy_duplicate_groups:duplicate_group_id:w;
+  vacancy_duplicate_members:listing_id:e -> vacancy_listings:listing_id:w;
+  final_vacancies:execution_id:e -> search_executions:execution_id:w;
+  final_vacancies:listing_id:e -> vacancy_listings:listing_id:w;
+  final_vacancies:evaluation_id:e -> selection_evaluations:evaluation_id:w;
+  final_vacancies:duplicate_group_id:e -> vacancy_duplicate_groups:duplicate_group_id:w [style=dashed];
+
+  artifact_index:parser_attempt_id:e -> parser_attempts:parser_attempt_id:w;
+  parser_attempts -> network_telemetry_jsonl [style=dotted, arrowhead=none, label="operation id correlation; buffered outside DB"];
+  deployment_resource_slots:resource_key:e -> deployment_resource_state:resource_key:w [label="fixed slots"];
+}

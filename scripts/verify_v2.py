@@ -107,7 +107,7 @@ def main() -> int:
         _run_v2_source_catalog_tests,
         _run_v2_scraper_fixture_tests,
         _run_v2_transport_tests,
-        _run_v2_orchestrator_tests,
+        _run_v2_graph_runtime_tests,
         _run_v2_persistence_tests,
         _run_v2_postprocessing_tests,
         _run_v2_application_cli_tests,
@@ -230,18 +230,29 @@ def _run_v2_transport_tests() -> int:
     )
 
 
-def _run_v2_orchestrator_tests() -> int:
+def _run_v2_graph_runtime_tests() -> int:
     return _run_unittest_modules(
-        "v2 scraper orchestrator tests",
-        ("tests.v2.test_runtime_orchestrator",),
+        "v2 independent scraper graph runtime tests",
+        (
+            "tests.v2.test_contracts_independent_scrapers",
+            "tests.v2.test_runtime_direct_scraper_executor",
+            "tests.v2.test_runtime_parser_runtime",
+            "tests.v2.test_runtime_resource_gate",
+            "tests.v2.test_runtime_managed_task_runner",
+            "tests.v2.test_runtime_graph_coordinator",
+            "tests.v2.test_runtime_graph_pipeline",
+            "tests.v2.test_runtime_final_assembler",
+            "tests.v2.test_runtime_independent_source_bundles",
+        ),
     )
 
 
 def _run_v2_persistence_tests() -> int:
     return _run_unittest_modules(
-        "v2 run artifact storage tests",
+        "v2 durable graph persistence and run-layout tests",
         (
-            "tests.v2.test_persistence_sqlite_run_store",
+            "tests.v2.test_persistence_graph_repository",
+            "tests.v2.test_persistence_graph_company_observations",
             "tests.v2.test_runtime_run_layout",
         ),
     )
@@ -478,7 +489,6 @@ def _validate_live_execution(
     if not _validate_live_attempt_outcomes(
         attempts,
         expected_source_ids=expected_source_ids,
-        artifacts=artifacts,
     ):
         return False
     if not _validate_live_processed_artifact(payload, artifacts=artifacts):
@@ -490,7 +500,6 @@ def _validate_live_attempt_outcomes(
     attempts: list[object],
     *,
     expected_source_ids: tuple[str, ...],
-    artifacts: dict[str, object],
 ) -> bool:
     outcomes = [_required_text(attempt, "outcome") for attempt in attempts if isinstance(attempt, dict)]
     if any(outcome not in CANONICAL_OUTCOMES for outcome in outcomes):
@@ -501,14 +510,10 @@ def _validate_live_attempt_outcomes(
         return False
     if not _validate_all_live_sources_attempted(attempts, expected_source_ids=expected_source_ids):
         return False
-    for source_id in expected_source_ids:
-        if source_id == "career:vk":
-            if not _validate_vk_live_attempt(attempts, artifacts):
-                return False
-            continue
-        if not _validate_healthy_live_attempt(attempts, source_id=source_id):
-            return False
-    return True
+    return all(
+        _validate_healthy_live_attempt(attempts, source_id=source_id)
+        for source_id in expected_source_ids
+    )
 
 
 def _validate_live_processed_artifact(
@@ -645,70 +650,16 @@ def _validated_live_artifacts(payload: dict[str, object]) -> dict[str, object] |
         print(f"v2 live e2e failed: missing report HTML: {report_html_path}", file=sys.stderr)
         return None
     expected_tables = {
-        "raw_listings_table": "raw_listings",
-        "source_attempts_table": "source_attempts",
-        "run_manifest_table": "run_manifest",
-        "processed_results_table": "processed_results",
+        "listing_observations_table": "listing_observations",
+        "source_plans_table": "source_plans",
+        "search_executions_table": "search_executions",
+        "final_vacancies_table": "final_vacancies",
     }
     for key, expected_value in expected_tables.items():
         if artifacts.get(key) != expected_value:
             print(f"v2 live e2e failed: unexpected {key}", file=sys.stderr)
             return None
     return artifacts
-
-
-def _validate_vk_live_attempt(attempts: list[object], artifacts: dict[str, object]) -> bool:
-    vk_attempts = [
-        attempt for attempt in attempts if isinstance(attempt, dict) and attempt.get("source") == "career:vk"
-    ]
-    if not vk_attempts:
-        print("v2 live e2e failed: career:vk attempt is missing", file=sys.stderr)
-        return False
-
-    for attempt in vk_attempts:
-        outcome = _required_text(attempt, "outcome")
-        if outcome == "success":
-            continue
-        if outcome == "network_error" and _has_known_vk_tls_chain_error(attempt, artifacts):
-            print("v2 live e2e detected known career:vk TLS chain issue", flush=True)
-            continue
-        print(f"v2 live e2e failed: unexpected career:vk live outcome: {attempt}", file=sys.stderr)
-        return False
-    return True
-
-
-def _has_known_vk_tls_chain_error(attempt: dict[str, object], artifacts: dict[str, object]) -> bool:
-    detailed_attempts = _read_source_attempt_artifact(artifacts)
-    query_variant = attempt.get("query_variant")
-    for detailed in detailed_attempts:
-        if detailed.get("source") != "career:vk":
-            continue
-        if detailed.get("outcome") != "network_error":
-            continue
-        if detailed.get("query_variant") != query_variant:
-            continue
-        if _is_known_vk_tls_chain_error(detailed):
-            return True
-    return False
-
-
-def _read_source_attempt_artifact(artifacts: dict[str, object]) -> list[dict[str, object]]:
-    return _read_source_attempt_records(artifacts)
-
-
-def _is_known_vk_tls_chain_error(detailed_attempt: dict[str, object]) -> bool:
-    evidence = detailed_attempt.get("evidence")
-    if not isinstance(evidence, dict):
-        return False
-    error = evidence.get("error")
-    if not isinstance(error, str):
-        return False
-    known_fragments = (
-        "CERTIFICATE_VERIFY_FAILED",
-        "certificate verify failed",
-        "unable to get local issuer certificate",
-    )
-    return any(fragment in error for fragment in known_fragments)
 
 
 def _validate_append_artifacts(first: dict[str, object], second: dict[str, object]) -> int:
@@ -734,53 +685,68 @@ def _read_processed_payload(artifacts: dict[str, object], *, append_sequence: in
     rows = _read_json_rows(
         artifacts,
         """
-        SELECT payload_json
-        FROM processed_results
-        WHERE append_sequence = ? AND phase = 'final'
+        SELECT final.payload_json
+        FROM final_vacancies AS final
+        JOIN search_executions AS execution
+          ON execution.execution_id = final.execution_id
+        WHERE execution.append_sequence = ?
+        ORDER BY final.final_vacancy_id
         """,
         (append_sequence,),
     )
-    if len(rows) != 1:
-        raise ValueError(f"expected one final processed_results row for append_sequence={append_sequence}")
-    return rows[0]
+    return {
+        "record_type": "processed_results",
+        "result_count": len(rows),
+        "results": rows,
+    }
 
 
 def _read_raw_records(artifacts: dict[str, object]) -> list[dict[str, object]]:
     return _read_json_rows(
         artifacts,
         """
-        SELECT record_json
-        FROM raw_listings
-        ORDER BY append_sequence, id
+        SELECT payload_json
+        FROM listing_observations
+        ORDER BY observed_at, listing_observation_id
         """,
         (),
     )
 
 
 def _read_source_attempt_records(artifacts: dict[str, object]) -> list[dict[str, object]]:
-    return _read_json_rows(
-        artifacts,
-        """
-        SELECT payload_json
-        FROM source_attempts
-        ORDER BY append_sequence, id
-        """,
-        (),
-    )
+    database_path = Path(_required_text(artifacts, "database"))
+    connection = sqlite3.connect(str(database_path), timeout=30.0)
+    try:
+        rows = connection.execute(
+            """
+            SELECT source_id, status, terminal_reason, items_used, units_used
+            FROM source_plans ORDER BY source_id, source_plan_id
+            """
+        ).fetchall()
+    finally:
+        connection.close()
+    return [
+        {
+            "source": str(row[0]),
+            "outcome": str(row[1]),
+            "terminal_reason": row[2],
+            "raw_listings_written": int(row[3]),
+            "pages_visited": int(row[4]),
+        }
+        for row in rows
+    ]
 
 
 def _read_run_manifest(artifacts: dict[str, object]) -> dict[str, object]:
-    rows = _read_json_rows(
-        artifacts,
-        """
-        SELECT payload_json
-        FROM run_manifest
-        """,
-        (),
-    )
-    if len(rows) != 1:
-        raise ValueError("expected one run_manifest row")
-    return rows[0]
+    database_path = Path(_required_text(artifacts, "database"))
+    connection = sqlite3.connect(str(database_path), timeout=30.0)
+    try:
+        row = connection.execute(
+            "SELECT MAX(append_sequence) FROM search_executions"
+        ).fetchone()
+    finally:
+        connection.close()
+    return {"latest_append_sequence": None if row is None else row[0]}
 
 
 def _read_json_rows(

@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
   <title>__TITLE__</title>
   <style>
     :root {
@@ -388,10 +389,14 @@
     }
 
     function matches(row) {
-      if (state.view === "kept" && row.decision !== "kept") return false;
-      if (state.view === "filtered" && row.decision !== "filtered_out") return false;
-      if (state.source && row.source !== state.source) return false;
+      if (state.view === "kept" && decision(row) !== "kept") return false;
+      if (state.view === "filtered" && decision(row) !== "filtered_out") return false;
+      if (state.source && row.sourceId !== state.source) return false;
       return true;
+    }
+
+    function decision(row) {
+      return text(row.decision) || "kept";
     }
 
     function renderHeader() {
@@ -457,7 +462,7 @@
     }
 
     function renderFilters() {
-      fillSelect("source-filter", "All sources", uniq(allRows.map((row) => text(row.source))));
+      fillSelect("source-filter", "All sources", uniq(allRows.map((row) => text(row.sourceId))));
     }
 
     function renderResults() {
@@ -476,7 +481,7 @@
 
     function renderRow(row, ordinal) {
       const article = document.createElement("article");
-      article.className = row.decision === "filtered_out" ? "filtered" : "kept";
+      article.className = decision(row) === "filtered_out" ? "filtered" : "kept";
 
       const head = document.createElement("div");
       head.className = "card-head";
@@ -490,7 +495,7 @@
       const titleText = document.createElement("div");
       titleText.className = "title-text";
       const title = document.createElement("h2");
-      const url = text(row.url);
+      const url = text(row.vacancyUrl);
       if (url) {
         const link = document.createElement("a");
         link.href = url;
@@ -502,7 +507,7 @@
         title.textContent = text(row.title) || "Untitled vacancy";
       }
       titleText.append(title);
-      const company = text(row.company);
+      const company = companyName(row.company);
       if (company) {
         const companyLine = document.createElement("div");
         companyLine.className = "company-line";
@@ -518,14 +523,12 @@
       grid.className = "grid";
       const highlightedLabels = highlightedCardFieldLabels(row);
       grid.append(
-        cardField("Experience", row.display_experience, highlightedLabels.has("Experience")),
-        cardField("Salary", row.display_salary, highlightedLabels.has("Salary")),
-        cardField("Posted", row.posted_at, highlightedLabels.has("Posted")),
-        cardField("Work format", row.display_work_format, highlightedLabels.has("Work format")),
-        cardField("Country", row.country, highlightedLabels.has("Country")),
-        cardField("Location", row.location_text, highlightedLabels.has("Location")),
-        cardField("Remote scope", row.remote_scope, highlightedLabels.has("Remote scope")),
-        cardField("Relocation", booleanText(row.relocation), highlightedLabels.has("Relocation"))
+        cardField("Grade", row.nativeGrade, highlightedLabels.has("Grade")),
+        cardField("Salary", salaryText(row.salary), highlightedLabels.has("Salary")),
+        cardField("Posted", row.postedAt, highlightedLabels.has("Posted")),
+        cardField("Work format", list(row.workFormats).join(", "), highlightedLabels.has("Work format")),
+        cardField("Location", locationText(row.location), highlightedLabels.has("Location")),
+        cardField("Remote scope", remoteScopeText(row.remoteScopes), highlightedLabels.has("Remote scope"))
       );
       head.append(grid);
       article.append(head);
@@ -550,14 +553,10 @@
 
       const debugFields = [
         debugField("Filter reason", removalReasonText(row)),
-        debugField("Source", row.source),
-        debugField("Source listing ID", row.source_listing_id),
-        debugField("Query", row.query_variant),
-        debugField("Work formats", list(row.work_formats).join(", ")),
-        debugField("Vacancy geography", row.vacancy_geography),
-        debugField("Description", row.description_availability),
-        debugField("Detail fetched", booleanText(row.detail_fetched)),
-        debugField("Detail parse error", row.detail_parse_error)
+        debugField("Source", row.sourceId),
+        debugField("Source listing ID", row.sourceListingId),
+        debugField("Source variants", list(row.sourceVariants).join(", ")),
+        debugField("Duplicate confidence", row.duplicateConfidence)
       ].filter(Boolean);
       if (debugFields.length) {
         const debug = document.createElement("div");
@@ -570,13 +569,41 @@
 
     function detailTextParts(row) {
       const description = text(row.description);
-      const requirements = text(row.requirements);
-      const rawText = text(row.raw_text);
+      const requirements = bodyText(row.requirements);
+      const responsibilities = bodyText(row.responsibilities);
+      const conditions = bodyText(row.conditions);
       const parts = [];
       if (description) parts.push(description);
       if (requirements && !description.includes(requirements)) parts.push(requirements);
-      if (!parts.length && rawText) parts.push(rawText);
+      if (responsibilities) parts.push(responsibilities);
+      if (conditions) parts.push(conditions);
       return parts;
+    }
+
+    function bodyText(value) {
+      return Array.isArray(value) ? list(value).join("\n") : text(value);
+    }
+
+    function companyName(value) {
+      return value && typeof value === "object" ? text(value.name) : "";
+    }
+
+    function locationText(value) {
+      return value && typeof value === "object" ? text(value.text) : "";
+    }
+
+    function salaryText(value) {
+      if (!value || typeof value !== "object") return "";
+      const bounds = [text(value.from), text(value.to)].filter(Boolean).join(" – ");
+      return [bounds, text(value.currency)].filter(Boolean).join(" ");
+    }
+
+    function remoteScopeText(value) {
+      if (!Array.isArray(value)) return "";
+      return value.map((scope) => {
+        if (!scope || typeof scope !== "object") return "";
+        return [text(scope.kind), text(scope.code)].filter(Boolean).join(":");
+      }).filter(Boolean).join(", ");
     }
 
     function cardField(label, value, highlighted) {
@@ -596,13 +623,13 @@
     }
 
     function removalReasonText(row) {
-      return row.decision === "filtered_out" ? decisionReasons(row).join(", ") : "";
+      return decision(row) === "filtered_out" ? decisionReasons(row).join(", ") : "";
     }
 
     function highlightedCardFieldLabels(row) {
       const labels = new Set();
       const mappings = [
-        ["grade_mismatch", "Experience"],
+        ["grade_mismatch", "Grade"],
         ["salary_below_requested_minimum", "Salary"],
         ["published_before_requested_date", "Posted"],
         ["vacancy_geography_mismatch", "Country"],
@@ -632,18 +659,16 @@
     }
 
     function applicationChannelsElement(row) {
-      const channels = Array.isArray(row.application_channels) ? row.application_channels : [];
+      const channels = Array.isArray(row.applicationChannels) ? row.applicationChannels : [];
       const links = channels
-        .filter((channel) => channel && typeof channel === "object" && text(channel.url) && text(channel.label))
+        .filter((channel) => channel && typeof channel === "object" && text(channel.value))
         .map((channel) => {
           const link = document.createElement("a");
           link.className = "apply-channel";
-          link.href = text(channel.url);
+          link.href = text(channel.value);
           link.target = "_blank";
           link.rel = "noreferrer";
-          link.textContent = text(channel.label);
-          const details = [text(channel.status), text(channel.source)].filter(Boolean).join(" · ");
-          if (details) link.title = details;
+          link.textContent = text(channel.label) || text(channel.kind) || "Apply";
           return link;
         });
       if (!links.length) return null;
@@ -660,13 +685,13 @@
     }
 
     function companyContactsElement(row) {
-      const contacts = Array.isArray(row.company_contacts) ? row.company_contacts : [];
+      const contacts = Array.isArray(row.contacts) ? row.contacts : [];
       const items = contacts
-        .filter((contact) => contact && typeof contact === "object" && text(contact.label) && text(contact.value))
+        .filter((contact) => contact && typeof contact === "object" && text(contact.value))
         .map((contact) => {
-          const label = text(contact.label);
+          const label = text(contact.label) || text(contact.kind) || "Contact";
           const value = text(contact.value);
-          const url = text(contact.url);
+          const url = contactUrl(text(contact.kind), value);
           const item = url ? document.createElement("a") : document.createElement("span");
           item.className = "company-contact";
           item.textContent = `${label}: ${value}`;
@@ -675,8 +700,6 @@
             item.target = "_blank";
             item.rel = "noreferrer";
           }
-          const source = text(contact.source);
-          if (source) item.title = source;
           return item;
         });
       if (!items.length) return null;
@@ -690,6 +713,13 @@
       itemRow.replaceChildren(...items);
       container.replaceChildren(title, itemRow);
       return container;
+    }
+
+    function contactUrl(kind, value) {
+      if (kind === "email") return `mailto:${value}`;
+      if (kind === "phone") return `tel:${value}`;
+      if (value.startsWith("https://") || value.startsWith("http://")) return value;
+      return "";
     }
 
     function debugField(label, value) {

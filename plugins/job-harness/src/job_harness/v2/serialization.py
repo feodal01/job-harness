@@ -8,7 +8,9 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any, cast
 
-type JsonObject = dict[str, Any]
+from job_harness.v2.contracts.json_types import JsonObject
+
+__all__ = ["JsonObject", "to_jsonable"]
 
 
 def to_jsonable(value: object) -> Any:

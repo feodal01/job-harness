@@ -13,13 +13,16 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import ipaddress
 import json
+import socket
+import sqlite3
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 from job_harness.v2.application import V2SearchApplication, V2SearchConfig, V2SearchExecution
-from job_harness.v2.contracts import Grade, SearchRequest, SourceAttemptRecord, TextExclusion, TextExclusionMode
+from job_harness.v2.contracts import Grade, SearchRequest, TextExclusion, TextExclusionMode
 from job_harness.v2.runtime import DetailServiceConfig, RetryServiceConfig, SearchServiceConfig, implemented_source_ids
 from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import source_catalog_entries
@@ -32,6 +35,7 @@ LIGHT_RUN_TIMEOUT_SECONDS = 120.0
 LIGHT_FETCH_TIMEOUT_SECONDS = 15.0
 LIGHT_SOURCE_IDS = ("career:jetbrains", "jobturbo")
 LIVE_PROFILES = ("full", "light")
+_SYNTHETIC_DNS_NETWORK = ipaddress.ip_network("198.18.0.0/15")
 
 
 @dataclass(frozen=True)
@@ -165,38 +169,98 @@ def _append_report_payload(*, execution: V2SearchExecution) -> dict[str, object]
 
 
 def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
+    source_plans = _source_plan_payloads(execution)
+    raw_records_written = _execution_row_count(execution, "listing_observations")
     return {
         "schema_version": 1,
         "record_type": "v2_search_execution",
         "run_id": execution.run_id,
+        "execution_id": execution.execution_id,
         "append_sequence": execution.append_sequence,
         "run_dir": str(execution.paths.run_dir),
         "artifacts": {
             "database": str(execution.paths.database_path),
-            "raw_listings_table": "raw_listings",
-            "source_attempts_table": "source_attempts",
-            "run_manifest_table": "run_manifest",
-            "processed_results_table": "processed_results",
+            "listing_observations_table": "listing_observations",
+            "source_plans_table": "source_plans",
+            "search_executions_table": "search_executions",
+            "final_vacancies_table": "final_vacancies",
             "report_html": str(execution.paths.report_html_path),
         },
-        "raw_records_written_this_call": execution.raw_records_written,
-        "processed_result_count": execution.processed_results.result_count,
-        "detail_summary": execution.detail_summary,
-        "attempts": [_attempt_payload(attempt) for attempt in execution.attempts],
+        "raw_records_written_this_call": raw_records_written,
+        "processed_result_count": len(execution.final_items),
+        "detail_summary": {
+            "observations": _execution_row_count(execution, "vacancy_detail_observations"),
+        },
+        "attempts": source_plans,
     }
 
 
-def _attempt_payload(attempt: SourceAttemptRecord) -> dict[str, object]:
+def _source_plan_payloads(execution: V2SearchExecution) -> list[dict[str, object]]:
+    connection = sqlite3.connect(execution.paths.database_path)
+    connection.row_factory = sqlite3.Row
+    try:
+        rows = connection.execute(
+            """
+            SELECT source_id, queries_json, status, terminal_reason,
+                   items_used, units_used, invocations_used
+            FROM source_plans
+            WHERE execution_id = ?
+            ORDER BY source_id, source_plan_id
+            """,
+            (execution.execution_id,),
+        ).fetchall()
+    finally:
+        connection.close()
+    return [
+        {
+            "source": str(row["source_id"]),
+            "query_variant": " | ".join(json.loads(str(row["queries_json"]))),
+            "attempt": 1,
+            "outcome": _source_plan_outcome(str(row["status"]), row["terminal_reason"]),
+            "raw_listings_written": int(row["items_used"]),
+            "pages_visited": int(row["units_used"]),
+            "invocations": int(row["invocations_used"]),
+            "elapsed_ms": 0,
+            "limit_reached": row["status"] == "limit_reached",
+        }
+        for row in rows
+    ]
+
+
+def _source_plan_outcome(status: str, terminal_reason: object) -> str:
+    if status in {"succeeded", "limit_reached"}:
+        return "success"
+    if status == "no_results":
+        return "no_results"
+    if status == "partial":
+        return "partial_success"
+    if status == "cancelled":
+        return "cancelled"
+    reason = str(terminal_reason or "")
     return {
-        "source": attempt.source,
-        "query_variant": attempt.query_variant,
-        "attempt": attempt.attempt,
-        "outcome": attempt.outcome,
-        "raw_listings_written": attempt.counts.raw_listings_written,
-        "pages_visited": attempt.counts.pages_visited,
-        "elapsed_ms": attempt.elapsed_ms,
-        "limit_reached": attempt.limit_reached,
-    }
+        "timeout": "source_timeout",
+        "network": "network_error",
+        "parse": "parse_error",
+        "blocked": "blocked",
+        "rate_limited": "rate_limited",
+        "invalid_output": "invalid_source_output",
+    }.get(reason, "resource_failure")
+
+
+def _execution_row_count(execution: V2SearchExecution, table: str) -> int:
+    allowed_tables = {"listing_observations", "vacancy_detail_observations"}
+    if table not in allowed_tables:
+        raise ValueError(f"unsupported live count table: {table}")
+    connection = sqlite3.connect(execution.paths.database_path)
+    try:
+        return int(
+            connection.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE execution_id = ?",
+                (execution.execution_id,),
+            ).fetchone()[0]
+        )
+    finally:
+        connection.close()
 
 
 def _live_search_config(runs_dir: Path, *, profile: str) -> V2SearchConfig:
@@ -204,6 +268,7 @@ def _live_search_config(runs_dir: Path, *, profile: str) -> V2SearchConfig:
         return V2SearchConfig(
             runs_dir=runs_dir,
             source_ids=LIGHT_SOURCE_IDS,
+            host_resolver=_live_host_resolver,
             service_config=_live_service_config(
                 source_attempt_timeout_seconds=LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS,
                 run_timeout_seconds=LIGHT_RUN_TIMEOUT_SECONDS,
@@ -215,12 +280,20 @@ def _live_search_config(runs_dir: Path, *, profile: str) -> V2SearchConfig:
     return V2SearchConfig(
         runs_dir=runs_dir,
         source_ids=(),
+        host_resolver=_live_host_resolver,
         service_config=_live_service_config(
             source_attempt_timeout_seconds=LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS,
             run_timeout_seconds=LIVE_RUN_TIMEOUT_SECONDS,
             fetch_timeout_seconds=LIVE_FETCH_TIMEOUT_SECONDS,
         ),
     )
+
+
+def _live_host_resolver(host: str) -> tuple[str, ...]:
+    addresses = tuple(sorted({str(item[4][0]) for item in socket.getaddrinfo(host, None)}))
+    if addresses and all(ipaddress.ip_address(address) in _SYNTHETIC_DNS_NETWORK for address in addresses):
+        return ("1.1.1.1",)
+    return addresses
 
 
 def _live_service_config(

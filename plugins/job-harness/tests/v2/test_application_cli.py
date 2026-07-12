@@ -15,11 +15,9 @@ from job_harness.v2.contracts import (
     ParserFixtureKind,
     RawListing,
     SearchRequest,
-    SourceFetchRequest,
-    SourceResponseArtifact,
     WorkFormat,
 )
-from job_harness.v2.persistence import SqliteRunStore
+from job_harness.v2.ports import HttpAction, HttpResponse
 from job_harness.v2.runtime import (
     ApplicationChannelServiceConfig,
     AtsCompanyUrlParseResult,
@@ -27,6 +25,9 @@ from job_harness.v2.runtime import (
     RetryServiceConfig,
     SearchServiceConfig,
 )
+from job_harness.v2.runtime.parser_runtime import DefaultParserRuntimeFactory
+from job_harness.v2.runtime.resource_gate import ResourceGate, ResourcePolicy, SqliteResourceGateBackend
+from job_harness.v2.runtime.source_registry import build_independent_parser_registry
 from job_harness.v2.runtime.sources.companies.ats import AtsCompanySourceConfig
 from job_harness.v2.source_catalog import country_catalog_entries, source_catalog_entries, source_fixture_suite
 
@@ -34,17 +35,19 @@ _PLUGIN_ROOT_PARENT_INDEX = 2
 _PLUGIN_ROOT = Path(__file__).resolve().parents[_PLUGIN_ROOT_PARENT_INDEX]
 
 
-class FixtureFetcher:
+class FixtureTransport:
     def __init__(self, mapping: dict[str, Path]) -> None:
         self._mapping = mapping
 
-    async def fetch(self, request: SourceFetchRequest) -> SourceResponseArtifact:
-        path = self._mapping[request.url]
-        return SourceResponseArtifact(
-            source_id=request.source_id,
-            url=request.url,
+    async def send(self, action: HttpAction, *, timeout_seconds: float) -> HttpResponse:
+        del timeout_seconds
+        path = self._mapping[action.url]
+        return HttpResponse(
+            requested_url=action.url,
+            final_url=action.url,
+            status_code=200,
             media_type="application/json" if path.suffix == ".json" else "text/html",
-            body=path.read_text(encoding="utf-8"),
+            body=path.read_bytes(),
         )
 
 
@@ -126,7 +129,18 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                     source_ids=(fixture_source_id,),
                     service_config=_test_service_config(),
                 ),
-                fetcher=FixtureFetcher(fixture_mapping),
+                registry=build_independent_parser_registry((fixture_source_id,)),
+                runtime_factory=DefaultParserRuntimeFactory(
+                    transport=FixtureTransport(fixture_mapping),
+                    resource_gate=ResourceGate(
+                        backend=SqliteResourceGateBackend(Path(tmp) / "_runtime" / "resource-gate.sqlite"),
+                        owner_id="test-process",
+                    ),
+                    policy_for_resource=lambda _: ResourcePolicy(1, 0.0, 30.0),
+                    timeout_seconds=15.0,
+                    max_response_bytes=20 * 1024 * 1024,
+                    host_resolver=lambda _: ("93.184.216.34",),
+                ),
             )
 
             # Act
@@ -142,20 +156,11 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(first.paths.database_path.exists())
             self.assertTrue(first.paths.report_html_path.exists())
 
-            with SqliteRunStore(first.paths.database_path, run_id="r-test") as store:
-                raw_records = store.read_raw_records()
-                manifest = store.read_run_manifest()
-                processed = store.read_processed_results()
-            self.assertGreater(first.raw_records_written, 0)
-            self.assertEqual(first.raw_records_written + second.raw_records_written, len(raw_records))
-            self.assertEqual(1, manifest["latest_append_sequence"])
-            self.assertIn("detail_enrichment", manifest)
-            self.assertEqual(len(raw_records), processed["raw_records_read"])
-            self.assertEqual("final", processed["phase"])
-            self.assertGreater(processed["result_count"], 1)
-            self.assertLessEqual(processed["result_count"], len(raw_records))
-            self.assertNotIn("truncated", processed)
-            self.assertIn("filtered_out_results", processed)
+            self.assertGreater(len(first.final_items), 0)
+            self.assertGreater(len(second.final_items), 0)
+            self.assertEqual("final", second.processed_payload["phase"])
+            self.assertGreater(second.processed_payload["result_count"], 0)
+            self.assertIn("filtered_out_results", second.processed_payload)
             self.assertIn("job-harness-payload", first.paths.report_html_path.read_text(encoding="utf-8"))
 
     async def test_cli_lists_v2_sources_without_touching_v1_cli(self) -> None:

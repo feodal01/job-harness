@@ -18,13 +18,12 @@ from job_harness.v2.application import (
 from job_harness.v2.contracts import (
     Grade,
     SearchRequest,
-    SourceAttemptRecord,
     SourceType,
     TextExclusion,
     TextExclusionMode,
     WorkFormat,
 )
-from job_harness.v2.persistence import read_processed_results_payload
+from job_harness.v2.persistence import read_graph_processed_payload
 from job_harness.v2.presentation import render_processed_results_markdown
 from job_harness.v2.runtime import fetch_ats_company_listings, implemented_source_ids
 from job_harness.v2.serialization import to_jsonable
@@ -158,7 +157,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _run_format(args: argparse.Namespace) -> int:
-    payload = read_processed_results_payload(args.input)
+    payload = read_graph_processed_payload(args.input)
     markdown = render_processed_results_markdown(
         payload,
         description_limit=args.description_limit,
@@ -266,21 +265,17 @@ def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
         "schema_version": 1,
         "record_type": "v2_search_execution",
         "run_id": execution.run_id,
+        "execution_id": execution.execution_id,
         "append_sequence": execution.append_sequence,
         "run_dir": str(execution.paths.run_dir),
         "artifacts": {
             "database": str(execution.paths.database_path),
-            "raw_listings_table": "raw_listings",
-            "source_attempts_table": "source_attempts",
-            "run_manifest_table": "run_manifest",
-            "processed_results_table": "processed_results",
+            "listing_observations_table": "listing_observations",
+            "parser_invocations_table": "parser_invocations",
+            "final_vacancies_table": "final_vacancies",
             "report_html": str(execution.paths.report_html_path),
         },
-        "raw_records_written_this_call": execution.raw_records_written,
-        "processed_result_count": execution.processed_results.result_count,
-        "detail_summary": execution.detail_summary,
-        "runtime_summary": execution.runtime_summary,
-        "attempts": [_attempt_payload(attempt) for attempt in execution.attempts],
+        "result_count": len(execution.final_items),
     }
 
 
@@ -307,19 +302,6 @@ def _ats_url_parse_payload(result: object) -> dict[str, object]:
         "listing_count": len(listings),
         "config": config,
         "listings": listings,
-    }
-
-
-def _attempt_payload(attempt: SourceAttemptRecord) -> dict[str, object]:
-    return {
-        "source": attempt.source,
-        "query_variant": attempt.query_variant,
-        "attempt": attempt.attempt,
-        "outcome": attempt.outcome,
-        "raw_listings_written": attempt.counts.raw_listings_written,
-        "pages_visited": attempt.counts.pages_visited,
-        "elapsed_ms": attempt.elapsed_ms,
-        "limit_reached": attempt.limit_reached,
     }
 
 

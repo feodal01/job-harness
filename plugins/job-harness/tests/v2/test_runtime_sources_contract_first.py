@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import tempfile
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +15,7 @@ from job_harness.v2.contracts import (
     ParserFixtureKind,
     RawListing,
     SearchRequest,
+    SearchResultOutcome,
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
@@ -24,14 +24,12 @@ from job_harness.v2.contracts import (
     WorkFormat,
 )
 from job_harness.v2.geography import normalize_source_geographies
-from job_harness.v2.persistence import SqliteRunStore
+from job_harness.v2.ports import HttpAction, HttpResponse, ParserRuntime
 from job_harness.v2.runtime import (
     ClassifiedSourceError,
-    OrchestratorConfig,
-    RetryPolicy,
-    SearchOrchestrator,
     SourceCatalog,
     SupportedSource,
+    build_independent_parser_registry,
     build_supported_source_catalog,
 )
 from job_harness.v2.runtime.sources import (
@@ -51,6 +49,7 @@ from job_harness.v2.runtime.sources import (
     TalentoSource,
     VKCareerSource,
 )
+from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import source_fixture_suite
 
 _PLUGIN_ROOT_PARENT_INDEX = 2
@@ -102,6 +101,33 @@ class FixtureFetcher:
             url=request.url,
             media_type="text/html",
             body=path.read_text(encoding="utf-8"),
+        )
+
+
+class FixtureParserRuntime(ParserRuntime):
+    def __init__(self, mapping: dict[str, Path]) -> None:
+        self._mapping = mapping
+        self.actions: list[HttpAction] = []
+
+    @property
+    def reserved_collection_units(self) -> int:
+        return 1
+
+    def has_url(self, url: object) -> bool:
+        return isinstance(url, str) and url in self._mapping
+
+    async def http(self, action: HttpAction) -> HttpResponse:
+        self.actions.append(action)
+        try:
+            path = self._mapping[action.url]
+        except KeyError as exc:
+            raise AssertionError(f"unexpected fixture URL: {action.url}") from exc
+        return HttpResponse(
+            requested_url=action.url,
+            final_url=action.url,
+            status_code=200,
+            media_type="text/html",
+            body=path.read_bytes(),
         )
 
 
@@ -240,6 +266,13 @@ def _fixture_input_query_variant(case: ParserFixtureCase) -> str:
     if not isinstance(query_variants, list) or len(query_variants) != 1 or not isinstance(query_variants[0], str):
         raise ValueError(f"fixture input must declare exactly one query variant: {input_path}")
     return query_variants[0]
+
+
+def _success_fixture_query_variant(case: ParserFixtureCase) -> str:
+    input_path = _fixture_response_path_from_case(case).parent / "input.json"
+    if not input_path.exists():
+        return _E2E_SUCCESS_QUERY
+    return _fixture_input_query_variant(case)
 
 
 def _fixture_captured_url(case: ParserFixtureCase) -> str:
@@ -3563,83 +3596,67 @@ def _map_detail_requests_if_needed(
 
 
 class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
-    async def test_new_runtime_runs_real_parser_fixtures(self) -> None:
-        # Arrange
+    async def test_independent_search_bundles_run_real_parser_fixtures(self) -> None:
         catalog = build_supported_source_catalog(_success_fixture_source_ids())
-        request = SearchRequest(query_variants=(_E2E_SUCCESS_QUERY,))
-        fetcher = FixtureFetcher(_e2e_success_fixture_mapping(catalog, request))
-        with tempfile.TemporaryDirectory() as tmp:
-            with SqliteRunStore(Path(tmp) / "run.sqlite", run_id="r-test") as writer:
-                writer.reserve_append_attempt({"query_variants": [_E2E_SUCCESS_QUERY]})
-                orchestrator = SearchOrchestrator(
-                    catalog=catalog,
-                    fetcher=fetcher,
-                    writer=writer,
-                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+        registry = build_independent_parser_registry(catalog.source_ids)
+        item_counts: dict[str, int] = {}
+        titles: set[str] = set()
+
+        for bundle in registry.search_bundles():
+            source_id = bundle.manifest.parser_id.removesuffix(".search")
+            fixture_case = _required_fixture_case(source_id, ParserFixtureKind.SUCCESS_NON_EMPTY)
+            request = SearchRequest(query_variants=(_success_fixture_query_variant(fixture_case),))
+            runtime = FixtureParserRuntime(
+                _e2e_success_source_fixture_mapping(catalog.get(source_id), request)
+            )
+            item_count = 0
+            queue = list(bundle.plan_initial(request, {"kind": "catalog"}))
+            seen_inputs: set[str] = set()
+            while queue:
+                parser_input = queue.pop(0)
+                input_key = json.dumps(to_jsonable(parser_input), sort_keys=True)
+                if input_key in seen_inputs:
+                    continue
+                seen_inputs.add(input_key)
+                result = await bundle.execute(parser_input, runtime)
+                item_count += len(result.items)
+                titles.update(item.title for item in result.items)
+                queue.extend(
+                    continuation
+                    for continuation in result.continuations
+                    if runtime.has_url(
+                        continuation.cursor.get("request", {}).get("url")
+                        if isinstance(continuation.cursor.get("request"), dict)
+                        else None
+                    )
                 )
+            item_counts[source_id] = item_count
 
-                # Act
-                result = await orchestrator.run(request, run_id="r-test")
-                raw_records = writer.read_raw_records()
+        self.assertEqual(set(catalog.source_ids), set(item_counts))
+        self.assertEqual(
+            tuple(source_id for source_id, count in item_counts.items() if count == 0),
+            (),
+        )
+        self.assertIn("Тестировщик (QA) мобильного приложения Windi Messenger", titles)
 
-            # Assert
-            outcomes = {attempt.source: attempt for attempt in result.attempts}
-            self.assertEqual(set(catalog.source_ids), set(outcomes))
-            for source_id, attempt in outcomes.items():
-                self.assertIn(attempt.outcome, {SourceOutcome.SUCCESS, SourceOutcome.NO_RESULTS}, source_id)
-                self.assertGreater(attempt.counts.pages_visited, 0, source_id)
-                if attempt.outcome == SourceOutcome.SUCCESS:
-                    self.assertGreater(attempt.counts.raw_listings_written, 0, source_id)
-                else:
-                    self.assertEqual(0, attempt.counts.raw_listings_written, source_id)
-
-            self.assertEqual(result.raw_records_written, len(raw_records))
-            self.assertEqual(
-                {
-                    source_id
-                    for source_id, attempt in outcomes.items()
-                    if attempt.outcome is SourceOutcome.SUCCESS
-                },
-                {record["source"] for record in raw_records},
-            )
-            self.assertIn(
-                "Тестировщик (QA) мобильного приложения Windi Messenger",
-                {record["listing"]["title"] for record in raw_records},
-            )
-
-    async def test_new_runtime_records_explicit_no_results_without_raw_records(self) -> None:
-        # Arrange
+    async def test_independent_search_bundles_return_explicit_no_results(self) -> None:
         cases = _runtime_no_results_fixture_cases()
-
-        # Assert
         self.assertGreater(len(cases), 0)
         for case in cases:
             with self.subTest(source_id=case.source_id):
-                fetcher = FixtureFetcher({case.url: case.response_path})
-                with tempfile.TemporaryDirectory() as tmp:
-                    with SqliteRunStore(Path(tmp) / "run.sqlite", run_id="r-test") as writer:
-                        writer.reserve_append_attempt({"query_variants": [case.query_variant]})
-                        orchestrator = SearchOrchestrator(
-                            catalog=build_supported_source_catalog((case.source_id,)),
-                            fetcher=fetcher,
-                            writer=writer,
-                            config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
-                        )
+                request = SearchRequest(query_variants=(case.query_variant,))
+                registry = build_independent_parser_registry((case.source_id,))
+                bundle = registry.search_bundles()[0]
+                parser_inputs = bundle.plan_initial(request, {"kind": "catalog"})
+                runtime = FixtureParserRuntime({case.url: case.response_path})
 
-                        # Act
-                        result = await orchestrator.run(
-                            SearchRequest(query_variants=(case.query_variant,)),
-                            run_id="r-test",
-                        )
-                        raw_records = writer.read_raw_records()
+                results = tuple(
+                    [await bundle.execute(parser_input, runtime) for parser_input in parser_inputs]
+                )
 
-                    # Assert
-                    self.assertEqual(0, result.raw_records_written)
-                    self.assertEqual(
-                        {case.source_id: SourceOutcome.NO_RESULTS},
-                        {attempt.source: attempt.outcome for attempt in result.attempts},
-                    )
-                    self.assertEqual((), raw_records)
+                self.assertTrue(results)
+                self.assertTrue(all(result.outcome == SearchResultOutcome.NO_RESULTS for result in results))
+                self.assertTrue(all(not result.items for result in results))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,426 @@
+digraph IndependentScraperEventGraph {
+  graph [
+    rankdir=TB,
+    bgcolor="#ffffff",
+    pad=0.4,
+    nodesep=0.55,
+    ranksep=0.9,
+    splines=polyline,
+    compound=true,
+    newrank=true,
+    fontname="Arial",
+    fontsize=22,
+    labelloc=t,
+    label="V2: independent scrapers in a durable data-dependency graph"
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    fillcolor="#ffffff",
+    color="#64748b",
+    fontname="Arial",
+    fontsize=9,
+    margin="0.11,0.07"
+  ];
+  edge [fontname="Arial", fontsize=8, arrowsize=0.65, color="#64748b"];
+
+  subgraph cluster_entry {
+    label="1. Direct calls return immediately; managed calls create an execution";
+    color="#2563eb";
+    style="rounded";
+
+    cli [
+      shape=component,
+      fillcolor="#eff6ff",
+      color="#2563eb",
+      label="Search CLI\nqueries + business criteria + source choice"
+    ];
+    direct_call [
+      shape=component,
+      fillcolor="#eff6ff",
+      color="#2563eb",
+      label="Direct scraper call\ntyped input -> typed result\nno graph persistence"
+    ];
+    managed_single [
+      shape=component,
+      fillcolor="#eff6ff",
+      color="#2563eb",
+      label="Managed single-target call\nfor example persist one vacancy detail"
+    ];
+    application [
+      fillcolor="#eff6ff",
+      color="#2563eb",
+      label="Application\npersist SearchIntent\ncreate run + execution"
+    ];
+
+    { rank=same; cli; direct_call; managed_single; }
+    cli -> application [label="search execution"];
+    managed_single -> application [label="single-target execution"];
+  }
+
+  subgraph cluster_planning {
+    label="2. Self-contained bundles plan typed initial inputs";
+    color="#0f766e";
+    style="rounded";
+
+    source_selector [
+      fillcolor="#f0fdfa",
+      color="#0f766e",
+      label="SourceSelector\nintent + catalog -> source instances"
+    ];
+    bundle_catalog [
+      shape=folder,
+      fillcolor="#f0fdfa",
+      color="#0f766e",
+      label="ScraperBundle registry\nmanifest + schemas + implementation\nlisting bundles also own planInitial"
+    ];
+    initial_planner [
+      fillcolor="#f0fdfa",
+      color="#0f766e",
+      label="SearchScraperBundle.planInitial\npure queryMode-aware mapping\nno network or runtime settings"
+    ];
+    provider_catalog [
+      fillcolor="#f0fdfa",
+      color="#0f766e",
+      label="Fact-provider catalog\ncriterion -> fact path -> scraper provider"
+    ];
+
+    application -> source_selector [label="search intent"];
+    source_selector -> bundle_catalog [label="selected listing bundles"];
+    bundle_catalog -> initial_planner [label="exact bundle"];
+    initial_planner -> provider_catalog [label="criteria requirements"];
+  }
+
+  subgraph cluster_graph {
+    label="3. Durable graph state: independent source branches and one mixed queue";
+    color="#f59e0b";
+    style="rounded";
+
+    source_plans [
+      shape=cylinder,
+      fillcolor="#fff7ed",
+      color="#f59e0b",
+      label="source_plans\none independent branch per source/query group\nquery mode + budgets + terminal outcome"
+    ];
+    task_queue [
+      shape=plain,
+      label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#f59e0b">
+          <TR><TD BGCOLOR="#ffedd5"><B>Mixed parser_invocations queue</B></TD><TD BGCOLOR="#ffedd5"><B>Created by</B></TD></TR>
+          <TR><TD>HH page 1</TD><TD>initial plan</TD></TR>
+          <TR><TD>Habr page 1</TD><TD>initial plan</TD></TR>
+          <TR><TD>HH page 2</TD><TD>page 1 continuation</TD></TR>
+          <TR><TD>vacancy detail A</TD><TD>missing required fact</TD></TR>
+          <TR><TD>shared company profile X</TD><TD>one task, many listings</TD></TR>
+          <TR><TD>company site Y</TD><TD>required or post-keep enrichment</TD></TR>
+          <TR><TD>Workday page 1</TD><TD>resolved career endpoint</TD></TR>
+        </TABLE>
+      >
+    ];
+    dependencies [
+      shape=cylinder,
+      fillcolor="#fff7ed",
+      color="#f59e0b",
+      label="listing_enrichment_requests\nlisting x shared invocation x fact provider"
+    ];
+
+    initial_planner -> source_plans [label="initial source plans"];
+    initial_planner -> task_queue [label="typed page-1 inputs"];
+    application -> task_queue [label="managed single-target input"];
+    source_plans -> task_queue [label="branch owns listing invocations", style=dashed];
+  }
+
+  subgraph cluster_execution {
+    label="4. TaskRunner invokes exactly one pinned scraper";
+    color="#16a34a";
+    style="rounded";
+
+    runner [
+      fillcolor="#f0fdf4",
+      color="#16a34a",
+      label="TaskRunner\nweighted-fair lease\nlease token + parser-call retry"
+    ];
+    parser_registry [
+      fillcolor="#f0fdfa",
+      color="#0f766e",
+      label="ParserRegistry\nexact parser id + version lookup\nno URL routing here"
+    ];
+    scraper_contracts [
+      shape=plain,
+      label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#16a34a">
+          <TR><TD BGCOLOR="#dcfce7"><B>Independent scraper</B></TD><TD BGCOLOR="#dcfce7"><B>Legal result</B></TD></TR>
+          <TR><TD>SearchListingScraper</TD><TD>stateless unit or reserved session batch + 0..N continuations</TD></TR>
+          <TR><TD>VacancyDetailScraper</TD><TD>one detail or not_found</TD></TR>
+          <TR><TD>CompanyProfileScraper</TD><TD>one profile or not_found</TD></TR>
+          <TR><TD>CompanySiteScraper</TD><TD>one site or not_found</TD></TR>
+        </TABLE>
+      >
+    ];
+    parser_runtime [
+      fillcolor="#ecfccb",
+      color="#4d7c0f",
+      label="ParserRuntime\nHTTP actions + invocation-scoped browser"
+    ];
+    resource_gate [
+      fillcolor="#ecfccb",
+      color="#4d7c0f",
+      label="Deployment-scoped ResourceGate\nfixed shared SQLite slots across CLI processes\npacing/concurrency/retry + network safety"
+    ];
+    network [
+      shape=component,
+      fillcolor="#f8fafc",
+      label="HTTP / browser resources"
+    ];
+    result_envelope [
+      fillcolor="#f0fdf4",
+      color="#16a34a",
+      label="Discriminated typed result\nor ParserFailure"
+    ];
+    direct_result [
+      shape=component,
+      fillcolor="#eff6ff",
+      color="#2563eb",
+      label="Direct typed result\nno run/task/observation/event"
+    ];
+
+    task_queue -> runner [label="lease runnable invocation"];
+    runner -> parser_registry [label="pinned id + version"];
+    direct_call -> parser_registry [label="direct exact parser ref"];
+    parser_registry -> scraper_contracts [label="execute typed input"];
+    scraper_contracts -> parser_runtime [label="bounded source-specific actions"];
+    parser_runtime -> resource_gate [label="every network action"];
+    resource_gate -> network [label="admitted action"];
+    network -> resource_gate [label="response", style=dashed];
+    scraper_contracts -> result_envelope [label="typed result"];
+    result_envelope -> direct_result [label="when direct", color="#2563eb"];
+  }
+
+  subgraph cluster_commit {
+    label="5. Coordinator commits identity, immutable facts, continuations, and events atomically";
+    color="#ca8a04";
+    style="rounded";
+
+    result_tx [
+      fillcolor="#fefce8",
+      color="#ca8a04",
+      label="Result transaction\nvalidate kind/schema/lease\nupsert identity anchors\nappend immutable observations\nreserve accepted continuations\nupdate source branch + close lease"
+    ];
+    terminal_tx [
+      fillcolor="#fef2f2",
+      color="#dc2626",
+      label="Terminal transaction\nvalidate lease\nmark invocation terminal\nsettle affected branch"
+    ];
+    identity_store [
+      shape=cylinder,
+      fillcolor="#f8fafc",
+      color="#475569",
+      label="Identity anchors\nvacancy resources/listings\nstrong companies/claims only + URL aliases"
+    ];
+    observation_store [
+      shape=cylinder,
+      fillcolor="#f8fafc",
+      color="#475569",
+      label="Immutable observations\nlisting + detail + profile + site"
+    ];
+    endpoint_store [
+      shape=cylinder,
+      fillcolor="#f8fafc",
+      color="#475569",
+      label="Discovered endpoints\nkind + normalized URL + evidence"
+    ];
+    source_lifecycle [
+      fillcolor="#fff7ed",
+      color="#f59e0b",
+      label="SourceLifecycle\nsucceeded | no_results | partial |\nlimit_reached | failed | cancelled"
+    ];
+    outbox [
+      shape=cylinder,
+      fillcolor="#fff7ed",
+      color="#f59e0b",
+      label="Versioned event outbox\none batch event per invocation result\nimmutable ids + processed marker"
+    ];
+    ops_store [
+      shape=cylinder,
+      fillcolor="#f8fafc",
+      color="#475569",
+      label="Hot DB: aggregate parser attempts\nBuffered JSONL: network actions\nDB artifact index: failures/debug only"
+    ];
+
+    result_envelope -> result_tx [label="managed success/not_found/partial", color="#16a34a"];
+    result_envelope -> terminal_tx [label="managed terminal failure", color="#dc2626"];
+    result_tx -> identity_store;
+    result_tx -> observation_store;
+    result_tx -> endpoint_store [label="profile/site endpoints"];
+    result_tx -> source_lifecycle [label="branch counters"];
+    terminal_tx -> source_lifecycle [label="branch failure"];
+    result_tx -> outbox [label="observation stored event"];
+    terminal_tx -> outbox [label="invocation_terminal"];
+    runner -> ops_store [label="parser attempts", style=dashed];
+    resource_gate -> ops_store [label="network attempts", style=dashed];
+
+    { rank=same; identity_store; observation_store; endpoint_store; }
+  }
+
+  // These are feedback edges into the durable graph, not forward pipeline stages.
+  result_tx -> task_queue [
+    label="0..N continuation tasks\natomic budget reservation",
+    color="#f59e0b",
+    constraint=false
+  ];
+  result_tx -> source_plans [label="counters/state", color="#f59e0b", constraint=false];
+  terminal_tx -> source_plans [label="partial/failed/cancelled", color="#dc2626", constraint=false];
+
+  subgraph cluster_policy {
+    label="6. Events drive fact dependencies, selection, and newly discovered work";
+    color="#7c3aed";
+    style="rounded";
+
+    event_consumer [
+      fillcolor="#faf5ff",
+      color="#7c3aed",
+      label="EventConsumer\nexecution coordinator lease\nselect bounded unprocessed batch\ncoalesce by listing + schema validation"
+    ];
+    fact_materializer [
+      fillcolor="#faf5ff",
+      color="#7c3aed",
+      label="FactMaterializer\nselect exact observation ids"
+    ];
+    fact_deriver [
+      fillcolor="#faf5ff",
+      color="#7c3aed",
+      label="Versioned FactDerivers\npure grade/salary/work-format/geography derivation\npersist input fingerprint + provenance"
+    ];
+    dependency_settler [
+      fillcolor="#faf5ff",
+      color="#7c3aed",
+      label="DependencySettler\nfan result/terminal state out\nto every listing consumer"
+    ];
+    preliminary [
+      fillcolor="#faf5ff",
+      color="#7c3aed",
+      label="PreliminarySelector\nreject | enrich | keep"
+    ];
+    requirement_planner [
+      fillcolor="#faf5ff",
+      color="#7c3aed",
+      label="FactRequirementPlanner\nminimum unresolved providers\noptional work deferred until keep"
+    ];
+    employer_resolver [
+      fillcolor="#f0fdfa",
+      color="#0f766e",
+      label="EmployerTargetResolver\ntrusted parser/catalog/redirect URLs only\nbare name -> unresolved_no_trusted_url"
+    ];
+    target_resolver [
+      fillcolor="#f0fdfa",
+      color="#0f766e",
+      label="TargetParserResolver\nresolved | unsupported |\nambiguous | rejected"
+    ];
+    endpoint_planner [
+      fillcolor="#faf5ff",
+      color="#7c3aed",
+      label="EndpointPlanner\ncareer/ATS target\nbounded depth + aliases + fan-out"
+    ];
+    discovered_source_planner [
+      fillcolor="#f0fdfa",
+      color="#0f766e",
+      label="Resolved listing bundle.planInitial\nnew source plan + typed page-1 input"
+    ];
+    final_selector [
+      fillcolor="#faf5ff",
+      color="#7c3aed",
+      label="FinalSelector\nkeep | reject\nreason codes + exact factSetId"
+    ];
+    policy_tx [
+      fillcolor="#faf5ff",
+      color="#7c3aed",
+      label="Policy transaction\nvalidate coordinator token\nat most one compact fact set/evaluation\nper listing fingerprint + tasks\nmark selected batch processed"
+    ];
+    fact_decision_store [
+      shape=cylinder,
+      fillcolor="#f5f3ff",
+      color="#7c3aed",
+      label="fact_derivations\ncompact fact_sets: materialized facts + evidence-id JSON\nselection_evaluations"
+    ];
+
+    outbox -> event_consumer [label="claim next event"];
+    event_consumer -> fact_materializer [label="observation stored"];
+    event_consumer -> dependency_settler [label="enrichment result/terminal"];
+    event_consumer -> endpoint_planner [label="profile/site endpoint"];
+    dependency_settler -> fact_materializer [label="all affected listings"];
+    fact_materializer -> fact_deriver [label="exact source facts"];
+    provider_catalog -> fact_deriver [label="declared derivation providers"];
+    fact_deriver -> preliminary [label="first materialized fact set"];
+    fact_deriver -> final_selector [label="relevant enriched fact set"];
+    preliminary -> requirement_planner [label="unresolved required facts"];
+    provider_catalog -> requirement_planner [label="declared provider DAG"];
+    requirement_planner -> target_resolver [label="known vacancy target"];
+    requirement_planner -> employer_resolver [label="profile/site provider"];
+    employer_resolver -> target_resolver [label="trusted resolved URL"];
+    employer_resolver -> policy_tx [label="unresolved / ambiguous"];
+    endpoint_planner -> target_resolver [label="career/ATS target"];
+    target_resolver -> discovered_source_planner [label="resolved listing target"];
+    requirement_planner -> policy_tx [label="resolved/reused enrichment task"];
+    discovered_source_planner -> policy_tx [label="source plan + first input"];
+    preliminary -> policy_tx;
+    final_selector -> policy_tx;
+    dependency_settler -> final_selector [label="required provider terminal"];
+    policy_tx -> fact_decision_store;
+  }
+
+  // Policy feedback can add work while any source branch is still progressing.
+  policy_tx -> task_queue [label="derived/reused tasks", color="#7c3aed", constraint=false];
+  policy_tx -> dependencies [label="one edge per listing consumer", color="#7c3aed", constraint=false];
+  policy_tx -> source_plans [label="discovered source plan", color="#0f766e", constraint=false];
+
+  subgraph cluster_completion {
+    label="7. Only final assembly is a global barrier";
+    color="#dc2626";
+    style="rounded";
+
+    completion [
+      fillcolor="#fef2f2",
+      color="#dc2626",
+      label="CompletionMonitor\nall source plans terminal\nno runnable/leased/retry tasks\nno waiting dependencies/events/valid leases"
+    ];
+    duplicate_resolver [
+      fillcolor="#fef2f2",
+      color="#dc2626",
+      label="DuplicateResolver\nexact: merge/share/collapse\nprobable: group only, keep separate"
+    ];
+    duplicate_store [
+      shape=cylinder,
+      fillcolor="#fef2f2",
+      color="#dc2626",
+      label="vacancy_duplicate_groups + members\nconfidence + evidence + policy version"
+    ];
+    final_assembler [
+      fillcolor="#fef2f2",
+      color="#dc2626",
+      label="FinalAssembler\ncollapse exact groups only\nrank + project terminal evaluations/fact sets"
+    ];
+    final_store [
+      shape=cylinder,
+      fillcolor="#fef2f2",
+      color="#dc2626",
+      label="final_vacancies\nimmutable execution snapshot"
+    ];
+
+    policy_tx -> completion [label="drain check after every transaction"];
+    completion -> duplicate_resolver [label="execution_drained"];
+    duplicate_resolver -> duplicate_store;
+    duplicate_resolver -> final_assembler [label="resolved groups"];
+    final_assembler -> final_store;
+  }
+
+  source_plans -> completion [label="terminal states", style=dashed, constraint=false];
+  task_queue -> completion [label="task states", style=dashed, constraint=false];
+  dependencies -> completion [label="dependency states", style=dashed, constraint=false];
+  outbox -> completion [label="unprocessed state", style=dashed, constraint=false];
+  identity_store -> duplicate_resolver [label="strong identity claims", style=dashed, constraint=false];
+  observation_store -> duplicate_resolver [label="duplicate evidence", style=dashed, constraint=false];
+  identity_store -> final_assembler [label="identity joins", style=dashed, constraint=false];
+  observation_store -> final_assembler [label="projection facts", style=dashed, constraint=false];
+  fact_decision_store -> final_assembler [label="terminal evidence", style=dashed, constraint=false];
+}

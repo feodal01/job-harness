@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import json
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 from job_harness.v2.cli import main as cli_main
-from job_harness.v2.persistence import SqliteRunStore
+from job_harness.v2.persistence import SqliteGraphRepository
 from job_harness.v2.presentation import render_processed_results_html, render_processed_results_markdown
 
 
@@ -17,39 +20,34 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
             "append_sequence": 0,
             "raw_records_read": 10,
             "result_count": 1,
-            "removed_counts": {"grade_mismatch": 3},
             "results": [
                 {
                     "title": "QA Engineer",
-                    "url": "https://example.com/jobs/1",
-                    "company": "Acme",
-                    "source": "hh_ru",
-                    "native_grade": "middle",
-                    "salary_text": "200 000 ₽",
-                    "city": "Moscow",
-                    "remote_scope": "global",
+                    "vacancyUrl": "https://example.com/jobs/1",
+                    "company": {"name": "Acme"},
+                    "sourceId": "hh_ru",
+                    "nativeGrade": "middle",
+                    "salary": {"from": 200000, "currency": "RUB"},
+                    "location": {"text": "Moscow"},
+                    "workFormats": ["remote"],
                     "skills": ["pytest", "API"],
-                    "application_channels": [
+                    "applicationChannels": [
                         {
-                            "type": "company_career_page",
+                            "kind": "company_career_page",
                             "label": "Careers",
-                            "url": "https://example.com/careers",
-                            "status": "resolved",
+                            "value": "https://example.com/careers",
                         }
                     ],
-                    "company_contacts": [
+                    "contacts": [
                         {
-                            "type": "email",
+                            "kind": "email",
                             "label": "Email",
                             "value": "hr@example.com",
-                            "url": "mailto:hr@example.com",
-                            "source": "company_site_contact_page",
                         },
                         {
-                            "type": "phone",
+                            "kind": "phone",
                             "label": "Phone",
                             "value": "+7 (999) 111-22-33",
-                            "source": "company_site_homepage",
                         },
                     ],
                     "description": "Build test automation.",
@@ -60,7 +58,6 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
         markdown = render_processed_results_markdown(payload)
 
         self.assertIn("# Job search results — `r-test`", markdown)
-        self.assertIn("**Filtered out:** grade_mismatch: 3", markdown)
         self.assertIn("## 1. QA Engineer", markdown)
         self.assertIn("[Open vacancy](https://example.com/jobs/1)", markdown)
         self.assertIn("**Company:** Acme", markdown)
@@ -69,10 +66,10 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
         self.assertIn("- [Careers](https://example.com/careers)", markdown)
         self.assertIn("**Company contacts**", markdown)
         self.assertIn("- Email: [hr@example.com](mailto:hr@example.com)", markdown)
-        self.assertIn("- Phone: +7 (999) 111-22-33", markdown)
+        self.assertIn("- Phone: [+7 (999) 111-22-33](tel:+7 (999) 111-22-33)", markdown)
         self.assertNotIn("— resolved", markdown)
 
-    def test_render_processed_results_markdown_puts_detail_status_in_diagnostics(self) -> None:
+    def test_render_processed_results_markdown_shows_duplicate_confidence(self) -> None:
         payload = {
             "record_type": "processed_results",
             "run_id": "r-test",
@@ -82,18 +79,15 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
             "results": [
                 {
                     "title": "QA Engineer",
-                    "source": "hh_ru",
-                    "description_availability": "detail_blocked",
-                    "detail_parse_error": "hh.ru account captcha on vacancy detail",
+                    "sourceId": "hh_ru",
+                    "duplicateConfidence": "probable",
                 }
             ],
         }
 
         markdown = render_processed_results_markdown(payload)
 
-        self.assertIn("**Diagnostics**", markdown)
-        self.assertIn("**Description status:** `detail_blocked`", markdown)
-        self.assertIn("**Detail parse error:** hh.ru account captcha on vacancy detail", markdown)
+        self.assertIn("**Duplicate confidence:** `probable`", markdown)
 
     def test_render_processed_results_markdown_respects_listing_limit(self) -> None:
         payload = {
@@ -123,32 +117,54 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
             root = Path(tmp_dir)
             input_path = root / "run.sqlite"
             output_path = root / "report.md"
-            with SqliteRunStore(input_path, run_id="r-cli") as store:
-                store.reserve_append_attempt({"query_variants": ["QA"]})
-                store.write_processed_results(
-                    {
-                        "record_type": "processed_results",
-                        "phase": "final",
-                        "run_id": "r-cli",
-                        "append_sequence": 0,
-                        "raw_records_read": 1,
-                        "result_count": 1,
-                        "results": [{"title": "Old append snapshot"}],
-                    }
+            repository = SqliteGraphRepository(input_path)
+            first_execution = repository.create_execution(
+                run_id="r-cli",
+                intent={"query_variants": ["QA"]},
+                append_sequence=0,
+                policy_version="policy-v1",
+                runtime_config_version="runtime-v1",
+                deadline_at=1000.0,
+            )
+            latest_execution = repository.create_execution(
+                run_id="r-cli",
+                intent={"query_variants": ["AQA"]},
+                append_sequence=1,
+                policy_version="policy-v1",
+                runtime_config_version="runtime-v1",
+                deadline_at=1000.0,
+            )
+            repository.close()
+            with closing(sqlite3.connect(input_path)) as connection:
+                connection.execute(
+                    "UPDATE search_executions SET status = 'completed' WHERE execution_id IN (?, ?)",
+                    (first_execution, latest_execution),
                 )
-                store.mark_append_attempt_completed()
-                store.reserve_append_attempt({"query_variants": ["AQA"]})
-                store.write_processed_results(
-                    {
-                        "record_type": "processed_results",
-                        "phase": "final",
-                        "run_id": "r-cli",
-                        "append_sequence": 1,
-                        "raw_records_read": 2,
-                        "result_count": 1,
-                        "results": [{"title": "Latest full run snapshot"}],
-                    }
+                connection.executemany(
+                    """
+                    INSERT INTO final_vacancies (
+                        final_vacancy_id, execution_id, listing_id, evaluation_id,
+                        snapshot_version, score, payload_json
+                    ) VALUES (?, ?, ?, ?, 1, 0, ?)
+                    """,
+                    (
+                        (
+                            "final-old",
+                            first_execution,
+                            "listing-old",
+                            "evaluation-old",
+                            json.dumps({"title": "Old append snapshot"}),
+                        ),
+                        (
+                            "final-latest",
+                            latest_execution,
+                            "listing-latest",
+                            "evaluation-latest",
+                            json.dumps({"title": "Latest full run snapshot"}),
+                        ),
+                    ),
                 )
+                connection.commit()
 
             exit_code = cli_main(
                 [
@@ -186,33 +202,22 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
             },
             "results": [
                 {
-                    "decision": "kept",
-                    "decision_reasons": ["matches_requested_filters"],
                     "title": "QA Engineer",
-                    "company": "Acme",
-                    "source": "hh_ru",
-                    "url": "https://example.com/jobs/1",
-                    "display_salary": "не указан",
-                    "display_experience": "1–3 года",
-                    "display_work_format": "удалённо",
-                    "remote_scope": "global",
-                    "remote_in_country": True,
-                    "remote_global": True,
-                    "application_channels": [
+                    "company": {"name": "Acme"},
+                    "sourceId": "hh_ru",
+                    "sourceListingId": "1",
+                    "vacancyUrl": "https://example.com/jobs/1",
+                    "salary": {"from": 200000, "currency": "RUB"},
+                    "nativeGrade": "middle",
+                    "workFormats": ["remote"],
+                    "remoteScopes": [{"kind": "country", "code": "RU"}],
+                    "applicationChannels": [
                         {
-                            "type": "company_career_page",
+                            "kind": "company_career_page",
                             "label": "Careers",
-                            "url": "https://example.com/careers",
-                            "status": "resolved",
-                        },
-                        {
-                            "type": "aggregator_company_profile",
-                            "label": "Profile",
-                            "url": "https://hh.ru/employer/123",
-                            "status": "source_provided",
+                            "value": "https://example.com/careers",
                         },
                     ],
-                    "source_facts": [{"label": "Experience", "value": "1–3 года"}],
                 }
             ],
             "filtered_out_results": [
@@ -220,8 +225,8 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
                     "decision": "filtered_out",
                     "decision_reasons": ["grade_mismatch"],
                     "title": "QA Intern",
-                    "company": "Beta",
-                    "source": "habr_career",
+                    "company": {"name": "Beta"},
+                    "sourceId": "habr_career",
                     "description": "Internship",
                 }
             ],
@@ -240,43 +245,32 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertIn("className = \"ordinal\"", html)
         self.assertIn("renderRow(row, index + 1)", html)
         self.assertIn("className = \"company-line\"", html)
-        self.assertIn('cardField("Experience", row.display_experience, highlightedLabels.has("Experience"))', html)
-        self.assertIn('cardField("Salary", row.display_salary, highlightedLabels.has("Salary"))', html)
-        self.assertIn('cardField("Posted", row.posted_at, highlightedLabels.has("Posted"))', html)
-        self.assertIn('cardField("Work format", row.display_work_format, highlightedLabels.has("Work format"))', html)
-        self.assertIn('cardField("Country", row.country, highlightedLabels.has("Country"))', html)
-        self.assertIn('cardField("Location", row.location_text, highlightedLabels.has("Location"))', html)
-        self.assertIn('cardField("Remote scope", row.remote_scope, highlightedLabels.has("Remote scope"))', html)
-        self.assertIn('cardField("Relocation", booleanText(row.relocation), highlightedLabels.has("Relocation"))', html)
+        self.assertIn('cardField("Grade", row.nativeGrade, highlightedLabels.has("Grade"))', html)
+        self.assertIn('cardField("Salary", salaryText(row.salary), highlightedLabels.has("Salary"))', html)
+        self.assertIn('cardField("Posted", row.postedAt, highlightedLabels.has("Posted"))', html)
+        self.assertIn('cardField("Work format", list(row.workFormats).join(", ")', html)
+        self.assertIn('cardField("Location", locationText(row.location)', html)
+        self.assertIn('cardField("Remote scope", remoteScopeText(row.remoteScopes)', html)
         self.assertIn('valueText || "not specified"', html)
         self.assertIn("field excluded-reason", html)
         self.assertIn("skillsElement(row)", html)
         self.assertIn("applicationChannelsElement(row)", html)
         self.assertIn("className = \"apply-channels\"", html)
         self.assertIn("Apply channels", html)
-        self.assertIn('"application_channels"', html)
-        self.assertIn("link.textContent = text(channel.label)", html)
-        self.assertIn("if (details) link.title = details", html)
-        self.assertNotIn("`${text(channel.label)} · ${status}`", html)
+        self.assertIn('"applicationChannels"', html)
+        self.assertIn("link.textContent = text(channel.label) || text(channel.kind) || \"Apply\"", html)
         self.assertIn("className = \"skill\"", html)
         self.assertIn('debugField("Filter reason", removalReasonText(row))', html)
-        self.assertIn('debugField("Vacancy geography", row.vacancy_geography)', html)
-        self.assertNotIn('debugField("Raw remote in country", booleanText(row.remote_in_country))', html)
-        self.assertNotIn('debugField("Raw remote global", booleanText(row.remote_global))', html)
-        self.assertIn('["grade_mismatch", "Experience"]', html)
+        self.assertNotIn('debugField("Query"', html)
+        self.assertNotIn('debugField("Vacancy geography"', html)
+        self.assertIn('["grade_mismatch", "Grade"]', html)
         self.assertIn('["remote_scope_mismatch", "Remote scope"]', html)
         self.assertIn('"decision_reasons": ["grade_mismatch"]', html)
         self.assertNotIn("workMode(row)", html)
-        self.assertNotIn("|| row.native_grade", html)
         self.assertIn("className = \"debug-meta\"", html)
-        self.assertNotIn("debugField(\"Company\", row.company)", html)
-        self.assertIn("debugField(\"Source\", row.source)", html)
-        self.assertIn("debugField(\"Source listing ID\", row.source_listing_id)", html)
-        self.assertIn('"source_facts"', html)
-        self.assertNotIn("factList(row.source_facts)", html)
-        self.assertNotIn("formatLocation(row)", html)
+        self.assertIn("debugField(\"Source\", row.sourceId)", html)
+        self.assertIn("debugField(\"Source listing ID\", row.sourceListingId)", html)
         self.assertIn("detailTextParts(row)", html)
-        self.assertIn("if (!parts.length && rawText) parts.push(rawText)", html)
         self.assertIn('"QA Intern"', html)
         self.assertIn("Filtered out", html)
 
@@ -321,16 +315,12 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
             "search_request": {"query_variants": ["QA"]},
             "results": [
                 {
-                    "decision": "kept",
-                    "decision_reasons": ["matches_requested_filters"],
                     "title": "QA Engineer",
-                    "company_contacts": [
+                    "contacts": [
                         {
-                            "type": "email",
+                            "kind": "email",
                             "label": "Email",
                             "value": "hr@example.com",
-                            "url": "mailto:hr@example.com",
-                            "source": "company_site_contact_page",
                         }
                     ],
                 }
@@ -343,9 +333,9 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertIn("companyContactsElement(row)", html)
         self.assertIn("className = \"company-contacts\"", html)
         self.assertIn("Company contacts", html)
-        self.assertIn('"company_contacts"', html)
+        self.assertIn('"contacts"', html)
         self.assertIn("item.textContent = `${label}: ${value}`", html)
-        self.assertIn("if (source) item.title = source", html)
+        self.assertIn('if (kind === "email") return `mailto:${value}`', html)
 
     def test_render_processed_results_html_uses_na_for_unset_request_filters(self) -> None:
         # Arrange
