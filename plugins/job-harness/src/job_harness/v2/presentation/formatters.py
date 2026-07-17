@@ -84,7 +84,7 @@ def _render_listing(index: int, item: dict[str, object], *, description_limit: i
     title = _text(item.get("title")) or "Untitled"
     lines = [f"## {index}. {title}", ""]
 
-    url = _text(item.get("url"))
+    url = _text(item.get("vacancyUrl"))
     if url:
         lines.append(f"[Open vacancy]({url})")
         lines.append("")
@@ -104,25 +104,29 @@ def _render_listing(index: int, item: dict[str, object], *, description_limit: i
 
 def _listing_meta_lines(item: dict[str, object]) -> list[str]:
     meta: list[str] = []
+    company = item.get("company")
+    company_name = _text(company.get("name")) if isinstance(company, dict) else ""
+    if company_name:
+        meta.append(f"**Company:** {company_name}")
     for key, label in (
-        ("company", "**Company:** {}"),
-        ("source", "**Source:** `{}`"),
-        ("native_grade", "**Grade:** {}"),
-        ("salary_text", "**Salary:** {}"),
-        ("posted_at", "**Posted:** {}"),
-        ("query_variant", "**Query variant:** `{}`"),
+        ("sourceId", "**Source:** `{}`"),
+        ("postedAt", "**Posted:** {}"),
     ):
         value = _text(item.get(key))
         if value:
             meta.append(label.format(value))
 
-    location = _text(item.get("location_text")) or _text(item.get("city"))
+    grade = _grade_text(item.get("grade"))
+    if grade:
+        meta.append(f"**Grade:** {grade}")
+
+    salary = _compensation_text(item.get("compensation"))
+    if salary:
+        meta.append(f"**Salary:** {salary}")
+
+    location = _location_text(item.get("location"))
     if location:
         meta.append(f"**Location:** {location}")
-
-    country = _text(item.get("country"))
-    if country:
-        meta.append(f"**Country:** {country}")
 
     work_mode = _work_mode(item)
     if work_mode:
@@ -141,7 +145,7 @@ def _listing_skills_lines(item: dict[str, object]) -> list[str]:
 
 
 def _listing_application_channel_lines(item: dict[str, object]) -> list[str]:
-    channels = item.get("application_channels")
+    channels = item.get("applicationChannels")
     if not isinstance(channels, list) or not channels:
         return []
     lines = ["**Apply channels**", ""]
@@ -149,8 +153,8 @@ def _listing_application_channel_lines(item: dict[str, object]) -> list[str]:
     for channel in channels:
         if not isinstance(channel, dict):
             continue
-        label = _text(channel.get("label"))
-        url = _text(channel.get("url"))
+        label = _text(channel.get("label")) or _text(channel.get("kind"))
+        url = _text(channel.get("value"))
         if not label or not url:
             continue
         lines.append(f"- [{label}]({url})")
@@ -162,7 +166,7 @@ def _listing_application_channel_lines(item: dict[str, object]) -> list[str]:
 
 
 def _listing_company_contact_lines(item: dict[str, object]) -> list[str]:
-    contacts = item.get("company_contacts")
+    contacts = item.get("contacts")
     if not isinstance(contacts, list) or not contacts:
         return []
     lines = ["**Company contacts**", ""]
@@ -170,9 +174,10 @@ def _listing_company_contact_lines(item: dict[str, object]) -> list[str]:
     for contact in contacts:
         if not isinstance(contact, dict):
             continue
-        label = _text(contact.get("label"))
         value = _text(contact.get("value"))
-        url = _text(contact.get("url"))
+        kind = _text(contact.get("kind"))
+        label = _text(contact.get("label")) or kind
+        url = _contact_url(kind, value)
         if not label or not value:
             continue
         if url:
@@ -191,31 +196,23 @@ def _listing_body_lines(item: dict[str, object], *, description_limit: int) -> l
     description = _text(item.get("description"))
     _append_body_section(lines, "Description", description, description_limit=description_limit)
 
-    requirements = _text(item.get("requirements"))
+    requirements = _body_text(item.get("requirements"))
     if requirements and requirements != description:
         _append_body_section(lines, "Requirements", requirements, description_limit=description_limit)
 
-    additional_sections = item.get("additional_sections")
-    if isinstance(additional_sections, dict):
-        for section_title, section_body in additional_sections.items():
-            body = _text(section_body)
-            if body:
-                _append_body_section(lines, _text(section_title), body, description_limit=description_limit)
+    for key, heading in (
+        ("responsibilities", "Responsibilities"),
+        ("conditions", "Conditions"),
+    ):
+        body = _body_text(item.get(key))
+        if body:
+            _append_body_section(lines, heading, body, description_limit=description_limit)
     return lines
 
 
 def _listing_diagnostic_lines(item: dict[str, object]) -> list[str]:
-    diagnostics: list[str] = []
-    for key, label in (
-        ("description_availability", "**Description status:** `{}`"),
-        ("detail_parse_error", "**Detail parse error:** {}"),
-    ):
-        value = _text(item.get(key))
-        if value:
-            diagnostics.append(label.format(value))
-    if not diagnostics:
-        return []
-    return ["**Diagnostics**", "", *diagnostics, ""]
+    confidence = _text(item.get("duplicateConfidence"))
+    return [] if not confidence else [f"**Duplicate confidence:** `{confidence}`", ""]
 
 
 def _append_body_section(
@@ -234,15 +231,67 @@ def _append_body_section(
 
 
 def _work_mode(item: dict[str, object]) -> str | None:
-    display_work_format = _text(item.get("display_work_format"))
-    if display_work_format:
-        return display_work_format
-    remote_scope = _text(item.get("remote_scope"))
-    if remote_scope:
-        return remote_scope
-    if item.get("relocation") is True:
-        return "relocation"
-    return None
+    workplace = item.get("workplace")
+    formats = workplace.get("formats") if isinstance(workplace, dict) else None
+    values = [_text(value) for value in formats] if isinstance(formats, list) else []
+    return ", ".join(value for value in values if value) or None
+
+
+def _grade_text(value: object) -> str:
+    if not isinstance(value, dict):
+        return ""
+    resolved = value.get("resolved")
+    if not isinstance(resolved, list):
+        return ""
+    text = ", ".join(_text(item) for item in resolved if _text(item))
+    if text and value.get("conflict") is True:
+        return f"{text} (source conflict)"
+    return text
+
+
+def _compensation_text(value: object) -> str:
+    if not isinstance(value, dict):
+        return ""
+    minimum = _text(value.get("minimum"))
+    maximum = _text(value.get("maximum"))
+    currency = _text(value.get("currency"))
+    period = _text(value.get("period"))
+    bounds = " - ".join(item for item in (minimum, maximum) if item)
+    components = [item for item in (bounds, currency) if item]
+    text = " ".join(components)
+    if period:
+        text = f"{text} / {period}" if text else f"per {period}"
+    gross = value.get("gross")
+    if isinstance(gross, bool):
+        text = f"{text} {'gross' if gross else 'net'}".strip()
+    return text
+
+
+def _location_text(value: object) -> str:
+    if not isinstance(value, dict):
+        return ""
+    structured = " | ".join(
+        ", ".join(_text(item) for item in items if _text(item))
+        for field in ("cities", "countries", "regions")
+        if isinstance((items := value.get(field)), list) and items
+    )
+    return structured or _text(value.get("rawText"))
+
+
+def _body_text(value: object) -> str:
+    if isinstance(value, list):
+        return "\n".join(_text(item) for item in value if _text(item))
+    return _text(value)
+
+
+def _contact_url(kind: str, value: str) -> str:
+    if kind == "email":
+        return f"mailto:{value}"
+    if kind == "phone":
+        return f"tel:{value}"
+    if value.startswith(("http://", "https://")):
+        return value
+    return ""
 
 
 def _truncate(text: str, limit: int) -> str:

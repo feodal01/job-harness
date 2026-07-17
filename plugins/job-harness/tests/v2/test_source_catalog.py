@@ -5,6 +5,7 @@ from pathlib import Path
 
 from job_harness.v2.contracts import (
     ParserFixtureKind,
+    ParserRef,
     SearchCriterion,
     SourceType,
     SupportedSourceContract,
@@ -33,6 +34,14 @@ class SourceCatalogTableTest(unittest.TestCase):
         self.assertGreater(len(entries), 0)
         self.assertEqual(len(source_ids), len(set(source_ids)))
 
+    def test_every_source_pins_its_listing_parser_reference(self) -> None:
+        for entry in source_catalog_entries():
+            with self.subTest(source_id=entry.source_id):
+                self.assertEqual(
+                    ParserRef(f"{entry.source_id}.search", "1.0"),
+                    entry.listing_parser_ref,
+                )
+
     def test_country_catalog_contains_supported_search_countries(self) -> None:
         # Arrange / Act
         countries = country_catalog_entries()
@@ -57,7 +66,6 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.GRADES,
-                    SearchCriterion.SALARY_FROM,
                 }
             ),
             descriptor.native_request_criteria,
@@ -243,7 +251,6 @@ class SourceCatalogTableTest(unittest.TestCase):
             frozenset(
                 {
                     SearchCriterion.QUERY,
-                    SearchCriterion.SALARY_FROM,
                 }
             ),
             descriptor.native_request_criteria,
@@ -252,10 +259,12 @@ class SourceCatalogTableTest(unittest.TestCase):
             frozenset(
                 {
                     SearchCriterion.GRADES,
+                    SearchCriterion.COMPENSATION,
                     SearchCriterion.PUBLISHED_SINCE,
                     SearchCriterion.WORK_FORMATS,
                     SearchCriterion.REMOTE_SCOPES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -292,7 +301,7 @@ class SourceCatalogTableTest(unittest.TestCase):
             frozenset(
                 {
                     SearchCriterion.GRADES,
-                    SearchCriterion.SALARY_FROM,
+                    SearchCriterion.COMPENSATION,
                     SearchCriterion.PUBLISHED_SINCE,
                     SearchCriterion.WORK_FORMATS,
                     SearchCriterion.REMOTE_SCOPES,
@@ -328,7 +337,7 @@ class SourceCatalogTableTest(unittest.TestCase):
             frozenset(
                 {
                     SearchCriterion.QUERY,
-                    SearchCriterion.SALARY_FROM,
+                    SearchCriterion.COMPENSATION,
                     SearchCriterion.PUBLISHED_SINCE,
                     SearchCriterion.WORK_FORMATS,
                     SearchCriterion.REMOTE_SCOPES,
@@ -386,13 +395,14 @@ class SourceCatalogTableTest(unittest.TestCase):
         self.assertEqual((), descriptor.countries)
         self.assertEqual(100, descriptor.source_limit)
         self.assertEqual(
-            frozenset({SearchCriterion.QUERY, SearchCriterion.SALARY_FROM}),
+            frozenset({SearchCriterion.QUERY}),
             descriptor.native_request_criteria,
         )
         self.assertEqual(
             frozenset(
                 {
                     SearchCriterion.GRADES,
+                    SearchCriterion.COMPENSATION,
                     SearchCriterion.PUBLISHED_SINCE,
                     SearchCriterion.WORK_FORMATS,
                     SearchCriterion.REMOTE_SCOPES,
@@ -456,13 +466,14 @@ class SourceCatalogTableTest(unittest.TestCase):
         self.assertEqual((), descriptor.countries)
         self.assertEqual(100, descriptor.source_limit)
         self.assertEqual(
-            frozenset({SearchCriterion.QUERY, SearchCriterion.SALARY_FROM}),
+            frozenset({SearchCriterion.QUERY}),
             descriptor.native_request_criteria,
         )
         self.assertEqual(
             frozenset(
                 {
                     SearchCriterion.GRADES,
+                    SearchCriterion.COMPENSATION,
                     SearchCriterion.PUBLISHED_SINCE,
                     SearchCriterion.WORK_FORMATS,
                     SearchCriterion.REMOTE_SCOPES,
@@ -492,17 +503,20 @@ class SourceCatalogTableTest(unittest.TestCase):
         self.assertEqual((), descriptor.countries)
         self.assertEqual(100, descriptor.source_limit)
         self.assertEqual(
-            frozenset({SearchCriterion.QUERY, SearchCriterion.SALARY_FROM}),
+            frozenset({SearchCriterion.QUERY}),
             descriptor.native_request_criteria,
         )
         self.assertEqual(
             frozenset(
                 {
                     SearchCriterion.GRADES,
+                    SearchCriterion.COMPENSATION,
                     SearchCriterion.PUBLISHED_SINCE,
+                    SearchCriterion.RELOCATION,
                     SearchCriterion.WORK_FORMATS,
                     SearchCriterion.REMOTE_SCOPES,
-                    SearchCriterion.VACANCY_GEOGRAPHIES,                }
+                    SearchCriterion.VACANCY_GEOGRAPHIES,
+                }
             ),
             descriptor.structured_output_criteria,
         )
@@ -535,7 +549,7 @@ class SourceCatalogTableTest(unittest.TestCase):
                 {
                     SearchCriterion.QUERY,
                     SearchCriterion.GRADES,
-                    SearchCriterion.SALARY_FROM,
+                    SearchCriterion.COMPENSATION,
                     SearchCriterion.WORK_FORMATS,
                     SearchCriterion.REMOTE_SCOPES,
                 }
@@ -566,7 +580,7 @@ class SourceCatalogTableTest(unittest.TestCase):
             frozenset(
                 {
                     SearchCriterion.GRADES,
-                    SearchCriterion.SALARY_FROM,
+                    SearchCriterion.COMPENSATION,
                     SearchCriterion.WORK_FORMATS,
                     SearchCriterion.REMOTE_SCOPES,
                     SearchCriterion.VACANCY_GEOGRAPHIES,                }
@@ -738,7 +752,7 @@ class SourceCatalogTableTest(unittest.TestCase):
                 100,
                 {
                     SearchCriterion.QUERY,
-                    SearchCriterion.SALARY_FROM,
+                    SearchCriterion.COMPENSATION,
                     SearchCriterion.PUBLISHED_SINCE,
                     SearchCriterion.WORK_FORMATS,
                     SearchCriterion.REMOTE_SCOPES,

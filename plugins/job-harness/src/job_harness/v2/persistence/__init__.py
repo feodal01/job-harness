@@ -1,10 +1,8 @@
-"""Persistence adapters for v2 search runs."""
+"""Persistence boundary for durable graph executions."""
 
-from job_harness.v2.persistence.sqlite_run_store import SqliteRunStore, read_processed_results_payload
-from job_harness.v2.ports import StoredRawRecord
+from job_harness.v2.persistence.graph_repository import (
+    SqliteGraphRepository,
+    read_graph_processed_payload,
+)
 
-__all__ = [
-    "SqliteRunStore",
-    "StoredRawRecord",
-    "read_processed_results_payload",
-]
+__all__ = ["SqliteGraphRepository", "read_graph_processed_payload"]

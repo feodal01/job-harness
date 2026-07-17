@@ -47,7 +47,7 @@ GEOGRAPHY_INIT = V2_SRC / "geography" / "__init__.py"
 GEOGRAPHY_COUNTRIES = V2_SRC / "geography" / "countries.py"
 GEOGRAPHY_CITIES = V2_SRC / "geography" / "cities.py"
 REMOTE_SCOPE = V2_SRC / "postprocessing" / "remote_scope.py"
-RUNTIME_PIPELINE = V2_SRC / "runtime" / "pipeline.py"
+GRAPH_PIPELINE = V2_SRC / "runtime" / "graph_pipeline.py"
 
 FILE_BUDGETS = (
     FileBudget(
@@ -81,9 +81,9 @@ FILE_BUDGETS = (
         reason="remote scope policy should stay focused on listing geography and remote eligibility evidence",
     ),
     FileBudget(
-        path=RUNTIME_PIPELINE,
-        max_lines=420,
-        reason="runtime pipeline should show stage order without absorbing lower-level implementation details",
+        path=GRAPH_PIPELINE,
+        max_lines=360,
+        reason="graph pipeline should compose planning, runner, coordinator, and assembly without owning them",
     ),
 )
 

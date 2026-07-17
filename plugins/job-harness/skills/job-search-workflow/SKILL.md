@@ -54,6 +54,18 @@ After the refresh attempt, continue the search workflow. If a host update
 command is unavailable or fails, tell the user which command failed and which
 runtime path will be used for the search.
 
+Before translating a brief into flags, inspect the active runtime contract:
+
+```bash
+uv --directory plugins/job-harness run job-harness-v2 search --help
+```
+
+Use `job-harness-v2 search --help` directly when the installed executable is
+the selected runtime. Technical notes in a saved brief are non-authoritative:
+business preferences remain reusable, but old statements about missing flags,
+unsupported combinations, or required manual post-filtering must be checked
+against the refreshed CLI and removed when stale.
+
 ## Workflow
 
 1. **Confirm artifact root** — Before creating files, inspect
@@ -63,14 +75,18 @@ runtime path will be used for the search.
    `.job-harness/v2/runs/<run_id>/`.
 
 2. **Brief** — Activate the `user-briefing` skill. Ask all questions, confirm
-   before proceeding, or reuse an existing confirmed brief. Save the brief to
+   before proceeding, or reuse an existing confirmed brief. When reusing one,
+   preserve its business preferences and rebuild the CLI mapping from the
+   current `--help`; do not inherit historical runtime limitations. Save the brief to
    `.job-harness/briefs/YYYY-MM-DD_<slug>/brief.md` when the user wants
    project-local brief history.
 
 3. **Inspect catalog** — Always start with the v2 source catalog:
 
    ```bash
-   uv --directory plugins/job-harness run job-harness-v2 list-sources
+   CATALOG_JSON="$(mktemp)"
+   uv --directory plugins/job-harness run job-harness-v2 list-sources > "$CATALOG_JSON"
+   jq '{source_count: (.sources | length), by_type: (.sources | group_by(.source_type) | map({type: .[0].source_type, count: length})), native_query_sources: [.sources[] | select(.native_request_criteria | index("query")) | .source_id]}' "$CATALOG_JSON"
    ```
 
    Use exact `source_id` values from the JSON (`habr_career`, `hh_ru`,
@@ -79,34 +95,53 @@ runtime path will be used for the search.
    aggregator` or `--source-type company_career` for semantic narrowing.
 
 4. **Search** — Run the v2 CLI from the plugin root (or repo root with
-   `--directory plugins/job-harness`):
+   `--directory plugins/job-harness`). Resolve the artifact path in the shell
+   before `uv --directory` changes the child process working directory:
 
    ```bash
+   RUNS_DIR="$PWD/.job-harness/v2/runs"
    uv --directory plugins/job-harness run job-harness-v2 search \
      --queries "QA | AQA | SDET | quality assurance | тестировщик" \
      --grade middle \
-     --salary-from 150000 \
+     --salary-minimum 150000 \
+     --salary-currency RUB \
+     --salary-period month \
      --work-format remote \
      --remote-scope global \
      --remote-scope country:RU \
      --vacancy-geography country:RU \
      --vacancy-geography country:AM \
-     --runs-dir .job-harness/v2/runs
+     --runs-dir "$RUNS_DIR"
    ```
 
-   The command prints one JSON object (`record_type: v2_search_execution`) to
-   stdout. Parse it; do not paste the whole payload into chat.
+   The command prints progress to stderr and one JSON receipt
+   (`record_type: v2_search_execution`) to stdout. Parse the receipt; do not
+   paste it into chat.
 
    **Key response fields:**
    - `run_id` — reuse for append
    - `run_dir` — directory with all artifacts
    - `artifacts.database` — `run.sqlite` (durable run store)
-   - `artifacts.raw_listings_table` — `raw_listings` table (unfiltered source evidence)
-   - `artifacts.processed_results_table` — `processed_results` table (filtered/deduped export)
+   - `artifacts.execution_json` — the same durable execution receipt
    - `artifacts.report_html` — `report.html` (self-contained interactive report)
-   - `artifacts.source_attempts_table` — per-source diagnostics
-   - `attempts[*].outcome` — `success`, `no_results`, or failure classes
-   - `processed_result_count` — downstream listing count after post-processing
+   - `diagnostics.source_plans` — per-source budgets, usage, and terminal status
+   - `diagnostics.invocations` — status, outcome, and failure-kind counts
+   - `result_count` — filtered, deduplicated, ranked vacancy count
+
+   Use repeated `--scenario` flags when the brief contains OR branches. For
+   example, this means “worldwide remote at a Russian employer OR remote/hybrid with
+   explicit relocation support”:
+
+   ```bash
+   --scenario '{"work_formats":["remote"],"remote_scopes":["global"],"employer_geographies":["country:RU"]}' \
+   --scenario '{"work_formats":["remote","hybrid"],"relocation":true}'
+   ```
+
+   A scenario cannot be combined with flat workplace, relocation, remote, or
+   geography flags. Employer geography is only enforceable when an autonomous
+   profile scraper produces structured employer-location evidence; inspect
+   source capabilities and receipt diagnostics rather than inferring it from
+   vacancy location.
 
 5. **Append** — To add another query variant into the same run corpus:
 
@@ -114,21 +149,25 @@ runtime path will be used for the search.
    uv --directory plugins/job-harness run job-harness-v2 search \
      --queries "тестировщик | инженер по тестированию" \
      --append-to-run-id "<run_id>" \
-     --runs-dir .job-harness/v2/runs
+     --runs-dir "$RUNS_DIR"
    ```
 
 6. **Read results safely** — Raw and processed artifacts can be large.
-   - Use stdout summary fields and `attempts` for diagnostics first.
+   - Use receipt diagnostics first.
    - Give the user `report.html` as the primary browsable artifact when present.
-   - Read `processed_results` rows from `run.sqlite` in small slices when needed.
-   - Treat the `raw_listings` table as audit evidence, not the presentation layer.
+   - Review both kept rows and filtered-out title matches. The latter expose
+     relevant candidates rejected by grade, work-format, geography, salary,
+     relocation, or exclusion rules and make bad filters auditable.
+   - Use `job-harness-v2 format --input <run.sqlite>` or read
+     `final_vacancies` in small slices when a text review is needed.
+   - Treat `listing_observations` and `parser_attempts` as audit evidence, not
+     the presentation layer.
    - Never dump full database tables into the conversation.
 
-7. **Filter & rank** — Apply the brief's exclusion criteria on processed
-   results. Use `--exclude-text`, `--exclude-regex`, and `--exclude-company`
-   on subsequent searches when criteria are known upfront. Prefer substring
-   exclusions for "nice to have" keywords that should not auto-reject a role
-   when mentioned only in passing.
+7. **Filter & rank** — The graph applies the request filters and deterministic
+   relevance ranking before writing `final_vacancies`. Review the highest
+   `relevanceScore` rows first. Use `--exclude-text`, `--exclude-regex`, and
+   `--exclude-company` when exclusions are known upfront.
 
 8. **Present** — Show top matches with company, title, salary, location,
    remote/relocation when available, source id, and the listing URL. Note which
@@ -145,37 +184,46 @@ runtime path will be used for the search.
 
 | CLI flag | Maps to | Notes |
 |----------|---------|-------|
-| `--query` | `query_variants` | Repeatable; each variant runs against selected sources |
+| `--query` | `query_variants` | Repeatable; native-query sources run per variant, downstream-only sources fetch once and apply all variants locally |
 | `--queries` | `query_variants` | Pipe-separated variants, for example `"QA \| AQA \| SDET"`; repeatable |
 | `--grade` | `grades` | `intern`, `junior`, `middle`, `senior`, `lead`; repeatable |
-| `--salary-from` | `salary_from` | Integer lower bound; native on some sources, post-filter elsewhere |
+| `--salary-minimum` | `compensation.minimum` | Required together with currency and period |
+| `--salary-currency` | `compensation.currency` | ISO 4217 code; `RUR` normalizes to `RUB`; no FX conversion |
+| `--salary-period` | `compensation.period` | `hour`, `day`, `month`, or `year` |
+| `--salary-gross` | `compensation.gross` | Optional `true` / `false`; omitted means gross/net is not constrained |
 | `--published-since` | `published_since` | ISO date `YYYY-MM-DD` |
 | `--exclude-company` | `exclude_companies` | Repeatable company name substrings |
 | `--exclude-text` | `exclude_text` | Repeatable substring exclusions |
-| `--exclude-regex` | `exclude_regex` | Repeatable regex exclusions |
+| `--exclude-regex` | `exclude_text` | Repeatable regex-mode exclusions |
 | `--relocation` | `relocation` | `true` / `false` |
-| `--work-format` | `work_formats` | `remote`, `hybrid`, `office`, `unknown`; repeatable. `unknown` must be paired with a concrete format. |
-| `--remote-scope` | `remote_scopes` | Remote eligibility only: `global`, `country:<code>`, `region:<code>`, or `unknown`; repeatable and only meaningful with `--work-format remote`. `unknown` must be paired with a concrete scope. |
-| `--vacancy-geography` | `vacancy_geographies` | Vacancy market/location: `country:<code>`, `region:<code>`, `city:<name>`, or `unknown`; repeatable. `unknown` must be paired with a concrete geography. |
+| `--work-format` | `work_formats` | `remote`, `hybrid`, or `office`; repeatable |
+| `--remote-scope` | `remote_scopes` | Remote eligibility only: `global`, `country:<code>`, or `region:<code>`; repeatable and requires `--work-format remote` |
+| `--vacancy-geography` | `vacancy_geographies` | Vacancy market/location: `country:<code>`, `region:<code>`, or `city:<name>`; repeatable |
+| `--employer-geography` | `employer_geographies` | Employer location: `country:<code>`, `region:<code>`, or `city:<name>`; requires structured profile evidence |
+| `--scenario` | `scenarios` | Repeatable JSON OR branch over relocation, work formats, remote scopes, vacancy geography, and employer geography. |
 | `--source` | `sources` | Repeatable exact source ids; omit for full catalog |
 | `--source-type` | `source_types` | `aggregator` or `company_career` |
 | `--append-to-run-id` | append mode | Adds to existing run corpus |
 | `--run-id` | explicit run id | Optional; auto-generated when omitted |
 | `--runs-dir` | artifact root | Default `.job-harness/v2/runs` |
 
-If a workplace, remote-scope, or vacancy-geography criterion is not strict, add
-`unknown` alongside the concrete value to increase recall. For example, use both
-`--remote-scope country:RU` and `--remote-scope unknown` when country-limited
-remote evidence is useful but missing source evidence should still be reviewed.
-Do not request only `unknown`; the CLI rejects pure-unknown filters because they
-are not a useful search target.
+`unknown` is an internal evidence state, not a public filter value. A requested
+hard criterion with missing evidence may trigger an autonomous enrichment
+parser. If the declared providers are exhausted and the fact is still unknown,
+the vacancy is excluded from final results with an
+`insufficient_evidence:<criterion>` diagnostic in `filtered_out_results`.
+
+Compensation filtering compares only explicit lower bounds with the same
+currency and period. A missing lower bound, currency, or period is insufficient
+evidence; maximum-only compensation does not satisfy a minimum request.
 
 Call `list-sources` to see per-source `native_request_criteria` vs
-`structured_output_criteria` — unsupported criteria are still collected raw and
-handled in post-processing.
+`structured_output_criteria`. `unsupported` means the source does not guarantee
+that fact. Do not claim that post-processing can enforce an unsupported fact
+unless a later autonomous enrichment parser actually produces it.
 
 Runtime safety settings such as source timeouts, run timeout, HTTP fetch
-timeout, retry count, detail request pacing, and detail concurrency are
+timeout, retry count, host pacing, and host concurrency are
 service-owned settings packaged in
 `job_harness/v2/runtime/search_service_config.json`. Agents should not pass
 these values as normal search criteria.
@@ -193,11 +241,13 @@ capability fields as the current contract.
 Each run directory contains:
 
 - `run.sqlite` — durable run database
-  - `raw_listings` — one raw listing per row; not deduped or globally capped
-  - `source_attempts` — per-source attempt records with outcomes and evidence
-  - `run_manifest` — run id, append sequence, source summary
-  - `processed_results` — filtered, deduped export for presentation
+- `execution.json` — execution receipt with source-plan and invocation diagnostics
 - `report.html` — self-contained interactive report for kept and filtered-out rows
+
+The main audit tables are `listing_observations`, `parser_invocations`,
+`parser_attempts`, `source_plans`, `fact_sets`, `selection_evaluations`, and
+`final_vacancies`. There are no `raw_listings`, `source_attempts`, or
+`processed_results` tables in the graph runtime.
 
 ## Key principles
 

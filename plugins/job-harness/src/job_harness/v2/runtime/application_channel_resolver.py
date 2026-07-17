@@ -165,6 +165,15 @@ def is_non_career_link_domain(host: str, policy: ApplicationChannelResolutionPol
     return any(domain == folded or folded.endswith(f".{domain}") for domain in policy.non_career_link_domains)
 
 
+def best_career_link(
+    *,
+    base_url: str,
+    html: str,
+    policy: ApplicationChannelResolutionPolicy,
+) -> str | None:
+    return _best_career_link(base_url=base_url, html=html, policy=policy)
+
+
 def _career_channel(url: str, *, status: str, source: str) -> dict[str, str]:
     return {
         "type": "company_career_page",

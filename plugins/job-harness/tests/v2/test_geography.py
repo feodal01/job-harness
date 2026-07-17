@@ -12,6 +12,12 @@ from job_harness.v2.geography import (
 
 
 class GeographyTest(unittest.TestCase):
+    def test_street_number_is_not_interpreted_as_a_country(self) -> None:
+        self.assertEqual(
+            ("RU",),
+            normalize_source_geographies("Казань, улица Некрасова, 28"),
+        )
+
     def test_normalizes_country_names_and_aliases(self) -> None:
         cases = (
             ("Кипр", "CY"),

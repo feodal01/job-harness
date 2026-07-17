@@ -59,9 +59,15 @@ SEARCH_CRITERION_DESCRIPTORS: tuple[SearchCriterionDescriptor, ...] = (
         ),
     ),
     SearchCriterionDescriptor(
-        criterion=SearchCriterion.SALARY_FROM,
-        request_field="salary_from",
-        source_fact_fields=("salary_text", "salary_min", "salary_max", "salary_currency"),
+        criterion=SearchCriterion.COMPENSATION,
+        request_field="compensation",
+        source_fact_fields=(
+            "salary_min",
+            "salary_max",
+            "salary_currency",
+            "salary_period",
+            "salary_gross",
+        ),
         text_enrichment=TextEnrichmentPolicy.ALLOWED,
         text_enrichment_fields=(
             TextField.DESCRIPTION,
@@ -118,6 +124,12 @@ SEARCH_CRITERION_DESCRIPTORS: tuple[SearchCriterionDescriptor, ...] = (
             TextField.REQUIREMENTS,
             TextField.RAW_TEXT,
         ),
+    ),
+    SearchCriterionDescriptor(
+        criterion=SearchCriterion.EMPLOYER_GEOGRAPHIES,
+        request_field="employer_geographies",
+        source_fact_fields=("company.employer_geographies", "company_profile.locations"),
+        text_enrichment=TextEnrichmentPolicy.REQUIRES_STRUCTURED_EVIDENCE,
     ),
 )
 

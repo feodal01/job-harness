@@ -46,9 +46,7 @@ class HabrCareerSource(DetailEnrichmentScraper):
             for grade in grade_values:
                 params = {"q": query_variant, "type": "all"}
                 if grade is not None:
-                    params["qualification"] = _habr_grade(grade)
-                if request.salary_from is not None:
-                    params["salary"] = str(request.salary_from)
+                    params["qid"] = str(_habr_grade_id(grade))
                 fetch_requests.append(
                     SourceFetchRequest(
                         source_id=self.descriptor.source_id,
@@ -434,8 +432,14 @@ def _parallel_page_requests(
     )
 
 
-def _habr_grade(grade: Grade) -> str:
-    return grade.value
+def _habr_grade_id(grade: Grade) -> int:
+    return {
+        Grade.INTERN: 1,
+        Grade.JUNIOR: 3,
+        Grade.MIDDLE: 4,
+        Grade.SENIOR: 5,
+        Grade.LEAD: 6,
+    }[grade]
 
 
 def _grade_value(value: str) -> str | None:

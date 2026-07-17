@@ -6,7 +6,7 @@ import json
 import re
 from dataclasses import replace
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
@@ -25,6 +25,7 @@ from job_harness.v2.source_catalog import source_descriptor, source_required_fix
 
 _API_URL = "https://api.finder.work/api/v1/vacancies"
 _PUBLIC_BASE_URL = "https://finder.work/vacancies"
+_PUBLIC_PATH_PART_COUNT = 2
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _EXPERIENCE_GRADE_MAP = {
     "no_experience": "junior",
@@ -48,7 +49,7 @@ class FinderWorkSource(DetailEnrichmentScraper):
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
                 query_variant=query_variant,
-                url=f"{_API_URL}?{urlencode(_search_params(query_variant, request))}",
+                url=f"{_API_URL}?{urlencode(_search_params(query_variant))}",
             )
             for query_variant in request.query_variants
         )
@@ -84,9 +85,9 @@ class FinderWorkSource(DetailEnrichmentScraper):
         return SourceSearchParseResult(outcome=SourceOutcome.SUCCESS, listings=listings)
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
-        listing_id = listing.source_listing_id
+        listing_id = listing.source_listing_id or _listing_id_from_public_url(listing.url)
         if not listing_id:
-            raise ValueError("Finder.work detail request requires source_listing_id")
+            raise ValueError("Finder.work detail request requires a canonical public vacancy URL")
         return SourceFetchRequest(
             source_id=self.descriptor.source_id,
             query_variant=listing.title,
@@ -109,11 +110,22 @@ class FinderWorkSource(DetailEnrichmentScraper):
         )
 
 
-def _search_params(query_variant: str, request: SearchRequest) -> dict[str, str]:
-    params = {"search": query_variant}
-    if request.salary_from is not None:
-        params["salary_from"] = str(request.salary_from)
-    return params
+def _listing_id_from_public_url(url: str) -> str | None:
+    parsed = urlparse(url)
+    parts = tuple(part for part in parsed.path.split("/") if part)
+    if parsed.netloc.lower() not in {"finder.work", "www.finder.work"}:
+        return None
+    if (
+        len(parts) != _PUBLIC_PATH_PART_COUNT
+        or parts[0] != "vacancies"
+        or not parts[1].isdigit()
+    ):
+        return None
+    return parts[1]
+
+
+def _search_params(query_variant: str) -> dict[str, str]:
+    return {"search": query_variant}
 
 
 def _listing_from_item(item: dict[str, Any]) -> RawListing | None:

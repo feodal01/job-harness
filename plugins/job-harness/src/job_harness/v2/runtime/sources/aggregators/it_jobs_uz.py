@@ -81,7 +81,7 @@ class ItJobsUzSource(SourceScraper):
                 source_id=self.descriptor.source_id,
                 query_variant=query_variant,
                 url=_build_api_url(
-                    _search_params(query_variant, request, limit=source_limit, page=1),
+                    _search_params(query_variant, limit=source_limit, page=1),
                 ),
             )
             for query_variant in request.query_variants
@@ -143,7 +143,6 @@ def _build_api_url(params: dict[str, str]) -> str:
 
 def _search_params(
     query_variant: str,
-    request: SearchRequest,
     *,
     limit: int,
     page: int,
@@ -156,8 +155,6 @@ def _search_params(
     category_slug = _category_slug_for_query(query_variant)
     if category_slug:
         params["category"] = category_slug
-    if request.salary_from is not None:
-        params["salaryMin"] = str(request.salary_from)
     return params
 
 
@@ -242,13 +239,17 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         country="Uzbekistan",
         city=location,
         location_text=location,
+        location_cities=(location,) if location else (),
+        location_countries=("UZ",),
         salary_text=_salary_text(salary_min, salary_max, currency, period),
         salary_min=_positive_int(salary_min),
         salary_max=_positive_int(salary_max),
         salary_currency=currency,
+        salary_period=period if period in {"hour", "day", "month", "year"} else None,
         posted_at=_text(item.get("publishedAt") or item.get("createdAt")).strip() or None,
         remote_in_country=remote,
         remote_global=False if remote else None,
+        remote_scope_countries=("UZ",) if remote else (),
         relocation=None,
         native_grade=_native_grade(_text(item.get("experienceLevel")).strip()),
         description=description,

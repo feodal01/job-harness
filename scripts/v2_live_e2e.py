@@ -13,25 +13,40 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import ipaddress
 import json
+import socket
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 from job_harness.v2.application import V2SearchApplication, V2SearchConfig, V2SearchExecution
-from job_harness.v2.contracts import Grade, SearchRequest, SourceAttemptRecord, TextExclusion, TextExclusionMode
-from job_harness.v2.runtime import DetailServiceConfig, RetryServiceConfig, SearchServiceConfig, implemented_source_ids
+from job_harness.v2.contracts import (
+    CompensationCriterion,
+    CompensationPeriod,
+    Grade,
+    SearchRequest,
+    TextExclusion,
+    TextExclusionMode,
+)
+from job_harness.v2.runtime import (
+    RequestRetryServiceConfig,
+    ResourceServiceConfig,
+    SearchServiceConfig,
+    implemented_source_ids,
+)
 from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import source_catalog_entries
 
-LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 240.0
-LIVE_RUN_TIMEOUT_SECONDS = 480.0
-LIVE_FETCH_TIMEOUT_SECONDS = 30.0
-LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 60.0
+LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 20.0
+LIVE_RUN_TIMEOUT_SECONDS = 180.0
+LIVE_FETCH_TIMEOUT_SECONDS = 15.0
+LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 20.0
 LIGHT_RUN_TIMEOUT_SECONDS = 120.0
 LIGHT_FETCH_TIMEOUT_SECONDS = 15.0
 LIGHT_SOURCE_IDS = ("career:jetbrains", "jobturbo")
 LIVE_PROFILES = ("full", "light")
+_SYNTHETIC_DNS_NETWORK = ipaddress.ip_network("198.18.0.0/15")
 
 
 @dataclass(frozen=True)
@@ -165,38 +180,7 @@ def _append_report_payload(*, execution: V2SearchExecution) -> dict[str, object]
 
 
 def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
-    return {
-        "schema_version": 1,
-        "record_type": "v2_search_execution",
-        "run_id": execution.run_id,
-        "append_sequence": execution.append_sequence,
-        "run_dir": str(execution.paths.run_dir),
-        "artifacts": {
-            "database": str(execution.paths.database_path),
-            "raw_listings_table": "raw_listings",
-            "source_attempts_table": "source_attempts",
-            "run_manifest_table": "run_manifest",
-            "processed_results_table": "processed_results",
-            "report_html": str(execution.paths.report_html_path),
-        },
-        "raw_records_written_this_call": execution.raw_records_written,
-        "processed_result_count": execution.processed_results.result_count,
-        "detail_summary": execution.detail_summary,
-        "attempts": [_attempt_payload(attempt) for attempt in execution.attempts],
-    }
-
-
-def _attempt_payload(attempt: SourceAttemptRecord) -> dict[str, object]:
-    return {
-        "source": attempt.source,
-        "query_variant": attempt.query_variant,
-        "attempt": attempt.attempt,
-        "outcome": attempt.outcome,
-        "raw_listings_written": attempt.counts.raw_listings_written,
-        "pages_visited": attempt.counts.pages_visited,
-        "elapsed_ms": attempt.elapsed_ms,
-        "limit_reached": attempt.limit_reached,
-    }
+    return dict(execution.receipt)
 
 
 def _live_search_config(runs_dir: Path, *, profile: str) -> V2SearchConfig:
@@ -204,6 +188,7 @@ def _live_search_config(runs_dir: Path, *, profile: str) -> V2SearchConfig:
         return V2SearchConfig(
             runs_dir=runs_dir,
             source_ids=LIGHT_SOURCE_IDS,
+            host_resolver=_live_host_resolver,
             service_config=_live_service_config(
                 source_attempt_timeout_seconds=LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS,
                 run_timeout_seconds=LIGHT_RUN_TIMEOUT_SECONDS,
@@ -215,12 +200,20 @@ def _live_search_config(runs_dir: Path, *, profile: str) -> V2SearchConfig:
     return V2SearchConfig(
         runs_dir=runs_dir,
         source_ids=(),
+        host_resolver=_live_host_resolver,
         service_config=_live_service_config(
             source_attempt_timeout_seconds=LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS,
             run_timeout_seconds=LIVE_RUN_TIMEOUT_SECONDS,
             fetch_timeout_seconds=LIVE_FETCH_TIMEOUT_SECONDS,
         ),
     )
+
+
+def _live_host_resolver(host: str) -> tuple[str, ...]:
+    addresses = tuple(sorted({str(item[4][0]) for item in socket.getaddrinfo(host, None)}))
+    if addresses and all(ipaddress.ip_address(address) in _SYNTHETIC_DNS_NETWORK for address in addresses):
+        return ("1.1.1.1",)
+    return addresses
 
 
 def _live_service_config(
@@ -233,16 +226,21 @@ def _live_service_config(
         source_attempt_timeout_seconds=source_attempt_timeout_seconds,
         run_timeout_seconds=run_timeout_seconds,
         fetch_timeout_seconds=fetch_timeout_seconds,
-        retry=RetryServiceConfig(max_attempts=1, backoff_seconds=0.0),
-        detail=DetailServiceConfig(
-            per_source_concurrency=1,
-            default_request_delay_seconds=0.75,
-            request_delay_seconds_by_source={
-                "hh_ru": 1.5,
-                "hirify": 0.75,
+        request_retry=RequestRetryServiceConfig(
+            max_attempts=3,
+            base_delay_seconds=1.0,
+            max_delay_seconds=8.0,
+            request_budget_seconds=55.0,
+        ),
+        resources=ResourceServiceConfig(
+            default_max_concurrency=1,
+            default_min_interval_seconds=0.75,
+            max_concurrency_by_resource={},
+            min_interval_seconds_by_resource={
+                "hh.ru": 1.5,
+                "api.hirify.me": 0.75,
             },
-            stop_on_blocked=True,
-            stop_on_rate_limited=True,
+            resource_key_by_host_suffix={"hh.ru": "hh.ru"},
         ),
     )
 
@@ -255,7 +253,7 @@ def _initial_live_request(profile: str) -> SearchRequest:
     return SearchRequest(
         query_variants=("QA",),
         grades=(Grade.MIDDLE,),
-        salary_from=150_000,
+        compensation=CompensationCriterion(150_000, "RUB", CompensationPeriod.MONTH),
         vacancy_geographies=("country:RU", "country:AM"),
     )
 

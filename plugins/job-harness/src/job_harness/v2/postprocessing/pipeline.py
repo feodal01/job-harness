@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from job_harness.v2.contracts import SearchRequest
+from job_harness.v2.contracts import CompensationFact, CompensationPeriod, SearchRequest
 from job_harness.v2.postprocessing.application_channels import application_channels
 from job_harness.v2.postprocessing.company_contacts import company_contacts
 from job_harness.v2.postprocessing.criteria_plan import CriteriaProcessingPlanner
@@ -179,6 +179,8 @@ def _listing_rows(records: tuple[dict[str, object], ...]) -> tuple[dict[str, obj
             "salary_min": _optional_int(listing.get("salary_min")),
             "salary_max": _optional_int(listing.get("salary_max")),
             "salary_currency": _optional_text(listing.get("salary_currency")),
+            "salary_period": _optional_text(listing.get("salary_period")),
+            "salary_gross": _optional_bool(listing.get("salary_gross")),
             "display_salary": _display_salary(listing),
             "posted_at": _optional_text(listing.get("posted_at")),
             "remote_in_country": _optional_bool(listing.get("remote_in_country")),
@@ -227,14 +229,13 @@ def _filter_facts(row: dict[str, object]) -> VacancyFilterFacts:
         additional_sections=_text_mapping(row["additional_sections"]),
         skills=_row_text_tuple(row["skills"]),
         raw_text=_optional_text(row["raw_text"]),
-        native_grade=_optional_text(row["native_grade"]),
-        salary_min=_optional_int(row["salary_min"]),
-        salary_max=_optional_int(row["salary_max"]),
+        grades=_grade_values(row),
+        compensation=_compensation_fact(row),
         posted_at=_optional_text(row["posted_at"]),
         work_formats=_row_text_tuple(row["work_formats"]),
         countries=_row_text_tuple(row["countries"]),
-        remote_scopes=_row_text_tuple(row["remote_scopes"]) or ("unknown",),
-        vacancy_geographies=_row_text_tuple(row["vacancy_geographies"]) or ("unknown",),
+        remote_scopes=_row_text_tuple(row["remote_scopes"]),
+        vacancy_geographies=_row_text_tuple(row["vacancy_geographies"]),
         relocation=_optional_bool(row["relocation"]),
         city=_optional_text(row["city"]),
     )
@@ -246,6 +247,35 @@ def _row_text_tuple(value: object) -> tuple[str, ...]:
     if isinstance(value, list):
         return tuple(_text(item) for item in value if _text(item))
     return ()
+
+
+def _grade_values(row: dict[str, object]) -> tuple[str, ...]:
+    grade = _optional_text(row["native_grade"])
+    return (grade,) if grade else ()
+
+
+def _compensation_fact(row: dict[str, object]) -> CompensationFact | None:
+    minimum = _optional_int(row["salary_min"])
+    maximum = _optional_int(row["salary_max"])
+    currency = _optional_text(row["salary_currency"])
+    if currency:
+        currency = "RUB" if currency.upper() == "RUR" else currency.upper()
+    raw_period = _optional_text(row["salary_period"])
+    period = CompensationPeriod(raw_period) if raw_period else None
+    gross = _optional_bool(row["salary_gross"])
+    values = (minimum, maximum, currency, period, gross)
+    if not any(value is not None for value in values):
+        return None
+    evidence = tuple(
+        field
+        for field, value in zip(
+            ("salary_min", "salary_max", "salary_currency", "salary_period", "salary_gross"),
+            values,
+            strict=False,
+        )
+        if value is not None
+    )
+    return CompensationFact(minimum, maximum, currency, period, gross, evidence)
 
 
 def _source_facts(listing: dict[str, object]) -> tuple[dict[str, str], ...]:
@@ -273,7 +303,7 @@ def _vacancy_geographies(listing: dict[str, object], countries: tuple[str, ...])
         scope = f"city:{city}"
         if scope not in geographies:
             geographies.append(scope)
-    return tuple(geographies) or ("unknown",)
+    return tuple(geographies)
 
 
 def _display_salary(listing: dict[str, object]) -> str | None:

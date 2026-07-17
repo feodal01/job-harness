@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import json
-import tempfile
 import unittest
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from job_harness.v2.contracts import (
+    CompensationCriterion,
+    CompensationPeriod,
     DetailEnrichmentScraper,
     Grade,
     HttpMethod,
@@ -16,6 +17,8 @@ from job_harness.v2.contracts import (
     ParserFixtureKind,
     RawListing,
     SearchRequest,
+    SearchResultOutcome,
+    SearchScraperBundle,
     SourceFetchRequest,
     SourceOutcome,
     SourceResponseArtifact,
@@ -24,14 +27,12 @@ from job_harness.v2.contracts import (
     WorkFormat,
 )
 from job_harness.v2.geography import normalize_source_geographies
-from job_harness.v2.persistence import SqliteRunStore
+from job_harness.v2.ports import HttpAction, HttpResponse, ParserAttemptMetrics, ParserRuntime
 from job_harness.v2.runtime import (
     ClassifiedSourceError,
-    OrchestratorConfig,
-    RetryPolicy,
-    SearchOrchestrator,
     SourceCatalog,
     SupportedSource,
+    build_independent_parser_registry,
     build_supported_source_catalog,
 )
 from job_harness.v2.runtime.sources import (
@@ -51,7 +52,8 @@ from job_harness.v2.runtime.sources import (
     TalentoSource,
     VKCareerSource,
 )
-from job_harness.v2.source_catalog import source_fixture_suite
+from job_harness.v2.serialization import to_jsonable
+from job_harness.v2.source_catalog import source_catalog_entry, source_fixture_suite
 
 _PLUGIN_ROOT_PARENT_INDEX = 2
 _PLUGIN_ROOT = Path(__file__).resolve().parents[_PLUGIN_ROOT_PARENT_INDEX]
@@ -102,6 +104,37 @@ class FixtureFetcher:
             url=request.url,
             media_type="text/html",
             body=path.read_text(encoding="utf-8"),
+        )
+
+
+class FixtureParserRuntime(ParserRuntime):
+    def __init__(self, mapping: dict[str, Path]) -> None:
+        self._mapping = mapping
+        self.actions: list[HttpAction] = []
+
+    @property
+    def reserved_collection_units(self) -> int:
+        return 1
+
+    @property
+    def attempt_metrics(self) -> ParserAttemptMetrics:
+        return ParserAttemptMetrics()
+
+    def has_url(self, url: object) -> bool:
+        return isinstance(url, str) and url in self._mapping
+
+    async def http(self, action: HttpAction) -> HttpResponse:
+        self.actions.append(action)
+        try:
+            path = self._mapping[action.url]
+        except KeyError as exc:
+            raise AssertionError(f"unexpected fixture URL: {action.url}") from exc
+        return HttpResponse(
+            requested_url=action.url,
+            final_url=action.url,
+            status_code=200,
+            media_type="text/html",
+            body=path.read_bytes(),
         )
 
 
@@ -242,12 +275,27 @@ def _fixture_input_query_variant(case: ParserFixtureCase) -> str:
     return query_variants[0]
 
 
+def _success_fixture_query_variant(case: ParserFixtureCase) -> str:
+    input_path = _fixture_response_path_from_case(case).parent / "input.json"
+    if not input_path.exists():
+        return _E2E_SUCCESS_QUERY
+    return _fixture_input_query_variant(case)
+
+
 def _fixture_captured_url(case: ParserFixtureCase) -> str:
     payload = json.loads((_PLUGIN_ROOT / case.metadata_path).read_text(encoding="utf-8"))
     captured_url = payload.get("captured_url")
     if not isinstance(captured_url, str) or not captured_url:
         raise ValueError(f"fixture metadata must declare captured_url: {case.metadata_path}")
     return captured_url
+
+
+def _fixture_request_url(case: ParserFixtureCase) -> str:
+    payload = json.loads((_PLUGIN_ROOT / case.metadata_path).read_text(encoding="utf-8"))
+    request_url = payload.get("request_url", payload.get("captured_url"))
+    if not isinstance(request_url, str) or not request_url:
+        raise ValueError(f"fixture metadata must declare request_url or captured_url: {case.metadata_path}")
+    return request_url
 
 
 def _fixture_response_artifact(
@@ -344,6 +392,8 @@ def _assert_listing_matches(test: unittest.TestCase, listing: Any, expected: dic
         "salary_min",
         "salary_max",
         "salary_currency",
+        "salary_period",
+        "salary_gross",
         "posted_at",
         "remote_in_country",
         "remote_global",
@@ -488,13 +538,13 @@ class HabrCareerSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("habr_career", source.scraper.descriptor.source_id)
 
-    def test_request_mapping_uses_native_query_grade_and_salary(self) -> None:
+    def test_request_mapping_does_not_forward_dimensionless_compensation(self) -> None:
         # Arrange
         source = HabrCareerSource()
         request = SearchRequest(
             query_variants=("QA Engineer",),
             grades=(Grade.MIDDLE,),
-            salary_from=200000,
+            compensation=CompensationCriterion(200_000, "RUB", CompensationPeriod.MONTH),
         )
 
         # Act
@@ -502,8 +552,30 @@ class HabrCareerSourceTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(
-            "https://career.habr.com/vacancies?q=QA+Engineer&type=all&qualification=middle&salary=200000",
+            "https://career.habr.com/vacancies?q=QA+Engineer&type=all&qid=4",
             fetch_request.url,
+        )
+
+    def test_native_grade_request_returns_only_the_requested_grade_in_live_fixture(self) -> None:
+        source = HabrCareerSource()
+        request = source.build_search_requests(
+            SearchRequest(
+                query_variants=("LLM Evaluation",),
+                grades=(Grade.SENIOR,),
+            )
+        )[0]
+        self.assertIn("qid=5", request.url)
+
+        parsed = source.parse_search_response(
+            _fixture_response("habr_career", "native_grade_senior"),
+            request,
+        )
+
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertTrue(parsed.listings)
+        self.assertEqual(
+            {"senior"},
+            {listing.native_grade for listing in parsed.listings},
         )
 
     def test_success_fixture_matches_manual_golden_samples(self) -> None:
@@ -680,17 +752,20 @@ class HhRuSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("hh_ru", source.scraper.descriptor.source_id)
 
-    def test_request_mapping_uses_native_query_and_salary(self) -> None:
+    def test_request_mapping_does_not_forward_dimensionless_compensation(self) -> None:
         # Arrange
         source = HhRuSource()
-        request = SearchRequest(query_variants=("QA Engineer",), salary_from=200000)
+        request = SearchRequest(
+            query_variants=("QA Engineer",),
+            compensation=CompensationCriterion(200_000, "RUB", CompensationPeriod.MONTH),
+        )
 
         # Act
         fetch_request = source.build_search_requests(request)[0]
 
         # Assert
         self.assertEqual(
-            "https://hh.ru/search/vacancy?text=QA+Engineer&area=113&search_field=name&salary=200000&only_with_salary=true",
+            "https://hh.ru/search/vacancy?text=QA+Engineer&area=113&search_field=name",
             fetch_request.url,
         )
 
@@ -953,7 +1028,7 @@ class VKCareerSourceTest(unittest.TestCase):
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
 
-    def test_pagination_fixture_matches_manual_golden_samples(self) -> None:
+    def test_parallel_pagination_page_does_not_chain_duplicate_next_request(self) -> None:
         # Arrange
         source = VKCareerSource()
         expected = _expected("career_vk", "pagination")
@@ -971,7 +1046,7 @@ class VKCareerSourceTest(unittest.TestCase):
         # Assert
         self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
         self.assertEqual(expected["expected_count"], len(parsed.listings))
-        self.assertEqual(expected["next_url"], parsed.next_request.url if parsed.next_request else None)
+        self.assertIsNone(parsed.next_request)
         for sample in expected["sample_listings"]:
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
 
@@ -1682,6 +1757,21 @@ class FinderWorkSourceTest(unittest.TestCase):
         # Assert
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
 
+    def test_detail_request_derives_api_id_from_public_url(self) -> None:
+        source = FinderWorkSource()
+        listing = replace(
+            _detail_listing_from_input("finder_work"),
+            source_listing_id=None,
+            raw={},
+        )
+
+        request = source.build_detail_request(listing)
+
+        self.assertEqual(
+            f"https://api.finder.work/api/v1/vacancies/{listing.url.rsplit('/', 1)[-1]}",
+            request.url,
+        )
+
 
 class GetmatchSourceTest(unittest.TestCase):
     SPECIALIZATIONS_URL = "https://getmatch.ru/api/specializations"
@@ -1997,6 +2087,23 @@ class HirifySourceTest(unittest.TestCase):
         # Assert
         self.assertEqual("hirify", source.scraper.descriptor.source_id)
 
+    def test_detail_request_derives_api_id_from_public_url(self) -> None:
+        source = HirifySource()
+        listing = RawListing(
+            source_listing_id=None,
+            title="Junior QA Automation Engineer Kotlin",
+            url="https://hirify.me/jobs/548415-junior-qa-automation-engineer-kotlin",
+            source="hirify",
+        )
+
+        request = source.build_detail_request(listing)
+
+        public_slug = listing.url.rsplit("/", 1)[-1]
+        self.assertEqual(
+            f"https://api.hirify.me/api/vacancies/{public_slug.split('-', 1)[0]}",
+            request.url,
+        )
+
     def test_request_mapping_uses_native_query_and_page(self) -> None:
         # Arrange
         source = HirifySource()
@@ -2193,6 +2300,12 @@ class HirifySourceTest(unittest.TestCase):
             _assert_listing_matches(self, _listing_by_id(parsed.listings, sample["source_listing_id"]), sample)
         hybrid_listing = _listing_by_id(parsed.listings, "670332")
         self.assertIn("hybrid", hybrid_listing.raw["work_format"])
+        relocation_listing = _listing_by_id(parsed.listings, "659634")
+        self.assertIs(relocation_listing.relocation, True)
+        self.assertEqual(("cyprus",), relocation_listing.relocation_destinations)
+        unspecified_relocation_listing = _listing_by_id(parsed.listings, "666685")
+        self.assertIsNone(unspecified_relocation_listing.relocation)
+        self.assertEqual((), unspecified_relocation_listing.relocation_destinations)
 
     def test_search_card_metadata_extracts_country_grade_work_format_and_skills(self) -> None:
         # Arrange
@@ -2739,6 +2852,30 @@ class AirSlateAtsSourceTest(unittest.TestCase):
 
 
 class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
+    def test_taleo_live_boards_include_required_sort_action(self) -> None:
+        expected_urls = {
+            "career:aurora-flight-sciences": (
+                "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults"
+                "?act=sort&cws=37&org=AURORA&sortColumn=0"
+            ),
+            "career:great-hearts": (
+                "https://phg.tbe.taleo.net/phg04/ats/careers/v2/searchResults"
+                "?act=sort&cws=40&org=GREATHEARTS&sortColumn=0"
+            ),
+            "career:keylogic": (
+                "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults"
+                "?act=sort&cws=37&org=KEYLOGIC&sortColumn=0"
+            ),
+        }
+
+        for source_id, expected_url in expected_urls.items():
+            with self.subTest(source=source_id):
+                request = _catalog_source(source_id).build_search_requests(
+                    SearchRequest(query_variants=("QA",))
+                )[0]
+
+                self.assertEqual(request.url, expected_url)
+
     def test_supported_source_contract_accepts_real_fixture_suite(self) -> None:
         for fixture_folder, source in _additional_company_sources():
             with self.subTest(source=source.descriptor.source_id):
@@ -2761,7 +2898,7 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
                 self.assertEqual(1, len(fetch_requests))
                 self.assertEqual(source.descriptor.source_id, fetch_requests[0].source_id)
                 self.assertEqual("QA", fetch_requests[0].query_variant)
-                self.assertEqual(_fixture_captured_url(fixture_case), fetch_requests[0].url)
+                self.assertEqual(_fixture_request_url(fixture_case), fetch_requests[0].url)
 
     def test_static_ats_board_request_mapping_does_not_fan_out_query_variants(self) -> None:
         for _fixture_folder, source in _additional_company_sources():
@@ -2788,6 +2925,54 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
             [json.loads((item.body or b"").decode("utf-8"))["searchText"] for item in fetch_requests],
         )
 
+    def test_workday_skips_one_incomplete_live_posting_without_losing_the_page(self) -> None:
+        source = _catalog_source("career:nvidia")
+        request = SourceFetchRequest(
+            source_id="career:nvidia",
+            query_variant="LLM Evaluation",
+            url=(
+                "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/"
+                "NVIDIAExternalCareerSite/jobs?offset=80"
+            ),
+            method=HttpMethod.POST,
+        )
+
+        parsed = source.parse_search_response(
+            _fixture_response("career_nvidia", "malformed_posting"),
+            request,
+        )
+
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(19, len(parsed.listings))
+        self.assertNotIn(
+            "JR2013494",
+            {listing.source_listing_id for listing in parsed.listings},
+        )
+
+    def test_workday_detail_request_is_derived_from_the_public_vacancy_url(self) -> None:
+        source = _catalog_detail_source("career:nvidia")
+        listing = RawListing(
+            source_listing_id="JR2019461",
+            title="Senior Research Manager, World Model Evaluation",
+            url=(
+                "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/"
+                "US-CA-Santa-Clara/"
+                "Senior-Research-Manager--World-Model-Evaluation_JR2019461"
+            ),
+            source="career:nvidia",
+        )
+
+        request = source.build_detail_request(listing)
+
+        self.assertEqual(
+            (
+                "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/"
+                "NVIDIAExternalCareerSite/job/US-CA-Santa-Clara/"
+                "Senior-Research-Manager--World-Model-Evaluation_JR2019461"
+            ),
+            request.url,
+        )
+
     def test_success_fixtures_match_manual_golden_samples(self) -> None:
         for fixture_folder, source in _additional_company_sources():
             with self.subTest(source=source.descriptor.source_id):
@@ -2802,7 +2987,7 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
                     SourceFetchRequest(
                         source_id=source.descriptor.source_id,
                         query_variant="QA",
-                        url=_fixture_captured_url(fixture_case),
+                        url=_fixture_request_url(fixture_case),
                     ),
                 )
 
@@ -2860,7 +3045,7 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
             ),
             "career:keylogic": (
                 "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults"
-                "?cws=37&org=KEYLOGIC&rowFrom=10"
+                "?act=sort&cws=37&org=KEYLOGIC&sortColumn=0&rowFrom=10"
             ),
             "career:mediacom": (
                 "https://phe.tbe.taleo.net/phe01/ats/careers/v2/searchResults"
@@ -2872,7 +3057,7 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
             ),
             "career:aurora-flight-sciences": (
                 "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults"
-                "?cws=37&org=AURORA&rowFrom=10"
+                "?act=sort&cws=37&org=AURORA&sortColumn=0&rowFrom=10"
             ),
         }
         sources = dict(_additional_company_sources())
@@ -2891,7 +3076,7 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
                     SourceFetchRequest(
                         source_id=source_id,
                         query_variant="QA",
-                        url=_fixture_captured_url(fixture_case),
+                        url=_fixture_request_url(fixture_case),
                     ),
                 )
 
@@ -2993,6 +3178,36 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
         self.assertIsNone(parsed.next_request)
         self.assertEqual((), parsed.parallel_requests)
 
+    def test_taleo_terminal_offset_uses_matched_total_not_branded_heading(self) -> None:
+        source = _catalog_source("career:keylogic")
+        request = SourceFetchRequest(
+            source_id="career:keylogic",
+            query_variant="QA",
+            url=(
+                "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults"
+                "?act=sort&cws=37&org=KEYLOGIC&sortColumn=0&rowFrom=20"
+            ),
+        )
+        response = SourceResponseArtifact(
+            source_id="career:keylogic",
+            url=request.url,
+            media_type="text/html",
+            body="""
+            <div id="oracletaleocwsv2-wrapper" class="cws-v2">
+              <h2>Search Results</h2>
+              <h3 aria-label="Positions Matched">Positions Matched</h3>
+              <span class="oracletaleocwsv2-panel-number">20</span>
+              <div class="oracletaleocwsv2-accordion-group"></div>
+            </div>
+            """,
+        )
+
+        parsed = source.parse_search_response(response, request)
+
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual((), parsed.listings)
+        self.assertTrue(parsed.evidence.multi_step_terminal)
+
     def test_jobvite_multiple_show_more_links_are_queued(self) -> None:
         source = _catalog_source("career:visionist")
         initial_body = """
@@ -3062,6 +3277,28 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
             "x-jobvite-pending-show-more-urls",
             next_parsed.next_request.headers if next_parsed.next_request else {},
         )
+
+    def test_jobvite_unavailable_redirect_is_classified_as_blocked(self) -> None:
+        source = _catalog_source("career:reveal")
+        captured = _fixture_response("career_reveal", "blocked_unavailable")
+        response = SourceResponseArtifact(
+            source_id="career:reveal",
+            url="https://jobs.jobvite.com/careers/info/unavailable.html",
+            media_type=captured.media_type,
+            body=captured.body,
+        )
+
+        with self.assertRaises(ClassifiedSourceError) as caught:
+            source.parse_search_response(
+                response,
+                SourceFetchRequest(
+                    source_id="career:reveal",
+                    query_variant="LLM Evaluation",
+                    url="https://jobs.jobvite.com/reveal",
+                ),
+            )
+
+        self.assertEqual(SourceOutcome.BLOCKED, caught.exception.outcome)
 
     def test_ashby_title_remote_marker_sets_work_format(self) -> None:
         source = build_supported_source_catalog(("career:clickhouse",)).get("career:clickhouse")
@@ -3249,6 +3486,16 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
         self.assertEqual(expected["raw_remote_locations"], _jsonish(detailed.raw.get("remote_locations")))
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
 
+    def test_personio_detail_request_uses_public_vacancy_url_without_listing_raw(self) -> None:
+        source = build_supported_source_catalog(("career:vivid-money",)).get("career:vivid-money")
+        listing = _detail_listing_from_input("career_vivid-money")
+
+        self.assertIsInstance(source, DetailEnrichmentScraper)
+        detail_source = cast(DetailEnrichmentScraper, source)
+        request = detail_source.build_detail_request(replace(listing, raw={}))
+
+        self.assertEqual(listing.url, request.url)
+
     def test_join_detail_fixture_enriches_remote_scope_and_description(self) -> None:
         source = build_supported_source_catalog(("career:sidestream",)).get("career:sidestream")
         fetch_request = source.build_search_requests(SearchRequest(query_variants=("Engineer",)))[0]
@@ -3276,6 +3523,16 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
         self.assertEqual(expected["raw_remote_locations"], _jsonish(detailed.raw.get("remote_locations")))
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
 
+    def test_join_detail_request_uses_public_vacancy_url_without_listing_raw(self) -> None:
+        source = build_supported_source_catalog(("career:sidestream",)).get("career:sidestream")
+        listing = _detail_listing_from_input("career_sidestream")
+
+        self.assertIsInstance(source, DetailEnrichmentScraper)
+        detail_source = cast(DetailEnrichmentScraper, source)
+        request = detail_source.build_detail_request(replace(listing, raw={}))
+
+        self.assertEqual(listing.url, request.url)
+
     def test_dreamjob_detail_fixture_enriches_city_posted_at_and_description(self) -> None:
         source = build_supported_source_catalog(("career:nii-spetsvuzavtomatika",)).get(
             "career:nii-spetsvuzavtomatika"
@@ -3302,6 +3559,18 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
         self.assertEqual(expected["location_text"], detailed.location_text)
         self.assertEqual(expected["posted_at"], detailed.posted_at)
         _assert_detail_description_matches_expected(self, detailed=detailed, expected=expected)
+
+    def test_dreamjob_detail_request_uses_public_vacancy_url_without_listing_raw(self) -> None:
+        source = build_supported_source_catalog(("career:nii-spetsvuzavtomatika",)).get(
+            "career:nii-spetsvuzavtomatika"
+        )
+        listing = _detail_listing_from_input("career_nii-spetsvuzavtomatika")
+
+        self.assertIsInstance(source, DetailEnrichmentScraper)
+        detail_source = cast(DetailEnrichmentScraper, source)
+        request = detail_source.build_detail_request(replace(listing, raw={}))
+
+        self.assertEqual(listing.url, request.url)
 
 
 class TermiusAtsSourceTest(unittest.TestCase):
@@ -3444,6 +3713,12 @@ def _e2e_success_source_fixture_mapping(
         _fixture_captured_url(case): _fixture_response_path_from_case(case)
         for case in fixture_cases
     }
+    mapping.update(
+        {
+            _fixture_request_url(case): _fixture_response_path_from_case(case)
+            for case in fixture_cases
+        }
+    )
 
     fetch_requests = scraper.build_search_requests(request)
     for fetch_request in fetch_requests:
@@ -3563,83 +3838,73 @@ def _map_detail_requests_if_needed(
 
 
 class ContractFirstRuntimeE2ETest(unittest.IsolatedAsyncioTestCase):
-    async def test_new_runtime_runs_real_parser_fixtures(self) -> None:
-        # Arrange
+    async def test_independent_search_bundles_run_real_parser_fixtures(self) -> None:
         catalog = build_supported_source_catalog(_success_fixture_source_ids())
-        request = SearchRequest(query_variants=(_E2E_SUCCESS_QUERY,))
-        fetcher = FixtureFetcher(_e2e_success_fixture_mapping(catalog, request))
-        with tempfile.TemporaryDirectory() as tmp:
-            with SqliteRunStore(Path(tmp) / "run.sqlite", run_id="r-test") as writer:
-                writer.reserve_append_attempt({"query_variants": [_E2E_SUCCESS_QUERY]})
-                orchestrator = SearchOrchestrator(
-                    catalog=catalog,
-                    fetcher=fetcher,
-                    writer=writer,
-                    config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
+        registry = build_independent_parser_registry(catalog.source_ids)
+        item_counts: dict[str, int] = {}
+        titles: set[str] = set()
+
+        for source_id in catalog.source_ids:
+            bundle = cast(
+                SearchScraperBundle,
+                registry.get(source_catalog_entry(source_id).listing_parser_ref),
+            )
+            fixture_case = _required_fixture_case(source_id, ParserFixtureKind.SUCCESS_NON_EMPTY)
+            request = SearchRequest(query_variants=(_success_fixture_query_variant(fixture_case),))
+            runtime = FixtureParserRuntime(
+                _e2e_success_source_fixture_mapping(catalog.get(source_id), request)
+            )
+            item_count = 0
+            queue = list(bundle.plan_initial(request, {"kind": "catalog"}))
+            seen_inputs: set[str] = set()
+            while queue:
+                parser_input = queue.pop(0)
+                input_key = json.dumps(to_jsonable(parser_input), sort_keys=True)
+                if input_key in seen_inputs:
+                    continue
+                seen_inputs.add(input_key)
+                result = await bundle.execute(parser_input, runtime)
+                item_count += len(result.items)
+                titles.update(item.title for item in result.items)
+                queue.extend(
+                    continuation
+                    for continuation in result.continuations
+                    if runtime.has_url(
+                        continuation.cursor.get("request", {}).get("url")
+                        if isinstance(continuation.cursor.get("request"), dict)
+                        else None
+                    )
                 )
+            item_counts[source_id] = item_count
 
-                # Act
-                result = await orchestrator.run(request, run_id="r-test")
-                raw_records = writer.read_raw_records()
+        self.assertEqual(set(catalog.source_ids), set(item_counts))
+        self.assertEqual(
+            tuple(source_id for source_id, count in item_counts.items() if count == 0),
+            (),
+        )
+        self.assertIn("Тестировщик (QA) мобильного приложения Windi Messenger", titles)
 
-            # Assert
-            outcomes = {attempt.source: attempt for attempt in result.attempts}
-            self.assertEqual(set(catalog.source_ids), set(outcomes))
-            for source_id, attempt in outcomes.items():
-                self.assertIn(attempt.outcome, {SourceOutcome.SUCCESS, SourceOutcome.NO_RESULTS}, source_id)
-                self.assertGreater(attempt.counts.pages_visited, 0, source_id)
-                if attempt.outcome == SourceOutcome.SUCCESS:
-                    self.assertGreater(attempt.counts.raw_listings_written, 0, source_id)
-                else:
-                    self.assertEqual(0, attempt.counts.raw_listings_written, source_id)
-
-            self.assertEqual(result.raw_records_written, len(raw_records))
-            self.assertEqual(
-                {
-                    source_id
-                    for source_id, attempt in outcomes.items()
-                    if attempt.outcome is SourceOutcome.SUCCESS
-                },
-                {record["source"] for record in raw_records},
-            )
-            self.assertIn(
-                "Тестировщик (QA) мобильного приложения Windi Messenger",
-                {record["listing"]["title"] for record in raw_records},
-            )
-
-    async def test_new_runtime_records_explicit_no_results_without_raw_records(self) -> None:
-        # Arrange
+    async def test_independent_search_bundles_return_explicit_no_results(self) -> None:
         cases = _runtime_no_results_fixture_cases()
-
-        # Assert
         self.assertGreater(len(cases), 0)
         for case in cases:
             with self.subTest(source_id=case.source_id):
-                fetcher = FixtureFetcher({case.url: case.response_path})
-                with tempfile.TemporaryDirectory() as tmp:
-                    with SqliteRunStore(Path(tmp) / "run.sqlite", run_id="r-test") as writer:
-                        writer.reserve_append_attempt({"query_variants": [case.query_variant]})
-                        orchestrator = SearchOrchestrator(
-                            catalog=build_supported_source_catalog((case.source_id,)),
-                            fetcher=fetcher,
-                            writer=writer,
-                            config=OrchestratorConfig(retry_policy=RetryPolicy(max_attempts=1)),
-                        )
+                request = SearchRequest(query_variants=(case.query_variant,))
+                registry = build_independent_parser_registry((case.source_id,))
+                bundle = cast(
+                    SearchScraperBundle,
+                    registry.get(source_catalog_entry(case.source_id).listing_parser_ref),
+                )
+                parser_inputs = bundle.plan_initial(request, {"kind": "catalog"})
+                runtime = FixtureParserRuntime({case.url: case.response_path})
 
-                        # Act
-                        result = await orchestrator.run(
-                            SearchRequest(query_variants=(case.query_variant,)),
-                            run_id="r-test",
-                        )
-                        raw_records = writer.read_raw_records()
+                results = tuple(
+                    [await bundle.execute(parser_input, runtime) for parser_input in parser_inputs]
+                )
 
-                    # Assert
-                    self.assertEqual(0, result.raw_records_written)
-                    self.assertEqual(
-                        {case.source_id: SourceOutcome.NO_RESULTS},
-                        {attempt.source: attempt.outcome for attempt in result.attempts},
-                    )
-                    self.assertEqual((), raw_records)
+                self.assertTrue(results)
+                self.assertTrue(all(result.outcome == SearchResultOutcome.NO_RESULTS for result in results))
+                self.assertTrue(all(not result.items for result in results))
 
 
 if __name__ == "__main__":

@@ -49,15 +49,23 @@ class TextField(StrEnum):
     RAW_TEXT = "raw_text"
 
 
+class CompensationPeriod(StrEnum):
+    HOUR = "hour"
+    DAY = "day"
+    MONTH = "month"
+    YEAR = "year"
+
+
 class SearchCriterion(StrEnum):
     QUERY = "query"
     GRADES = "grades"
-    SALARY_FROM = "salary_from"
+    COMPENSATION = "compensation"
     PUBLISHED_SINCE = "published_since"
     RELOCATION = "relocation"
     WORK_FORMATS = "work_formats"
     REMOTE_SCOPES = "remote_scopes"
     VACANCY_GEOGRAPHIES = "vacancy_geographies"
+    EMPLOYER_GEOGRAPHIES = "employer_geographies"
 
 
 class CriterionCapability(StrEnum):
@@ -90,6 +98,18 @@ class ProcessingDecision(StrEnum):
     UNKNOWN = "unknown"
 
 
+class CriterionState(StrEnum):
+    MATCH = "match"
+    MISMATCH = "mismatch"
+    UNKNOWN = "unknown"
+
+
+class SelectionOutcome(StrEnum):
+    KEEP = "keep"
+    REJECT = "reject"
+    NEEDS_EVIDENCE = "needs_evidence"
+
+
 class DescriptionAvailability(StrEnum):
     PRESENT = "present"
     NOT_EXPOSED = "not_exposed"
@@ -111,12 +131,6 @@ class ParserFixtureKind(StrEnum):
     LOGIN = "login"
     GEO_BLOCKED = "geo_blocked"
     MALFORMED_SOURCE = "malformed_source"
-
-
-class RetryNextAction(StrEnum):
-    NONE = "none"
-    RETRY = "retry"
-    STOP = "stop"
 
 
 ALL_SEARCH_CRITERIA: tuple[SearchCriterion, ...] = tuple(SearchCriterion)

@@ -17,7 +17,7 @@ from typing import Any
 JsonObject = dict[str, Any]
 
 _DEFAULT_PROFILE = Path("benchmarks/v2-search-speed-gate.json")
-_HEALTHY_OUTCOMES = frozenset({"success", "no_results", "partial_success"})
+_HEALTHY_SOURCE_STATUSES = frozenset({"succeeded", "no_results", "partial", "limit_reached"})
 
 
 def main() -> int:
@@ -28,6 +28,11 @@ def main() -> int:
     result = _run_profile(repo_root=repo_root, profile=profile)
     result_path = _write_result(repo_root=repo_root, profile=profile, result=result)
     _print_summary(result=result, result_path=result_path)
+    candidate_errors = _candidate_gate_errors(profile=profile, candidate=result)
+    if candidate_errors:
+        for error in candidate_errors:
+            print(f"speed_gate=failed: {error}")
+        return 1
     if args.baseline is not None:
         baseline_path = (repo_root / args.baseline).resolve() if not args.baseline.is_absolute() else args.baseline
         return _compare_to_baseline(
@@ -37,7 +42,8 @@ def main() -> int:
             min_speedup=_min_speedup(args, profile),
             check_shape=not args.skip_shape_check,
         )
-    return int(result["returncode"] != 0)
+    print("speed_gate=passed")
+    return 0
 
 
 def _parse_args() -> argparse.Namespace:
@@ -52,7 +58,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-shape-check",
         action="store_true",
-        help="Do not require matching result/raw counts and outcomes against the baseline.",
+        help="Do not require matching result/item counts and source-plan statuses against the baseline.",
     )
     return parser.parse_args()
 
@@ -101,9 +107,9 @@ def _run_profile(*, repo_root: Path, profile: JsonObject) -> JsonObject:
         "stderr": completed.stderr,
         "database_path": str(database_path) if database_path is not None else None,
         "processed_summary": _processed_summary(processed_payload),
-        "attempt_summary": _attempt_summary(cli_payload),
+        "source_plan_summary": _source_plan_summary(cli_payload),
         "shape_sources": list(shape_sources) if shape_sources is not None else [],
-        "source_shape_summary": _attempt_summary(cli_payload, source_ids=shape_sources)
+        "source_shape_summary": _source_plan_summary(cli_payload, source_ids=shape_sources)
         if shape_sources is not None
         else {},
         "runtime_summary": _runtime_summary(cli_payload),
@@ -154,19 +160,27 @@ def _processed_payload(database_path: Path | None) -> JsonObject | None:
         return None
     with sqlite3.connect(str(database_path)) as connection:
         connection.row_factory = sqlite3.Row
-        row = connection.execute(
+        execution = connection.execute(
             """
-            SELECT payload_json
-            FROM processed_results
-            WHERE phase = 'final'
-            ORDER BY append_sequence DESC
+            SELECT execution_id
+            FROM search_executions
+            WHERE status = 'completed'
+              AND execution_kind = 'search'
+            ORDER BY append_sequence DESC, execution_id DESC
             LIMIT 1
             """
         ).fetchone()
-    if row is None:
+        if execution is None:
+            return None
+        result_count = int(
+            connection.execute(
+                "SELECT COUNT(*) FROM final_vacancies WHERE execution_id = ?",
+                (execution["execution_id"],),
+            ).fetchone()[0]
+        )
+    if execution is None:
         return None
-    payload = json.loads(row["payload_json"])
-    return payload if isinstance(payload, dict) else None
+    return {"result_count": result_count}
 
 
 def _run_manifest_payload(database_path: Path | None) -> JsonObject | None:
@@ -174,18 +188,10 @@ def _run_manifest_payload(database_path: Path | None) -> JsonObject | None:
         return None
     with sqlite3.connect(str(database_path)) as connection:
         connection.row_factory = sqlite3.Row
-        row = connection.execute(
-            """
-            SELECT payload_json
-            FROM run_manifest
-            ORDER BY updated_at DESC
-            LIMIT 1
-            """
-        ).fetchone()
+        row = connection.execute("SELECT MAX(append_sequence) AS latest FROM search_executions").fetchone()
     if row is None:
         return None
-    payload = json.loads(row["payload_json"])
-    return payload if isinstance(payload, dict) else None
+    return {"latest_append_sequence": row["latest"]}
 
 
 def _processed_summary(payload: JsonObject | None) -> JsonObject:
@@ -204,63 +210,66 @@ def _processed_summary(payload: JsonObject | None) -> JsonObject:
     }
 
 
-def _attempt_summary(cli_payload: JsonObject | None, source_ids: tuple[str, ...] | None = None) -> JsonObject:
+def _source_plan_summary(
+    cli_payload: JsonObject | None,
+    source_ids: tuple[str, ...] | None = None,
+) -> JsonObject:
     if cli_payload is None:
         return {}
-    attempts = _list(cli_payload.get("attempts"))
+    diagnostics = cli_payload.get("diagnostics")
+    source_plans = _list(diagnostics.get("source_plans") if isinstance(diagnostics, dict) else None)
     if source_ids is not None:
         allowed_sources = set(source_ids)
-        attempts = [
+        source_plans = [
             item
-            for item in attempts
-            if isinstance(item, dict) and isinstance(item.get("source"), str) and item["source"] in allowed_sources
+            for item in source_plans
+            if isinstance(item, dict)
+            and isinstance(item.get("source_id"), str)
+            and item["source_id"] in allowed_sources
         ]
-    return _attempt_summary_for_attempts(attempts)
+    return _source_plan_summary_for_plans(source_plans)
 
 
-def _attempt_summary_for_attempts(attempts: list[Any]) -> JsonObject:
-    elapsed = [item.get("elapsed_ms") for item in attempts if isinstance(item, dict)]
+def _source_plan_summary_for_plans(source_plans: list[Any]) -> JsonObject:
+    elapsed = [item.get("elapsed_ms") for item in source_plans if isinstance(item, dict)]
     elapsed_ms = [int(value) for value in elapsed if isinstance(value, int)]
-    outcomes = Counter(
-        item.get("outcome")
-        for item in attempts
-        if isinstance(item, dict) and isinstance(item.get("outcome"), str)
+    statuses = Counter(
+        item.get("status")
+        for item in source_plans
+        if isinstance(item, dict) and isinstance(item.get("status"), str)
     )
-    raw_written = sum(
-        int(item.get("raw_listings_written", 0))
-        for item in attempts
-        if isinstance(item, dict) and isinstance(item.get("raw_listings_written", 0), int)
+    items_collected = sum(
+        _nested_used(item, "items")
+        for item in source_plans
+        if isinstance(item, dict)
     )
     return {
-        "attempts": len(attempts),
-        "raw_listings_written": raw_written,
+        "source_plans": len(source_plans),
+        "items_collected": items_collected,
         "elapsed_ms_sum": sum(elapsed_ms),
         "elapsed_ms_max": max(elapsed_ms) if elapsed_ms else 0,
-        "outcomes": dict(sorted(outcomes.items())),
-        "slowest_sources": _slowest_sources(attempts, limit=8),
+        "statuses": dict(sorted(statuses.items())),
+        "slowest_sources": _slowest_sources(source_plans, limit=8),
     }
 
 
 def _runtime_summary(cli_payload: JsonObject | None) -> JsonObject:
     if cli_payload is None:
         return {}
-    runtime_summary = cli_payload.get("runtime_summary")
-    return runtime_summary if isinstance(runtime_summary, dict) else {}
+    diagnostics = cli_payload.get("diagnostics")
+    invocations = diagnostics.get("invocations") if isinstance(diagnostics, dict) else None
+    return invocations if isinstance(invocations, dict) else {}
 
 
 def _manifest_summary(payload: JsonObject | None) -> JsonObject:
     if payload is None:
         return {}
-    attempts = _list(payload.get("source_attempts"))
-    return {
-        "raw_records_written_this_call": payload.get("raw_records_written_this_call"),
-        "source_attempts": len(attempts),
-    }
+    return {"latest_append_sequence": payload.get("latest_append_sequence")}
 
 
-def _slowest_sources(attempts: list[Any], *, limit: int) -> list[JsonObject]:
+def _slowest_sources(source_plans: list[Any], *, limit: int) -> list[JsonObject]:
     rows: list[JsonObject] = []
-    for item in attempts:
+    for item in source_plans:
         if not isinstance(item, dict):
             continue
         elapsed_ms = item.get("elapsed_ms")
@@ -268,10 +277,10 @@ def _slowest_sources(attempts: list[Any], *, limit: int) -> list[JsonObject]:
             continue
         rows.append(
             {
-                "source": item.get("source"),
+                "source_id": item.get("source_id"),
                 "elapsed_ms": elapsed_ms,
-                "outcome": item.get("outcome"),
-                "raw_listings_written": item.get("raw_listings_written"),
+                "status": item.get("status"),
+                "items_collected": _nested_used(item, "items"),
             }
         )
     return sorted(rows, key=lambda row: int(row["elapsed_ms"]), reverse=True)[:limit]
@@ -289,24 +298,24 @@ def _write_result(*, repo_root: Path, profile: JsonObject, result: JsonObject) -
 
 def _print_summary(*, result: JsonObject, result_path: Path) -> None:
     processed = result["processed_summary"]
-    attempts = result["attempt_summary"]
+    source_plans = result["source_plan_summary"]
     print(f"result_path={result_path}")
     print(f"returncode={result['returncode']}")
     print(f"wall_seconds={result['wall_seconds']}")
     print(f"processed_results={processed.get('result_count')}")
     print(f"filtered_out_results={processed.get('filtered_out_results')}")
-    print(f"source_attempts={attempts.get('attempts')}")
-    print(f"source_elapsed_ms_max={attempts.get('elapsed_ms_max')}")
-    print(f"raw_listings_written={attempts.get('raw_listings_written')}")
-    print(f"outcomes={attempts.get('outcomes')}")
+    print(f"source_plans={source_plans.get('source_plans')}")
+    print(f"source_elapsed_ms_max={source_plans.get('elapsed_ms_max')}")
+    print(f"items_collected={source_plans.get('items_collected')}")
+    print(f"statuses={source_plans.get('statuses')}")
     shape_sources = _list(result.get("shape_sources"))
     source_shape = result.get("source_shape_summary")
     if shape_sources and isinstance(source_shape, dict):
         print(f"shape_sources={','.join(str(source) for source in shape_sources)}")
-        print(f"shape_source_attempts={source_shape.get('attempts')}")
+        print(f"shape_source_plans={source_shape.get('source_plans')}")
         print(f"shape_source_elapsed_ms_max={source_shape.get('elapsed_ms_max')}")
-        print(f"shape_source_raw_listings_written={source_shape.get('raw_listings_written')}")
-        print(f"shape_source_outcomes={source_shape.get('outcomes')}")
+        print(f"shape_source_items_collected={source_shape.get('items_collected')}")
+        print(f"shape_source_statuses={source_shape.get('statuses')}")
 
 
 def _compare_to_baseline(
@@ -400,8 +409,8 @@ def _at_least_baseline_shape_errors(
         candidate_value = _shape_metric(candidate, path, source_ids)
         if candidate_value < baseline_value:
             errors.append(f"{scope} {label} decreased from {baseline_value!r} to {candidate_value!r}")
-    baseline_unhealthy = _unhealthy_outcomes(baseline, source_ids)
-    candidate_unhealthy = _unhealthy_outcomes(candidate, source_ids)
+    baseline_unhealthy = _unhealthy_source_statuses(baseline, source_ids)
+    candidate_unhealthy = _unhealthy_source_statuses(candidate, source_ids)
     if candidate_unhealthy > baseline_unhealthy:
         errors.append(f"{scope} unhealthy outcomes increased from {baseline_unhealthy!r} to {candidate_unhealthy!r}")
     if _detail_shape_applies(baseline=baseline, candidate=candidate, source_ids=source_ids):
@@ -421,8 +430,8 @@ def _presentation_at_least_shape_errors(
     candidate_rows = _shape_metric(candidate, ("processed_summary", "presentation_rows"), source_ids)
     if candidate_rows < baseline_rows:
         errors.append(f"{scope} processed presentation rows decreased from {baseline_rows!r} to {candidate_rows!r}")
-    baseline_unhealthy = _unhealthy_outcomes(baseline, source_ids)
-    candidate_unhealthy = _unhealthy_outcomes(candidate, source_ids)
+    baseline_unhealthy = _unhealthy_source_statuses(baseline, source_ids)
+    candidate_unhealthy = _unhealthy_source_statuses(candidate, source_ids)
     if candidate_unhealthy > baseline_unhealthy:
         errors.append(f"{scope} unhealthy outcomes increased from {baseline_unhealthy!r} to {candidate_unhealthy!r}")
     if _detail_shape_applies(baseline=baseline, candidate=candidate, source_ids=source_ids):
@@ -433,23 +442,23 @@ def _presentation_at_least_shape_errors(
 def _exact_shape_checks(source_ids: tuple[str, ...] | None) -> tuple[tuple[str, tuple[str, ...]], ...]:
     if source_ids is not None:
         return (
-            ("attempt_summary.attempts", ("attempt_summary", "attempts")),
-            ("attempt_summary.raw_listings_written", ("attempt_summary", "raw_listings_written")),
-            ("attempt_summary.outcomes", ("attempt_summary", "outcomes")),
+            ("source_plan_summary.source_plans", ("source_plan_summary", "source_plans")),
+            ("source_plan_summary.items_collected", ("source_plan_summary", "items_collected")),
+            ("source_plan_summary.statuses", ("source_plan_summary", "statuses")),
         )
     return (
         ("processed_summary.result_count", ("processed_summary", "result_count")),
         ("processed_summary.filtered_out_results", ("processed_summary", "filtered_out_results")),
-        ("attempt_summary.attempts", ("attempt_summary", "attempts")),
-        ("attempt_summary.raw_listings_written", ("attempt_summary", "raw_listings_written")),
-        ("attempt_summary.outcomes", ("attempt_summary", "outcomes")),
+        ("source_plan_summary.source_plans", ("source_plan_summary", "source_plans")),
+        ("source_plan_summary.items_collected", ("source_plan_summary", "items_collected")),
+        ("source_plan_summary.statuses", ("source_plan_summary", "statuses")),
     )
 
 
 def _at_least_baseline_shape_checks(source_ids: tuple[str, ...] | None) -> tuple[tuple[str, tuple[str, ...]], ...]:
     checks = (
-        ("attempt_summary.attempts", ("attempt_summary", "attempts")),
-        ("attempt_summary.raw_listings_written", ("attempt_summary", "raw_listings_written")),
+        ("source_plan_summary.source_plans", ("source_plan_summary", "source_plans")),
+        ("source_plan_summary.items_collected", ("source_plan_summary", "items_collected")),
     )
     if source_ids is not None:
         return checks
@@ -467,19 +476,19 @@ def _shape_metric_value(payload: JsonObject, path: tuple[str, ...], source_ids: 
         if not isinstance(summary, dict):
             return 0
         return _int_value(summary.get("result_count")) + _int_value(summary.get("filtered_out_results"))
-    if path[0] == "attempt_summary" and source_ids is not None:
-        return _nested_value(_comparison_attempt_summary(payload, source_ids), path[1:])
+    if path[0] == "source_plan_summary" and source_ids is not None:
+        return _nested_value(_comparison_source_plan_summary(payload, source_ids), path[1:])
     return _nested_value(payload, path)
 
 
-def _unhealthy_outcomes(payload: JsonObject, source_ids: tuple[str, ...] | None) -> int:
-    outcomes = _nested_value(_comparison_attempt_summary(payload, source_ids), ("outcomes",))
-    if not isinstance(outcomes, dict):
+def _unhealthy_source_statuses(payload: JsonObject, source_ids: tuple[str, ...] | None) -> int:
+    statuses = _nested_value(_comparison_source_plan_summary(payload, source_ids), ("statuses",))
+    if not isinstance(statuses, dict):
         return 0
     return sum(
         _int_value(count)
-        for outcome, count in outcomes.items()
-        if isinstance(outcome, str) and outcome not in _HEALTHY_OUTCOMES
+        for status, count in statuses.items()
+        if isinstance(status, str) and status not in _HEALTHY_SOURCE_STATUSES
     )
 
 
@@ -493,8 +502,8 @@ def _detail_shape_applies(
         return False
     if source_ids is None:
         return True
-    attempt_sources = _attempt_sources(baseline) | _attempt_sources(candidate)
-    return bool(attempt_sources) and attempt_sources <= set(source_ids)
+    source_plan_sources = _source_plan_sources(baseline) | _source_plan_sources(candidate)
+    return bool(source_plan_sources) and source_plan_sources <= set(source_ids)
 
 
 def _has_detail_summary(payload: JsonObject) -> bool:
@@ -507,13 +516,14 @@ def _has_detail_summary(payload: JsonObject) -> bool:
     ) or bool(_list(detail.get("stopped_sources")))
 
 
-def _attempt_sources(payload: JsonObject) -> set[str]:
+def _source_plan_sources(payload: JsonObject) -> set[str]:
     stdout_json = payload.get("stdout_json")
-    attempts = _list(stdout_json.get("attempts") if isinstance(stdout_json, dict) else None)
+    diagnostics = stdout_json.get("diagnostics") if isinstance(stdout_json, dict) else None
+    source_plans = _list(diagnostics.get("source_plans") if isinstance(diagnostics, dict) else None)
     return {
         source
-        for item in attempts
-        if isinstance(item, dict) and isinstance(source := item.get("source"), str)
+        for item in source_plans
+        if isinstance(item, dict) and isinstance(source := item.get("source_id"), str)
     }
 
 
@@ -554,20 +564,28 @@ def _limit_errors(*, profile: JsonObject, candidate: JsonObject) -> tuple[str, .
         profile.get("max_source_elapsed_ms"),
         "profile.max_source_elapsed_ms",
     )
-    source_summary = _comparison_attempt_summary(candidate, source_ids)
+    source_summary = _comparison_source_plan_summary(candidate, source_ids)
     source_elapsed_ms = _nested_value(source_summary, ("elapsed_ms_max",))
     if max_source_elapsed_ms is not None and _int_value(source_elapsed_ms) > max_source_elapsed_ms:
         errors.append(f"{_shape_scope_label(source_ids)} source_elapsed_ms_max exceeded {max_source_elapsed_ms:.0f}")
     return tuple(errors)
 
 
-def _comparison_attempt_summary(payload: JsonObject, source_ids: tuple[str, ...] | None) -> JsonObject:
+def _candidate_gate_errors(*, profile: JsonObject, candidate: JsonObject) -> tuple[str, ...]:
+    errors: list[str] = []
+    if candidate["returncode"] != 0:
+        errors.append("candidate run failed")
+    errors.extend(_limit_errors(profile=profile, candidate=candidate))
+    return tuple(errors)
+
+
+def _comparison_source_plan_summary(payload: JsonObject, source_ids: tuple[str, ...] | None) -> JsonObject:
     if source_ids is None:
-        summary = payload.get("attempt_summary")
+        summary = payload.get("source_plan_summary")
         return summary if isinstance(summary, dict) else {}
     stdout_json = payload.get("stdout_json")
     cli_payload = stdout_json if isinstance(stdout_json, dict) else None
-    return _attempt_summary(cli_payload, source_ids=source_ids)
+    return _source_plan_summary(cli_payload, source_ids=source_ids)
 
 
 def _nested_value(payload: JsonObject, path: tuple[str, ...]) -> Any:
@@ -587,6 +605,11 @@ def _string_list(value: Any, field_name: str) -> list[str]:
 
 def _list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
+
+
+def _nested_used(payload: dict[str, Any], key: str) -> int:
+    value = payload.get(key)
+    return _int_value(value.get("used")) if isinstance(value, dict) else 0
 
 
 def _int_value(value: Any) -> int:

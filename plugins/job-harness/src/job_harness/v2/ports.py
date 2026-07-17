@@ -3,20 +3,22 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
-from pathlib import Path
-from types import TracebackType
-from typing import Protocol, Self
+from dataclasses import dataclass, field
+from enum import StrEnum
+from typing import Protocol
 
 from job_harness.v2.contracts import (
-    DescriptionAvailability,
-    RawListing,
-    RawSearchRecord,
-    SourceAttemptRecord,
     SourceFetchRequest,
     SourceResponseArtifact,
 )
-from job_harness.v2.serialization import JsonObject
+
+_MIN_HTTP_STATUS = 100
+_MAX_HTTP_STATUS = 599
+
+
+class RetrySafety(StrEnum):
+    SAFE = "safe"
+    NEVER = "never"
 
 
 class ArtifactFetcher(Protocol):
@@ -24,105 +26,93 @@ class ArtifactFetcher(Protocol):
         """Fetch one source response artifact for a source-native request."""
 
 
-class CorpusWriter(Protocol):
-    def append_raw_record(self, record: RawSearchRecord) -> None:
-        """Append one immutable raw listing record."""
+@dataclass(frozen=True)
+class OperationContext:
+    operation_id: str
+    execution_id: str | None
+    invocation_id: str | None
 
-    def append_attempt_record(self, record: SourceAttemptRecord) -> None:
-        """Append one immutable source attempt record."""
-
-    def replace_run_manifest(self, manifest: Mapping[str, object]) -> None:
-        """Atomically replace the machine-readable run manifest."""
-
-
-class DetailRecordWriter(Protocol):
-    def update_raw_record_detail(
-        self,
-        *,
-        raw_record_id: int,
-        listing: RawListing,
-        description_availability: DescriptionAvailability,
-        detail_fetched: bool,
-        detail_parse_error: str | None,
-    ) -> None:
-        """Update detail enrichment fields for one stored raw listing row."""
-
-
-class RawRecordListingWriter(Protocol):
-    def update_raw_record_listing(
-        self,
-        *,
-        raw_record_id: int,
-        listing: RawListing,
-    ) -> None:
-        """Update the stored listing payload for one raw listing row."""
+    def __post_init__(self) -> None:
+        if not self.operation_id.strip():
+            raise ValueError("operation_id must be non-empty")
 
 
 @dataclass(frozen=True)
-class StoredRawRecord:
-    raw_record_id: int
-    payload: JsonObject
+class ParserAttemptMetrics:
+    network_action_count: int = 0
+    network_elapsed_ms: int = 0
+    last_status_code: int | None = None
+    last_error_class: str | None = None
 
     def __post_init__(self) -> None:
-        if self.raw_record_id < 1:
-            raise ValueError("raw_record_id must be >= 1")
+        if self.network_action_count < 0:
+            raise ValueError("network_action_count must be >= 0")
+        if self.network_elapsed_ms < 0:
+            raise ValueError("network_elapsed_ms must be >= 0")
+        if self.last_status_code is not None and not (
+            _MIN_HTTP_STATUS <= self.last_status_code <= _MAX_HTTP_STATUS
+        ):
+            raise ValueError("last_status_code must be a valid HTTP status")
+        if self.last_error_class is not None and not self.last_error_class.strip():
+            raise ValueError("last_error_class must be non-empty when provided")
 
 
-class RunStore(CorpusWriter, DetailRecordWriter, RawRecordListingWriter, Protocol):
+@dataclass(frozen=True)
+class HttpAction:
+    method: str
+    url: str
+    headers: Mapping[str, str] = field(default_factory=dict)
+    body: bytes | None = None
+    resource_key: str | None = None
+    retry_safety: RetrySafety = RetrySafety.NEVER
+    connection_addresses: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.method not in {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"}:
+            raise ValueError("unsupported HTTP method")
+        if not self.url.strip():
+            raise ValueError("url must be non-empty")
+        if any(not address.strip() for address in self.connection_addresses):
+            raise ValueError("connection_addresses must contain non-empty IP addresses")
+
+
+@dataclass(frozen=True)
+class HttpResponse:
+    requested_url: str
+    final_url: str
+    status_code: int
+    media_type: str
+    body: bytes
+    headers: Mapping[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not _MIN_HTTP_STATUS <= self.status_code <= _MAX_HTTP_STATUS:
+            raise ValueError("status_code must be a valid HTTP status")
+
+
+class HttpTransport(Protocol):
+    async def send(self, action: HttpAction, *, timeout_seconds: float) -> HttpResponse:
+        """Execute one already-admitted HTTP action."""
+
+
+class ParserRuntime(Protocol):
     @property
-    def database_path(self) -> Path:
-        """Path to the backing run database."""
+    def reserved_collection_units(self) -> int:
+        """Collection units reserved for this invocation."""
 
     @property
-    def run_id(self) -> str:
-        """Run id owned by this store."""
+    def attempt_metrics(self) -> ParserAttemptMetrics:
+        """Current invocation-scoped network diagnostics."""
 
-    @property
-    def append_sequence(self) -> int:
-        """Reserved append sequence for the active append attempt."""
+    async def http(self, action: HttpAction) -> HttpResponse:
+        """Execute one safe resource-gated HTTP action."""
 
-    def reserve_append_attempt(self, request: Mapping[str, object]) -> int:
-        """Reserve a unique append sequence for this run."""
 
-    def mark_append_attempt_completed(self) -> None:
-        """Mark the reserved append attempt completed."""
-
-    def mark_append_attempt_failed(self) -> None:
-        """Mark the reserved append attempt failed."""
-
-    def write_processed_results(self, payload: Mapping[str, object]) -> None:
-        """Persist one processed-results snapshot."""
-
-    def read_raw_records(self) -> tuple[JsonObject, ...]:
-        """Read raw listing record payloads for the run."""
-
-    def read_raw_record_rows(self) -> tuple[StoredRawRecord, ...]:
-        """Read raw listing rows with stable SQLite row ids."""
-
-    def read_source_attempts(self) -> tuple[JsonObject, ...]:
-        """Read source attempt payloads for the run."""
-
-    def read_run_manifest(self) -> JsonObject:
-        """Read the latest run manifest payload."""
-
-    def read_processed_results(self, *, append_sequence: int | None = None, phase: str = "final") -> JsonObject:
-        """Read a processed-results payload."""
-
-    def close(self) -> None:
-        """Close any backing resources."""
-
-    def __enter__(self) -> Self:
-        """Enter the run store context."""
-
-    def __exit__(
+class ParserRuntimeFactory(Protocol):
+    def create(
         self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        """Exit the run store context."""
-
-
-class RunStoreFactory(Protocol):
-    def __call__(self, database_path: Path, *, run_id: str) -> RunStore:
-        """Create a run store for one run database."""
+        context: OperationContext,
+        *,
+        reserved_collection_units: int,
+    ) -> ParserRuntime:
+        """Create one invocation-scoped parser runtime."""

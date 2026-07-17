@@ -16,17 +16,21 @@ from job_harness.v2.application import (
     V2SearchExecution,
 )
 from job_harness.v2.contracts import (
+    CompensationCriterion,
+    CompensationPeriod,
     Grade,
     SearchRequest,
-    SourceAttemptRecord,
+    SearchScenario,
     SourceType,
     TextExclusion,
     TextExclusionMode,
     WorkFormat,
 )
-from job_harness.v2.persistence import read_processed_results_payload
+from job_harness.v2.persistence import read_graph_processed_payload
 from job_harness.v2.presentation import render_processed_results_markdown
 from job_harness.v2.runtime import fetch_ats_company_listings, implemented_source_ids
+from job_harness.v2.runtime.graph_scheduler import GraphSearchProgress
+from job_harness.v2.runtime.public_projection import public_vacancy_projection
 from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import country_catalog_entries, source_catalog_entries
 
@@ -41,6 +45,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "search":
             request = _request_from_args(args)
             execution = asyncio.run(_run_search(args, request))
+            _print_json(_execution_payload(execution))
+            return 0
+        if args.command == "resume":
+            execution = asyncio.run(_run_resume(args))
             _print_json(_execution_payload(execution))
             return 0
         if args.command == "parse-ats-url":
@@ -71,7 +79,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help='Pipe-separated query variants, for example: "QA | AQA | SDET". Repeatable.',
     )
     search.add_argument("--grade", action="append", choices=_grade_values(), default=[])
-    search.add_argument("--salary-from", type=int)
+    search.add_argument("--salary-minimum", type=int)
+    search.add_argument("--salary-currency")
+    search.add_argument(
+        "--salary-period",
+        choices=tuple(period.value for period in CompensationPeriod),
+    )
+    search.add_argument("--salary-gross", choices=("true", "false"))
     search.add_argument("--published-since", type=_date_arg)
     search.add_argument("--exclude-company", action="append", default=[])
     search.add_argument("--exclude-text", action="append", default=[])
@@ -83,8 +97,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=_work_format_values(),
         default=[],
         help=(
-            "Workplace format: remote, hybrid, office, or unknown. "
-            "Repeatable; unknown must be paired with a concrete format."
+            "Workplace format: remote, hybrid, or office. Repeatable."
         ),
     )
     search.add_argument(
@@ -92,8 +105,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help=(
-            "Remote eligibility scope: global, country:<code>, region:<code>, or unknown. "
-            "Repeatable; unknown must be paired with a concrete scope."
+            "Remote eligibility scope: global, country:<code>, or region:<code>. Repeatable."
         ),
     )
     search.add_argument(
@@ -101,8 +113,23 @@ def _build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help=(
-            "Vacancy geography scope: country:<code>, region:<code>, city:<name>, or unknown. "
-            "Repeatable; unknown must be paired with a concrete geography."
+            "Vacancy geography scope: country:<code>, region:<code>, or city:<name>. Repeatable."
+        ),
+    )
+    search.add_argument(
+        "--employer-geography",
+        action="append",
+        default=[],
+        help="Employer geography: country:<code>, region:<code>, or city:<name>.",
+    )
+    search.add_argument(
+        "--scenario",
+        action="append",
+        type=_scenario_arg,
+        default=[],
+        help=(
+            "JSON OR branch with relocation, work_formats, remote_scopes, "
+            "vacancy_geographies, and/or employer_geographies. Repeatable."
         ),
     )
     search.add_argument("--source", action="append", default=[])
@@ -110,6 +137,13 @@ def _build_parser() -> argparse.ArgumentParser:
     search.add_argument("--append-to-run-id")
     search.add_argument("--run-id")
     search.add_argument("--runs-dir", type=Path, default=Path(".job-harness/v2/runs"))
+
+    resume = subparsers.add_parser(
+        "resume",
+        help="Resume or repair a persisted v2 search execution.",
+    )
+    resume.add_argument("--execution-id", required=True)
+    resume.add_argument("--runs-dir", type=Path, default=Path(".job-harness/v2/runs"))
 
     ats = subparsers.add_parser(
         "parse-ats-url",
@@ -158,7 +192,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _run_format(args: argparse.Namespace) -> int:
-    payload = read_processed_results_payload(args.input)
+    payload = read_graph_processed_payload(
+        args.input,
+        projector=public_vacancy_projection,
+    )
     markdown = render_processed_results_markdown(
         payload,
         description_limit=args.description_limit,
@@ -176,7 +213,7 @@ def _request_from_args(args: argparse.Namespace) -> SearchRequest:
     return SearchRequest(
         query_variants=_query_variants(args),
         grades=tuple(Grade(value) for value in args.grade),
-        salary_from=args.salary_from,
+        compensation=_compensation_from_args(args),
         published_since=args.published_since,
         exclude_companies=tuple(args.exclude_company),
         exclude_text=_text_exclusions(args),
@@ -184,6 +221,8 @@ def _request_from_args(args: argparse.Namespace) -> SearchRequest:
         work_formats=tuple(WorkFormat(value) for value in args.work_format),
         remote_scopes=tuple(args.remote_scope),
         vacancy_geographies=tuple(args.vacancy_geography),
+        employer_geographies=tuple(args.employer_geography),
+        scenarios=tuple(args.scenario),
         sources=tuple(args.source),
         source_types=tuple(SourceType(value) for value in args.source_type),
         append_to_run_id=args.append_to_run_id,
@@ -194,9 +233,20 @@ async def _run_search(args: argparse.Namespace, request: SearchRequest) -> V2Sea
     app = V2SearchApplication(
         config=V2SearchConfig(
             runs_dir=args.runs_dir,
+            progress_callback=_print_progress,
         )
     )
     return await app.search(request, run_id=args.run_id)
+
+
+async def _run_resume(args: argparse.Namespace) -> V2SearchExecution:
+    app = V2SearchApplication(
+        config=V2SearchConfig(
+            runs_dir=args.runs_dir,
+            progress_callback=_print_progress,
+        )
+    )
+    return await app.resume_execution(args.execution_id)
 
 
 async def _run_ats_url_parse(args: argparse.Namespace) -> object:
@@ -262,26 +312,7 @@ def _source_catalog_payload() -> dict[str, object]:
 
 
 def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
-    return {
-        "schema_version": 1,
-        "record_type": "v2_search_execution",
-        "run_id": execution.run_id,
-        "append_sequence": execution.append_sequence,
-        "run_dir": str(execution.paths.run_dir),
-        "artifacts": {
-            "database": str(execution.paths.database_path),
-            "raw_listings_table": "raw_listings",
-            "source_attempts_table": "source_attempts",
-            "run_manifest_table": "run_manifest",
-            "processed_results_table": "processed_results",
-            "report_html": str(execution.paths.report_html_path),
-        },
-        "raw_records_written_this_call": execution.raw_records_written,
-        "processed_result_count": execution.processed_results.result_count,
-        "detail_summary": execution.detail_summary,
-        "runtime_summary": execution.runtime_summary,
-        "attempts": [_attempt_payload(attempt) for attempt in execution.attempts],
-    }
+    return dict(execution.receipt)
 
 
 def _ats_url_parse_payload(result: object) -> dict[str, object]:
@@ -310,19 +341,6 @@ def _ats_url_parse_payload(result: object) -> dict[str, object]:
     }
 
 
-def _attempt_payload(attempt: SourceAttemptRecord) -> dict[str, object]:
-    return {
-        "source": attempt.source,
-        "query_variant": attempt.query_variant,
-        "attempt": attempt.attempt,
-        "outcome": attempt.outcome,
-        "raw_listings_written": attempt.counts.raw_listings_written,
-        "pages_visited": attempt.counts.pages_visited,
-        "elapsed_ms": attempt.elapsed_ms,
-        "limit_reached": attempt.limit_reached,
-    }
-
-
 def _text_exclusions(args: argparse.Namespace) -> tuple[TextExclusion, ...]:
     substring_exclusions = tuple(
         TextExclusion(pattern=value, mode=TextExclusionMode.SUBSTRING) for value in args.exclude_text
@@ -335,6 +353,75 @@ def _optional_bool(value: str | None) -> bool | None:
     if value is None:
         return None
     return value == "true"
+
+
+def _compensation_from_args(args: argparse.Namespace) -> CompensationCriterion | None:
+    mandatory = (
+        args.salary_minimum,
+        args.salary_currency,
+        args.salary_period,
+    )
+    if all(value is None for value in mandatory):
+        if args.salary_gross is not None:
+            raise ValueError("salary minimum, currency, and period must be supplied together")
+        return None
+    if any(value is None for value in mandatory):
+        raise ValueError("salary minimum, currency, and period must be supplied together")
+    return CompensationCriterion(
+        minimum=args.salary_minimum,
+        currency=args.salary_currency,
+        period=CompensationPeriod(args.salary_period),
+        gross=_optional_bool(args.salary_gross),
+    )
+
+
+def _scenario_arg(value: str) -> SearchScenario:
+    try:
+        payload = json.loads(value)
+        if not isinstance(payload, dict):
+            raise ValueError("scenario must be a JSON object")
+        allowed = {
+            "relocation",
+            "work_formats",
+            "remote_scopes",
+            "vacancy_geographies",
+            "employer_geographies",
+        }
+        unknown = set(payload) - allowed
+        if unknown:
+            raise ValueError("unknown scenario fields: " + ", ".join(sorted(unknown)))
+        relocation = payload.get("relocation")
+        if relocation is not None and not isinstance(relocation, bool):
+            raise ValueError("scenario.relocation must be boolean")
+        return SearchScenario(
+            relocation=relocation,
+            work_formats=tuple(
+                WorkFormat(item) for item in _scenario_string_list(payload, "work_formats")
+            ),
+            remote_scopes=_scenario_string_list(payload, "remote_scopes"),
+            vacancy_geographies=_scenario_string_list(payload, "vacancy_geographies"),
+            employer_geographies=_scenario_string_list(payload, "employer_geographies"),
+        )
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
+def _scenario_string_list(payload: dict[str, object], key: str) -> tuple[str, ...]:
+    value = payload.get(key, [])
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise ValueError(f"scenario.{key} must be an array of strings")
+    return tuple(value)
+
+
+def _print_progress(progress: GraphSearchProgress) -> None:
+    state = "done" if progress.done else "running"
+    print(
+        "job-harness-v2 "
+        f"{state}: tasks={progress.tasks_completed} "
+        f"events={progress.events_processed} elapsed={progress.elapsed_seconds:.1f}s",
+        file=sys.stderr,
+        flush=True,
+    )
 
 
 def _date_arg(value: str) -> date:
@@ -380,7 +467,7 @@ def _ats_platform_values() -> tuple[str, ...]:
 
 
 def _work_format_values() -> tuple[str, ...]:
-    return tuple(item.value for item in WorkFormat)
+    return tuple(item.value for item in WorkFormat if item != WorkFormat.UNKNOWN)
 
 
 def _print_json(payload: object) -> None:

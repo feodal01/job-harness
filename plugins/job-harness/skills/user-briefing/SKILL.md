@@ -24,8 +24,8 @@ I will save job-harness working files in:
 <current-directory>/.job-harness/
 
 This will create:
-- briefs/ — confirmed reusable search briefs and their search runs
-- companies/ — local memory of employer career pages for this project
+- briefs/ — confirmed reusable search briefs
+- v2/runs/ — graph run databases, receipts, and reports
 
 Is this directory OK? If not, tell me which directory to use.
 ```
@@ -94,31 +94,37 @@ Once confirmed, create the brief folder and save the brief:
 
 - Folder: `.job-harness/briefs/YYYY-MM-DD_<brief-name>/` (English, kebab-case, no spaces)
 - File: `.job-harness/briefs/YYYY-MM-DD_<brief-name>/brief.md`
-- Runs folder: `.job-harness/briefs/YYYY-MM-DD_<brief-name>/runs/`
 
-The brief is a reusable search profile. If the same search needs to be repeated later, create a new run under the existing brief instead of creating a duplicate brief.
+The brief is a reusable search profile. Search runs remain in
+`.job-harness/v2/runs/<run_id>/`; do not duplicate run artifacts under the
+brief folder.
+
+A saved brief records business preferences, not implementation history. It
+must not preserve runtime or CLI limitations such as “this filter is not
+supported” or “apply this manually after search.” Revalidate those conclusions
+against the active workflow skill and `job-harness-v2 search --help` whenever a
+brief is reused.
 
 ## Artifact Layout
 
-Each search run under a brief gets its own timestamped folder:
+Briefs and graph runs are separate durable artifacts:
 
 ```
 .job-harness/briefs/YYYY-MM-DD_<brief-name>/
   brief.md
-  runs/
-    YYYY-MM-DD_HHMM_<run-name>/
-      run.md
-      results.json
-      report.md
-      raw/
+.job-harness/v2/runs/<run_id>/
+  run.sqlite
+  execution.json
+  report.html
 ```
 
 - `brief.md`: confirmed reusable search profile.
-- `run.md`: what this run did, including sources, query variants, filters, and resolve settings.
-- `results.json`: machine-readable vacancies and metadata. Copy from the MCP export (`search_results(run_id)` → `data/.runs/<run_id>/results.json`) after filtering/ranking; do not treat inline `search_results(format=inline)` slices as the final artifact.
-- `report.md`: human-readable final report.
-- `raw/`: intermediate source outputs and resolver data for audit.
-- `.job-harness/companies/careers.json`: local memory of employer career pages for this project.
+- `run.sqlite`: durable graph state and final vacancies.
+- `execution.json`: request outcome and bounded diagnostics.
+- `report.html`: primary human-readable result artifact.
+
+Do not create `run.md`, `results.json`, `report.md`, `raw/`, or a local company
+cache unless a separate user request explicitly needs one.
 
 ## Rules
 

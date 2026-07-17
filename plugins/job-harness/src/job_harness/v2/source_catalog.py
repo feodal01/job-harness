@@ -14,6 +14,7 @@ from job_harness.v2.contracts import (
     ParserFixtureCase,
     ParserFixtureKind,
     ParserFixtureSuite,
+    ParserRef,
     RequiredParserFixtures,
     SearchCriterion,
     SourceDescriptor,
@@ -58,6 +59,19 @@ class SourceFixtureRecord:
 
 
 @dataclass(frozen=True)
+class ListingParserBinding:
+    """Explicit catalog binding from a source id to a pinned listing parser."""
+
+    source_id: str
+    source_type: SourceType
+    parser_ref: ParserRef
+
+    def __post_init__(self) -> None:
+        if not self.source_id.strip():
+            raise ValueError("source_id must be non-empty")
+
+
+@dataclass(frozen=True)
 class SourceCatalogEntry:
     """ORM-style source row used to derive runtime contracts."""
 
@@ -66,6 +80,8 @@ class SourceCatalogEntry:
     transport: Transport
     countries: tuple[str, ...]
     source_limit: int
+    identity_namespace: str | None
+    listing_parser_ref: ParserRef
     native_request_criteria: frozenset[SearchCriterion]
     structured_output_criteria: frozenset[SearchCriterion]
     required_fixture_kinds: RequiredParserFixtures
@@ -85,6 +101,7 @@ class SourceCatalogEntry:
             countries=self.countries,
             source_limit=self.source_limit,
             capabilities=self.capabilities(),
+            identity_namespace=self.identity_namespace,
         )
 
     def capabilities(self) -> dict[SearchCriterion, CriterionCapability]:
@@ -101,9 +118,20 @@ class SourceCatalogEntry:
             cases=tuple(record.as_case() for record in self.fixture_records),
         )
 
+    def listing_binding(self) -> ListingParserBinding:
+        return ListingParserBinding(
+            source_id=self.source_id,
+            source_type=self.source_type,
+            parser_ref=self.listing_parser_ref,
+        )
+
 
 def source_catalog_entries() -> tuple[SourceCatalogEntry, ...]:
     return _load_catalog()
+
+
+def listing_parser_bindings() -> tuple[ListingParserBinding, ...]:
+    return tuple(entry.listing_binding() for entry in source_catalog_entries())
 
 
 def country_catalog_entries() -> tuple[CountryCatalogEntry, ...]:
@@ -178,7 +206,8 @@ def _read_entries(connection: sqlite3.Connection) -> tuple[SourceCatalogEntry, .
     rows = _fetch_rows(
         connection,
         """
-        SELECT source_id, source_type, transport, source_limit
+        SELECT source_id, source_type, transport, source_limit, identity_namespace,
+               listing_parser_id, listing_parser_version
         FROM sources
         ORDER BY sort_order
         """,
@@ -196,6 +225,11 @@ def _entry_from_row(connection: sqlite3.Connection, row: sqlite3.Row) -> SourceC
         transport=Transport(_row_text(row, "transport")),
         countries=_read_countries(connection, source_id),
         source_limit=_row_int(row, "source_limit"),
+        identity_namespace=_row_optional_text(row, "identity_namespace"),
+        listing_parser_ref=ParserRef(
+            _row_text(row, "listing_parser_id"),
+            _row_text(row, "listing_parser_version"),
+        ),
         native_request_criteria=frozenset(
             criterion
             for criterion, capability in criteria.items()
@@ -331,6 +365,15 @@ def _row_text(row: sqlite3.Row, key: str) -> str:
     value: object = row[key]
     if not isinstance(value, str) or not value.strip():
         raise TypeError(f"SQLite catalog column {key} must be a non-empty string")
+    return value
+
+
+def _row_optional_text(row: sqlite3.Row, key: str) -> str | None:
+    value: object = row[key]
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise TypeError(f"SQLite catalog column {key} must be NULL or a non-empty string")
     return value
 
 

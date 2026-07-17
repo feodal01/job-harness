@@ -60,8 +60,8 @@
   "raw_contains": {
     "2743": {
       "ats_platform": "taleo",
-      "board_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
-      "career_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "board_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?act=sort&cws=37&org=KEYLOGIC&sortColumn=0",
+      "career_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/jobSearch?act=redirectCwsV2&cws=37&org=KEYLOGIC",
       "id": "2743",
       "department": null,
       "employment_type": "Full time",
@@ -77,8 +77,8 @@
     },
     "2670": {
       "ats_platform": "taleo",
-      "board_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
-      "career_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+      "board_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?act=sort&cws=37&org=KEYLOGIC&sortColumn=0",
+      "career_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/jobSearch?act=redirectCwsV2&cws=37&org=KEYLOGIC",
       "id": "2670",
       "department": null,
       "employment_type": "Full time",

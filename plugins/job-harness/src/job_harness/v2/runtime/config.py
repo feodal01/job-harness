@@ -3,63 +3,92 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from importlib.resources import files
 
-from job_harness.v2.runtime.retry import RetryPolicy
+from job_harness.v2.runtime.request_retry import RequestRetryPolicy
 from job_harness.v2.serialization import JsonObject
 
 _CONFIG_RESOURCE = "search_service_config.json"
 
 
 @dataclass(frozen=True)
-class RetryServiceConfig:
+class RequestRetryServiceConfig:
     max_attempts: int
-    backoff_seconds: float
+    base_delay_seconds: float
+    max_delay_seconds: float
+    request_budget_seconds: float
 
     def __post_init__(self) -> None:
         if self.max_attempts < 1:
-            raise ValueError("retry.max_attempts must be >= 1")
-        if self.backoff_seconds < 0:
-            raise ValueError("retry.backoff_seconds must be >= 0")
+            raise ValueError("request_retry.max_attempts must be >= 1")
+        if self.base_delay_seconds < 0:
+            raise ValueError("request_retry.base_delay_seconds must be >= 0")
+        if self.max_delay_seconds < self.base_delay_seconds:
+            raise ValueError("request_retry.max_delay_seconds must be >= base_delay_seconds")
+        if self.request_budget_seconds <= 0:
+            raise ValueError("request_retry.request_budget_seconds must be > 0")
 
-    def to_retry_policy(self) -> RetryPolicy:
-        return RetryPolicy(
+    def to_policy(self, *, attempt_timeout_seconds: float) -> RequestRetryPolicy:
+        return RequestRetryPolicy(
             max_attempts=self.max_attempts,
-            backoff_seconds=self.backoff_seconds,
+            attempt_timeout_seconds=attempt_timeout_seconds,
+            base_delay_seconds=self.base_delay_seconds,
+            max_delay_seconds=self.max_delay_seconds,
+            request_budget_seconds=self.request_budget_seconds,
         )
 
 
 @dataclass(frozen=True)
-class DetailServiceConfig:
-    per_source_concurrency: int
-    default_request_delay_seconds: float
-    request_delay_seconds_by_source: dict[str, float]
-    stop_on_blocked: bool
-    stop_on_rate_limited: bool
-    per_source_concurrency_by_source: dict[str, int] = field(default_factory=dict)
+class ResourceServiceConfig:
+    default_max_concurrency: int
+    default_min_interval_seconds: float
+    max_concurrency_by_resource: dict[str, int]
+    min_interval_seconds_by_resource: dict[str, float]
+    resource_key_by_host_suffix: dict[str, str]
 
     def __post_init__(self) -> None:
-        if self.per_source_concurrency < 1:
-            raise ValueError("detail.per_source_concurrency must be >= 1")
-        if self.default_request_delay_seconds < 0:
-            raise ValueError("detail.default_request_delay_seconds must be >= 0")
-        for source_id, delay in self.request_delay_seconds_by_source.items():
-            if not source_id.strip():
-                raise ValueError("detail.request_delay_seconds_by_source keys must be non-empty")
+        if self.default_max_concurrency < 1:
+            raise ValueError("resources.default_max_concurrency must be >= 1")
+        if self.default_min_interval_seconds < 0:
+            raise ValueError("resources.default_min_interval_seconds must be >= 0")
+        for resource_key, delay in self.min_interval_seconds_by_resource.items():
+            if not resource_key.strip():
+                raise ValueError("resources.min_interval_seconds_by_resource keys must be non-empty")
             if delay < 0:
-                raise ValueError("detail.request_delay_seconds_by_source delays must be >= 0")
-        for source_id, concurrency in self.per_source_concurrency_by_source.items():
-            if not source_id.strip():
-                raise ValueError("detail.per_source_concurrency_by_source keys must be non-empty")
+                raise ValueError("resources.min_interval_seconds_by_resource values must be >= 0")
+        for resource_key, concurrency in self.max_concurrency_by_resource.items():
+            if not resource_key.strip():
+                raise ValueError("resources.max_concurrency_by_resource keys must be non-empty")
             if concurrency < 1:
-                raise ValueError("detail.per_source_concurrency_by_source values must be >= 1")
+                raise ValueError("resources.max_concurrency_by_resource values must be >= 1")
+        for suffix, resource_key in self.resource_key_by_host_suffix.items():
+            if not suffix.strip() or not resource_key.strip():
+                raise ValueError("resources.resource_key_by_host_suffix must contain non-empty strings")
 
-    def delay_for_source(self, source_id: str) -> float:
-        return self.request_delay_seconds_by_source.get(source_id, self.default_request_delay_seconds)
+    def min_interval_for_resource(self, resource_key: str) -> float:
+        return self.min_interval_seconds_by_resource.get(
+            resource_key,
+            self.default_min_interval_seconds,
+        )
 
-    def concurrency_for_source(self, source_id: str) -> int:
-        return self.per_source_concurrency_by_source.get(source_id, self.per_source_concurrency)
+    def concurrency_for_resource(self, resource_key: str) -> int:
+        return self.max_concurrency_by_resource.get(resource_key, self.default_max_concurrency)
+
+    def resource_key_for_host(self, host: str) -> str:
+        normalized = host.casefold().strip().rstrip(".")
+        matches = (
+            (suffix.casefold().strip().lstrip("."), resource_key)
+            for suffix, resource_key in self.resource_key_by_host_suffix.items()
+        )
+        matching = tuple(
+            (suffix, resource_key)
+            for suffix, resource_key in matches
+            if normalized == suffix or normalized.endswith(f".{suffix}")
+        )
+        if not matching:
+            return normalized
+        return max(matching, key=lambda item: len(item[0]))[1]
 
 
 @dataclass(frozen=True)
@@ -77,8 +106,8 @@ class SearchServiceConfig:
     source_attempt_timeout_seconds: float
     run_timeout_seconds: float
     fetch_timeout_seconds: float
-    retry: RetryServiceConfig
-    detail: DetailServiceConfig
+    request_retry: RequestRetryServiceConfig
+    resources: ResourceServiceConfig
     application_channels: ApplicationChannelServiceConfig = ApplicationChannelServiceConfig()
 
     def __post_init__(self) -> None:
@@ -99,29 +128,36 @@ class SearchServiceConfig:
 
     @classmethod
     def from_json_object(cls, payload: JsonObject) -> SearchServiceConfig:
-        retry = _required_object(payload, "retry")
-        detail = _required_object(payload, "detail")
+        request_retry = _required_object(payload, "request_retry")
+        resources = _required_object(payload, "resources")
         application_channels = _optional_object(payload, "application_channels")
         return cls(
             source_attempt_timeout_seconds=_required_float(payload, "source_attempt_timeout_seconds"),
             run_timeout_seconds=_required_float(payload, "run_timeout_seconds"),
             fetch_timeout_seconds=_required_float(payload, "fetch_timeout_seconds"),
-            retry=RetryServiceConfig(
-                max_attempts=_required_int(retry, "max_attempts"),
-                backoff_seconds=_required_float(retry, "backoff_seconds"),
+            request_retry=RequestRetryServiceConfig(
+                max_attempts=_required_int(request_retry, "max_attempts"),
+                base_delay_seconds=_required_float(request_retry, "base_delay_seconds"),
+                max_delay_seconds=_required_float(request_retry, "max_delay_seconds"),
+                request_budget_seconds=_required_float(request_retry, "request_budget_seconds"),
             ),
-            detail=DetailServiceConfig(
-                per_source_concurrency=_required_int(detail, "per_source_concurrency"),
-                default_request_delay_seconds=_required_float(detail, "default_request_delay_seconds"),
-                request_delay_seconds_by_source=_float_mapping(
-                    detail,
-                    "request_delay_seconds_by_source",
+            resources=ResourceServiceConfig(
+                default_max_concurrency=_required_int(resources, "default_max_concurrency"),
+                default_min_interval_seconds=_required_float(
+                    resources,
+                    "default_min_interval_seconds",
                 ),
-                stop_on_blocked=_required_bool(detail, "stop_on_blocked"),
-                stop_on_rate_limited=_required_bool(detail, "stop_on_rate_limited"),
-                per_source_concurrency_by_source=_int_mapping(
-                    detail,
-                    "per_source_concurrency_by_source",
+                max_concurrency_by_resource=_int_mapping(
+                    resources,
+                    "max_concurrency_by_resource",
+                ),
+                min_interval_seconds_by_resource=_float_mapping(
+                    resources,
+                    "min_interval_seconds_by_resource",
+                ),
+                resource_key_by_host_suffix=_string_mapping(
+                    resources,
+                    "resource_key_by_host_suffix",
                 ),
             ),
             application_channels=ApplicationChannelServiceConfig(
@@ -162,13 +198,6 @@ def _required_int(payload: JsonObject, key: str) -> int:
     value = payload.get(key)
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(f"{key} must be an integer")
-    return value
-
-
-def _required_bool(payload: JsonObject, key: str) -> bool:
-    value = payload.get(key)
-    if not isinstance(value, bool):
-        raise ValueError(f"{key} must be a boolean")
     return value
 
 
@@ -214,5 +243,17 @@ def _int_mapping(payload: JsonObject, key: str) -> dict[str, int]:
             raise ValueError(f"{key} keys must be strings")
         if not isinstance(raw_value, int) or isinstance(raw_value, bool):
             raise ValueError(f"{key}.{raw_key} must be an integer")
+        parsed[raw_key] = raw_value
+    return parsed
+
+
+def _string_mapping(payload: JsonObject, key: str) -> dict[str, str]:
+    value = payload.get(key, {})
+    if not isinstance(value, dict):
+        raise ValueError(f"{key} must be a JSON object")
+    parsed: dict[str, str] = {}
+    for raw_key, raw_value in value.items():
+        if not isinstance(raw_key, str) or not isinstance(raw_value, str):
+            raise ValueError(f"{key} keys and values must be strings")
         parsed[raw_key] = raw_value
     return parsed

@@ -33,7 +33,7 @@ class SearchCriterionDescriptorTest(unittest.TestCase):
         for criterion in (
             SearchCriterion.QUERY,
             SearchCriterion.GRADES,
-            SearchCriterion.SALARY_FROM,
+            SearchCriterion.COMPENSATION,
             SearchCriterion.RELOCATION,
             SearchCriterion.WORK_FORMATS,
             SearchCriterion.REMOTE_SCOPES,
@@ -77,12 +77,13 @@ class SearchCriterionDescriptorTest(unittest.TestCase):
             (
                 "query",
                 "grades",
-                "salary_from",
+                "compensation",
                 "published_since",
                 "relocation",
                 "work_formats",
                 "remote_scopes",
                 "vacancy_geographies",
+                "employer_geographies",
             ),
             criteria,
         )
@@ -107,13 +108,19 @@ class SearchCriterionDescriptorTest(unittest.TestCase):
             vacancy.source_fact_fields,
         )
 
-    def test_salary_descriptor_allows_text_extraction(self) -> None:
+    def test_compensation_descriptor_allows_text_extraction(self) -> None:
         # Arrange / Act
-        descriptor = search_criterion_descriptor(SearchCriterion.SALARY_FROM)
+        descriptor = search_criterion_descriptor(SearchCriterion.COMPENSATION)
 
         # Assert
         self.assertEqual(
-            ("salary_text", "salary_min", "salary_max", "salary_currency"),
+            (
+                "salary_min",
+                "salary_max",
+                "salary_currency",
+                "salary_period",
+                "salary_gross",
+            ),
             descriptor.source_fact_fields,
         )
         self.assertEqual(

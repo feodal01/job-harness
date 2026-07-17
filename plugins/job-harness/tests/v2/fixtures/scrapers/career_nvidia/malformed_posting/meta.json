@@ -1,0 +1,7 @@
+{
+  "source_id": "career:nvidia",
+  "captured_at": "2026-07-13T19:32:55+03:00",
+  "captured_url": "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs?offset=80",
+  "capture_method": "curl POST with the source request body",
+  "notes": "Real Workday response containing 19 complete postings and one posting with only bulletFields."
+}

@@ -15,6 +15,7 @@ from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 
 from job_harness.v2.contracts import (
     AttemptEvidence,
+    ClassifiedSourceError,
     DetailEnrichmentScraper,
     HttpMethod,
     RawListing,
@@ -459,8 +460,14 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         source_id="career:keylogic",
         company="KeyLogic",
         platform="taleo",
-        board_url="https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
-        career_url="https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+        board_url=(
+            "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults"
+            "?act=sort&cws=37&org=KEYLOGIC&sortColumn=0"
+        ),
+        career_url=(
+            "https://phg.tbe.taleo.net/phg02/ats/careers/v2/jobSearch"
+            "?act=redirectCwsV2&cws=37&org=KEYLOGIC"
+        ),
         remote_in_country_from_any_remote_location=True,
         taleo_parallel_pagination_window=2,
     ),
@@ -476,8 +483,14 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         source_id="career:aurora-flight-sciences",
         company="Aurora Flight Sciences",
         platform="taleo",
-        board_url="https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
-        career_url="https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+        board_url=(
+            "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults"
+            "?act=sort&cws=37&org=AURORA&sortColumn=0"
+        ),
+        career_url=(
+            "https://phg.tbe.taleo.net/phg01/ats/careers/v2/jobSearch"
+            "?act=redirectCwsV2&cws=37&org=AURORA"
+        ),
     ),
     "career:pictet": AtsCompanySourceConfig(
         source_id="career:pictet",
@@ -869,8 +882,11 @@ ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
         source_id="career:great-hearts",
         company="Great Hearts",
         platform="taleo",
-        board_url="https://phg.tbe.taleo.net/phg04/ats/careers/v2/searchResults?cws=40&org=GREATHEARTS",
-        career_url="https://phg.tbe.taleo.net/phg04/ats/careers/v2/searchResults?cws=40&org=GREATHEARTS",
+        board_url=(
+            "https://phg.tbe.taleo.net/phg04/ats/careers/v2/searchResults"
+            "?act=sort&cws=40&org=GREATHEARTS&sortColumn=0"
+        ),
+        career_url="https://careers.greatheartsamerica.org/current-openings/",
     ),
     "career:almarai": AtsCompanySourceConfig(
         source_id="career:almarai",
@@ -1306,7 +1322,7 @@ class AtsCompanyCareerSource(SourceScraper):
         if self._config.platform == "teamtailor":
             return _parse_teamtailor(response.body, self._config, _request)
         if self._config.platform == "jobvite":
-            return _parse_jobvite(response.body, self._config, _request)
+            return _parse_jobvite(response, self._config, _request)
         if self._config.platform == "icims":
             return _parse_icims(response.body, self._config, _request)
         if self._config.platform == "smartrecruiters":
@@ -1369,13 +1385,11 @@ class AtsWorkdayCompanyCareerSource(DetailEnrichmentScraper):
         return _parse_workday(response.body, self._config, request)
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
-        detail_url = _text(listing.raw.get("workday_cxs_detail_url")).strip()
-        if not detail_url:
-            raise ValueError(f"{self._config.company} Workday listing is missing detail URL")
+        external_path = _workday_external_path(listing.url, self._config)
         return SourceFetchRequest(
             source_id=self.descriptor.source_id,
             query_variant=listing.title,
-            url=detail_url,
+            url=_workday_cxs_detail_url(self._config, external_path),
             headers={"Accept": "application/json"},
         )
 
@@ -1417,7 +1431,7 @@ class AtsPersonioCompanyCareerSource(DetailEnrichmentScraper):
         return _parse_personio(response.body, self._config)
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
-        detail_url = _text(listing.raw.get("personio_detail_url")).strip()
+        detail_url = listing.url.strip()
         if not detail_url:
             raise ValueError(f"{self._config.company} Personio listing is missing detail URL")
         return SourceFetchRequest(
@@ -1464,7 +1478,7 @@ class AtsJoinCompanyCareerSource(DetailEnrichmentScraper):
         return _parse_join(response.body, self._config)
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
-        detail_url = _text(listing.raw.get("join_detail_url")).strip()
+        detail_url = listing.url.strip()
         if not detail_url:
             raise ValueError(f"{self._config.company} JOIN listing is missing detail URL")
         return SourceFetchRequest(
@@ -1511,7 +1525,7 @@ class AtsDreamJobCompanyCareerSource(DetailEnrichmentScraper):
         return _parse_dreamjob(response.body, self._config, request)
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
-        detail_url = _text(listing.raw.get("dreamjob_detail_url")).strip()
+        detail_url = listing.url.strip()
         if not detail_url:
             raise ValueError(f"{self._config.company} DreamJob listing is missing detail URL")
         return SourceFetchRequest(
@@ -2383,7 +2397,12 @@ def _parse_workday(
     if not postings:
         raise ValueError(f"{config.company} Workday response has no postings without an explicit empty total")
 
-    listings = tuple(_workday_listing(posting, config) for posting in postings if isinstance(posting, dict))
+    valid_postings = tuple(
+        posting
+        for posting in postings
+        if isinstance(posting, dict) and _is_complete_workday_posting(posting)
+    )
+    listings = tuple(_workday_listing(posting, config) for posting in valid_postings)
     if not listings:
         raise ValueError(f"{config.company} Workday response contains no valid posting objects")
     parallel_requests = _workday_parallel_requests(
@@ -2441,6 +2460,25 @@ def _workday_listing(posting: dict[str, Any], config: AtsCompanySourceConfig) ->
         raw_text=_join_text(title, location_text, raw["time_type"], raw["posted_on"], " ".join(bullet_fields)),
         raw=raw,
     )
+
+
+def _is_complete_workday_posting(posting: dict[str, Any]) -> bool:
+    return bool(_text(posting.get("title")).strip() and _text(posting.get("externalPath")).strip())
+
+
+def _workday_external_path(url: str, config: AtsCompanySourceConfig) -> str:
+    parsed = urlparse(url)
+    base_url = _workday_config_value(config.workday_base_url, "workday_base_url", config)
+    site = _workday_config_value(config.workday_site, "workday_site", config)
+    workday = urlparse(base_url)
+    public_path = f"/{site}"
+    if (
+        parsed.scheme not in {"http", "https"}
+        or parsed.netloc.casefold() != workday.netloc.casefold()
+        or not parsed.path.startswith(f"{public_path}/job/")
+    ):
+        raise ValueError(f"{config.company} Workday vacancy URL is not supported")
+    return parsed.path.removeprefix(public_path)
 
 
 def _workday_detail_listing(
@@ -2543,7 +2581,6 @@ def _personio_listing(attrs: str, item_html: str, config: AtsCompanySourceConfig
     raw.update(
         {
             "id": source_listing_id,
-            "personio_detail_url": url,
             "location": location_text,
             "employment_type": employment_type,
             "contract_type": contract_type,
@@ -3003,7 +3040,6 @@ def _join_listing(item: dict[str, Any], config: AtsCompanySourceConfig) -> RawLi
         {
             "id": source_listing_id,
             "id_param": id_param,
-            "join_detail_url": url,
             "workplace_type": workplace_type,
             "remote_type": remote_type,
             "city": item.get("city"),
@@ -3878,10 +3914,16 @@ class _JobvitePosting:
 
 
 def _parse_jobvite(
-    body: str,
+    response: SourceResponseArtifact,
     config: AtsCompanySourceConfig,
     request: SourceFetchRequest,
 ) -> SourceSearchParseResult:
+    if urlparse(response.url).path == "/careers/info/unavailable.html":
+        raise ClassifiedSourceError(
+            SourceOutcome.BLOCKED,
+            f"{config.company} Jobvite redirected to its unavailable page",
+        )
+    body = response.body
     parser = _JobviteListParser(config=config)
     parser.feed(body)
     postings = parser.postings()
@@ -4846,7 +4888,11 @@ def _parse_taleo(
                 evidence=AttemptEvidence(multi_step_terminal=True),
             )
         return _no_results()
-    if _taleo_terminal_page_without_rows(body, request, next_href=next_href):
+    if _taleo_terminal_page_without_rows(
+        request,
+        next_href=next_href,
+        matched_total=parser.matched_total(),
+    ):
         return SourceSearchParseResult(
             outcome=SourceOutcome.SUCCESS,
             listings=(),
@@ -5037,6 +5083,9 @@ class _TaleoListParser(HTMLParser):
         self._field_depth = 0
         self._field_parts: list[str] = []
         self._next_href: str | None = None
+        self._collecting_matched_total = False
+        self._matched_total_parts: list[str] = []
+        self._matched_total: int | None = None
 
     def postings(self) -> tuple[_TaleoPosting, ...]:
         return tuple(self._postings)
@@ -5044,8 +5093,15 @@ class _TaleoListParser(HTMLParser):
     def next_href(self) -> str | None:
         return self._next_href
 
+    def matched_total(self) -> int | None:
+        return self._matched_total
+
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = _attrs(attrs)
+        if tag == "span" and _has_class(attributes, "oracletaleocwsv2-panel-number"):
+            self._collecting_matched_total = True
+            self._matched_total_parts = []
+            return
         if tag == "a" and _has_class(attributes, "jscroll-next"):
             href = attributes.get("href")
             if href:
@@ -5070,12 +5126,17 @@ class _TaleoListParser(HTMLParser):
             self._title_parts = []
 
     def handle_data(self, data: str) -> None:
-        if self._collecting_title:
+        if self._collecting_matched_total:
+            self._matched_total_parts.append(data)
+        elif self._collecting_title:
             self._title_parts.append(data)
         elif self._collecting_field:
             self._field_parts.append(data)
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "span" and self._collecting_matched_total:
+            self._finish_matched_total()
+            return
         if tag == "a" and self._collecting_title:
             self._collecting_title = False
             return
@@ -5105,6 +5166,12 @@ class _TaleoListParser(HTMLParser):
             self._fields.append(field)
         self._collecting_field = False
         self._field_parts = []
+
+    def _finish_matched_total(self) -> None:
+        value = _normalize_space(" ".join(self._matched_total_parts)).replace(",", "")
+        self._matched_total = _query_int(value)
+        self._collecting_matched_total = False
+        self._matched_total_parts = []
 
     def _finish_head_info(self) -> None:
         title = _normalize_space(" ".join(self._title_parts))
@@ -5146,15 +5213,15 @@ def _taleo_next_request(
 
 
 def _taleo_terminal_page_without_rows(
-    body: str,
     request: SourceFetchRequest,
     *,
     next_href: str | None,
+    matched_total: int | None,
 ) -> bool:
-    if _taleo_request_row_from(request.url) <= 0 or next_href is not None:
+    row_from = _taleo_request_row_from(request.url)
+    if row_from <= 0 or next_href is not None or matched_total is None:
         return False
-    normalized = body.casefold()
-    return "oracletaleocwsv2-wrapper" in normalized and "job search results" in normalized
+    return row_from >= matched_total
 
 
 def _taleo_parallel_requests(
@@ -5532,7 +5599,6 @@ def _dreamjob_listing(card: _DreamJobCard, config: AtsCompanySourceConfig) -> Ra
     raw.update(
         {
             "id": card.source_listing_id,
-            "dreamjob_detail_url": card.url,
             "city": card.city,
             "published_text": card.posted_text,
             "tags": card.tags,

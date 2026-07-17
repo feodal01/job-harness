@@ -4,8 +4,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from job_harness.v2.contracts import SourceScraper
+from job_harness.v2.contracts import DetailEnrichmentScraper, ParserRegistry, SourceScraper
 from job_harness.v2.runtime.catalog import SourceCatalog, SupportedSource
+from job_harness.v2.runtime.source_bundles import (
+    detail_bundle,
+    discovered_ats_search_bundle,
+    generic_company_site_bundle,
+    hh_company_profile_bundle,
+    search_bundle,
+)
 from job_harness.v2.runtime.sources import (
     AmoCRMCareerSource,
     FinderWorkSource,
@@ -23,11 +30,16 @@ from job_harness.v2.runtime.sources import (
     TalentoSource,
     VKCareerSource,
 )
+from job_harness.v2.runtime.sources.aggregators.hh_ru import hh_employer_profile_locations
 from job_harness.v2.runtime.sources.companies.ats import (
     ATS_COMPANY_SOURCE_CONFIGS,
     ats_company_source,
 )
-from job_harness.v2.source_catalog import source_catalog_entries, source_fixture_suite
+from job_harness.v2.source_catalog import (
+    source_catalog_entries,
+    source_catalog_entry,
+    source_fixture_suite,
+)
 
 
 def _ats_source_factory(source_id: str) -> Callable[[], SourceScraper]:
@@ -67,6 +79,21 @@ def build_supported_source_catalog(source_ids: tuple[str, ...] = ()) -> SourceCa
         for source_id in ordered_ids
     )
     return SourceCatalog(supported_sources)
+
+
+def build_independent_parser_registry(source_ids: tuple[str, ...] = ()) -> ParserRegistry:
+    bundles: list[object] = []
+    selected_ids = _selected_source_ids(source_ids)
+    for source_id in selected_ids:
+        source = _SOURCE_FACTORIES[source_id]()
+        bundles.append(search_bundle(source, source_catalog_entry(source_id).listing_parser_ref))
+        if isinstance(source, DetailEnrichmentScraper) and source.required_fixture_kinds.detail:
+            bundles.append(detail_bundle(source))
+    if "hh_ru" in selected_ids:
+        bundles.append(hh_company_profile_bundle(hh_employer_profile_locations))
+    bundles.append(discovered_ats_search_bundle())
+    bundles.append(generic_company_site_bundle())
+    return ParserRegistry(bundles)
 
 
 def implemented_source_ids() -> tuple[str, ...]:
