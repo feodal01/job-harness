@@ -62,9 +62,12 @@ description, contacts, company-site scanning, or career discovery.
 
 An enrichment execution owns a bounded shortlist selected by the workflow. The
 built-in job-search workflow uses a final shortlist size of 50 and a separate
-speculative streaming budget of 25. While search is running, it may admit at
-most 25 candidates that already match every hard criterion and are currently in
-the deterministic preliminary top 25. After search assembly, it admits every
+speculative streaming budget of 25. While search is running, it opportunistically
+admits the highest-ranked candidates known at each admission point that already
+match every hard criterion, with at most 10 speculative admissions from any one
+source so a fast source cannot monopolize the shared budget. Work already started
+is not revoked when a higher-ranked candidate arrives from a later page. After
+search assembly, it admits every
 not-yet-enriched member of the final top 50. Therefore one workflow enriches at
 most 75 distinct vacancy identities even if early candidates are displaced.
 These limits are workflow policy, not scraper input and not network settings.

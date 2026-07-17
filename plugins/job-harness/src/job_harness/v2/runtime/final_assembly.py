@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from job_harness.v2.persistence.graph_repository import SqliteGraphRepository
@@ -20,14 +21,21 @@ class FinalAssembly:
 
 
 class FinalAssembler:
-    def __init__(self, repository: SqliteGraphRepository) -> None:
+    def __init__(
+        self,
+        repository: SqliteGraphRepository,
+        *,
+        scorer: Callable[[JsonObject], float] | None = None,
+    ) -> None:
         self._repository = repository
+        self._scorer = scorer or (lambda _facts: 0.0)
 
     def assemble(self, execution_id: str, *, now: float) -> FinalAssembly:
         try:
             items = self._repository.assemble_final(
                 execution_id,
                 projector=public_vacancy_projection,
+                scorer=self._scorer,
                 now=now,
             )
         except RuntimeError as exc:

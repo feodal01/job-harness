@@ -10,6 +10,7 @@ from typing import cast
 
 from job_harness.v2.contracts import (
     CompanyRef,
+    ExecutionArtifact,
     InvocationScope,
     ParserInvocationSpec,
     ParserManifest,
@@ -22,8 +23,13 @@ from job_harness.v2.contracts import (
     StaleLeaseError,
     TaskClass,
     TransportKind,
+    VacancyDetailInput,
 )
-from job_harness.v2.persistence.graph_repository import SqliteGraphRepository
+from job_harness.v2.persistence.graph_repository import (
+    SqliteGraphRepository,
+    _comparison_matches,
+)
+from job_harness.v2.ports import ParserAttemptMetrics
 
 _DEFAULT_COMPANY = CompanyRef(name="Example")
 
@@ -63,6 +69,21 @@ def _input(page: int) -> SearchListingInput:
     )
 
 
+def _detail_manifest() -> ParserManifest:
+    return ParserManifest(
+        parser_id="hh.detail",
+        parser_type=ParserType.VACANCY_DETAIL,
+        implementation_version="1.0",
+        input_schema_id="hh.detail.input.v1",
+        output_schema_id="hh.detail.output.v1",
+        transport=TransportKind.HTTP,
+        provider_ids=("hh",),
+        supported_url_patterns=(r"https://hh\.ru/vacancy/.*",),
+        output_facts=("description",),
+        invocation_scope=InvocationScope.STATELESS_UNIT,
+    )
+
+
 def _listing(
     source_listing_id: str = "123",
     *,
@@ -87,6 +108,104 @@ def _listing(
 
 
 class SqliteGraphRepositoryTest(unittest.TestCase):
+    def test_numeric_gte_fact_comparison(self) -> None:
+        self.assertTrue(_comparison_matches(250_000, {"operator": "gte", "value": 200_000}))
+        self.assertFalse(_comparison_matches(150_000, {"operator": "gte", "value": 200_000}))
+
+    def test_execution_completes_only_after_exact_artifact_verification(self) -> None:
+        execution_id = self.repository.create_execution(
+            run_id="r-artifacts",
+            intent={"queries": ["QA"]},
+            append_sequence=0,
+            policy_version="policy-v1",
+            runtime_config_version="runtime-v1",
+            active_runtime_budget_ms=1_000_000,
+        )
+
+        self.repository.assemble_final(
+            execution_id,
+            projector=lambda facts: facts,
+            scorer=lambda _facts: 0.0,
+            now=10.0,
+        )
+
+        self.assertEqual(
+            self._scalar(
+                "SELECT status FROM search_executions WHERE execution_id = ?",
+                (execution_id,),
+            ),
+            "assembling",
+        )
+        artifact = ExecutionArtifact(
+            name="search_results",
+            path="/tmp/search-results.json",
+            schema_version=2,
+            sha256="a" * 64,
+            byte_count=42,
+        )
+        self.repository.prepare_execution_artifacts(
+            execution_id,
+            artifacts=(artifact,),
+            now=11.0,
+        )
+        self.assertEqual(
+            self._scalar(
+                "SELECT status FROM search_executions WHERE execution_id = ?",
+                (execution_id,),
+            ),
+            "artifacts_pending",
+        )
+
+        with self.assertRaisesRegex(ValueError, "digest"):
+            self.repository.complete_execution_artifacts(
+                execution_id,
+                verified_artifacts=(replace(artifact, sha256="b" * 64),),
+                now=12.0,
+            )
+        self.repository.complete_execution_artifacts(
+            execution_id,
+            verified_artifacts=(artifact,),
+            now=13.0,
+        )
+
+        self.assertEqual(
+            self._scalar(
+                "SELECT status FROM search_executions WHERE execution_id = ?",
+                (execution_id,),
+            ),
+            "completed",
+        )
+
+    def test_active_runtime_heartbeat_excludes_process_downtime(self) -> None:
+        execution_id = self.repository.create_execution(
+            run_id="r-active-runtime",
+            intent={"queries": ["QA"]},
+            append_sequence=0,
+            policy_version="policy-v1",
+            runtime_config_version="runtime-v2",
+            active_runtime_budget_ms=5_000,
+        )
+        self.repository.begin_execution_sessions((execution_id,), now=100.0)
+        self.repository.heartbeat_execution_sessions((execution_id,), now=102.0)
+        self.repository.end_execution_sessions((execution_id,), now=103.0)
+
+        self.assertEqual(
+            tuple(
+                self._row(
+                    """
+                    SELECT active_runtime_ms, active_session_started_at
+                    FROM search_executions WHERE execution_id = ?
+                    """,
+                    (execution_id,),
+                )
+            ),
+            (3_000, None),
+        )
+
+        self.repository.begin_execution_sessions((execution_id,), now=10_000.0)
+        self.assertFalse(self.repository.settle_deadline(execution_id, now=10_001.9))
+        self.assertTrue(self.repository.settle_deadline(execution_id, now=10_002.1))
+
     def setUp(self) -> None:
         self._temporary_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self._temporary_directory.cleanup)
@@ -99,7 +218,7 @@ class SqliteGraphRepositoryTest(unittest.TestCase):
             append_sequence=0,
             policy_version="policy-v1",
             runtime_config_version="runtime-v1",
-            deadline_at=1000.0,
+            active_runtime_budget_ms=1_000_000,
         )
         self.source_plan_id = self.repository.create_source_plan(
             execution_id=self.execution_id,
@@ -111,7 +230,7 @@ class SqliteGraphRepositoryTest(unittest.TestCase):
             invocation_budget=4,
         )
 
-    def _enqueue(self, page: int = 0) -> str:
+    def _enqueue(self, page: int = 0, *, resource_key: str | None = None) -> str:
         return self.repository.enqueue_invocation(
             ParserInvocationSpec(
                 execution_id=self.execution_id,
@@ -126,8 +245,140 @@ class SqliteGraphRepositoryTest(unittest.TestCase):
                 task_key=f"hh-page-{page}",
                 available_at=0.0,
                 reserved_collection_units=1,
+                resource_key=resource_key,
             )
         )
+
+    def test_leasing_can_exclude_ready_resource_keys(self) -> None:
+        self._enqueue(0, resource_key="hh")
+        self._enqueue(1, resource_key="other")
+
+        leased = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker",
+            limit=2,
+            lease_seconds=30.0,
+            now=100.0,
+            excluded_resource_keys=("hh",),
+        )
+
+        self.assertEqual(len(leased), 1)
+        self.assertEqual(leased[0].spec.resource_key, "other")
+        parser_input = cast(SearchListingInput, leased[0].parser_input)
+        self.assertEqual(parser_input.cursor, {"page": 1})
+
+    def _enqueue_detail(self, vacancy_id: str) -> str:
+        manifest = _detail_manifest()
+        return self.repository.enqueue_invocation(
+            ParserInvocationSpec(
+                execution_id=self.execution_id,
+                source_plan_id=None,
+                parent_invocation_id=None,
+                cause_event_id=None,
+                parser_ref=manifest.ref,
+                parser_type=ParserType.VACANCY_DETAIL,
+                input_schema_id=manifest.input_schema_id,
+                parser_input=VacancyDetailInput(
+                    target_provider_id="hh",
+                    vacancy_url=f"https://hh.ru/vacancy/{vacancy_id}",
+                    source_listing_id=vacancy_id,
+                ),
+                task_class=TaskClass.DETAIL,
+                task_key=f"hh-detail-{vacancy_id}",
+                available_at=0.0,
+                reserved_collection_units=None,
+            )
+        )
+
+    def test_leasing_persists_two_to_one_listing_weight_across_calls(self) -> None:
+        for page in (0, 1, 2):
+            self._enqueue(page)
+        for vacancy_id in ("100", "101", "102"):
+            self._enqueue_detail(vacancy_id)
+
+        first = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-1",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )
+        self.repository.close()
+        self.repository = SqliteGraphRepository(self.database_path)
+        self.addCleanup(self.repository.close)
+        second = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-2",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )
+        third = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-3",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )
+
+        self.assertEqual(
+            tuple(item.spec.task_class for item in first),
+            (TaskClass.LISTING,),
+        )
+        self.assertEqual(second[0].spec.task_class, TaskClass.LISTING)
+        self.assertEqual(third[0].spec.task_class, TaskClass.DETAIL)
+
+    def test_single_worker_dispatches_required_detail_after_two_listing_tasks(self) -> None:
+        self._enqueue(0)
+        self._enqueue_detail("100")
+        first = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-1",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )[0]
+        self.repository.commit_search_result(
+            first,
+            SearchListingResult(
+                outcome=SearchResultOutcome.SUCCESS,
+                items=(_listing(),),
+                continuations=(_input(1),),
+                collection_units_consumed=1,
+            ),
+            _manifest(),
+            now=101.0,
+        )
+
+        second = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-2",
+            limit=1,
+            lease_seconds=30.0,
+            now=102.0,
+        )[0]
+        self.repository.commit_search_result(
+            second,
+            SearchListingResult(
+                outcome=SearchResultOutcome.NO_RESULTS,
+                items=(),
+                continuations=(),
+                collection_units_consumed=1,
+            ),
+            _manifest(),
+            now=103.0,
+        )
+        third = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-3",
+            limit=1,
+            lease_seconds=30.0,
+            now=104.0,
+        )[0]
+
+        self.assertEqual(first.spec.task_class, TaskClass.LISTING)
+        self.assertEqual(second.spec.task_class, TaskClass.LISTING)
+        self.assertEqual(third.spec.task_class, TaskClass.DETAIL)
 
     def test_task_key_is_idempotent_within_execution(self) -> None:
         first = self._enqueue()
@@ -217,6 +468,270 @@ class SqliteGraphRepositoryTest(unittest.TestCase):
         self.assertEqual(self._count("listing_observations"), 0)
         self.assertEqual(self._count("domain_events"), 0)
 
+    def test_expired_active_attempt_is_recorded_as_worker_lost(self) -> None:
+        self._enqueue()
+        stale = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-1",
+            limit=1,
+            lease_seconds=1.0,
+            now=100.0,
+        )[0]
+        self.repository.begin_parser_attempt(stale, now=100.0)
+
+        reassigned = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-2",
+            limit=1,
+            lease_seconds=10.0,
+            now=102.0,
+        )[0]
+
+        self.assertEqual(reassigned.invocation_id, stale.invocation_id)
+        self.assertEqual(
+            tuple(
+                self._row(
+                    "SELECT outcome, failure_kind, retry_decision "
+                    "FROM parser_attempts WHERE invocation_id = ?",
+                    (stale.invocation_id,),
+                )
+            ),
+            ("worker_lost", "worker_lost", "scheduled"),
+        )
+        self.assertEqual(self.repository.request_attempt_number(stale.invocation_id), 0)
+
+    def test_batch_heartbeat_renews_only_current_owned_leases(self) -> None:
+        self._enqueue()
+        leased = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-1",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )[0]
+
+        renewed = self.repository.renew_invocation_leases(
+            owner_id="worker-1",
+            leases=((leased.invocation_id, leased.lease_token),),
+            lease_seconds=30.0,
+            now=120.0,
+        )
+
+        self.assertEqual(renewed, 1)
+        self.assertEqual(
+            self._scalar(
+                "SELECT lease_until FROM parser_invocations WHERE invocation_id = ?",
+                (leased.invocation_id,),
+            ),
+            150.0,
+        )
+        self.assertEqual(
+            self.repository.lease_ready_invocations(
+                execution_id=self.execution_id,
+                owner_id="worker-2",
+                limit=1,
+                lease_seconds=30.0,
+                now=131.0,
+            ),
+            (),
+        )
+        reassigned = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-2",
+            limit=1,
+            lease_seconds=30.0,
+            now=151.0,
+        )
+        self.assertEqual(len(reassigned), 1)
+        self.assertEqual(reassigned[0].invocation_id, leased.invocation_id)
+
+    def test_request_retry_waits_without_a_lease_and_reuses_the_same_page_task(self) -> None:
+        invocation_id = self._enqueue()
+        leased = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-1",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )[0]
+        attempt_id, _ = self.repository.begin_parser_attempt(leased, now=100.0)
+
+        self.repository.defer_invocation(
+            leased,
+            attempt_id=attempt_id,
+            failure_kind="source_timeout",
+            attempt_metrics=ParserAttemptMetrics(
+                network_action_count=1,
+                network_elapsed_ms=15_000,
+                last_error_class="TimeoutError",
+            ),
+            waiting_reason="retry_backoff",
+            retry_delay_ms=5_000,
+            available_at=105.0,
+            now=100.0,
+        )
+
+        waiting = self._row(
+            (
+                "SELECT status, waiting_reason, available_at, lease_owner, lease_token, lease_until "
+                "FROM parser_invocations WHERE invocation_id = ?"
+            ),
+            (invocation_id,),
+        )
+        self.assertEqual(tuple(waiting), ("waiting", "retry_backoff", 105.0, None, None, None))
+        attempt = self._row(
+            "SELECT retry_decision, retry_delay_ms FROM parser_attempts WHERE parser_attempt_id = ?",
+            (attempt_id,),
+        )
+        self.assertEqual(tuple(attempt), ("scheduled", 5_000))
+        self.assertEqual(
+            self.repository.lease_ready_invocations(
+                execution_id=self.execution_id,
+                owner_id="worker-2",
+                limit=1,
+                lease_seconds=30.0,
+                now=104.9,
+            ),
+            (),
+        )
+
+        retried = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-2",
+            limit=1,
+            lease_seconds=30.0,
+            now=105.0,
+        )[0]
+
+        self.assertEqual(retried.invocation_id, invocation_id)
+        self.assertEqual(retried.spec.task_key, "hh-page-0")
+
+    def test_next_wakeup_reports_future_waiting_page(self) -> None:
+        invocation_id = self._enqueue()
+        leased = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker-1",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )[0]
+        attempt_id, _ = self.repository.begin_parser_attempt(leased, now=100.0)
+        self.repository.defer_invocation(
+            leased,
+            attempt_id=attempt_id,
+            failure_kind="network_error",
+            attempt_metrics=ParserAttemptMetrics(network_action_count=1),
+            waiting_reason="retry_backoff",
+            retry_delay_ms=7_000,
+            available_at=107.0,
+            now=100.0,
+        )
+
+        self.assertEqual(
+            self.repository.next_scheduler_wakeup_at(self.execution_id, now=100.0),
+            107.0,
+        )
+        self.assertEqual(
+            self._scalar(
+                "SELECT invocation_id FROM parser_invocations WHERE status = 'waiting'",
+                (),
+            ),
+            invocation_id,
+        )
+
+    def test_next_wakeup_reports_expiry_of_orphaned_lease(self) -> None:
+        self._enqueue()
+        self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="dead-worker",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )
+
+        self.assertEqual(
+            self.repository.next_scheduler_wakeup_at(self.execution_id, now=100.0),
+            130.0,
+        )
+
+    def test_next_wakeup_reports_coordinator_expiry_for_unprocessed_event(self) -> None:
+        self._enqueue()
+        invocation = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )[0]
+        self.repository.commit_search_result(
+            invocation,
+            SearchListingResult(
+                outcome=SearchResultOutcome.SUCCESS,
+                items=(_listing(),),
+                continuations=(),
+                collection_units_consumed=1,
+            ),
+            _manifest(),
+            now=101.0,
+        )
+        self.repository.acquire_coordinator(
+            execution_id=self.execution_id,
+            owner_id="dead-coordinator",
+            lease_seconds=30.0,
+            now=102.0,
+        )
+
+        self.assertEqual(
+            self.repository.next_scheduler_wakeup_at(self.execution_id, now=102.0),
+            132.0,
+        )
+        self.repository.release_coordinator_leases(
+            ((self.execution_id, "dead-coordinator"),)
+        )
+        self.assertEqual(
+            self.repository.next_scheduler_wakeup_at(self.execution_id, now=102.0),
+            1102.0,
+        )
+
+    def test_later_success_cannot_erase_sibling_page_failure(self) -> None:
+        self._enqueue(0)
+        self._enqueue(1)
+        first, second = self.repository.lease_ready_invocations(
+            execution_id=self.execution_id,
+            owner_id="worker",
+            limit=2,
+            lease_seconds=30.0,
+            now=100.0,
+        )
+        self.repository.commit_failure(
+            first,
+            failure_kind="timeout",
+            retry_decision="exhausted",
+            public_notice=None,
+            now=101.0,
+        )
+        self.repository.commit_search_result(
+            second,
+            SearchListingResult(
+                outcome=SearchResultOutcome.SUCCESS,
+                items=(_listing("page-2"),),
+                continuations=(),
+                collection_units_consumed=1,
+            ),
+            _manifest(),
+            now=102.0,
+        )
+
+        self.assertEqual(
+            ("partial", "timeout"),
+            tuple(
+                self._row(
+                    "SELECT status, terminal_reason FROM source_plans WHERE source_plan_id = ?",
+                    (self.source_plan_id,),
+                )
+            ),
+        )
+
     def test_events_use_one_execution_coordinator_lease_without_event_claim_rows(self) -> None:
         self._enqueue()
         invocation = self.repository.lease_ready_invocations(
@@ -267,6 +782,11 @@ class SqliteGraphRepositoryTest(unittest.TestCase):
         self.assertNotIn("request_attempts", table_names)
         self.assertIn("fact_sets", table_names)
         self.assertIn("parser_attempts", table_names)
+        fact_set_indexes = {
+            str(row[1])
+            for row in self._query("PRAGMA index_list('fact_sets')", ())
+        }
+        self.assertIn("fact_sets_latest_idx", fact_set_indexes)
 
     def test_schema_enforces_all_event_and_discovery_edges_shown_in_diagram(self) -> None:
         source_plan_foreign_keys = self._foreign_keys("source_plans")
@@ -361,7 +881,7 @@ class SqliteGraphRepositoryTest(unittest.TestCase):
             append_sequence=0,
             policy_version="policy-v1",
             runtime_config_version="runtime-v1",
-            deadline_at=1000.0,
+            active_runtime_budget_ms=1_000_000,
         )
         source_plan_id = self.repository.create_source_plan(
             execution_id=execution_id,
@@ -441,6 +961,150 @@ class SqliteGraphRepositoryTest(unittest.TestCase):
             "limit_reached",
         )
 
+    def test_oversized_last_page_is_truncated_without_parse_failure(self) -> None:
+        execution_id = self.repository.create_execution(
+            run_id="r-item-limit",
+            intent={"queries": ["QA"]},
+            append_sequence=0,
+            policy_version="policy-v1",
+            runtime_config_version="runtime-v1",
+            active_runtime_budget_ms=1_000_000,
+        )
+        manifest = _manifest()
+        source_plan_id = self.repository.create_source_plan(
+            execution_id=execution_id,
+            source_id="hh_ru",
+            manifest=manifest,
+            queries=("QA",),
+            unit_budget=2,
+            item_budget=2,
+            invocation_budget=2,
+        )
+        self.repository.enqueue_invocation(
+            ParserInvocationSpec(
+                execution_id=execution_id,
+                source_plan_id=source_plan_id,
+                parent_invocation_id=None,
+                cause_event_id=None,
+                parser_ref=manifest.ref,
+                parser_type=ParserType.SEARCH_LISTING,
+                input_schema_id=manifest.input_schema_id,
+                parser_input=_input(0),
+                task_class=TaskClass.LISTING,
+                task_key="item-limit-page-0",
+                available_at=100.0,
+                reserved_collection_units=1,
+            )
+        )
+        invocation = self.repository.lease_ready_invocations(
+            execution_id=execution_id,
+            owner_id="worker",
+            limit=1,
+            lease_seconds=30.0,
+            now=100.0,
+        )[0]
+
+        self.repository.commit_search_result(
+            invocation,
+            SearchListingResult(
+                outcome=SearchResultOutcome.SUCCESS,
+                items=(_listing("1"), _listing("2"), _listing("3")),
+                continuations=(_input(1),),
+                collection_units_consumed=1,
+            ),
+            manifest,
+            now=101.0,
+        )
+
+        with closing(sqlite3.connect(self.database_path)) as connection:
+            plan = connection.execute(
+                "SELECT status, terminal_reason, items_used, invocations_used FROM source_plans "
+                "WHERE source_plan_id = ?",
+                (source_plan_id,),
+            ).fetchone()
+            observations = connection.execute(
+                "SELECT COUNT(*) FROM listing_observations WHERE execution_id = ?",
+                (execution_id,),
+            ).fetchone()[0]
+            invocations = connection.execute(
+                "SELECT COUNT(*) FROM parser_invocations WHERE source_plan_id = ?",
+                (source_plan_id,),
+            ).fetchone()[0]
+        self.assertEqual(plan, ("limit_reached", "item_limit", 2, 1))
+        self.assertEqual(observations, 2)
+        self.assertEqual(invocations, 1)
+
+    def test_already_leased_page_finishes_cleanly_after_item_budget_is_full(self) -> None:
+        execution_id = self.repository.create_execution(
+            run_id="r-concurrent-item-limit",
+            intent={"queries": ["QA"]},
+            append_sequence=0,
+            policy_version="policy-v1",
+            runtime_config_version="runtime-v1",
+            active_runtime_budget_ms=1_000_000,
+        )
+        manifest = _manifest()
+        source_plan_id = self.repository.create_source_plan(
+            execution_id=execution_id,
+            source_id="hh_ru",
+            manifest=manifest,
+            queries=("QA",),
+            unit_budget=2,
+            item_budget=1,
+            invocation_budget=2,
+        )
+        for page in range(2):
+            self.repository.enqueue_invocation(
+                ParserInvocationSpec(
+                    execution_id=execution_id,
+                    source_plan_id=source_plan_id,
+                    parent_invocation_id=None,
+                    cause_event_id=None,
+                    parser_ref=manifest.ref,
+                    parser_type=ParserType.SEARCH_LISTING,
+                    input_schema_id=manifest.input_schema_id,
+                    parser_input=_input(page),
+                    task_class=TaskClass.LISTING,
+                    task_key=f"concurrent-item-limit-page-{page}",
+                    available_at=100.0,
+                    reserved_collection_units=1,
+                )
+            )
+        first, second = self.repository.lease_ready_invocations(
+            execution_id=execution_id,
+            owner_id="worker",
+            limit=2,
+            lease_seconds=30.0,
+            now=100.0,
+        )
+
+        for index, invocation in enumerate((first, second), start=1):
+            self.repository.commit_search_result(
+                invocation,
+                SearchListingResult(
+                    outcome=SearchResultOutcome.SUCCESS,
+                    items=(_listing(str(index)),),
+                    continuations=(_input(index + 1),),
+                    collection_units_consumed=1,
+                ),
+                manifest,
+                now=100.0 + index,
+            )
+
+        with closing(sqlite3.connect(self.database_path)) as connection:
+            plan = connection.execute(
+                "SELECT status, terminal_reason, items_used, invocations_used "
+                "FROM source_plans WHERE source_plan_id = ?",
+                (source_plan_id,),
+            ).fetchone()
+            invocation_rows = connection.execute(
+                "SELECT status, outcome FROM parser_invocations "
+                "WHERE source_plan_id = ? ORDER BY task_key",
+                (source_plan_id,),
+            ).fetchall()
+        self.assertEqual(plan, ("limit_reached", "item_limit", 1, 2))
+        self.assertEqual(invocation_rows, [("succeeded", "success"), ("succeeded", "success")])
+
     def test_deadline_settlement_fences_late_parser_commit(self) -> None:
         execution_id = self.repository.create_execution(
             run_id="r-deadline",
@@ -448,7 +1112,7 @@ class SqliteGraphRepositoryTest(unittest.TestCase):
             append_sequence=0,
             policy_version="policy-v1",
             runtime_config_version="runtime-v1",
-            deadline_at=100.0,
+            active_runtime_budget_ms=1_000,
         )
         source_plan_id = self.repository.create_source_plan(
             execution_id=execution_id,
@@ -475,6 +1139,7 @@ class SqliteGraphRepositoryTest(unittest.TestCase):
                 reserved_collection_units=1,
             )
         )
+        self.repository.begin_execution_sessions((execution_id,), now=90.0)
         leased = self.repository.lease_ready_invocations(
             execution_id=execution_id,
             owner_id="worker",

@@ -2,6 +2,7 @@
   "capture_method": "live_http_get",
   "captured_at": "2026-07-02",
   "captured_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA&rowFrom=10",
+  "request_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?act=sort&cws=37&org=AURORA&sortColumn=0&rowFrom=10",
   "content_type": "text/html;charset=UTF-8",
   "final_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA&rowFrom=10",
   "notes": "Real public Taleo Business Edition rowFrom pagination HTML captured for career:aurora-flight-sciences.",

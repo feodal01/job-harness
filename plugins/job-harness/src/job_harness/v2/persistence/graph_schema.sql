@@ -16,18 +16,44 @@ CREATE TABLE IF NOT EXISTS search_executions (
     run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
     intent_id TEXT NOT NULL REFERENCES search_intents(intent_id),
     append_sequence INTEGER NOT NULL CHECK (append_sequence >= 0),
-    status TEXT NOT NULL CHECK (status IN ('running', 'stopping', 'assembling', 'completed', 'failed')),
+    execution_kind TEXT NOT NULL DEFAULT 'search' CHECK (
+        execution_kind IN ('search', 'enrichment', 'discovered_search')
+    ),
+    parent_execution_id TEXT REFERENCES search_executions(execution_id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK (
+        status IN ('running', 'stopping', 'assembling', 'artifacts_pending', 'completed', 'failed')
+    ),
     policy_version TEXT NOT NULL,
     runtime_config_version TEXT NOT NULL,
-    deadline_at REAL NOT NULL,
+    active_runtime_budget_ms INTEGER NOT NULL CHECK (active_runtime_budget_ms > 0),
+    active_runtime_ms INTEGER NOT NULL DEFAULT 0 CHECK (active_runtime_ms >= 0),
+    active_session_started_at REAL,
+    active_heartbeat_at REAL,
     discovery_plan_budget INTEGER NOT NULL CHECK (discovery_plan_budget >= 0),
     discovery_plans_created INTEGER NOT NULL DEFAULT 0 CHECK (discovery_plans_created >= 0),
+    speculative_admission_budget INTEGER NOT NULL DEFAULT 0 CHECK (speculative_admission_budget >= 0),
+    speculative_admissions_created INTEGER NOT NULL DEFAULT 0 CHECK (speculative_admissions_created >= 0),
+    scheduler_cursor INTEGER NOT NULL DEFAULT 0 CHECK (scheduler_cursor BETWEEN 0 AND 2),
     coordinator_owner TEXT,
     coordinator_token TEXT,
     coordinator_lease_until REAL,
     completion_reason TEXT,
     created_at REAL NOT NULL,
-    UNIQUE (run_id, append_sequence)
+    UNIQUE (run_id, append_sequence, execution_kind)
+);
+
+CREATE TABLE IF NOT EXISTS execution_artifacts (
+    execution_id TEXT NOT NULL REFERENCES search_executions(execution_id) ON DELETE CASCADE,
+    artifact_name TEXT NOT NULL,
+    artifact_path TEXT NOT NULL,
+    schema_version INTEGER NOT NULL CHECK (schema_version >= 1),
+    sha256 TEXT NOT NULL CHECK (length(sha256) = 64),
+    byte_count INTEGER NOT NULL CHECK (byte_count >= 0),
+    status TEXT NOT NULL CHECK (status IN ('expected', 'verified')),
+    prepared_at REAL NOT NULL,
+    verified_at REAL,
+    PRIMARY KEY (execution_id, artifact_name),
+    UNIQUE (execution_id, artifact_path)
 );
 
 CREATE TABLE IF NOT EXISTS source_plans (
@@ -60,6 +86,7 @@ CREATE TABLE IF NOT EXISTS criterion_requirements (
     criterion TEXT NOT NULL,
     required_fact_path TEXT NOT NULL,
     comparison_json TEXT NOT NULL,
+    skip_when_final_keep INTEGER NOT NULL CHECK (skip_when_final_keep IN (0, 1)),
     unsupported_reason TEXT
 );
 
@@ -93,9 +120,12 @@ CREATE TABLE IF NOT EXISTS parser_invocations (
     input_schema_id TEXT NOT NULL,
     input_json TEXT NOT NULL,
     task_class TEXT NOT NULL CHECK (task_class IN ('listing', 'detail', 'profile', 'site')),
+    resource_key TEXT,
+    resource_key_resolved INTEGER NOT NULL DEFAULT 0 CHECK (resource_key_resolved IN (0, 1)),
     reserved_collection_units INTEGER CHECK (reserved_collection_units >= 1),
-    status TEXT NOT NULL CHECK (status IN ('queued', 'leased', 'retry_wait', 'succeeded', 'failed', 'cancelled')),
+    status TEXT NOT NULL CHECK (status IN ('queued', 'leased', 'waiting', 'succeeded', 'failed', 'cancelled')),
     available_at REAL NOT NULL,
+    waiting_reason TEXT CHECK (waiting_reason IN ('retry_backoff', 'resource_pacing')),
     lease_owner TEXT,
     lease_token TEXT,
     lease_until REAL,
@@ -109,6 +139,9 @@ CREATE TABLE IF NOT EXISTS parser_invocations (
 CREATE INDEX IF NOT EXISTS parser_invocations_ready_idx
     ON parser_invocations (execution_id, status, available_at, task_class, created_at);
 
+CREATE INDEX IF NOT EXISTS parser_invocations_plan_lease_idx
+    ON parser_invocations (source_plan_id, status, lease_until);
+
 CREATE TABLE IF NOT EXISTS parser_attempts (
     parser_attempt_id TEXT PRIMARY KEY,
     invocation_id TEXT NOT NULL REFERENCES parser_invocations(invocation_id) ON DELETE CASCADE,
@@ -117,11 +150,12 @@ CREATE TABLE IF NOT EXISTS parser_attempts (
     finished_at REAL,
     outcome TEXT,
     failure_kind TEXT,
-    retryable INTEGER CHECK (retryable IN (0, 1)),
     network_action_count INTEGER NOT NULL DEFAULT 0,
     network_elapsed_ms INTEGER NOT NULL DEFAULT 0,
     last_status_code INTEGER,
     last_error_class TEXT,
+    retry_decision TEXT CHECK (retry_decision IN ('scheduled', 'exhausted', 'terminal')),
+    retry_delay_ms INTEGER NOT NULL DEFAULT 0 CHECK (retry_delay_ms >= 0),
     UNIQUE (invocation_id, attempt_number)
 );
 
@@ -134,6 +168,7 @@ CREATE TABLE IF NOT EXISTS domain_events (
     schema_version INTEGER NOT NULL CHECK (schema_version >= 1),
     payload_json TEXT NOT NULL,
     occurred_at REAL NOT NULL,
+    processing_offset INTEGER NOT NULL DEFAULT 0 CHECK (processing_offset >= 0),
     processed_at REAL,
     UNIQUE (execution_id, event_key)
 );
@@ -150,15 +185,27 @@ CREATE TABLE IF NOT EXISTS vacancy_resources (
     identity_key TEXT NOT NULL,
     identity_schema_version INTEGER NOT NULL,
     created_at REAL NOT NULL,
-    UNIQUE (run_id, identity_key)
+    UNIQUE (run_id, identity_key),
+    UNIQUE (run_id, canonical_url)
 );
 
 CREATE TABLE IF NOT EXISTS vacancy_url_aliases (
     vacancy_url_alias_id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
     vacancy_id TEXT NOT NULL REFERENCES vacancy_resources(vacancy_id) ON DELETE CASCADE,
     normalized_url TEXT NOT NULL,
     normalizer_version INTEGER NOT NULL,
-    UNIQUE (vacancy_id, normalized_url)
+    UNIQUE (run_id, normalized_url)
+);
+
+CREATE TABLE IF NOT EXISTS vacancy_provider_aliases (
+    vacancy_provider_alias_id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+    vacancy_id TEXT NOT NULL REFERENCES vacancy_resources(vacancy_id) ON DELETE CASCADE,
+    target_provider_id TEXT NOT NULL,
+    source_listing_id TEXT NOT NULL,
+    claim_value TEXT NOT NULL,
+    UNIQUE (run_id, claim_value)
 );
 
 CREATE TABLE IF NOT EXISTS companies (
@@ -277,6 +324,7 @@ CREATE TABLE IF NOT EXISTS discovered_endpoints (
 CREATE TABLE IF NOT EXISTS listing_enrichment_requests (
     enrichment_request_id TEXT PRIMARY KEY,
     execution_id TEXT NOT NULL REFERENCES search_executions(execution_id) ON DELETE CASCADE,
+    source_execution_id TEXT NOT NULL REFERENCES search_executions(execution_id) ON DELETE CASCADE,
     listing_id TEXT NOT NULL REFERENCES vacancy_listings(listing_id) ON DELETE CASCADE,
     invocation_id TEXT REFERENCES parser_invocations(invocation_id),
     provider_id TEXT NOT NULL REFERENCES fact_providers(provider_id),
@@ -285,6 +333,18 @@ CREATE TABLE IF NOT EXISTS listing_enrichment_requests (
     resolution_outcome TEXT,
     terminal_reason TEXT,
     UNIQUE (execution_id, listing_id, provider_id)
+);
+
+CREATE INDEX IF NOT EXISTS listing_enrichment_invocation_idx
+    ON listing_enrichment_requests (execution_id, invocation_id, status, listing_id);
+
+CREATE TABLE IF NOT EXISTS enrichment_admissions (
+    child_execution_id TEXT NOT NULL REFERENCES search_executions(execution_id) ON DELETE CASCADE,
+    parent_execution_id TEXT NOT NULL REFERENCES search_executions(execution_id) ON DELETE CASCADE,
+    listing_id TEXT NOT NULL REFERENCES vacancy_listings(listing_id) ON DELETE CASCADE,
+    admission_kind TEXT NOT NULL CHECK (admission_kind IN ('speculative', 'final')),
+    created_at REAL NOT NULL,
+    PRIMARY KEY (child_execution_id, listing_id)
 );
 
 CREATE TABLE IF NOT EXISTS fact_derivations (
@@ -310,6 +370,9 @@ CREATE TABLE IF NOT EXISTS fact_sets (
     created_at REAL NOT NULL,
     UNIQUE (execution_id, listing_id, fingerprint)
 );
+
+CREATE INDEX IF NOT EXISTS fact_sets_latest_idx
+    ON fact_sets (execution_id, listing_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS selection_evaluations (
     evaluation_id TEXT PRIMARY KEY,

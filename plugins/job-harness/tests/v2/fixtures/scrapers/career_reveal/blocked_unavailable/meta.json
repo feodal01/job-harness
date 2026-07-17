@@ -1,0 +1,7 @@
+{
+  "source_id": "career:reveal",
+  "captured_at": "2026-07-13T19:48:50+03:00",
+  "captured_url": "https://jobs.jobvite.com/careers/info/unavailable.html",
+  "capture_method": "curl GET after a live 303 anti-abuse redirect",
+  "notes": "Real Jobvite Page Unavailable response reached after concurrent board requests."
+}

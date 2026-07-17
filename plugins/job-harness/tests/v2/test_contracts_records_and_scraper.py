@@ -12,8 +12,6 @@ from job_harness.v2.contracts import (
     RawListing,
     RawSearchRecord,
     RequiredParserFixtures,
-    RetryInfo,
-    RetryNextAction,
     SearchCriterion,
     SearchRequest,
     SourceAttemptRecord,
@@ -50,10 +48,6 @@ def _criteria_diagnostics() -> CriteriaDiagnostics:
         unsupported=frozenset({SearchCriterion.WORK_FORMATS}),
         postprocess=frozenset({SearchCriterion.WORK_FORMATS}),
     )
-
-
-def _retry() -> RetryInfo:
-    return RetryInfo(attempts=1, max_attempts=2, next_action=RetryNextAction.NONE)
 
 
 def _descriptor() -> SourceDescriptor:
@@ -176,7 +170,6 @@ class SourceAttemptRecordTest(unittest.TestCase):
                 limit_reached=False,
                 counts=AttemptCounts(raw_listings_written=0),
                 criteria=_criteria_diagnostics(),
-                retry=_retry(),
             )
 
     def test_no_results_requires_explicit_evidence(self) -> None:
@@ -195,7 +188,6 @@ class SourceAttemptRecordTest(unittest.TestCase):
                 limit_reached=False,
                 counts=AttemptCounts(raw_listings_written=0),
                 criteria=_criteria_diagnostics(),
-                retry=_retry(),
                 evidence=AttemptEvidence(no_results=False),
             )
 
@@ -215,7 +207,6 @@ class SourceAttemptRecordTest(unittest.TestCase):
                 limit_reached=True,
                 counts=AttemptCounts(raw_listings_written=1),
                 criteria=_criteria_diagnostics(),
-                retry=_retry(),
             )
 
     def test_valid_success_record(self) -> None:
@@ -233,7 +224,6 @@ class SourceAttemptRecordTest(unittest.TestCase):
             limit_reached=False,
             counts=AttemptCounts(raw_listings_written=1),
             criteria=_criteria_diagnostics(),
-            retry=_retry(),
         )
 
         # Assert

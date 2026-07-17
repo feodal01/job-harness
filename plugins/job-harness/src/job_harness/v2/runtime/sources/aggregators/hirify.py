@@ -24,6 +24,7 @@ from job_harness.v2.source_catalog import source_descriptor, source_required_fix
 
 _API_URL = "https://api.hirify.me/api/vacancies"
 _PUBLIC_BASE_URL = "https://hirify.me/jobs"
+_PUBLIC_PATH_PART_COUNT = 2
 _PARALLEL_PAGINATION_WINDOW = 3
 
 
@@ -41,7 +42,7 @@ class HirifySource(DetailEnrichmentScraper):
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
                 query_variant=query_variant,
-                url=f"{_API_URL}?{urlencode(_search_params(query_variant, request, page=1))}",
+                url=f"{_API_URL}?{urlencode(_search_params(query_variant, page=1))}",
             )
             for query_variant in request.query_variants
         )
@@ -127,9 +128,9 @@ class HirifySource(DetailEnrichmentScraper):
         )
 
     def build_detail_request(self, listing: RawListing) -> SourceFetchRequest:
-        listing_id = listing.source_listing_id
+        listing_id = listing.source_listing_id or _listing_id_from_public_url(listing.url)
         if not listing_id:
-            raise ValueError("Hirify detail request requires source_listing_id")
+            raise ValueError("Hirify detail request requires a canonical public vacancy URL")
         return SourceFetchRequest(
             source_id=self.descriptor.source_id,
             query_variant=listing.title,
@@ -145,21 +146,37 @@ class HirifySource(DetailEnrichmentScraper):
         description = _detail_description(payload)
         if description is None:
             raise ValueError("Hirify detail payload does not contain vacancy description")
+        relocation = _relocation_from_item(payload)
+        relocation_destinations = _relocation_destinations_from_item(payload)
         return replace(
             listing,
             description=description,
             raw_text=_join_text(listing.raw_text, description),
+            relocation=relocation if relocation is not None else listing.relocation,
+            relocation_destinations=(
+                relocation_destinations
+                if relocation_destinations
+                else listing.relocation_destinations
+            ),
         )
 
 
-def _search_params(query_variant: str, request: SearchRequest, *, page: int) -> dict[str, str]:
-    params = {
+def _listing_id_from_public_url(url: str) -> str | None:
+    parsed = urlparse(url)
+    parts = tuple(part for part in parsed.path.split("/") if part)
+    if parsed.netloc.lower() not in {"hirify.me", "www.hirify.me"}:
+        return None
+    if len(parts) != _PUBLIC_PATH_PART_COUNT or parts[0] != "jobs":
+        return None
+    listing_id = parts[1].split("-", 1)[0]
+    return listing_id if listing_id.isdigit() else None
+
+
+def _search_params(query_variant: str, *, page: int) -> dict[str, str]:
+    return {
         "search": query_variant,
         "page": str(page),
     }
-    if request.salary_from is not None:
-        params["salary_from"] = str(request.salary_from)
-    return params
 
 
 def _next_page_request(request: SourceFetchRequest, *, page: int) -> SourceFetchRequest:
@@ -214,6 +231,7 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
     regions = _region_codes(item.get("regions"))
     description = _text(item.get("tldr")).strip() or None
     posted_at = _text(item.get("updated_at") or item.get("created_at")).strip() or None
+    relocation_destinations = _relocation_destinations_from_item(item)
 
     return RawListing(
         source_listing_id=str(item_id),
@@ -231,7 +249,8 @@ def _listing_from_item(item: dict[str, Any]) -> RawListing | None:
         posted_at=posted_at,
         remote_in_country=remote_in_country,
         remote_global=remote_global,
-        relocation=None,
+        relocation=_relocation_from_item(item),
+        relocation_destinations=relocation_destinations,
         native_grade=native_grade,
         description=description,
         requirements=None,
@@ -372,6 +391,26 @@ def _region_codes(value: object) -> tuple[str, ...]:
         if code:
             codes.append(code)
     return tuple(codes)
+
+
+def _relocation_from_item(item: dict[str, Any]) -> bool | None:
+    return True if _relocation_destinations_from_item(item) else None
+
+
+def _relocation_destinations_from_item(item: dict[str, Any]) -> tuple[str, ...]:
+    relocation_regions = item.get("relocation_regions")
+    if not isinstance(relocation_regions, list):
+        return ()
+    destinations: list[str] = []
+    for region in relocation_regions:
+        if not isinstance(region, dict):
+            continue
+        destination = _text(
+            region.get("code") or region.get("name_en") or region.get("name")
+        ).strip()
+        if destination:
+            destinations.append(destination)
+    return tuple(dict.fromkeys(destinations))
 
 
 def _code_values(value: object) -> tuple[str, ...]:

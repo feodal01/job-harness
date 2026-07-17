@@ -16,21 +16,32 @@ import asyncio
 import ipaddress
 import json
 import socket
-import sqlite3
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 from job_harness.v2.application import V2SearchApplication, V2SearchConfig, V2SearchExecution
-from job_harness.v2.contracts import Grade, SearchRequest, TextExclusion, TextExclusionMode
-from job_harness.v2.runtime import DetailServiceConfig, RetryServiceConfig, SearchServiceConfig, implemented_source_ids
+from job_harness.v2.contracts import (
+    CompensationCriterion,
+    CompensationPeriod,
+    Grade,
+    SearchRequest,
+    TextExclusion,
+    TextExclusionMode,
+)
+from job_harness.v2.runtime import (
+    RequestRetryServiceConfig,
+    ResourceServiceConfig,
+    SearchServiceConfig,
+    implemented_source_ids,
+)
 from job_harness.v2.serialization import to_jsonable
 from job_harness.v2.source_catalog import source_catalog_entries
 
-LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 240.0
-LIVE_RUN_TIMEOUT_SECONDS = 480.0
-LIVE_FETCH_TIMEOUT_SECONDS = 30.0
-LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 60.0
+LIVE_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 20.0
+LIVE_RUN_TIMEOUT_SECONDS = 180.0
+LIVE_FETCH_TIMEOUT_SECONDS = 15.0
+LIGHT_SOURCE_ATTEMPT_TIMEOUT_SECONDS = 20.0
 LIGHT_RUN_TIMEOUT_SECONDS = 120.0
 LIGHT_FETCH_TIMEOUT_SECONDS = 15.0
 LIGHT_SOURCE_IDS = ("career:jetbrains", "jobturbo")
@@ -169,98 +180,7 @@ def _append_report_payload(*, execution: V2SearchExecution) -> dict[str, object]
 
 
 def _execution_payload(execution: V2SearchExecution) -> dict[str, object]:
-    source_plans = _source_plan_payloads(execution)
-    raw_records_written = _execution_row_count(execution, "listing_observations")
-    return {
-        "schema_version": 1,
-        "record_type": "v2_search_execution",
-        "run_id": execution.run_id,
-        "execution_id": execution.execution_id,
-        "append_sequence": execution.append_sequence,
-        "run_dir": str(execution.paths.run_dir),
-        "artifacts": {
-            "database": str(execution.paths.database_path),
-            "listing_observations_table": "listing_observations",
-            "source_plans_table": "source_plans",
-            "search_executions_table": "search_executions",
-            "final_vacancies_table": "final_vacancies",
-            "report_html": str(execution.paths.report_html_path),
-        },
-        "raw_records_written_this_call": raw_records_written,
-        "processed_result_count": len(execution.final_items),
-        "detail_summary": {
-            "observations": _execution_row_count(execution, "vacancy_detail_observations"),
-        },
-        "attempts": source_plans,
-    }
-
-
-def _source_plan_payloads(execution: V2SearchExecution) -> list[dict[str, object]]:
-    connection = sqlite3.connect(execution.paths.database_path)
-    connection.row_factory = sqlite3.Row
-    try:
-        rows = connection.execute(
-            """
-            SELECT source_id, queries_json, status, terminal_reason,
-                   items_used, units_used, invocations_used
-            FROM source_plans
-            WHERE execution_id = ?
-            ORDER BY source_id, source_plan_id
-            """,
-            (execution.execution_id,),
-        ).fetchall()
-    finally:
-        connection.close()
-    return [
-        {
-            "source": str(row["source_id"]),
-            "query_variant": " | ".join(json.loads(str(row["queries_json"]))),
-            "attempt": 1,
-            "outcome": _source_plan_outcome(str(row["status"]), row["terminal_reason"]),
-            "raw_listings_written": int(row["items_used"]),
-            "pages_visited": int(row["units_used"]),
-            "invocations": int(row["invocations_used"]),
-            "elapsed_ms": 0,
-            "limit_reached": row["status"] == "limit_reached",
-        }
-        for row in rows
-    ]
-
-
-def _source_plan_outcome(status: str, terminal_reason: object) -> str:
-    if status in {"succeeded", "limit_reached"}:
-        return "success"
-    if status == "no_results":
-        return "no_results"
-    if status == "partial":
-        return "partial_success"
-    if status == "cancelled":
-        return "cancelled"
-    reason = str(terminal_reason or "")
-    return {
-        "timeout": "source_timeout",
-        "network": "network_error",
-        "parse": "parse_error",
-        "blocked": "blocked",
-        "rate_limited": "rate_limited",
-        "invalid_output": "invalid_source_output",
-    }.get(reason, "resource_failure")
-
-
-def _execution_row_count(execution: V2SearchExecution, table: str) -> int:
-    allowed_tables = {"listing_observations", "vacancy_detail_observations"}
-    if table not in allowed_tables:
-        raise ValueError(f"unsupported live count table: {table}")
-    connection = sqlite3.connect(execution.paths.database_path)
-    try:
-        return int(
-            connection.execute(
-                f"SELECT COUNT(*) FROM {table} WHERE execution_id = ?",
-                (execution.execution_id,),
-            ).fetchone()[0]
-        )
-    finally:
-        connection.close()
+    return dict(execution.receipt)
 
 
 def _live_search_config(runs_dir: Path, *, profile: str) -> V2SearchConfig:
@@ -306,16 +226,21 @@ def _live_service_config(
         source_attempt_timeout_seconds=source_attempt_timeout_seconds,
         run_timeout_seconds=run_timeout_seconds,
         fetch_timeout_seconds=fetch_timeout_seconds,
-        retry=RetryServiceConfig(max_attempts=1, backoff_seconds=0.0),
-        detail=DetailServiceConfig(
-            per_source_concurrency=1,
-            default_request_delay_seconds=0.75,
-            request_delay_seconds_by_source={
-                "hh_ru": 1.5,
-                "hirify": 0.75,
+        request_retry=RequestRetryServiceConfig(
+            max_attempts=3,
+            base_delay_seconds=1.0,
+            max_delay_seconds=8.0,
+            request_budget_seconds=55.0,
+        ),
+        resources=ResourceServiceConfig(
+            default_max_concurrency=1,
+            default_min_interval_seconds=0.75,
+            max_concurrency_by_resource={},
+            min_interval_seconds_by_resource={
+                "hh.ru": 1.5,
+                "api.hirify.me": 0.75,
             },
-            stop_on_blocked=True,
-            stop_on_rate_limited=True,
+            resource_key_by_host_suffix={"hh.ru": "hh.ru"},
         ),
     )
 
@@ -328,7 +253,7 @@ def _initial_live_request(profile: str) -> SearchRequest:
     return SearchRequest(
         query_variants=("QA",),
         grades=(Grade.MIDDLE,),
-        salary_from=150_000,
+        compensation=CompensationCriterion(150_000, "RUB", CompensationPeriod.MONTH),
         vacancy_geographies=("country:RU", "country:AM"),
     )
 

@@ -34,24 +34,7 @@ V2_MYPY_STRICT_FLAGS = (
     "--extra-checks",
     "--no-error-summary",
 )
-CANONICAL_OUTCOMES = {
-    "success",
-    "no_results",
-    "partial_success",
-    "skipped_by_policy",
-    "cancelled",
-    "source_timeout",
-    "run_timeout",
-    "blocked",
-    "rate_limited",
-    "http_client_error",
-    "http_server_error",
-    "network_error",
-    "parse_error",
-    "invalid_source_output",
-    "resource_failure",
-}
-LIVE_HEALTHY_OUTCOMES = frozenset({"success", "no_results", "partial_success"})
+LIVE_HEALTHY_SOURCE_STATUSES = frozenset({"succeeded", "no_results", "limit_reached"})
 
 
 def main() -> int:
@@ -91,7 +74,7 @@ def main() -> int:
     parser.add_argument(
         "--speed-skip-shape-check",
         action="store_true",
-        help="Run --speed-gate without requiring matching result/raw counts and outcomes.",
+        help="Run --speed-gate without requiring matching result/item counts and source-plan statuses.",
     )
     args = parser.parse_args()
     if args.speed_gate and args.speed_baseline is None:
@@ -364,7 +347,7 @@ def _live_phase_label(live_profile: str, *, phase: str) -> str:
     if live_profile == "light" and phase == "append":
         return "light run 2 (append QA, exclude_text)"
     if live_profile == "full" and phase == "initial":
-        return "full run 1 (QA, grade=middle, salary_from=150000, RU+AM)"
+        return "full run 1 (QA, grade=middle, compensation=150000 RUB/month, RU+AM)"
     if live_profile == "full" and phase == "append":
         return "full run 2 (append тестировщик, RU+AM, exclude_text)"
     raise ValueError(f"unsupported live e2e label: profile={live_profile!r}, phase={phase!r}")
@@ -482,36 +465,36 @@ def _validate_live_execution(
     if artifacts is None:
         return False
 
-    attempts = payload.get("attempts")
-    if not isinstance(attempts, list) or not attempts:
-        print("v2 live e2e failed: missing attempts", file=sys.stderr)
+    diagnostics = payload.get("diagnostics")
+    if not isinstance(diagnostics, dict):
+        print("v2 live e2e failed: missing diagnostics", file=sys.stderr)
         return False
-    if not _validate_live_attempt_outcomes(
-        attempts,
+    source_plans = diagnostics.get("source_plans")
+    if not isinstance(source_plans, list) or not source_plans:
+        print("v2 live e2e failed: missing source plans", file=sys.stderr)
+        return False
+    if not _validate_live_source_plans(
+        source_plans,
         expected_source_ids=expected_source_ids,
     ):
         return False
     if not _validate_live_processed_artifact(payload, artifacts=artifacts):
         return False
-    return _validate_live_engine_outputs(payload, artifacts=artifacts, attempts=attempts)
+    return _validate_live_engine_outputs(payload, diagnostics=diagnostics, source_plans=source_plans)
 
 
-def _validate_live_attempt_outcomes(
-    attempts: list[object],
+def _validate_live_source_plans(
+    source_plans: list[object],
     *,
     expected_source_ids: tuple[str, ...],
 ) -> bool:
-    outcomes = [_required_text(attempt, "outcome") for attempt in attempts if isinstance(attempt, dict)]
-    if any(outcome not in CANONICAL_OUTCOMES for outcome in outcomes):
-        print(f"v2 live e2e failed: non-canonical outcome: {outcomes}", file=sys.stderr)
-        return False
-    if "success" not in outcomes:
-        print(f"v2 live e2e failed: no source succeeded: {outcomes}", file=sys.stderr)
-        return False
-    if not _validate_all_live_sources_attempted(attempts, expected_source_ids=expected_source_ids):
+    if not _validate_all_live_sources_planned(
+        source_plans,
+        expected_source_ids=expected_source_ids,
+    ):
         return False
     return all(
-        _validate_healthy_live_attempt(attempts, source_id=source_id)
+        _validate_healthy_live_source_plan(source_plans, source_id=source_id)
         for source_id in expected_source_ids
     )
 
@@ -532,9 +515,9 @@ def _validate_live_processed_artifact(
     if not isinstance(processed.get("results"), list):
         print("v2 live e2e failed: processed results is not a list", file=sys.stderr)
         return False
-    processed_count = payload.get("processed_result_count")
+    processed_count = payload.get("result_count")
     if not isinstance(processed_count, int) or processed_count != processed.get("result_count"):
-        print("v2 live e2e failed: processed_result_count mismatch", file=sys.stderr)
+        print("v2 live e2e failed: result_count mismatch", file=sys.stderr)
         return False
     return True
 
@@ -542,96 +525,89 @@ def _validate_live_processed_artifact(
 def _validate_live_engine_outputs(
     payload: dict[str, object],
     *,
-    artifacts: dict[str, object],
-    attempts: list[object],
+    diagnostics: dict[str, object],
+    source_plans: list[object],
 ) -> bool:
     append_sequence = payload.get("append_sequence")
-    raw_written = payload.get("raw_records_written_this_call")
+    raw_written = diagnostics.get("listing_observation_count")
     if not isinstance(raw_written, int) or raw_written < 0:
-        print("v2 live e2e failed: invalid raw_records_written_this_call", file=sys.stderr)
+        print("v2 live e2e failed: invalid listing_observation_count", file=sys.stderr)
         return False
     if append_sequence == 0 and raw_written <= 0:
-        print("v2 live e2e failed: expected raw_records_written_this_call > 0", file=sys.stderr)
-        return False
-
-    raw_records = _read_raw_records(artifacts)
-    if append_sequence == 0 and len(raw_records) < raw_written:
-        print("v2 live e2e failed: raw_listings table shorter than reported writes", file=sys.stderr)
-        return False
-
-    source_attempts = _read_source_attempt_records(artifacts)
-    if not source_attempts:
-        print("v2 live e2e failed: source_attempts table is empty", file=sys.stderr)
+        print("v2 live e2e failed: expected listing observations on initial run", file=sys.stderr)
         return False
 
     if append_sequence == 0:
-        processed_count = payload.get("processed_result_count")
+        processed_count = payload.get("result_count")
         if not isinstance(processed_count, int) or processed_count <= 0:
             print("v2 live e2e failed: expected processed results on initial live run", file=sys.stderr)
             return False
 
-        success_with_raw = any(
-            isinstance(attempt, dict)
-            and attempt.get("outcome") == "success"
-            and isinstance(attempt.get("raw_listings_written"), int)
-            and attempt.get("raw_listings_written", 0) > 0
-            for attempt in attempts
+        success_with_items = any(
+            isinstance(plan, dict)
+            and plan.get("status") in {"succeeded", "partial", "limit_reached"}
+            and isinstance(plan.get("items"), dict)
+            and isinstance(plan["items"].get("used"), int)
+            and plan["items"]["used"] > 0
+            for plan in source_plans
         )
-        if not success_with_raw:
-            print("v2 live e2e failed: no successful source wrote raw listings", file=sys.stderr)
+        if not success_with_items:
+            print("v2 live e2e failed: no successful source stored listings", file=sys.stderr)
             return False
     return True
 
 
-def _validate_all_live_sources_attempted(
-    attempts: list[object],
+def _validate_all_live_sources_planned(
+    source_plans: list[object],
     *,
     expected_source_ids: tuple[str, ...],
 ) -> bool:
     observed = {
-        attempt.get("source")
-        for attempt in attempts
-        if isinstance(attempt, dict) and isinstance(attempt.get("source"), str)
+        plan.get("source_id")
+        for plan in source_plans
+        if isinstance(plan, dict) and isinstance(plan.get("source_id"), str)
     }
     missing = [source_id for source_id in expected_source_ids if source_id not in observed]
     if missing:
-        print(f"v2 live e2e failed: missing live attempts for sources: {missing}", file=sys.stderr)
+        print(f"v2 live e2e failed: missing live source plans: {missing}", file=sys.stderr)
         return False
     return True
 
 
-def _validate_healthy_live_attempt(attempts: list[object], *, source_id: str) -> bool:
-    source_attempts = [
-        attempt for attempt in attempts if isinstance(attempt, dict) and attempt.get("source") == source_id
+def _validate_healthy_live_source_plan(source_plans: list[object], *, source_id: str) -> bool:
+    matching_plans = [
+        plan for plan in source_plans if isinstance(plan, dict) and plan.get("source_id") == source_id
     ]
-    if not source_attempts:
-        print(f"v2 live e2e failed: {source_id} attempt is missing", file=sys.stderr)
+    if not matching_plans:
+        print(f"v2 live e2e failed: {source_id} source plan is missing", file=sys.stderr)
         return False
-    for attempt in source_attempts:
-        outcome = _required_text(attempt, "outcome")
-        if outcome in LIVE_HEALTHY_OUTCOMES:
+    for plan in matching_plans:
+        status = _required_text(plan, "status")
+        if status in LIVE_HEALTHY_SOURCE_STATUSES:
             continue
-        print(f"v2 live e2e failed: unhealthy {source_id} live outcome: {attempt}", file=sys.stderr)
+        print(f"v2 live e2e failed: unhealthy {source_id} source plan: {plan}", file=sys.stderr)
         return False
     return True
 
 
 def _print_live_execution_summary(payload: dict[str, object], *, label: str) -> None:
-    attempts = payload.get("attempts")
-    if not isinstance(attempts, list):
+    diagnostics = payload.get("diagnostics")
+    source_plans = diagnostics.get("source_plans") if isinstance(diagnostics, dict) else None
+    if not isinstance(source_plans, list):
         return
     print(f"v2 live e2e summary ({label}):", flush=True)
-    for attempt in sorted(
-        (item for item in attempts if isinstance(item, dict)),
-        key=lambda item: str(item.get("source", "")),
+    for plan in sorted(
+        (item for item in source_plans if isinstance(item, dict)),
+        key=lambda item: str(item.get("source_id", "")),
     ):
-        source = attempt.get("source", "?")
-        outcome = attempt.get("outcome", "?")
-        raw = attempt.get("raw_listings_written", 0)
-        pages = attempt.get("pages_visited", 0)
-        elapsed_ms = attempt.get("elapsed_ms", 0)
+        source = plan.get("source_id", "?")
+        status = plan.get("status", "?")
+        items = plan.get("items")
+        units = plan.get("units")
+        item_count = items.get("used", 0) if isinstance(items, dict) else 0
+        unit_count = units.get("used", 0) if isinstance(units, dict) else 0
         print(
-            f"  {source:<20} {outcome:<15} raw={raw:<4} pages={pages:<2} ms={elapsed_ms}",
+            f"  {source:<28} {status:<15} items={item_count:<4} units={unit_count:<3}",
             flush=True,
         )
 
@@ -649,16 +625,10 @@ def _validated_live_artifacts(payload: dict[str, object]) -> dict[str, object] |
     if not report_html_path.exists():
         print(f"v2 live e2e failed: missing report HTML: {report_html_path}", file=sys.stderr)
         return None
-    expected_tables = {
-        "listing_observations_table": "listing_observations",
-        "source_plans_table": "source_plans",
-        "search_executions_table": "search_executions",
-        "final_vacancies_table": "final_vacancies",
-    }
-    for key, expected_value in expected_tables.items():
-        if artifacts.get(key) != expected_value:
-            print(f"v2 live e2e failed: unexpected {key}", file=sys.stderr)
-            return None
+    execution_json_path = Path(_required_text(artifacts, "execution_json"))
+    if not execution_json_path.exists():
+        print(f"v2 live e2e failed: missing execution receipt: {execution_json_path}", file=sys.stderr)
+        return None
     return artifacts
 
 
@@ -699,42 +669,6 @@ def _read_processed_payload(artifacts: dict[str, object], *, append_sequence: in
         "result_count": len(rows),
         "results": rows,
     }
-
-
-def _read_raw_records(artifacts: dict[str, object]) -> list[dict[str, object]]:
-    return _read_json_rows(
-        artifacts,
-        """
-        SELECT payload_json
-        FROM listing_observations
-        ORDER BY observed_at, listing_observation_id
-        """,
-        (),
-    )
-
-
-def _read_source_attempt_records(artifacts: dict[str, object]) -> list[dict[str, object]]:
-    database_path = Path(_required_text(artifacts, "database"))
-    connection = sqlite3.connect(str(database_path), timeout=30.0)
-    try:
-        rows = connection.execute(
-            """
-            SELECT source_id, status, terminal_reason, items_used, units_used
-            FROM source_plans ORDER BY source_id, source_plan_id
-            """
-        ).fetchall()
-    finally:
-        connection.close()
-    return [
-        {
-            "source": str(row[0]),
-            "outcome": str(row[1]),
-            "terminal_reason": row[2],
-            "raw_listings_written": int(row[3]),
-            "pages_visited": int(row[4]),
-        }
-        for row in rows
-    ]
 
 
 def _read_run_manifest(artifacts: dict[str, object]) -> dict[str, object]:

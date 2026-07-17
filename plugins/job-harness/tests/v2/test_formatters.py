@@ -26,10 +26,22 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
                     "vacancyUrl": "https://example.com/jobs/1",
                     "company": {"name": "Acme"},
                     "sourceId": "hh_ru",
-                    "nativeGrade": "middle",
-                    "salary": {"from": 200000, "currency": "RUB"},
-                    "location": {"text": "Moscow"},
-                    "workFormats": ["remote"],
+                    "grade": {"resolved": ["middle"], "conflict": False},
+                    "compensation": {
+                        "minimum": 200000,
+                        "currency": "RUB",
+                        "period": "month",
+                        "gross": False,
+                    },
+                    "location": {
+                        "rawText": "Moscow",
+                        "cities": ["Moscow"],
+                        "countries": ["RU"],
+                    },
+                    "workplace": {
+                        "formats": ["remote"],
+                        "remoteScopes": ["country:RU"],
+                    },
                     "skills": ["pytest", "API"],
                     "applicationChannels": [
                         {
@@ -61,6 +73,10 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
         self.assertIn("## 1. QA Engineer", markdown)
         self.assertIn("[Open vacancy](https://example.com/jobs/1)", markdown)
         self.assertIn("**Company:** Acme", markdown)
+        self.assertIn("**Grade:** middle", markdown)
+        self.assertIn("**Salary:** 200000 RUB / month net", markdown)
+        self.assertIn("**Location:** Moscow | RU", markdown)
+        self.assertIn("**Format:** remote", markdown)
         self.assertIn("**Skills:** pytest, API", markdown)
         self.assertIn("**Apply channels**", markdown)
         self.assertIn("- [Careers](https://example.com/careers)", markdown)
@@ -124,7 +140,7 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
                 append_sequence=0,
                 policy_version="policy-v1",
                 runtime_config_version="runtime-v1",
-                deadline_at=1000.0,
+                active_runtime_budget_ms=1_000_000,
             )
             latest_execution = repository.create_execution(
                 run_id="r-cli",
@@ -132,13 +148,52 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
                 append_sequence=1,
                 policy_version="policy-v1",
                 runtime_config_version="runtime-v1",
-                deadline_at=1000.0,
+                active_runtime_budget_ms=1_000_000,
             )
             repository.close()
             with closing(sqlite3.connect(input_path)) as connection:
                 connection.execute(
                     "UPDATE search_executions SET status = 'completed' WHERE execution_id IN (?, ?)",
                     (first_execution, latest_execution),
+                )
+                connection.executemany(
+                    """
+                    INSERT INTO vacancy_resources (
+                        vacancy_id, run_id, target_provider_id, source_listing_id,
+                        canonical_url, identity_key, identity_schema_version, created_at
+                    ) VALUES (?, 'r-cli', 'test', ?, ?, ?, 1, 0)
+                    """,
+                    (
+                        (
+                            "vacancy-old",
+                            "old",
+                            "https://example.com/jobs/old",
+                            "test:old",
+                        ),
+                        (
+                            "vacancy-latest",
+                            "latest",
+                            "https://example.com/jobs/latest",
+                            "test:latest",
+                        ),
+                    ),
+                )
+                connection.executemany(
+                    """
+                    INSERT INTO vacancy_listings (
+                        listing_id, run_id, vacancy_id, source_id,
+                        source_listing_id, identity_key, created_at
+                    ) VALUES (?, 'r-cli', ?, 'test', ?, ?, 0)
+                    """,
+                    (
+                        ("listing-old", "vacancy-old", "old", "test:old"),
+                        (
+                            "listing-latest",
+                            "vacancy-latest",
+                            "latest",
+                            "test:latest",
+                        ),
+                    ),
                 )
                 connection.executemany(
                     """
@@ -184,6 +239,32 @@ class ProcessedResultsMarkdownTests(unittest.TestCase):
 
 
 class ProcessedResultsHtmlTests(unittest.TestCase):
+    def test_render_processed_results_html_shows_execution_quality_and_source_coverage(self) -> None:
+        payload = {
+            "record_type": "processed_results",
+            "run_id": "r-degraded",
+            "execution_quality": "degraded",
+            "source_coverage": {
+                "planned": 149,
+                "complete": 143,
+                "degraded": 6,
+                "failed": 4,
+            },
+            "search_request": {"query_variants": ["QA"]},
+            "results": [],
+            "filtered_out_results": [],
+        }
+
+        html = render_processed_results_html(payload)
+
+        self.assertIn('id="execution-summary"', html)
+        self.assertIn('summaryField("Quality", executionQuality)', html)
+        self.assertIn('summaryField("Sources complete", `${sourceCoverage.complete}/${sourceCoverage.planned}`)', html)
+        self.assertIn('summaryField("Sources degraded", sourceCoverage.degraded)', html)
+        self.assertIn('summaryField("Sources failed", sourceCoverage.failed)', html)
+        self.assertIn('"execution_quality": "degraded"', html)
+        self.assertIn('"planned": 149', html)
+
     def test_render_processed_results_html_embeds_kept_and_filtered_results(self) -> None:
         # Arrange
         payload = {
@@ -199,6 +280,20 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
                 "remote_scopes": ["country:RU"],
                 "vacancy_geographies": ["country:RU"],
                 "sources": ["hh_ru"],
+                "scenarios": [
+                    {
+                        "work_formats": ["remote"],
+                        "remote_scopes": ["global"],
+                        "employer_geographies": ["country:RU"],
+                        "relocation": None,
+                    },
+                    {
+                        "work_formats": ["remote", "hybrid"],
+                        "remote_scopes": [],
+                        "employer_geographies": [],
+                        "relocation": True,
+                    },
+                ],
             },
             "results": [
                 {
@@ -207,10 +302,26 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
                     "sourceId": "hh_ru",
                     "sourceListingId": "1",
                     "vacancyUrl": "https://example.com/jobs/1",
-                    "salary": {"from": 200000, "currency": "RUB"},
-                    "nativeGrade": "middle",
-                    "workFormats": ["remote"],
-                    "remoteScopes": [{"kind": "country", "code": "RU"}],
+                    "compensation": {
+                        "minimum": 200000,
+                        "currency": "RUB",
+                        "period": "month",
+                        "gross": False,
+                    },
+                    "grade": {"resolved": ["middle"], "conflict": False},
+                    "location": {
+                        "rawText": "Moscow",
+                        "cities": ["Moscow"],
+                        "countries": ["RU"],
+                    },
+                    "workplace": {
+                        "formats": ["remote"],
+                        "remoteScopes": ["country:RU"],
+                    },
+                    "relocation": {
+                        "supported": True,
+                        "destinations": ["US"],
+                    },
                     "applicationChannels": [
                         {
                             "kind": "company_career_page",
@@ -228,7 +339,13 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
                     "company": {"name": "Beta"},
                     "sourceId": "habr_career",
                     "description": "Internship",
-                }
+                },
+                {
+                    "decision": "filtered_out",
+                    "decision_reasons": ["required_provider_terminal"],
+                    "title": "AI Evaluation Specialist",
+                    "sourceId": "talanto",
+                },
             ],
         }
 
@@ -240,17 +357,26 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertIn('"filtered_out_results"', html)
         self.assertIn('"search_request"', html)
         self.assertIn("Search request", html)
-        self.assertIn("Salary from", html)
+        self.assertIn('requestField("Scenarios", scenarioText(request.scenarios))', html)
+        self.assertIn('requestField("Scenarios", scenarioText(request.scenarios))', html)
+        self.assertIn('fieldText("Employer geography", scenario.employer_geographies)', html)
+        self.assertIn('"employer_geographies": ["country:RU"]', html)
+        self.assertIn("Compensation", html)
         self.assertIn("Full catalog", html)
         self.assertIn("className = \"ordinal\"", html)
         self.assertIn("renderRow(row, index + 1)", html)
         self.assertIn("className = \"company-line\"", html)
-        self.assertIn('cardField("Grade", row.nativeGrade, highlightedLabels.has("Grade"))', html)
-        self.assertIn('cardField("Salary", salaryText(row.salary), highlightedLabels.has("Salary"))', html)
+        self.assertIn('cardField("Grade", gradeText(row.grade), highlightedLabels.has("Grade"))', html)
+        self.assertIn(
+            'cardField("Salary", compensationText(row.compensation), highlightedLabels.has("Salary"))',
+            html,
+        )
         self.assertIn('cardField("Posted", row.postedAt, highlightedLabels.has("Posted"))', html)
-        self.assertIn('cardField("Work format", list(row.workFormats).join(", ")', html)
+        self.assertIn('cardField("Work format", workplaceFormatText(row.workplace)', html)
         self.assertIn('cardField("Location", locationText(row.location)', html)
-        self.assertIn('cardField("Remote scope", remoteScopeText(row.remoteScopes)', html)
+        self.assertIn('cardField("Remote scope", remoteScopeText(row.workplace)', html)
+        self.assertIn('cardField("Relocation", relocationText(row.relocation)', html)
+        self.assertIn('return `yes, to ${destinations.join(", ")}`;', html)
         self.assertIn('valueText || "not specified"', html)
         self.assertIn("field excluded-reason", html)
         self.assertIn("skillsElement(row)", html)
@@ -261,11 +387,19 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
         self.assertIn("link.textContent = text(channel.label) || text(channel.kind) || \"Apply\"", html)
         self.assertIn("className = \"skill\"", html)
         self.assertIn('debugField("Filter reason", removalReasonText(row))', html)
+        self.assertIn("terminalStatusElement(row)", html)
+        self.assertIn('hasRemovalReason(row, "required_provider_terminal")', html)
+        self.assertIn('status.textContent = "Required details could not be retrieved"', html)
+        self.assertIn(
+            'decisionReasons(row).filter((reason) => reason !== "required_provider_terminal")',
+            html,
+        )
         self.assertNotIn('debugField("Query"', html)
         self.assertNotIn('debugField("Vacancy geography"', html)
         self.assertIn('["grade_mismatch", "Grade"]', html)
         self.assertIn('["remote_scope_mismatch", "Remote scope"]', html)
         self.assertIn('"decision_reasons": ["grade_mismatch"]', html)
+        self.assertIn('"decision_reasons": ["required_provider_terminal"]', html)
         self.assertNotIn("workMode(row)", html)
         self.assertIn("className = \"debug-meta\"", html)
         self.assertIn("debugField(\"Source\", row.sourceId)", html)
@@ -355,7 +489,11 @@ class ProcessedResultsHtmlTests(unittest.TestCase):
 
         # Assert
         self.assertIn('requestField("Grade", listText(request.grades, "N/a"))', html)
-        self.assertIn('requestField("Salary from", text(request.salary_from) || "N/a")', html)
+        self.assertIn(
+            'requestField("Compensation", compensationCriterionText(request.compensation) || "N/a")',
+            html,
+        )
+        self.assertIn("function compensationCriterionText(value)", html)
         self.assertIn('requestField("Published since", text(request.published_since) || "N/a")', html)
         self.assertIn('requestField("Work format", listText(request.work_formats, "N/a"))', html)
         self.assertIn('requestField("Remote scope", listText(request.remote_scopes, "N/a"))', html)

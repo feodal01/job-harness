@@ -2,67 +2,36 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 import secrets
 import time
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 
 from job_harness.v2.contracts import (
-    FactProviderSpec,
-    ParserInvocationSpec,
-    ParserRef,
     ParserRegistry,
-    ParserType,
-    ProviderStage,
     SearchRequest,
-    TaskClass,
+    TargetParserResolver,
 )
 from job_harness.v2.persistence.graph_repository import SqliteGraphRepository
 from job_harness.v2.ports import ParserRuntimeFactory
-from job_harness.v2.presentation import render_processed_results_html
-from job_harness.v2.runtime.executors import ManagedTaskRunner
-from job_harness.v2.runtime.final_assembly import ExecutionNotDrainedError, FinalAssembler
-from job_harness.v2.runtime.graph_coordinator import GraphCoordinator
+from job_harness.v2.runtime.atomic_artifacts import atomic_write_bytes
+from job_harness.v2.runtime.final_assembly import FinalAssembler
+from job_harness.v2.runtime.graph_artifacts import GraphArtifactManager
+from job_harness.v2.runtime.graph_execution import (
+    GraphExecutionEngine,
+    merge_workflow_items,
+)
+from job_harness.v2.runtime.graph_pipeline_models import (
+    GraphSearchPipelineConfig,
+    GraphSearchPipelineExecution,
+    PipelineDriverSpec,
+)
+from job_harness.v2.runtime.graph_resume import GraphWorkflowResumer
+from job_harness.v2.runtime.ranking import GraphVacancyRanker
 from job_harness.v2.runtime.run_layout import RunLayout, RunPaths
 from job_harness.v2.serialization import JsonObject, to_jsonable
-
-_MAX_DRAIN_ITERATIONS = 100_000
-
-
-@dataclass(frozen=True)
-class GraphSearchPipelineConfig:
-    runs_dir: Path = Path(".job-harness/v2/runs")
-    source_ids: tuple[str, ...] = ()
-    task_batch_size: int = 16
-    event_batch_size: int = 100
-    lease_seconds: float = 300.0
-    execution_timeout_seconds: float = 360.0
-    discovery_plan_budget: int = 20
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "runs_dir", Path(self.runs_dir))
-        if self.task_batch_size < 1 or self.event_batch_size < 1:
-            raise ValueError("graph batch sizes must be >= 1")
-        if self.lease_seconds <= 0:
-            raise ValueError("lease_seconds must be > 0")
-        if self.execution_timeout_seconds <= 0:
-            raise ValueError("execution_timeout_seconds must be > 0")
-        if self.discovery_plan_budget < 0:
-            raise ValueError("discovery_plan_budget must be >= 0")
-
-
-@dataclass(frozen=True)
-class GraphSearchPipelineExecution:
-    run_id: str
-    execution_id: str
-    append_sequence: int
-    paths: RunPaths
-    final_items: tuple[JsonObject, ...]
-    processed_payload: JsonObject
+from job_harness.v2.source_catalog import ListingParserBinding, listing_parser_bindings
 
 
 class GraphSearchPipeline:
@@ -72,163 +41,184 @@ class GraphSearchPipeline:
         config: GraphSearchPipelineConfig,
         registry: ParserRegistry,
         runtime_factory: ParserRuntimeFactory,
+        source_bindings: Iterable[ListingParserBinding] | None = None,
         clock: Callable[[], float] = time.time,
+        artifact_writer: Callable[[Path, bytes], None] = atomic_write_bytes,
+        resource_key_resolver: Callable[[str], str] | None = None,
     ) -> None:
+        bindings = tuple(
+            listing_parser_bindings() if source_bindings is None else source_bindings
+        )
+        target_resolver = TargetParserResolver(registry.manifests())
         self._config = config
-        self._registry = registry
-        self._runtime_factory = runtime_factory
         self._clock = clock
+        self._engine = GraphExecutionEngine(
+            config=config,
+            registry=registry,
+            runtime_factory=runtime_factory,
+            source_bindings=bindings,
+            target_resolver=target_resolver,
+            resource_key_resolver=resource_key_resolver or _identity_resource_key,
+            clock=clock,
+        )
+        self._artifacts = GraphArtifactManager(clock=clock, writer=artifact_writer)
+        self._resumer = GraphWorkflowResumer(
+            engine=self._engine,
+            artifacts=self._artifacts,
+        )
 
-    async def run(self, request: SearchRequest, *, run_id: str | None = None) -> GraphSearchPipelineExecution:
+    async def run(
+        self,
+        request: SearchRequest,
+        *,
+        run_id: str | None = None,
+    ) -> GraphSearchPipelineExecution:
         paths = self._resolve_paths(request, run_id)
         repository = SqliteGraphRepository(paths.database_path)
         try:
             append_sequence = repository.next_append_sequence(paths.run_id)
             created_at = self._clock()
-            execution_id = repository.create_execution(
-                run_id=paths.run_id,
-                intent=_json_object(request),
-                append_sequence=append_sequence,
-                policy_version="selection-v1",
-                runtime_config_version="runtime-v1",
-                deadline_at=created_at + self._config.execution_timeout_seconds,
-                discovery_plan_budget=self._config.discovery_plan_budget,
-                now=created_at,
-            )
-            self._plan_initial_graph(repository, execution_id, request)
-            final_items = await self._drain(repository, execution_id, request)
-            processed_payload = _processed_payload(
-                run_id=paths.run_id,
-                execution_id=execution_id,
-                append_sequence=append_sequence,
+            execution_id, enrichment_id, discovered_id = self._create_executions(
+                repository,
+                paths=paths,
                 request=request,
-                final_items=final_items,
+                append_sequence=append_sequence,
+                created_at=created_at,
             )
-            paths.report_html_path.write_text(
-                render_processed_results_html(processed_payload),
-                encoding="utf-8",
+            self._engine.plan_initial(
+                repository,
+                execution_id,
+                request,
+                available_at=created_at,
+            )
+            search_items = await self._engine.drain(
+                repository,
+                request,
+                drivers=_initial_drivers(
+                    execution_id,
+                    enrichment_id,
+                    discovered_id,
+                    request,
+                ),
+                assembly_execution_id=execution_id,
+                emit_progress=True,
+            )
+            self._artifacts.finalize_snapshot(
+                repository,
+                paths=paths,
+                execution_id=execution_id,
+                execution_kind="search",
+                append_sequence=append_sequence,
+                items=search_items,
+                artifact_name="search_results",
+                artifact_path=paths.search_results_json_path,
+            )
+            enrichment_items = await self._engine.drain(
+                repository,
+                request,
+                drivers=_child_drivers(enrichment_id, discovered_id, request),
+                assembly_execution_id=enrichment_id,
+                emit_progress=False,
+            )
+            discovered_items = FinalAssembler(
+                repository,
+                scorer=GraphVacancyRanker(request).score,
+            ).assemble(discovered_id, now=self._clock()).items
+            self._artifacts.finalize_snapshot(
+                repository,
+                paths=paths,
+                execution_id=discovered_id,
+                execution_kind="discovered_search",
+                append_sequence=append_sequence,
+                items=discovered_items,
+                artifact_name="discovered_search_results",
+                artifact_path=paths.discovered_search_results_json_path,
+            )
+            final_items = merge_workflow_items(
+                search_items,
+                enrichment_items,
+                discovered_items,
+            )
+            processed, receipt = self._artifacts.finalize_workflow(
+                repository,
+                paths=paths,
+                request=request,
+                execution_id=execution_id,
+                enrichment_execution_id=enrichment_id,
+                discovered_search_execution_id=discovered_id,
+                append_sequence=append_sequence,
+                final_items=final_items,
+                enrichment_items=enrichment_items,
             )
         finally:
             repository.close()
         return GraphSearchPipelineExecution(
             run_id=paths.run_id,
             execution_id=execution_id,
+            enrichment_execution_id=enrichment_id,
+            discovered_search_execution_id=discovered_id,
             append_sequence=append_sequence,
             paths=paths,
             final_items=final_items,
-            processed_payload=processed_payload,
+            processed_payload=processed,
+            receipt=receipt,
         )
 
-    def _plan_initial_graph(
+    async def resume_execution(
         self,
-        repository: SqliteGraphRepository,
         execution_id: str,
-        request: SearchRequest,
-    ) -> None:
-        selected = set(self._config.source_ids or request.sources)
-        selected_types = {source_type.value for source_type in request.source_types}
-        bundles = tuple(
-            bundle
-            for bundle in self._registry.search_bundles()
-            if not selected or bundle.manifest.parser_id.removesuffix(".search") in selected
-            if not selected_types or selected_types.intersection(bundle.manifest.source_kinds)
-        )
-        if not bundles:
-            raise ValueError("search intent selected no listing scraper bundles")
-        for bundle in bundles:
-            manifest = bundle.manifest
-            source_id = manifest.parser_id.removesuffix(".search")
-            initial_inputs = bundle.plan_initial(request, {"kind": "catalog"})
-            source_plan_id = repository.create_source_plan(
-                execution_id=execution_id,
-                source_id=source_id,
-                manifest=manifest,
-                queries=request.query_variants,
-                unit_budget=manifest.default_unit_budget or 1,
-                item_budget=manifest.default_item_budget or 1,
-                invocation_budget=manifest.default_invocation_budget or 1,
-            )
-            detail_ref = ParserRef(f"{source_id}.detail", "1.0")
-            if self._registry.contains(detail_ref):
-                repository.add_fact_requirement(
-                    source_plan_id=source_plan_id,
-                    criterion="optional_description_enrichment",
-                    fact_path="description",
-                    comparison={"operator": "exists"},
-                    provider=FactProviderSpec(
-                        provider_id=f"{source_plan_id}:detail-description",
-                        stage=ProviderStage.DETAIL_OUTPUT,
-                        parser_ref=detail_ref,
-                        fact_path="description",
-                        depends_on_fact_paths=(),
-                        required_for_final=False,
-                        cost_class="detail",
-                        ordering=10,
-                    ),
-                )
-            for parser_input in initial_inputs:
-                fingerprint = _fingerprint(parser_input)
-                repository.enqueue_invocation(
-                    ParserInvocationSpec(
-                        execution_id=execution_id,
-                        source_plan_id=source_plan_id,
-                        parent_invocation_id=None,
-                        cause_event_id=None,
-                        parser_ref=manifest.ref,
-                        parser_type=ParserType.SEARCH_LISTING,
-                        input_schema_id=manifest.input_schema_id,
-                        parser_input=parser_input,
-                        task_class=TaskClass.LISTING,
-                        task_key=f"search_listing:{manifest.parser_id}:{source_plan_id}:{fingerprint}",
-                        available_at=0.0,
-                        reserved_collection_units=manifest.max_units_per_invocation,
-                    )
-                )
+    ) -> GraphSearchPipelineExecution:
+        return await self._resumer.resume(execution_id)
 
-    async def _drain(
+    def _create_executions(
         self,
         repository: SqliteGraphRepository,
-        execution_id: str,
+        *,
+        paths: RunPaths,
         request: SearchRequest,
-    ) -> tuple[JsonObject, ...]:
-        runner = ManagedTaskRunner(
-            repository=repository,
-            registry=self._registry,
-            runtime_factory=self._runtime_factory,
-            owner_id=f"runner-{secrets.token_hex(4)}",
-            lease_seconds=self._config.lease_seconds,
-            clock=self._clock,
+        append_sequence: int,
+        created_at: float,
+    ) -> tuple[str, str, str]:
+        intent = _json_object(request)
+        active_runtime_budget_ms = round(
+            self._config.execution_timeout_seconds * 1000
         )
-        coordinator = GraphCoordinator(
-            repository=repository,
-            registry=self._registry,
-            owner_id=f"coordinator-{secrets.token_hex(4)}",
-            request=request,
+        execution_id = repository.create_execution(
+            run_id=paths.run_id,
+            intent=intent,
+            append_sequence=append_sequence,
+            policy_version="selection-v2",
+            runtime_config_version="runtime-v2",
+            active_runtime_budget_ms=active_runtime_budget_ms,
+            discovery_plan_budget=self._config.discovery_plan_budget,
+            now=created_at,
         )
-        for _ in range(_MAX_DRAIN_ITERATIONS):
-            now = self._clock()
-            repository.settle_deadline(execution_id, now=now)
-            ran = await runner.run_once(
-                execution_id,
-                limit=self._config.task_batch_size,
-                now=now,
-            )
-            processed = coordinator.process_once(
-                execution_id,
-                limit=self._config.event_batch_size,
-                lease_seconds=self._config.lease_seconds,
-                now=self._clock(),
-            )
-            if ran or processed:
-                continue
-            try:
-                return FinalAssembler(repository).assemble(
-                    execution_id,
-                    now=self._clock(),
-                ).items
-            except ExecutionNotDrainedError as exc:
-                raise RuntimeError(f"graph stopped making progress: {exc}") from exc
-        raise RuntimeError("graph exceeded the maximum drain iterations")
+        enrichment_id = repository.create_execution(
+            run_id=paths.run_id,
+            intent=intent,
+            append_sequence=append_sequence,
+            policy_version="enrichment-v1",
+            runtime_config_version="runtime-v2",
+            active_runtime_budget_ms=active_runtime_budget_ms,
+            discovery_plan_budget=0,
+            speculative_admission_budget=25,
+            execution_kind="enrichment",
+            parent_execution_id=execution_id,
+            now=created_at,
+        )
+        discovered_id = repository.create_execution(
+            run_id=paths.run_id,
+            intent=intent,
+            append_sequence=append_sequence,
+            policy_version="discovered-search-v1",
+            runtime_config_version="runtime-v2",
+            active_runtime_budget_ms=active_runtime_budget_ms,
+            discovery_plan_budget=self._config.discovery_plan_budget,
+            execution_kind="discovered_search",
+            parent_execution_id=enrichment_id,
+            now=created_at,
+        )
+        return execution_id, enrichment_id, discovered_id
 
     def _resolve_paths(self, request: SearchRequest, run_id: str | None) -> RunPaths:
         layout = RunLayout(self._config.runs_dir)
@@ -237,36 +227,60 @@ class GraphSearchPipeline:
             if run_id is not None and run_id != append_run_id:
                 raise ValueError("run_id must match append_to_run_id")
             return layout.existing_run(append_run_id)
-        resolved_run_id = run_id or _new_run_id()
-        return layout.create_new_run(resolved_run_id)
+        return layout.create_new_run(run_id or _new_run_id())
 
 
-def _processed_payload(
-    *,
-    run_id: str,
+def _initial_drivers(
     execution_id: str,
-    append_sequence: int,
+    enrichment_id: str,
+    discovered_id: str,
     request: SearchRequest,
-    final_items: tuple[JsonObject, ...],
-) -> JsonObject:
-    return {
-        "schema_version": 2,
-        "record_type": "processed_results",
-        "phase": "final",
-        "run_id": run_id,
-        "execution_id": execution_id,
-        "append_sequence": append_sequence,
-        "search_request": _json_object(request),
-        "raw_records_read": len(final_items),
-        "result_count": len(final_items),
-        "results": list(final_items),
-        "filtered_out_results": [],
-    }
+) -> tuple[PipelineDriverSpec, ...]:
+    return (
+        PipelineDriverSpec(
+            execution_id=execution_id,
+            selection_request=request,
+            discovery_request=request,
+            requirement_scope="required",
+            optional_execution_id=enrichment_id,
+            discovery_execution_id=discovered_id,
+        ),
+        PipelineDriverSpec(
+            execution_id=discovered_id,
+            selection_request=request,
+            discovery_request=None,
+            requirement_scope="required",
+        ),
+        PipelineDriverSpec(
+            execution_id=enrichment_id,
+            selection_request=None,
+            discovery_request=request,
+            requirement_scope="optional",
+            discovery_execution_id=discovered_id,
+        ),
+    )
 
 
-def _fingerprint(value: object) -> str:
-    payload = json.dumps(to_jsonable(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(payload.encode()).hexdigest()
+def _child_drivers(
+    enrichment_id: str,
+    discovered_id: str,
+    request: SearchRequest,
+) -> tuple[PipelineDriverSpec, ...]:
+    return (
+        PipelineDriverSpec(
+            execution_id=discovered_id,
+            selection_request=request,
+            discovery_request=None,
+            requirement_scope="required",
+        ),
+        PipelineDriverSpec(
+            execution_id=enrichment_id,
+            selection_request=None,
+            discovery_request=request,
+            requirement_scope="optional",
+            discovery_execution_id=discovered_id,
+        ),
+    )
 
 
 def _json_object(value: object) -> JsonObject:
@@ -279,3 +293,7 @@ def _json_object(value: object) -> JsonObject:
 def _new_run_id() -> str:
     now = datetime.now(UTC)
     return f"r-{now.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}"
+
+
+def _identity_resource_key(host: str) -> str:
+    return host

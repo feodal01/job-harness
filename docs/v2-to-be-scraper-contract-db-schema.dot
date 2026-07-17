@@ -86,6 +86,7 @@ digraph IndependentScraperDatabase {
         <TR><TD>criterion</TD><TD></TD></TR>
         <TR><TD>required_fact_path</TD><TD></TD></TR>
         <TR><TD>comparison_json</TD><TD></TD></TR>
+        <TR><TD>skip_when_final_keep</TD><TD>boolean; OR-branch short-circuit</TD></TR>
         <TR><TD>unsupported_reason</TD><TD>nullable</TD></TR>
       </TABLE>
     >];
@@ -124,8 +125,9 @@ digraph IndependentScraperDatabase {
         <TR><TD>input_schema_id + input_json</TD><TD></TD></TR>
         <TR><TD>task_class</TD><TD>listing | detail | profile | site</TD></TR>
         <TR><TD>reserved_collection_units</TD><TD>session_batch allowance; nullable</TD></TR>
-        <TR><TD>status</TD><TD>queued | leased | retry_wait | succeeded | failed | cancelled</TD></TR>
+        <TR><TD>status</TD><TD>queued | leased | waiting | succeeded | failed | cancelled</TD></TR>
         <TR><TD>available_at</TD><TD></TD></TR>
+        <TR><TD>waiting_reason</TD><TD>retry_backoff | resource_pacing; nullable</TD></TR>
         <TR><TD>lease_owner + token + until</TD><TD>nullable</TD></TR>
         <TR><TD>result_kind + outcome</TD><TD>nullable</TD></TR>
       </TABLE>
@@ -138,8 +140,9 @@ digraph IndependentScraperDatabase {
         <TR><TD PORT="invocation_id"><B>invocation_id</B></TD><TD>FK parser_invocations</TD></TR>
         <TR><TD>attempt_number</TD><TD>UQ(invocation_id, attempt_number)</TD></TR>
         <TR><TD>started_at + finished_at</TD><TD></TD></TR>
-        <TR><TD>outcome + failure_kind</TD><TD></TD></TR>
-        <TR><TD>retryable</TD><TD>boolean</TD></TR>
+        <TR><TD>outcome + failure_kind</TD><TD>worker_lost marks expired active work</TD></TR>
+        <TR><TD>retry_decision</TD><TD>scheduled | exhausted | terminal; nullable</TD></TR>
+        <TR><TD>retry_delay_ms</TD><TD>request backoff only</TD></TR>
         <TR><TD>network_action_count + network_elapsed_ms</TD><TD>aggregate only</TD></TR>
         <TR><TD>last_status_code + last_error_class</TD><TD>nullable</TD></TR>
       </TABLE>
@@ -368,6 +371,7 @@ digraph IndependentScraperDatabase {
         <TR><TD>materialized_facts_json</TD><TD>single selector read</TD></TR>
         <TR><TD>fingerprint</TD><TD>UQ(execution_id, listing_id, fingerprint)</TD></TR>
         <TR><TD>created_at</TD><TD></TD></TR>
+        <TR><TD COLSPAN="2">IDX(execution_id, listing_id, created_at DESC)</TD></TR>
       </TABLE>
     >];
 
@@ -437,10 +441,6 @@ digraph IndependentScraperDatabase {
       </TABLE>
     >];
 
-    network_telemetry_jsonl [
-      shape=folder,
-      label="Buffered network telemetry JSONL\nappend-only, batch flushed\noutside graph result transaction"
-    ];
   }
 
   subgraph cluster_deployment_limiter {
@@ -452,9 +452,10 @@ digraph IndependentScraperDatabase {
       <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#4d7c0f">
         <TR><TD BGCOLOR="#ecfccb" COLSPAN="2"><B>resource_state</B></TD></TR>
         <TR><TD PORT="resource_key"><B>resource_key</B></TD><TD>PK</TD></TR>
-        <TR><TD>policy_version</TD><TD></TD></TR>
+        <TR><TD>max_concurrency</TD><TD>positive integer</TD></TR>
+        <TR><TD>min_interval_seconds</TD><TD>start pacing</TD></TR>
+        <TR><TD>lease_seconds</TD><TD>crash-expiry duration</TD></TR>
         <TR><TD>next_start_at</TD><TD>deployment pacing</TD></TR>
-        <TR><TD>breaker_state + breaker_until</TD><TD></TD></TR>
         <TR><TD>updated_at</TD><TD></TD></TR>
       </TABLE>
     >];
@@ -545,6 +546,5 @@ digraph IndependentScraperDatabase {
   final_vacancies:duplicate_group_id:e -> vacancy_duplicate_groups:duplicate_group_id:w [style=dashed];
 
   artifact_index:parser_attempt_id:e -> parser_attempts:parser_attempt_id:w;
-  parser_attempts -> network_telemetry_jsonl [style=dotted, arrowhead=none, label="operation id correlation; buffered outside DB"];
   deployment_resource_slots:resource_key:e -> deployment_resource_state:resource_key:w [label="fixed slots"];
 }

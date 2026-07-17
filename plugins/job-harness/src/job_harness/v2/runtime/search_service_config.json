@@ -1,27 +1,30 @@
 {
-  "source_attempt_timeout_seconds": 180.0,
-  "run_timeout_seconds": 360.0,
+  "source_attempt_timeout_seconds": 20.0,
+  "run_timeout_seconds": 180.0,
   "fetch_timeout_seconds": 15.0,
-  "retry": {
-    "max_attempts": 1,
-    "backoff_seconds": 0.0
+  "request_retry": {
+    "max_attempts": 3,
+    "base_delay_seconds": 1.0,
+    "max_delay_seconds": 8.0,
+    "request_budget_seconds": 55.0
   },
-  "detail": {
-    "per_source_concurrency": 2,
-    "per_source_concurrency_by_source": {
-      "hirify": 4,
-      "talento": 4
+  "resources": {
+    "default_max_concurrency": 2,
+    "max_concurrency_by_resource": {
+      "api.hirify.me": 4,
+      "talento.works": 4
     },
-    "default_request_delay_seconds": 0.75,
-    "request_delay_seconds_by_source": {
-      "hh_ru": 1.5,
-      "habr_career": 0.1,
-      "hirify": 0.1,
-      "talanto": 0.1,
-      "talento": 0.1
+    "default_min_interval_seconds": 0.75,
+    "min_interval_seconds_by_resource": {
+      "hh.ru": 1.5,
+      "career.habr.com": 0.1,
+      "api.hirify.me": 0.1,
+      "talanto.work": 0.1,
+      "talento.works": 0.1
     },
-    "stop_on_blocked": true,
-    "stop_on_rate_limited": true
+    "resource_key_by_host_suffix": {
+      "hh.ru": "hh.ru"
+    }
   },
   "application_channels": {
     "enabled": true,

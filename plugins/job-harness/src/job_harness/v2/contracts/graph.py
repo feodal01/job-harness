@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -34,6 +35,8 @@ class ParserInvocationSpec:
     task_key: str
     available_at: float
     reserved_collection_units: int | None
+    resource_key: str | None = None
+    resource_key_resolved: bool = True
 
     def __post_init__(self) -> None:
         for value, name in (
@@ -47,6 +50,10 @@ class ParserInvocationSpec:
             raise ValueError("available_at must be >= 0")
         if self.reserved_collection_units is not None and self.reserved_collection_units < 1:
             raise ValueError("reserved_collection_units must be >= 1")
+        if self.resource_key is not None and not self.resource_key.strip():
+            raise ValueError("resource_key must be non-empty when provided")
+        if not self.resource_key_resolved and self.resource_key is not None:
+            raise ValueError("unresolved invocation cannot declare resource_key")
         expected_task_class = {
             ParserType.SEARCH_LISTING: TaskClass.LISTING,
             ParserType.VACANCY_DETAIL: TaskClass.DETAIL,
@@ -79,6 +86,27 @@ class ExecutionCoordinatorLease:
 
 
 @dataclass(frozen=True)
+class ExecutionArtifact:
+    name: str
+    path: str
+    schema_version: int
+    sha256: str
+    byte_count: int
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("artifact name must be non-empty")
+        if not self.path.strip():
+            raise ValueError("artifact path must be non-empty")
+        if self.schema_version < 1:
+            raise ValueError("artifact schema_version must be >= 1")
+        if re.fullmatch(r"[0-9a-f]{64}", self.sha256) is None:
+            raise ValueError("artifact sha256 must be a lowercase SHA-256 digest")
+        if self.byte_count < 0:
+            raise ValueError("artifact byte_count must be >= 0")
+
+
+@dataclass(frozen=True)
 class StoredDomainEvent:
     event_id: str
     execution_id: str
@@ -87,3 +115,6 @@ class StoredDomainEvent:
     schema_version: int
     payload: JsonObject
     occurred_at: float
+    processing_advance: int = 0
+    processing_complete: bool = True
+    affected_listing_ids: tuple[str, ...] = ()

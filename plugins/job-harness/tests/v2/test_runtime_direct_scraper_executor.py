@@ -15,8 +15,20 @@ from job_harness.v2.contracts import (
     SearchResultOutcome,
     TransportKind,
 )
-from job_harness.v2.ports import HttpAction, HttpResponse, OperationContext, ParserRuntime
+from job_harness.v2.ports import (
+    HttpAction,
+    HttpResponse,
+    OperationContext,
+    ParserAttemptMetrics,
+    ParserRuntime,
+    RetrySafety,
+)
 from job_harness.v2.runtime.executors import DirectScraperExecutor
+from job_harness.v2.runtime.request_retry import (
+    RequestAttemptError,
+    RequestFailureKind,
+    RequestRetryPolicy,
+)
 
 
 def _manifest() -> ParserManifest:
@@ -63,6 +75,10 @@ class _Runtime(ParserRuntime):
     def reserved_collection_units(self) -> int:
         return self._reserved_collection_units
 
+    @property
+    def attempt_metrics(self) -> ParserAttemptMetrics:
+        return ParserAttemptMetrics()
+
     async def http(self, _action: HttpAction) -> HttpResponse:
         raise AssertionError("network is not used by this fake bundle")
 
@@ -94,7 +110,107 @@ class _SearchBundle:
         return self.result
 
 
+class _FlakySearchBundle(_SearchBundle):
+    def __init__(self, result: object) -> None:
+        super().__init__(result)
+        self.failures_remaining = 2
+
+    async def execute(self, parser_input: SearchListingInput, runtime: ParserRuntime) -> object:
+        self.inputs.append(parser_input)
+        self.runtime = runtime
+        if self.failures_remaining:
+            self.failures_remaining -= 1
+            raise RequestAttemptError(
+                failure_kind=RequestFailureKind.NETWORK,
+                retry_safety=RetrySafety.SAFE,
+                message="connection reset",
+            )
+        return self.result
+
+
+class _BareTimeoutSearchBundle(_SearchBundle):
+    def __init__(self, result: object) -> None:
+        super().__init__(result)
+        self.failures_remaining = 2
+
+    async def execute(self, parser_input: SearchListingInput, runtime: ParserRuntime) -> object:
+        self.inputs.append(parser_input)
+        self.runtime = runtime
+        if self.failures_remaining:
+            self.failures_remaining -= 1
+            raise TimeoutError("parser timed out")
+        return self.result
+
+
 class DirectScraperExecutorTest(unittest.IsolatedAsyncioTestCase):
+    async def test_bare_parser_timeout_uses_the_shared_page_retry_policy(self) -> None:
+        bundle = _BareTimeoutSearchBundle(
+            SearchListingResult(
+                outcome=SearchResultOutcome.NO_RESULTS,
+                items=(),
+                continuations=(),
+                collection_units_consumed=1,
+            )
+        )
+        delays: list[float] = []
+
+        async def record_sleep(delay: float) -> None:
+            delays.append(delay)
+
+        executor = DirectScraperExecutor(
+            registry=ParserRegistry((bundle,)),
+            runtime_factory=_RuntimeFactory(),
+            request_retry_policy=RequestRetryPolicy(
+                max_attempts=3,
+                attempt_timeout_seconds=15.0,
+                base_delay_seconds=1.0,
+                max_delay_seconds=8.0,
+                request_budget_seconds=55.0,
+                random_fraction=lambda: 1.0,
+            ),
+            sleep=record_sleep,
+        )
+
+        execution = await executor.execute(bundle.manifest.ref, _input())
+
+        self.assertIsNotNone(execution.result)
+        self.assertEqual(len(bundle.inputs), 3)
+        self.assertEqual(delays, [1.0, 2.0])
+
+    async def test_retries_only_the_current_direct_page_with_the_shared_policy(self) -> None:
+        bundle = _FlakySearchBundle(
+            SearchListingResult(
+                outcome=SearchResultOutcome.NO_RESULTS,
+                items=(),
+                continuations=(),
+                collection_units_consumed=1,
+            )
+        )
+        delays: list[float] = []
+
+        async def record_sleep(delay: float) -> None:
+            delays.append(delay)
+
+        executor = DirectScraperExecutor(
+            registry=ParserRegistry((bundle,)),
+            runtime_factory=_RuntimeFactory(),
+            request_retry_policy=RequestRetryPolicy(
+                max_attempts=3,
+                attempt_timeout_seconds=15.0,
+                base_delay_seconds=1.0,
+                max_delay_seconds=8.0,
+                request_budget_seconds=55.0,
+                random_fraction=lambda: 1.0,
+            ),
+            sleep=record_sleep,
+        )
+
+        execution = await executor.execute(bundle.manifest.ref, _input())
+
+        self.assertIsNotNone(execution.result)
+        self.assertEqual(len(bundle.inputs), 3)
+        self.assertEqual(delays, [1.0, 2.0])
+
     async def test_executes_bundle_without_managed_persistence_context(self) -> None:
         bundle = _SearchBundle(
             SearchListingResult(
@@ -159,7 +275,7 @@ class DirectScraperExecutorTest(unittest.IsolatedAsyncioTestCase):
         failure = execution.failure
         if failure is None:
             self.fail("expected invalid-output failure")
-        self.assertEqual(failure.kind, ParserFailureKind.INVALID_OUTPUT)
+        self.assertEqual(failure.kind, ParserFailureKind.INVALID_SOURCE_OUTPUT)
 
     async def test_stateless_bundle_cannot_report_multiple_consumed_units(self) -> None:
         result = SearchListingResult(
@@ -180,7 +296,7 @@ class DirectScraperExecutorTest(unittest.IsolatedAsyncioTestCase):
         failure = execution.failure
         if failure is None:
             self.fail("expected invalid-output failure")
-        self.assertEqual(failure.kind, ParserFailureKind.INVALID_OUTPUT)
+        self.assertEqual(failure.kind, ParserFailureKind.INVALID_SOURCE_OUTPUT)
 
 
 if __name__ == "__main__":

@@ -6,9 +6,12 @@ from datetime import date
 from typing import Any, cast
 
 from job_harness.v2.contracts import (
+    CompensationCriterion,
+    CompensationPeriod,
     Grade,
     SearchCriterion,
     SearchRequest,
+    SearchScenario,
     SourceType,
     TextExclusion,
     TextExclusionMode,
@@ -40,6 +43,73 @@ class TextExclusionTest(unittest.TestCase):
 
 
 class SearchRequestTest(unittest.TestCase):
+    def test_normalizes_dimensioned_compensation(self) -> None:
+        request = SearchRequest(
+            query_variants=("QA",),
+            compensation=CompensationCriterion(
+                minimum=200_000,
+                currency="rur",
+                period=CompensationPeriod.MONTH,
+                gross=False,
+            ),
+        )
+
+        assert request.compensation is not None
+        self.assertEqual(200_000, request.compensation.minimum)
+        self.assertEqual("RUB", request.compensation.currency)
+        self.assertEqual(CompensationPeriod.MONTH, request.compensation.period)
+        self.assertIn(SearchCriterion.COMPENSATION, request.requested_criteria)
+
+    def test_rejects_invalid_compensation_values(self) -> None:
+        with self.assertRaisesRegex(ValueError, "minimum"):
+            CompensationCriterion(0, "RUB", CompensationPeriod.MONTH)
+        with self.assertRaisesRegex(ValueError, "currency"):
+            CompensationCriterion(100_000, "rubles", CompensationPeriod.MONTH)
+
+    def test_rejects_removed_salary_from_request_field(self) -> None:
+        with self.assertRaises(TypeError):
+            cast(Any, SearchRequest)(query_variants=("QA",), salary_from=100_000)
+
+    def test_normalizes_or_scenarios_as_public_search_contract(self) -> None:
+        request = SearchRequest(
+            query_variants=("AI quality",),
+            scenarios=(
+                SearchScenario(
+                    work_formats=(WorkFormat.REMOTE,),
+                    remote_scopes=("global",),
+                    employer_geographies=("country:ru",),
+                ),
+                SearchScenario(
+                    relocation=True,
+                    work_formats=(WorkFormat.REMOTE, WorkFormat.HYBRID),
+                ),
+            ),
+        )
+
+        self.assertEqual(("country:RU",), request.scenarios[0].employer_geographies)
+        self.assertEqual(
+            {
+                SearchCriterion.QUERY,
+                SearchCriterion.RELOCATION,
+                SearchCriterion.WORK_FORMATS,
+                SearchCriterion.REMOTE_SCOPES,
+                SearchCriterion.EMPLOYER_GEOGRAPHIES,
+            },
+            request.requested_criteria,
+        )
+
+    def test_rejects_mixing_flat_location_filters_with_or_scenarios(self) -> None:
+        with self.assertRaisesRegex(ValueError, "scenarios"):
+            SearchRequest(
+                query_variants=("AI quality",),
+                relocation=True,
+                scenarios=(SearchScenario(work_formats=(WorkFormat.REMOTE,)),),
+            )
+
+    def test_rejects_empty_scenario(self) -> None:
+        with self.assertRaisesRegex(ValueError, "scenario"):
+            SearchScenario()
+
     def test_requires_query_variants(self) -> None:
         # Arrange / Act / Assert
         with self.assertRaisesRegex(ValueError, "query_variants"):
@@ -50,7 +120,7 @@ class SearchRequestTest(unittest.TestCase):
         request = SearchRequest(
             query_variants=(" QA ", "qa", "тестировщик"),
             grades=(Grade.MIDDLE, Grade.MIDDLE),
-            salary_from=200000,
+            compensation=CompensationCriterion(200_000, "RUB", CompensationPeriod.MONTH),
             published_since=date(2026, 6, 1),
             exclude_companies=(" Acme ", "acme", "Beta"),
             exclude_text=(TextExclusion(pattern="selenium"),),
@@ -110,43 +180,45 @@ class SearchRequestTest(unittest.TestCase):
                     vacancy_geographies=(value,),
                 )
 
-    def test_rejects_unknown_as_only_workplace_filter_value(self) -> None:
+    def test_rejects_unknown_as_public_filter_value(self) -> None:
         cases: tuple[tuple[str, Callable[[], SearchRequest]], ...] = (
             (
                 "work_formats",
-                lambda: SearchRequest(query_variants=("QA",), work_formats=(WorkFormat.UNKNOWN,)),
+                lambda: SearchRequest(
+                    query_variants=("QA",),
+                    work_formats=(WorkFormat.REMOTE, WorkFormat.UNKNOWN),
+                ),
             ),
             (
                 "remote_scopes",
                 lambda: SearchRequest(
                     query_variants=("QA",),
                     work_formats=(WorkFormat.REMOTE,),
-                    remote_scopes=("unknown",),
+                    remote_scopes=("global", "unknown"),
                 ),
             ),
             (
                 "vacancy_geographies",
-                lambda: SearchRequest(query_variants=("QA",), vacancy_geographies=("unknown",)),
+                lambda: SearchRequest(
+                    query_variants=("QA",),
+                    vacancy_geographies=("country:RU", "unknown"),
+                ),
+            ),
+            (
+                "employer_geographies",
+                lambda: SearchRequest(
+                    query_variants=("QA",),
+                    employer_geographies=("country:RU", "unknown"),
+                ),
             ),
         )
         for field_name, build_request in cases:
             # Arrange / Act / Assert
-            with self.subTest(field_name=field_name), self.assertRaisesRegex(ValueError, "only unknown"):
+            with self.subTest(field_name=field_name), self.assertRaisesRegex(
+                ValueError,
+                "must not contain unknown",
+            ):
                 build_request()
-
-    def test_allows_unknown_alongside_concrete_workplace_filter_values(self) -> None:
-        # Arrange / Act
-        request = SearchRequest(
-            query_variants=("QA",),
-            work_formats=(WorkFormat.REMOTE, WorkFormat.UNKNOWN),
-            remote_scopes=("global", "unknown"),
-            vacancy_geographies=("country:RU", "unknown"),
-        )
-
-        # Assert
-        self.assertEqual((WorkFormat.REMOTE, WorkFormat.UNKNOWN), request.work_formats)
-        self.assertEqual(("global", "unknown"), request.remote_scopes)
-        self.assertEqual(("country:RU", "unknown"), request.vacancy_geographies)
 
     def test_rejects_old_request_fields(self) -> None:
         for field_name, value in (
@@ -169,7 +241,7 @@ class SearchRequestTest(unittest.TestCase):
         request = SearchRequest(
             query_variants=("QA",),
             grades=(Grade.SENIOR,),
-            salary_from=100000,
+            compensation=CompensationCriterion(100_000, "RUB", CompensationPeriod.MONTH),
             published_since=date(2026, 6, 1),
             relocation=True,
             work_formats=(WorkFormat.REMOTE, WorkFormat.HYBRID),
@@ -185,7 +257,7 @@ class SearchRequestTest(unittest.TestCase):
             {
                 SearchCriterion.QUERY,
                 SearchCriterion.GRADES,
-                SearchCriterion.SALARY_FROM,
+                SearchCriterion.COMPENSATION,
                 SearchCriterion.PUBLISHED_SINCE,
                 SearchCriterion.RELOCATION,
                 SearchCriterion.WORK_FORMATS,
@@ -195,10 +267,10 @@ class SearchRequestTest(unittest.TestCase):
             criteria,
         )
 
-    def test_rejects_invalid_numeric_fields(self) -> None:
+    def test_rejects_invalid_compensation_minimum(self) -> None:
         # Arrange / Act / Assert
-        with self.assertRaisesRegex(ValueError, "salary_from"):
-            SearchRequest(query_variants=("QA",), salary_from=0)
+        with self.assertRaisesRegex(ValueError, "minimum"):
+            CompensationCriterion(0, "RUB", CompensationPeriod.MONTH)
 
 
 if __name__ == "__main__":

@@ -7,10 +7,20 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 
-from job_harness.v2.contracts import SearchRequest, TextExclusion, TextExclusionMode
-from job_harness.v2.matching import FuzzyBounds, fuzzy_tokens_match
+from job_harness.v2.contracts import (
+    CompensationCriterion,
+    CompensationFact,
+    CriterionEvaluation,
+    CriterionState,
+    SearchRequest,
+    SelectionOutcome,
+    TextExclusion,
+    TextExclusionMode,
+)
+from job_harness.v2.matching import RoleMatcher
 from job_harness.v2.postprocessing.filter_ast import (
     EMPTY_FILTER,
+    FilterEvaluation,
     FilterExpression,
     FilterFacts,
     evaluate_filter_ast,
@@ -19,7 +29,6 @@ from job_harness.v2.postprocessing.filter_ast import (
 )
 
 DEFAULT_EXCLUSION_FIELDS = ("title", "description", "requirements", "additional_sections", "skills", "raw_text")
-QUERY_FUZZY_BOUNDS = FuzzyBounds(token_score=0.78, short_token_score=0.78)
 
 
 @dataclass(frozen=True)
@@ -28,12 +37,13 @@ class VacancyFilterCriteria:
     exclude_companies: tuple[str, ...] = ()
     exclude_text: tuple[TextExclusion, ...] = ()
     grades: tuple[str, ...] = ()
-    salary_from: int | None = None
+    compensation: CompensationCriterion | None = None
     published_since: date | None = None
     relocation: bool | None = None
     work_formats: tuple[str, ...] = ()
     remote_scopes: tuple[str, ...] = ()
     vacancy_geographies: tuple[str, ...] = ()
+    employer_geographies: tuple[str, ...] = ()
     filter_ast: FilterExpression | None = None
 
     def __post_init__(self) -> None:
@@ -45,6 +55,8 @@ class VacancyFilterCriteria:
                     work_formats=self.work_formats,
                     remote_scopes=self.remote_scopes,
                     vacancy_geographies=self.vacancy_geographies,
+                    employer_geographies=self.employer_geographies,
+                    relocation=self.relocation,
                 ),
             )
 
@@ -55,12 +67,13 @@ class VacancyFilterCriteria:
             exclude_companies=request.exclude_companies,
             exclude_text=request.exclude_text,
             grades=tuple(grade.value for grade in request.grades),
-            salary_from=request.salary_from,
+            compensation=request.compensation,
             published_since=request.published_since,
             relocation=request.relocation,
             work_formats=tuple(item.value for item in request.work_formats),
             remote_scopes=request.remote_scopes,
             vacancy_geographies=request.vacancy_geographies,
+            employer_geographies=request.employer_geographies,
             filter_ast=filter_ast_from_search_request(request),
         )
 
@@ -74,28 +87,37 @@ class VacancyFilterFacts:
     additional_sections: Mapping[str, str] | None = None
     skills: tuple[str, ...] = ()
     raw_text: str | None = None
-    native_grade: str | None = None
-    salary_min: int | None = None
-    salary_max: int | None = None
+    grades: tuple[str, ...] = ()
+    compensation: CompensationFact | None = None
     posted_at: str | None = None
     work_formats: tuple[str, ...] = ()
     countries: tuple[str, ...] = ()
-    remote_scopes: tuple[str, ...] = ("unknown",)
-    vacancy_geographies: tuple[str, ...] = ("unknown",)
+    remote_scopes: tuple[str, ...] = ()
+    vacancy_geographies: tuple[str, ...] = ()
+    employer_geographies: tuple[str, ...] = ()
     relocation: bool | None = None
     city: str | None = None
 
     def __post_init__(self) -> None:
-        if self.vacancy_geographies == ("unknown",):
+        if not self.vacancy_geographies:
             object.__setattr__(self, "vacancy_geographies", _vacancy_geographies(self.countries, self.city))
 
 
 @dataclass(frozen=True)
 class VacancyFilterDecision:
-    keep: bool
+    outcome: SelectionOutcome
     title_matches: bool
     include_in_filtered_out: bool
     reasons: tuple[str, ...]
+    criteria: tuple[CriterionEvaluation, ...]
+
+    @property
+    def keep(self) -> bool:
+        return self.outcome == SelectionOutcome.KEEP
+
+    @property
+    def can_enrich(self) -> bool:
+        return self.outcome != SelectionOutcome.REJECT
 
 
 def decide_vacancy_filter(
@@ -105,21 +127,34 @@ def decide_vacancy_filter(
 ) -> VacancyFilterDecision:
     """Return the keep/remove decision for one normalized vacancy."""
 
-    reasons: list[str] = []
-    title_matches = _title_matches_any_query(criteria.queries, vacancy.title)
-
-    if not title_matches:
-        reasons.append("query_mismatch")
-    if criteria.exclude_companies and _company_excluded(vacancy.company, criteria.exclude_companies):
-        reasons.append("excluded_company")
-    if criteria.exclude_text and _text_excluded(vacancy, criteria.exclude_text):
-        reasons.append("excluded_text")
-    if criteria.grades and vacancy.native_grade and vacancy.native_grade not in criteria.grades:
-        reasons.append("grade_mismatch")
-    if criteria.salary_from is not None and not _salary_matches(vacancy, criteria.salary_from):
-        reasons.append("salary_below_requested_minimum")
-    if criteria.published_since is not None and not _published_since(vacancy.posted_at, criteria.published_since):
-        reasons.append("published_before_requested_date")
+    role_match = RoleMatcher(criteria.queries).match(vacancy.title)
+    title_matches = not criteria.queries or role_match.matched
+    evaluations: tuple[CriterionEvaluation, ...] = (
+        CriterionEvaluation(
+            "query",
+            CriterionState.MATCH if title_matches else CriterionState.MISMATCH,
+            None if title_matches else "query_mismatch",
+        ),
+        _exclusion_evaluation(
+            criterion="exclude_companies",
+            excluded=bool(
+                criteria.exclude_companies
+                and _company_excluded(vacancy.company, criteria.exclude_companies)
+            ),
+            reason="excluded_company",
+        ),
+        _exclusion_evaluation(
+            criterion="exclude_text",
+            excluded=bool(
+                criteria.exclude_text
+                and _text_excluded(vacancy, criteria.exclude_text)
+            ),
+            reason="excluded_text",
+        ),
+        _grade_evaluation(criteria.grades, vacancy.grades),
+        _compensation_evaluation(criteria.compensation, vacancy.compensation),
+        _published_since_evaluation(criteria.published_since, vacancy.posted_at),
+    )
 
     filter_ast = criteria.filter_ast if criteria.filter_ast is not None else EMPTY_FILTER
     ast_evaluation = evaluate_filter_ast(
@@ -128,35 +163,159 @@ def decide_vacancy_filter(
             work_formats=vacancy.work_formats,
             remote_scopes=vacancy.remote_scopes,
             vacancy_geographies=vacancy.vacancy_geographies,
+            employer_geographies=vacancy.employer_geographies,
+            relocation=vacancy.relocation,
         ),
     )
-    reasons.extend(ast_evaluation.reasons)
-
-    if criteria.relocation is not None and vacancy.relocation is not None and vacancy.relocation != criteria.relocation:
-        reasons.append("relocation_mismatch")
-
-    unique_reasons = tuple(dict.fromkeys(reasons))
+    evaluations += _ast_criterion_evaluations(ast_evaluation)
+    outcome = _selection_outcome(evaluations)
+    reasons = tuple(
+        dict.fromkeys(
+            evaluation.reason
+            for evaluation in evaluations
+            if evaluation.reason is not None
+        )
+    )
     return VacancyFilterDecision(
-        keep=not unique_reasons,
+        outcome=outcome,
         title_matches=title_matches,
-        include_in_filtered_out=bool(unique_reasons) and title_matches,
-        reasons=unique_reasons,
+        include_in_filtered_out=(
+            title_matches and outcome != SelectionOutcome.KEEP
+        ),
+        reasons=reasons,
+        criteria=evaluations,
     )
 
 
-def _title_matches_any_query(queries: tuple[str, ...], title: str) -> bool:
-    cleaned = tuple(query.strip() for query in queries if query.strip())
-    return not cleaned or any(_query_text_matches(tokens=_query_tokens(query), haystack=title) for query in cleaned)
+def _grade_evaluation(
+    requested: tuple[str, ...],
+    actual: tuple[str, ...],
+) -> CriterionEvaluation:
+    if not requested:
+        return CriterionEvaluation("grades", CriterionState.MATCH)
+    if not actual:
+        return CriterionEvaluation(
+            "grades",
+            CriterionState.UNKNOWN,
+            "insufficient_evidence:grades",
+        )
+    if set(requested) & set(actual):
+        return CriterionEvaluation("grades", CriterionState.MATCH)
+    return CriterionEvaluation("grades", CriterionState.MISMATCH, "grade_mismatch")
 
 
-def _query_text_matches(*, tokens: tuple[str, ...], haystack: str) -> bool:
-    if not tokens:
-        return True
-    return fuzzy_tokens_match(" ".join(tokens), haystack, bounds=QUERY_FUZZY_BOUNDS)
+def _compensation_evaluation(
+    requested: CompensationCriterion | None,
+    actual: CompensationFact | None,
+) -> CriterionEvaluation:
+    if requested is None:
+        return CriterionEvaluation("compensation", CriterionState.MATCH)
+    if (
+        actual is None
+        or actual.minimum is None
+        or actual.currency is None
+        or actual.period is None
+        or actual.currency != requested.currency
+        or actual.period != requested.period
+        or (requested.gross is not None and actual.gross is None)
+    ):
+        return CriterionEvaluation(
+            "compensation",
+            CriterionState.UNKNOWN,
+            "insufficient_evidence:compensation",
+        )
+    if requested.gross is not None and actual.gross != requested.gross:
+        return CriterionEvaluation(
+            "compensation",
+            CriterionState.MISMATCH,
+            "compensation_gross_mismatch",
+        )
+    if actual.minimum >= requested.minimum:
+        return CriterionEvaluation("compensation", CriterionState.MATCH)
+    return CriterionEvaluation(
+        "compensation",
+        CriterionState.MISMATCH,
+        "compensation_below_requested_minimum",
+    )
 
 
-def _query_tokens(query: str) -> tuple[str, ...]:
-    return tuple(token.casefold() for token in re.findall(r"[\w+#.-]+", query) if token.strip())
+def _published_since_evaluation(
+    requested: date | None,
+    posted_at: str | None,
+) -> CriterionEvaluation:
+    if requested is None:
+        return CriterionEvaluation("published_since", CriterionState.MATCH)
+    if not posted_at:
+        return CriterionEvaluation(
+            "published_since",
+            CriterionState.UNKNOWN,
+            "insufficient_evidence:published_since",
+        )
+    try:
+        actual = date.fromisoformat(posted_at[:10])
+    except ValueError:
+        return CriterionEvaluation(
+            "published_since",
+            CriterionState.UNKNOWN,
+            "insufficient_evidence:published_since",
+        )
+    if actual >= requested:
+        return CriterionEvaluation("published_since", CriterionState.MATCH)
+    return CriterionEvaluation(
+        "published_since",
+        CriterionState.MISMATCH,
+        "published_before_requested_date",
+    )
+
+
+def _exclusion_evaluation(
+    *,
+    criterion: str,
+    excluded: bool,
+    reason: str,
+) -> CriterionEvaluation:
+    return CriterionEvaluation(
+        criterion,
+        CriterionState.MISMATCH if excluded else CriterionState.MATCH,
+        reason if excluded else None,
+    )
+
+
+def _ast_criterion_evaluations(
+    evaluation: FilterEvaluation,
+) -> tuple[CriterionEvaluation, ...]:
+    if evaluation.state == CriterionState.MATCH:
+        return ()
+    return tuple(
+        CriterionEvaluation(
+            _criterion_for_reason(reason),
+            evaluation.state,
+            reason,
+        )
+        for reason in evaluation.reasons
+    )
+
+
+def _criterion_for_reason(reason: str) -> str:
+    if reason.startswith("insufficient_evidence:"):
+        return reason.removeprefix("insufficient_evidence:")
+    return {
+        "work_format_mismatch": "work_formats",
+        "remote_scope_mismatch": "remote_scopes",
+        "vacancy_geography_mismatch": "vacancy_geographies",
+        "employer_geography_mismatch": "employer_geographies",
+        "relocation_mismatch": "relocation",
+    }[reason]
+
+
+def _selection_outcome(
+    criteria: tuple[CriterionEvaluation, ...],
+) -> SelectionOutcome:
+    if any(item.state == CriterionState.MISMATCH for item in criteria):
+        return SelectionOutcome.REJECT
+    if any(item.state == CriterionState.UNKNOWN for item in criteria):
+        return SelectionOutcome.NEEDS_EVIDENCE
+    return SelectionOutcome.KEEP
 
 
 def _vacancy_geographies(countries: tuple[str, ...], city: str | None) -> tuple[str, ...]:
@@ -169,7 +328,7 @@ def _vacancy_geographies(countries: tuple[str, ...], city: str | None) -> tuple[
         scope = f"city:{city}"
         if scope not in geographies:
             geographies.append(scope)
-    return tuple(geographies) or ("unknown",)
+    return tuple(geographies)
 
 
 def _company_excluded(company: str | None, excluded_companies: tuple[str, ...]) -> bool:
@@ -205,17 +364,3 @@ def _pattern_matches(text: str, exclusion: TextExclusion) -> bool:
         return re.search(exclusion.pattern, text, flags=flags) is not None
     except re.error as exc:
         raise ValueError(f"invalid exclude_text regex: {exclusion.pattern}") from exc
-
-
-def _salary_matches(vacancy: VacancyFilterFacts, salary_from: int) -> bool:
-    known_values = tuple(value for value in (vacancy.salary_min, vacancy.salary_max) if value is not None)
-    return not known_values or max(known_values) >= salary_from
-
-
-def _published_since(posted_at: str | None, published_since: date) -> bool:
-    if not posted_at:
-        return True
-    try:
-        return date.fromisoformat(posted_at[:10]) >= published_since
-    except ValueError:
-        return True

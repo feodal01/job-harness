@@ -108,7 +108,7 @@ class HhRuSource(DetailEnrichmentScraper):
             SourceFetchRequest(
                 source_id=self.descriptor.source_id,
                 query_variant=query_variant,
-                url=f"{_BASE_URL}?{urlencode(_search_params(query_variant, request))}",
+                url=f"{_BASE_URL}?{urlencode(_search_params(query_variant))}",
             )
             for query_variant in request.query_variants
         )
@@ -158,21 +158,19 @@ class HhRuSource(DetailEnrichmentScraper):
             requirements=listing.requirements or _requirements(additional_sections),
             additional_sections=additional_sections,
             skills=_merge_text_tuple(listing.skills, structured.skills),
+            country=structured.country or listing.country,
+            location_text=structured.location_text or listing.location_text,
             raw_text=_join_text(listing.raw_text, description, structured.raw_text),
             raw={**listing.raw, **structured.raw},
         )
 
 
-def _search_params(query_variant: str, request: SearchRequest) -> dict[str, str]:
-    params = {
+def _search_params(query_variant: str) -> dict[str, str]:
+    return {
         "text": query_variant,
         "area": _DEFAULT_RUSSIA_AREA_ID,
         "search_field": "name",
     }
-    if request.salary_from is not None:
-        params["salary"] = str(request.salary_from)
-        params["only_with_salary"] = "true"
-    return params
 
 
 def _extract_search_result(body: str) -> dict[str, Any]:
@@ -199,6 +197,23 @@ def _extract_initial_state(body: str) -> dict[str, Any]:
     return cast(dict[str, Any], value)
 
 
+def hh_employer_profile_locations(body: str) -> tuple[str, ...]:
+    """Return structured employer locations from the HH server-rendered state."""
+
+    try:
+        state = _extract_initial_state(body)
+    except ValueError:
+        return ()
+    employer = state.get("employerInfo")
+    if not isinstance(employer, dict):
+        return ()
+    values = (
+        _text(employer.get("address")),
+        _text(employer.get("employerCountryCode")),
+    )
+    return tuple(dict.fromkeys(value for value in values if value))
+
+
 def _vacancies(search_result: dict[str, Any]) -> tuple[dict[str, Any], ...]:
     value = search_result.get("vacancies")
     if not isinstance(value, list):
@@ -218,6 +233,10 @@ def _hh_listing(vacancy: dict[str, Any]) -> RawListing:
     location = _location(vacancy)
     compensation = _compensation(vacancy.get("compensation"))
     raw_work_formats = _work_formats(vacancy.get("workFormats"))
+    remote_in_country = (
+        _REMOTE_WORK_FORMAT in raw_work_formats
+        or _text(vacancy.get("@workSchedule")) == "remote"
+    )
     work_experience = _text_or_none(vacancy.get("workExperience"))
     raw: dict[str, object] = {
         "vacancyId": vacancy.get("vacancyId"),
@@ -244,13 +263,22 @@ def _hh_listing(vacancy: dict[str, Any]) -> RawListing:
         country="Россия",
         city=location.city,
         location_text=location.text,
+        location_cities=(location.city,) if location.city else (),
+        location_countries=("RU",),
         salary_text=compensation.text,
         salary_min=compensation.minimum,
         salary_max=compensation.maximum,
         salary_currency=compensation.currency,
+        salary_period=(
+            "month"
+            if compensation.minimum is not None or compensation.maximum is not None
+            else None
+        ),
+        salary_gross=compensation.gross,
         posted_at=_publication_time(vacancy.get("publicationTime")),
-        remote_in_country=_REMOTE_WORK_FORMAT in raw_work_formats or _text(vacancy.get("@workSchedule")) == "remote",
+        remote_in_country=remote_in_country,
         remote_global=None,
+        remote_scope_countries=("RU",) if remote_in_country else (),
         relocation=None,
         native_grade=_native_grade(work_experience),
         description=None,
@@ -291,11 +319,13 @@ class _Compensation:
         minimum: int | None,
         maximum: int | None,
         currency: str | None,
+        gross: bool | None,
         text: str | None,
     ) -> None:
         self.minimum = minimum
         self.maximum = maximum
         self.currency = currency
+        self.gross = gross
         self.text = text
 
 
@@ -315,7 +345,13 @@ def _location(vacancy: dict[str, Any]) -> _Location:
 
 def _compensation(value: object) -> _Compensation:
     if not isinstance(value, dict) or "noCompensation" in value:
-        return _Compensation(minimum=None, maximum=None, currency=None, text=None)
+        return _Compensation(
+            minimum=None,
+            maximum=None,
+            currency=None,
+            gross=None,
+            text=None,
+        )
 
     minimum = _int_or_none(value.get("from"))
     maximum = _int_or_none(value.get("to"))
@@ -325,6 +361,7 @@ def _compensation(value: object) -> _Compensation:
         minimum=minimum,
         maximum=maximum,
         currency=currency,
+        gross=gross,
         text=_salary_text(minimum=minimum, maximum=maximum, currency=currency, gross=gross),
     )
 
@@ -543,10 +580,14 @@ class _DetailStructuredFacts:
         self,
         *,
         skills: tuple[str, ...] = (),
+        country: str | None = None,
+        location_text: str | None = None,
         raw: dict[str, object] | None = None,
         raw_text: str | None = None,
     ) -> None:
         self.skills = skills
+        self.country = country
+        self.location_text = location_text
         self.raw = raw or {}
         self.raw_text = raw_text
 
@@ -576,8 +617,13 @@ def _detail_structured_facts(body: str) -> _DetailStructuredFacts:
             raw[key] = vacancy_view[key]
 
     skills = _key_skills(vacancy_view.get("keySkills"))
+    area = vacancy_view.get("area")
+    country = _text(area.get("@countryIsoCode")) if isinstance(area, dict) else None
+    location_text = _text(area.get("name")) if isinstance(area, dict) else None
     return _DetailStructuredFacts(
         skills=skills,
+        country=country,
+        location_text=location_text,
         raw=raw,
         raw_text=_join_text(
             _EXPERIENCE_TEXT_MAP.get(_text(vacancy_view.get("workExperience"))),

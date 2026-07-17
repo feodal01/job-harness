@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import sqlite3
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
 from job_harness.v2.ports import OperationContext
 from job_harness.v2.runtime.resource_gate import (
+    AcquireDecision,
     ResourceGate,
     ResourcePolicy,
     SqliteResourceGateBackend,
@@ -47,7 +51,7 @@ class SqliteResourceGateBackendTest(unittest.TestCase):
 
         self.assertIsNotNone(acquired.permit)
         self.assertIsNone(blocked.permit)
-        self.assertGreater(blocked.retry_after_seconds, 0)
+        self.assertEqual(blocked.retry_after_seconds, 0.25)
 
     def test_expired_slot_is_recovered_after_owner_crash(self) -> None:
         backend = SqliteResourceGateBackend(self.database_path)
@@ -161,6 +165,169 @@ class SqliteResourceGateBackendTest(unittest.TestCase):
 
 
 class ResourceGateTest(unittest.IsolatedAsyncioTestCase):
+    async def test_repeated_cancellation_cannot_cancel_a_queued_release(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            backend = SqliteResourceGateBackend(Path(directory) / "resource-gate.sqlite")
+            gate = ResourceGate(backend=backend, owner_id="process-1")
+            policy = ResourcePolicy(max_concurrency=1, min_interval_seconds=0.0, lease_seconds=10.0)
+            acquired = gate.try_admit(
+                "hh.ru",
+                policy,
+                OperationContext("active", execution_id="e-1", invocation_id="i-1"),
+            )
+            if acquired.permit is None:
+                self.fail("initial permit was not acquired")
+
+            blocker_started = threading.Event()
+            blocker_proceed = threading.Event()
+            executor = ThreadPoolExecutor(max_workers=1)
+            asyncio.get_running_loop().set_default_executor(executor)
+
+            def occupy_only_worker() -> None:
+                blocker_started.set()
+                blocker_proceed.wait(timeout=2.0)
+
+            occupier = asyncio.create_task(asyncio.to_thread(occupy_only_worker))
+            for _ in range(100):
+                if blocker_started.is_set():
+                    break
+                await asyncio.sleep(0.01)
+            self.assertTrue(blocker_started.is_set())
+            release = asyncio.create_task(gate.release_async(acquired.permit))
+            await asyncio.sleep(0)
+            release.cancel()
+            await asyncio.sleep(0)
+            release.cancel()
+            blocker_proceed.set()
+
+            with self.assertRaises(asyncio.CancelledError):
+                await release
+            await occupier
+
+            replacement = gate.try_admit(
+                "hh.ru",
+                policy,
+                OperationContext("replacement", execution_id="e-1", invocation_id="i-2"),
+            )
+
+            self.assertIsNotNone(replacement.permit)
+            if replacement.permit is not None:
+                gate.release(replacement.permit)
+
+    async def test_repeated_cancellation_cannot_lose_a_late_permit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            backend = SqliteResourceGateBackend(Path(directory) / "resource-gate.sqlite")
+            gate = ResourceGate(backend=backend, owner_id="process-1")
+            policy = ResourcePolicy(max_concurrency=1, min_interval_seconds=0.0, lease_seconds=10.0)
+            started = threading.Event()
+            proceed = threading.Event()
+            finished = threading.Event()
+            original_try_acquire = backend.try_acquire
+
+            def blocking_try_acquire(
+                *,
+                resource_key: str,
+                policy: ResourcePolicy,
+                operation_id: str,
+                owner_id: str,
+                now: float,
+            ) -> AcquireDecision:
+                started.set()
+                proceed.wait(timeout=1.0)
+                try:
+                    return original_try_acquire(
+                        resource_key=resource_key,
+                        policy=policy,
+                        operation_id=operation_id,
+                        owner_id=owner_id,
+                        now=now,
+                    )
+                finally:
+                    finished.set()
+
+            with patch.object(backend, "try_acquire", side_effect=blocking_try_acquire):
+                admission = asyncio.create_task(
+                    gate.admit(
+                        "hh.ru",
+                        policy,
+                        OperationContext("cancelled", execution_id="e-1", invocation_id="i-1"),
+                    )
+                )
+                self.assertTrue(await asyncio.to_thread(started.wait, 1.0))
+                admission.cancel()
+                await asyncio.sleep(0)
+                admission.cancel()
+                proceed.set()
+                with self.assertRaises(asyncio.CancelledError):
+                    await admission
+                self.assertTrue(await asyncio.to_thread(finished.wait, 1.0))
+
+            replacement = gate.try_admit(
+                "hh.ru",
+                policy,
+                OperationContext("replacement", execution_id="e-1", invocation_id="i-2"),
+            )
+
+            self.assertIsNotNone(replacement.permit)
+            if replacement.permit is not None:
+                gate.release(replacement.permit)
+
+    async def test_cancelled_admission_releases_permit_acquired_by_worker_thread(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            backend = SqliteResourceGateBackend(Path(directory) / "resource-gate.sqlite")
+            gate = ResourceGate(backend=backend, owner_id="process-1")
+            policy = ResourcePolicy(max_concurrency=1, min_interval_seconds=0.0, lease_seconds=10.0)
+            started = threading.Event()
+            proceed = threading.Event()
+            finished = threading.Event()
+            original_try_acquire = backend.try_acquire
+
+            def blocking_try_acquire(
+                *,
+                resource_key: str,
+                policy: ResourcePolicy,
+                operation_id: str,
+                owner_id: str,
+                now: float,
+            ) -> AcquireDecision:
+                started.set()
+                proceed.wait(timeout=1.0)
+                try:
+                    return original_try_acquire(
+                        resource_key=resource_key,
+                        policy=policy,
+                        operation_id=operation_id,
+                        owner_id=owner_id,
+                        now=now,
+                    )
+                finally:
+                    finished.set()
+
+            with patch.object(backend, "try_acquire", side_effect=blocking_try_acquire):
+                admission = asyncio.create_task(
+                    gate.admit(
+                        "hh.ru",
+                        policy,
+                        OperationContext("cancelled", execution_id="e-1", invocation_id="i-1"),
+                    )
+                )
+                self.assertTrue(await asyncio.to_thread(started.wait, 1.0))
+                admission.cancel()
+                proceed.set()
+                with self.assertRaises(asyncio.CancelledError):
+                    await admission
+                self.assertTrue(await asyncio.to_thread(finished.wait, 1.0))
+
+            replacement = gate.try_admit(
+                "hh.ru",
+                policy,
+                OperationContext("replacement", execution_id="e-1", invocation_id="i-2"),
+            )
+
+            self.assertIsNotNone(replacement.permit)
+            if replacement.permit is not None:
+                gate.release(replacement.permit)
+
     async def test_direct_and_managed_contexts_use_the_same_backend(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             backend = SqliteResourceGateBackend(Path(directory) / "resource-gate.sqlite")
@@ -181,6 +348,27 @@ class ResourceGateTest(unittest.IsolatedAsyncioTestCase):
             self.assertNotEqual(direct.slot_number, managed.slot_number)
             gate.release(direct)
             gate.release(managed)
+
+    async def test_busy_resource_returns_a_delay_without_sleeping(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            backend = SqliteResourceGateBackend(Path(directory) / "resource-gate.sqlite")
+            gate = ResourceGate(backend=backend, owner_id="process-1")
+            policy = ResourcePolicy(max_concurrency=1, min_interval_seconds=0.0, lease_seconds=10.0)
+            acquired = await gate.admit(
+                "hh.ru",
+                policy,
+                OperationContext("active", execution_id="e-1", invocation_id="i-1"),
+            )
+
+            decision = gate.try_admit(
+                "hh.ru",
+                policy,
+                OperationContext("waiting", execution_id="e-1", invocation_id="i-2"),
+            )
+
+            self.assertIsNone(decision.permit)
+            self.assertGreater(decision.retry_after_seconds, 0)
+            gate.release(acquired)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,7 @@
+{
+  "source_id": "habr_career",
+  "captured_at": "2026-07-13T19:45:00+03:00",
+  "captured_url": "https://career.habr.com/vacancies?q=LLM+Evaluation&type=all&qid=5",
+  "capture_method": "curl GET",
+  "notes": "Real Habr Career response with filters.qualification=5 and only Senior vacancy records."
+}

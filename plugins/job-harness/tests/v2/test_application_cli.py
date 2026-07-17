@@ -8,21 +8,23 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from job_harness.v2.application import V2SearchApplication, V2SearchConfig
+from job_harness.v2.application import V2SearchApplication, V2SearchConfig, _resource_policy
 from job_harness.v2.cli import _build_parser, _query_variants, _request_from_args, main as cli_main
 from job_harness.v2.contracts import (
+    CompensationPeriod,
     ParserFixtureCase,
     ParserFixtureKind,
     RawListing,
     SearchRequest,
+    SearchScenario,
     WorkFormat,
 )
 from job_harness.v2.ports import HttpAction, HttpResponse
 from job_harness.v2.runtime import (
     ApplicationChannelServiceConfig,
     AtsCompanyUrlParseResult,
-    DetailServiceConfig,
-    RetryServiceConfig,
+    RequestRetryServiceConfig,
+    ResourceServiceConfig,
     SearchServiceConfig,
 )
 from job_harness.v2.runtime.parser_runtime import DefaultParserRuntimeFactory
@@ -56,13 +58,18 @@ def _test_service_config() -> SearchServiceConfig:
         source_attempt_timeout_seconds=30.0,
         run_timeout_seconds=60.0,
         fetch_timeout_seconds=15.0,
-        retry=RetryServiceConfig(max_attempts=1, backoff_seconds=0.0),
-        detail=DetailServiceConfig(
-            per_source_concurrency=1,
-            default_request_delay_seconds=0.0,
-            request_delay_seconds_by_source={},
-            stop_on_blocked=True,
-            stop_on_rate_limited=True,
+        request_retry=RequestRetryServiceConfig(
+            max_attempts=3,
+            base_delay_seconds=1.0,
+            max_delay_seconds=8.0,
+            request_budget_seconds=55.0,
+        ),
+        resources=ResourceServiceConfig(
+            default_max_concurrency=1,
+            default_min_interval_seconds=0.0,
+            max_concurrency_by_resource={},
+            min_interval_seconds_by_resource={},
+            resource_key_by_host_suffix={"hh.ru": "hh.ru"},
         ),
         application_channels=ApplicationChannelServiceConfig(enabled=False),
     )
@@ -119,6 +126,67 @@ def _fixture_response_path(case: ParserFixtureCase) -> Path:
 
 
 class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
+    async def test_cli_parses_resume_execution_without_search_input(self) -> None:
+        args = _build_parser().parse_args(
+            [
+                "resume",
+                "--execution-id",
+                "execution-123",
+                "--runs-dir",
+                "/tmp/job-runs",
+            ]
+        )
+
+        self.assertEqual(args.command, "resume")
+        self.assertEqual(args.execution_id, "execution-123")
+        self.assertEqual(args.runs_dir, Path("/tmp/job-runs"))
+
+    async def test_cli_builds_dimensioned_compensation(self) -> None:
+        args = _build_parser().parse_args(
+            [
+                "search",
+                "--query",
+                "QA",
+                "--salary-minimum",
+                "250000",
+                "--salary-currency",
+                "RUR",
+                "--salary-period",
+                "month",
+                "--salary-gross",
+                "false",
+            ]
+        )
+
+        request = _request_from_args(args)
+
+        assert request.compensation is not None
+        self.assertEqual(250_000, request.compensation.minimum)
+        self.assertEqual("RUB", request.compensation.currency)
+        self.assertEqual(CompensationPeriod.MONTH, request.compensation.period)
+        self.assertIs(request.compensation.gross, False)
+
+    async def test_cli_rejects_partial_compensation_dimensions(self) -> None:
+        args = _build_parser().parse_args(
+            ["search", "--query", "QA", "--salary-minimum", "250000"]
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "salary minimum, currency, and period must be supplied together",
+        ):
+            _request_from_args(args)
+
+    async def test_resource_config_uses_host_keys_and_shared_domain_groups(self) -> None:
+        config = _test_service_config()
+
+        self.assertEqual(config.resources.resource_key_for_host("spb.hh.ru"), "hh.ru")
+        self.assertEqual(config.resources.resource_key_for_host("api.hirify.me"), "api.hirify.me")
+        hh_policy = _resource_policy(config)("hh.ru")
+
+        self.assertEqual(hh_policy.max_concurrency, 1)
+        self.assertEqual(hh_policy.min_interval_seconds, 0.0)
+
     async def test_application_runs_search_save_postprocess_and_append(self) -> None:
         # Arrange
         fixture_source_id, query_variant, fixture_mapping = _application_fixture_source()
@@ -366,9 +434,8 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(1, code)
                 self.assertIn("must use", stderr.getvalue())
 
-    async def test_cli_rejects_pure_unknown_workplace_filters(self) -> None:
+    async def test_cli_rejects_unknown_scope_filters(self) -> None:
         for args in (
-            ["search", "--queries", "QA", "--work-format", "unknown"],
             ["search", "--queries", "QA", "--work-format", "remote", "--remote-scope", "unknown"],
             ["search", "--queries", "QA", "--vacancy-geography", "unknown"],
         ):
@@ -382,7 +449,13 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
 
                 # Assert
                 self.assertEqual(1, code)
-                self.assertIn("only unknown", stderr.getvalue())
+                self.assertIn("must not contain unknown", stderr.getvalue())
+
+    def test_cli_rejects_unknown_work_format_choice(self) -> None:
+        with self.assertRaises(SystemExit):
+            _build_parser().parse_args(
+                ["search", "--queries", "QA", "--work-format", "unknown"]
+            )
 
     async def test_cli_builds_remote_geography_request_fields(self) -> None:
         # Arrange
@@ -395,16 +468,10 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
                 "remote",
                 "--work-format",
                 "hybrid",
-                "--work-format",
-                "unknown",
                 "--remote-scope",
                 "global",
                 "--remote-scope",
-                "unknown",
-                "--remote-scope",
                 "country:RU",
-                "--vacancy-geography",
-                "unknown",
                 "--vacancy-geography",
                 "country:CY",
                 "--vacancy-geography",
@@ -416,9 +483,38 @@ class V2ApplicationCliTest(unittest.IsolatedAsyncioTestCase):
         request = _request_from_args(args)
 
         # Assert
-        self.assertEqual((WorkFormat.REMOTE, WorkFormat.HYBRID, WorkFormat.UNKNOWN), request.work_formats)
-        self.assertEqual(("global", "unknown", "country:RU"), request.remote_scopes)
-        self.assertEqual(("unknown", "country:CY", "city:Limassol"), request.vacancy_geographies)
+        self.assertEqual((WorkFormat.REMOTE, WorkFormat.HYBRID), request.work_formats)
+        self.assertEqual(("global", "country:RU"), request.remote_scopes)
+        self.assertEqual(("country:CY", "city:Limassol"), request.vacancy_geographies)
+
+    async def test_cli_builds_or_scenarios_and_employer_geography(self) -> None:
+        args = _build_parser().parse_args(
+            [
+                "search",
+                "--queries",
+                "LLM evaluation",
+                "--scenario",
+                '{"work_formats":["remote"],"employer_geographies":["country:RU"]}',
+                "--scenario",
+                '{"work_formats":["remote","hybrid"],"relocation":true}',
+            ]
+        )
+
+        request = _request_from_args(args)
+
+        self.assertEqual(
+            request.scenarios,
+            (
+                SearchScenario(
+                    work_formats=(WorkFormat.REMOTE,),
+                    employer_geographies=("country:RU",),
+                ),
+                SearchScenario(
+                    work_formats=(WorkFormat.REMOTE, WorkFormat.HYBRID),
+                    relocation=True,
+                ),
+            ),
+        )
 
     async def test_cli_rejects_empty_pipe_separated_query_variant(self) -> None:
         # Arrange

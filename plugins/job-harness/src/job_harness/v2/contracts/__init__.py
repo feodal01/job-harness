@@ -1,5 +1,14 @@
 """Strict contracts for the next-generation job search core."""
 
+from job_harness.v2.contracts.canonical_facts import (
+    BooleanEvidenceFact,
+    CanonicalSelectionFacts,
+    CompensationFact,
+    GradeFact,
+    LocationFact,
+    RelocationFact,
+    WorkplaceFact,
+)
 from job_harness.v2.contracts.criteria import (
     SEARCH_CRITERION_DESCRIPTORS,
     SearchCriterionDescriptor,
@@ -9,14 +18,16 @@ from job_harness.v2.contracts.criteria import (
 )
 from job_harness.v2.contracts.enums import (
     ALL_SEARCH_CRITERIA,
+    CompensationPeriod,
     CriterionCapability,
+    CriterionState,
     DescriptionAvailability,
     Grade,
     HttpMethod,
     ParserFixtureKind,
     ProcessingDecision,
-    RetryNextAction,
     SearchCriterion,
+    SelectionOutcome,
     SourceOutcome,
     SourceType,
     TextExclusionMode,
@@ -26,6 +37,7 @@ from job_harness.v2.contracts.enums import (
 )
 from job_harness.v2.contracts.errors import ClassifiedSourceError
 from job_harness.v2.contracts.facts import (
+    CriterionEvaluation,
     FactDerivation,
     FactProviderSpec,
     ProviderStage,
@@ -38,6 +50,7 @@ from job_harness.v2.contracts.fixtures import (
     SupportedSourceContract,
 )
 from job_harness.v2.contracts.graph import (
+    ExecutionArtifact,
     ExecutionCoordinatorLease,
     LeasedParserInvocation,
     ParserInvocationSpec,
@@ -77,6 +90,7 @@ from job_harness.v2.contracts.independent import (
     SingletonResultOutcome,
     SocialLink,
     SourceLocation,
+    TargetParserResolver,
     TargetResolution,
     TransportKind,
     VacancyDetailInput,
@@ -89,7 +103,6 @@ from job_harness.v2.contracts.records import (
     CriteriaDiagnostics,
     RawListing,
     RawSearchRecord,
-    RetryInfo,
     SourceAttemptRecord,
 )
 from job_harness.v2.contracts.scraper import (
@@ -99,7 +112,13 @@ from job_harness.v2.contracts.scraper import (
     SourceScraper,
     SourceSearchParseResult,
 )
-from job_harness.v2.contracts.search import SearchRequest, TextExclusion
+from job_harness.v2.contracts.search import (
+    CompensationCriterion,
+    SearchRequest,
+    SearchScenario,
+    TextExclusion,
+)
+from job_harness.v2.contracts.search_serialization import search_request_from_json
 from job_harness.v2.contracts.source import CriterionDeclaration, SourceDescriptor
 
 __all__ = [
@@ -107,6 +126,8 @@ __all__ = [
     "AttemptCounts",
     "AttemptEvidence",
     "ALL_SEARCH_CRITERIA",
+    "BooleanEvidenceFact",
+    "CanonicalSelectionFacts",
     "ClassifiedSourceError",
     "CompanyProfileInput",
     "CompanyProfileOutput",
@@ -115,19 +136,27 @@ __all__ = [
     "CompanySiteInput",
     "CompanySiteOutput",
     "CompanySiteResult",
+    "CompensationCriterion",
+    "CompensationFact",
+    "CompensationPeriod",
     "CriteriaDiagnostics",
+    "CriterionEvaluation",
     "CriterionCapability",
+    "CriterionState",
     "CriterionDeclaration",
     "DescriptionAvailability",
     "DetailEnrichmentScraper",
     "DiscoveredEndpoint",
     "ExecutionCoordinatorLease",
+    "ExecutionArtifact",
     "FactProviderSpec",
     "FactDerivation",
     "Grade",
+    "GradeFact",
     "HttpMethod",
     "InvocationScope",
     "LeasedParserInvocation",
+    "LocationFact",
     "ParserFixtureCase",
     "ParserFixtureKind",
     "RequiredParserFixtures",
@@ -147,8 +176,7 @@ __all__ = [
     "PublicContact",
     "RawListing",
     "RawSearchRecord",
-    "RetryInfo",
-    "RetryNextAction",
+    "RelocationFact",
     "RemoteScope",
     "SEARCH_CRITERION_DESCRIPTORS",
     "SearchCriterion",
@@ -158,9 +186,11 @@ __all__ = [
     "SearchListingResult",
     "SearchResultOutcome",
     "SelectionDecision",
+    "SelectionOutcome",
     "ScraperBundle",
     "SearchScraperBundle",
     "SearchRequest",
+    "SearchScenario",
     "SourceAttemptRecord",
     "SourceDescriptor",
     "SourceFetchRequest",
@@ -177,10 +207,12 @@ __all__ = [
     "SocialLink",
     "SupportedSourceContract",
     "TextExclusion",
+    "search_request_from_json",
     "TextExclusionMode",
     "TextEnrichmentPolicy",
     "TextField",
     "TargetResolution",
+    "TargetParserResolver",
     "TaskClass",
     "Transport",
     "TransportKind",
@@ -188,6 +220,7 @@ __all__ = [
     "VacancyDetailOutput",
     "VacancyDetailResult",
     "WorkFormat",
+    "WorkplaceFact",
     "all_search_criterion_descriptors",
     "search_criterion_descriptor",
 ]

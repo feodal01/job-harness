@@ -233,6 +233,15 @@
     .field.excluded-reason b {
       color: var(--bad);
     }
+    .terminal-status {
+      min-height: 34px;
+      padding: 7px 10px;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      background: #fef2f2;
+      color: var(--bad);
+      font-weight: 650;
+    }
     .skills {
       display: flex;
       flex-wrap: wrap;
@@ -334,6 +343,7 @@
         <h1 id="page-title">Job search results</h1>
         <div class="run-id">Run ID: <code id="run-id"></code></div>
       </div>
+      <div class="meta execution-summary" id="execution-summary"></div>
       <div class="filters">
         <select id="source-filter" aria-label="Source"></select>
       </div>
@@ -401,9 +411,23 @@
 
     function renderHeader() {
       document.getElementById("run-id").textContent = text(payload.run_id) || "unknown";
+      const executionQuality = text(payload.execution_quality) || "unknown";
+      const sourceCoverage = payload.source_coverage && typeof payload.source_coverage === "object"
+        ? payload.source_coverage
+        : {};
+      document.getElementById("execution-summary").replaceChildren(
+        summaryField("Quality", executionQuality),
+        summaryField("Sources complete", `${sourceCoverage.complete}/${sourceCoverage.planned}`),
+        summaryField("Sources degraded", sourceCoverage.degraded),
+        summaryField("Sources failed", sourceCoverage.failed)
+      );
       document.getElementById("tab-kept").textContent = `Kept (${kept.length})`;
       document.getElementById("tab-filtered").textContent = `Filtered out (${filtered.length})`;
       document.getElementById("tab-all").textContent = `All (${allRows.length})`;
+    }
+
+    function summaryField(label, value) {
+      return pill(label, text(value) || "0");
     }
 
     function renderSearchRequest() {
@@ -414,11 +438,13 @@
       const items = [
         requestField("Query", listText(request.query_variants, "not recorded")),
         requestField("Grade", listText(request.grades, "N/a")),
-        requestField("Salary from", text(request.salary_from) || "N/a"),
+        requestField("Compensation", compensationCriterionText(request.compensation) || "N/a"),
         requestField("Published since", text(request.published_since) || "N/a"),
         requestField("Work format", listText(request.work_formats, "N/a")),
         requestField("Remote scope", listText(request.remote_scopes, "N/a")),
         requestField("Vacancy geography", listText(request.vacancy_geographies, "N/a")),
+        requestField("Employer geography", listText(request.employer_geographies, "N/a")),
+        requestField("Scenarios", scenarioText(request.scenarios)),
         requestField("Sources", listText(request.sources, "Full catalog")),
         requestField("Source types", listText(request.source_types, "All types")),
         requestField("Relocation", optionalBooleanText(request.relocation)),
@@ -442,6 +468,33 @@
       if (value === true) return "Required";
       if (value === false) return "Excluded";
       return "N/a";
+    }
+
+    function compensationCriterionText(value) {
+      if (!value) return "";
+      const gross = value.gross === true ? " gross" : value.gross === false ? " net" : "";
+      return `${text(value.minimum)} ${text(value.currency)} / ${text(value.period)}${gross}`;
+    }
+
+    function scenarioText(value) {
+      if (!Array.isArray(value) || !value.length) return "N/a";
+      return value.map((scenario, index) => {
+        if (!scenario || typeof scenario !== "object") return "";
+        const parts = [
+          fieldText("Work format", scenario.work_formats),
+          fieldText("Remote scope", scenario.remote_scopes),
+          fieldText("Vacancy geography", scenario.vacancy_geographies),
+          fieldText("Employer geography", scenario.employer_geographies),
+          scenario.relocation === true ? "Relocation: required" : "",
+          scenario.relocation === false ? "Relocation: excluded" : ""
+        ].filter(Boolean);
+        return `Scenario ${index + 1}: ${parts.join("; ")}`;
+      }).filter(Boolean).join(" | ") || "N/a";
+    }
+
+    function fieldText(label, value) {
+      const values = list(value);
+      return values.length ? `${label}: ${values.join(", ")}` : "";
     }
 
     function exclusionText(value) {
@@ -523,15 +576,18 @@
       grid.className = "grid";
       const highlightedLabels = highlightedCardFieldLabels(row);
       grid.append(
-        cardField("Grade", row.nativeGrade, highlightedLabels.has("Grade")),
-        cardField("Salary", salaryText(row.salary), highlightedLabels.has("Salary")),
+        cardField("Grade", gradeText(row.grade), highlightedLabels.has("Grade")),
+        cardField("Salary", compensationText(row.compensation), highlightedLabels.has("Salary")),
         cardField("Posted", row.postedAt, highlightedLabels.has("Posted")),
-        cardField("Work format", list(row.workFormats).join(", "), highlightedLabels.has("Work format")),
+        cardField("Work format", workplaceFormatText(row.workplace), highlightedLabels.has("Work format")),
         cardField("Location", locationText(row.location), highlightedLabels.has("Location")),
-        cardField("Remote scope", remoteScopeText(row.remoteScopes), highlightedLabels.has("Remote scope"))
+        cardField("Remote scope", remoteScopeText(row.workplace), highlightedLabels.has("Remote scope")),
+        cardField("Relocation", relocationText(row.relocation), highlightedLabels.has("Relocation"))
       );
       head.append(grid);
       article.append(head);
+      const terminalStatus = terminalStatusElement(row);
+      if (terminalStatus) article.append(terminalStatus);
       const applicationChannels = applicationChannelsElement(row);
       if (applicationChannels) article.append(applicationChannels);
       const companyContacts = companyContactsElement(row);
@@ -589,21 +645,45 @@
     }
 
     function locationText(value) {
-      return value && typeof value === "object" ? text(value.text) : "";
+      if (!value || typeof value !== "object") return "";
+      const structured = [value.cities, value.countries, value.regions]
+        .map((items) => list(items).join(", "))
+        .filter(Boolean)
+        .join(" | ");
+      return structured || text(value.rawText);
     }
 
-    function salaryText(value) {
+    function gradeText(value) {
       if (!value || typeof value !== "object") return "";
-      const bounds = [text(value.from), text(value.to)].filter(Boolean).join(" – ");
-      return [bounds, text(value.currency)].filter(Boolean).join(" ");
+      const resolved = list(value.resolved).join(", ");
+      return resolved && value.conflict === true ? `${resolved} (source conflict)` : resolved;
+    }
+
+    function compensationText(value) {
+      if (!value || typeof value !== "object") return "";
+      const bounds = [text(value.minimum), text(value.maximum)].filter(Boolean).join(" – ");
+      const period = text(value.period);
+      const amount = [bounds, text(value.currency)].filter(Boolean).join(" ");
+      const periodic = period ? `${amount || "per"} / ${period}` : amount;
+      const gross = value.gross === true ? "gross" : value.gross === false ? "net" : "";
+      return [periodic, gross].filter(Boolean).join(" ");
+    }
+
+    function workplaceFormatText(value) {
+      return value && typeof value === "object" ? list(value.formats).join(", ") : "";
     }
 
     function remoteScopeText(value) {
-      if (!Array.isArray(value)) return "";
-      return value.map((scope) => {
-        if (!scope || typeof scope !== "object") return "";
-        return [text(scope.kind), text(scope.code)].filter(Boolean).join(":");
-      }).filter(Boolean).join(", ");
+      return value && typeof value === "object" ? list(value.remoteScopes).join(", ") : "";
+    }
+
+    function relocationText(value) {
+      if (!value || typeof value !== "object") return "";
+      if (value.supported === false) return "no";
+      if (value.supported !== true) return "";
+      const destinations = list(value.destinations);
+      if (destinations.length) return `yes, to ${destinations.join(", ")}`;
+      return "yes, destination not specified";
     }
 
     function cardField(label, value, highlighted) {
@@ -623,20 +703,40 @@
     }
 
     function removalReasonText(row) {
-      return decision(row) === "filtered_out" ? decisionReasons(row).join(", ") : "";
+      return decision(row) === "filtered_out" ? visibleDecisionReasons(row).join(", ") : "";
+    }
+
+    function visibleDecisionReasons(row) {
+      return decisionReasons(row).filter((reason) => reason !== "required_provider_terminal");
+    }
+
+    function terminalStatusElement(row) {
+      if (!hasRemovalReason(row, "required_provider_terminal")) return null;
+      const status = document.createElement("div");
+      status.className = "terminal-status";
+      status.textContent = "Required details could not be retrieved";
+      return status;
     }
 
     function highlightedCardFieldLabels(row) {
       const labels = new Set();
       const mappings = [
         ["grade_mismatch", "Grade"],
-        ["salary_below_requested_minimum", "Salary"],
+        ["insufficient_evidence:grades", "Grade"],
+        ["compensation_below_requested_minimum", "Salary"],
+        ["compensation_gross_mismatch", "Salary"],
+        ["insufficient_evidence:compensation", "Salary"],
         ["published_before_requested_date", "Posted"],
+        ["insufficient_evidence:published_since", "Posted"],
         ["vacancy_geography_mismatch", "Country"],
         ["vacancy_geography_mismatch", "Location"],
+        ["insufficient_evidence:vacancy_geographies", "Location"],
         ["remote_scope_mismatch", "Remote scope"],
+        ["insufficient_evidence:remote_scopes", "Remote scope"],
         ["work_format_mismatch", "Work format"],
-        ["relocation_mismatch", "Relocation"]
+        ["insufficient_evidence:work_formats", "Work format"],
+        ["relocation_mismatch", "Relocation"],
+        ["insufficient_evidence:relocation", "Relocation"]
       ];
       for (const [reason, label] of mappings) {
         if (hasRemovalReason(row, reason)) labels.add(label);

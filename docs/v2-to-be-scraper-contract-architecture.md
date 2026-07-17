@@ -4,9 +4,10 @@ Status: implemented contract for the current HTTP source catalog. Browser
 session execution remains an explicit extension point; no current v2 source
 bundle declares browser transport.
 
-The design treats execution location as an adapter concern. A scraper bundle is
-the same independently callable unit whether its implementation runs in the
-current process, another process, or another service.
+Scraper independence is defined by the contract boundary, not by remote
+execution. Every current scraper runs in-process but remains independently
+callable because it receives complete typed input, uses only `ParserRuntime`,
+returns its own typed facts, and never reads coordinator storage.
 
 The executable diagrams are:
 
@@ -21,7 +22,9 @@ The executable diagrams are:
    inferred facts, filter candidates, resolve entities, or write storage.
 3. Direct execution returns the scraper result without creating a run, task, or
    database row. Managed execution wraps the same call in the durable graph.
-4. One `ParserInvocation` is one independently retryable managed call.
+4. One `ParserInvocation` is one independently retryable page or URL call.
+   A successful result and all observations are committed atomically, so a
+   committed page is never fetched again.
 5. Listing, vacancy-detail, company-profile, and company-site scrapers have
    separate result types. Illegal cross-type states cannot be represented.
 6. A listing scraper bundle includes its manifest, schemas, pure initial-input
@@ -65,8 +68,9 @@ The executable diagrams are:
 | `EmployerTargetResolver` | Resolve trusted stored company URLs into profile/site tasks | Bare-name web search, scraping |
 | `ParserRegistry` | Exact lookup by pinned parser id and version | URL routing and business policy |
 | `GraphCoordinator` | Source-plan lifecycle, event handling, dependencies, task derivation, drain | HTTP/browser implementation |
-| `TaskRunner` | Lease, exact parser lookup, invoke, acknowledge, parser-call retry | Search/enrichment policy |
-| `ResourceGate` | Network admission, retry, pacing, breaker, safety, telemetry | Parser selection and public output |
+| `TaskRunner` | Lease, preflight admission, exact parser lookup, invoke, acknowledge | Search/enrichment policy or retry classification |
+| `RequestRetryPolicy` | Decide retryability, request budget, exponential backoff, jitter, and `Retry-After` | Task selection or source workflow |
+| `ResourceGate` | Deployment-scoped concurrency and start pacing | Retry decisions, parser selection, public output |
 | Scraper | Source-specific fetching and fact extraction | Storage, workflow, cross-parser calls |
 | `FactDeriver` | Pure versioned derivation from exact stored facts | Network access and source parsing |
 | Selectors | Evaluate explicit fact sets against criteria | Fetching and parsing |
@@ -85,8 +89,8 @@ The architecture exposes two explicit execution surfaces:
 DirectScraperExecutor
   execute(parserRef, typedInput) -> typedResult
 
-ManagedGraphExecutor
-  submit(parserRef, typedInput, persistencePolicy) -> executionId
+V2SearchApplication / GraphSearchPipeline
+  execute(searchRequest) -> GraphSearchPipelineExecution
 ```
 
 Direct execution validates the same schemas and uses the same `ParserRuntime`
@@ -94,10 +98,11 @@ and deployment-scoped `ResourceGate`, but creates no run, invocation, event,
 observation, or final snapshot. The caller owns any returned listing
 continuations.
 
-Managed execution creates an execution and durable invocation, persists
-observations, follows continuations, and may participate in selection and final
-assembly. A one-URL managed detail/profile/site execution does not require a
-listing or source plan.
+Managed search creates an execution and durable invocations, persists
+observations, follows continuations, and participates in selection and final
+assembly. The repository and `ManagedTaskRunner` also support a standalone
+one-URL detail/profile/site invocation without a listing or source plan; there
+is no separate public managed-single-target facade yet.
 
 Public standalone scraper APIs use direct execution by default. Persistence is
 an explicit managed option, never an implicit side effect of calling a scraper.
@@ -186,14 +191,10 @@ DirectScraperExecutor
   execute(parserRef, input) -> ParserExecutionResult
 
 ParserRuntime
+  prepareHttp(action: HttpAction) -> admitted | retryAfter
   http(action: HttpAction) -> HttpResponse
-  openBrowser(target: BrowserTarget) -> BrowserSession
-  reservedCollectionUnits() -> positive integer
-
-BrowserSession
-  navigate(action: BrowserNavigation) -> BrowserDocument
-  interact(action: BrowserInteraction) -> BrowserDocument
-  close()
+  reservedCollectionUnits -> positive integer
+  attemptMetrics -> ParserAttemptMetrics
 
 ResourceGate
   admit(action: NetworkAction, context: OperationContext) -> ActionPermit
@@ -208,9 +209,10 @@ ResourceGateBackend
   release(resourceSlotPermit)
 ```
 
-HTTP calls, browser main-document navigation, browser API calls, redirects, and
-intercepted subresources are admitted under a logical resource policy.
-Browser sessions live only for one invocation.
+Every HTTP request and followed redirect is admitted under a logical resource
+policy. A future browser runtime must place main-document navigation, browser
+API calls, and intercepted subresources behind the same port; no current v2
+bundle or `ParserRuntime` implementation exposes browser actions.
 
 Managed calls populate all operation-context ids. Direct calls use a generated
 `operationId` and null execution/invocation ids. Both therefore participate in
@@ -252,6 +254,16 @@ company_site:{parserId}:{registrableDomain}:{entryPath}
 
 `UNIQUE(execution_id, task_key)` prevents duplicate execution work.
 `listing_enrichment_requests` records every listing consuming a shared task.
+
+The lease scheduler maps `listing` tasks to one branch and
+`detail/profile/site` tasks to an enrichment branch. One bounded SQL query
+loads up to the requested lease limit from each branch together with current
+active counts. Each free worker slot goes to the less represented active
+branch. When counts are equal, the oldest ready head wins; an exact timestamp
+tie goes to listing. Therefore a page continuation cannot be buried under a
+new detail backlog, while listing work also cannot indefinitely suppress older
+enrichment when concurrency is one. The decision adds no scheduler-state row
+or per-task write beyond the normal lease update.
 
 ## Exact Parser Inputs
 
@@ -387,15 +399,16 @@ ParserFailure = {
   kind:
     | "blocked"
     | "rate_limited"
-    | "timeout"
-    | "network"
-    | "parse"
+    | "source_timeout"
+    | "http_client_error"
+    | "http_server_error"
+    | "network_error"
+    | "parse_error"
     | "invalid_input"
-    | "invalid_output"
+    | "invalid_source_output"
     | "implementation_unavailable"
-    | "resource"
+    | "resource_failure"
     | "unsupported_target",
-  retryable: boolean,
   publicNotice: string | null
 }
 ```
@@ -567,6 +580,7 @@ CriterionRequirement
   criterion
   requiredFactPath
   comparison
+  skipWhenFinalKeep
 
 FactProvider
   requirementId
@@ -603,6 +617,12 @@ geography normalization belong here when they are not explicit parser facts.
 Each `fact_derivation` stores the deriver version, exact input observation ids,
 input fingerprint, output schema, and derived payload.
 
+Relocation support and visa sponsorship are separate derived facts. Explicit
+relocation assistance/package evidence can satisfy `relocation = true`; visa
+sponsorship alone sets `visa_sponsorship = true` and cannot satisfy a relocation
+criterion. This prevents a role restricted to another country from passing a
+relocation branch merely because immigration sponsorship is mentioned.
+
 Provider dependencies are explicit. For example:
 
 ```text
@@ -622,12 +642,27 @@ After each relevant immutable observation is stored:
 5. `FactRequirementPlanner` schedules the minimum unresolved provider chain.
 6. Optional contact/profile/site enrichment starts only after a preliminary or
    final keep unless those facts are required for the decision.
-7. Every relevant new fact set invalidates the previous final evaluation and
+7. Every detail/profile/site observation settles all provider edges sharing
+   its listing and invocation in one materialization pass, then re-runs the
+   requirement planner so newly available URLs can unlock the next provider
+   without waiting for other sources.
+8. Every relevant new fact set invalidates the previous final evaluation and
    triggers deterministic re-evaluation.
+
+The shipped company-enrichment policy currently declares an HH company-profile
+provider and a generic company-site provider. A trusted
+`company.official_site_url` from listing output is canonicalized to
+`official_site_url` and runs the site provider directly. When that URL is
+missing, a trusted HH profile URL can run the fallback `profile -> site` chain.
+It never searches by bare company name. Detail bundles are registered only for
+sources whose catalog contract requires a real reviewed detail fixture.
+Implementing a shared source class is not itself a declared detail capability.
 
 A preliminary `keep` becomes final immediately only when no required provider is
 unresolved. Optional facts that are excluded from selection cannot later change
-that decision.
+that decision. For OR scenarios, `skipWhenFinalKeep` prevents an unresolved
+alternative branch from scheduling network work after another branch already
+proves the final keep.
 
 ## Identity and Standalone Persistence
 
@@ -774,12 +809,12 @@ The managed graph minimizes SQLite write amplification:
 4. `fact_derivations` use a unique input fingerprint and are reused rather than
    recalculated or rewritten.
 5. Main graph storage keeps one aggregate `parser_attempt` per parser-call
-   attempt, including request count, elapsed time, and terminal error. Detailed
-   per-network-action telemetry is buffered to append-only operational JSONL and
-   flushed in batches; it is not part of the result transaction.
-6. Raw response artifacts are stored only for failures, explicit debug runs, or
-   fixture capture. Successful requests do not create artifact-index rows by
-   default.
+   attempt, including network-action count, network elapsed time, last HTTP
+   status, and terminal error class. Those fields are written in the existing
+   terminal attempt update, so diagnostics add no separate hot-path write.
+6. `artifact_index` reserves a relation for a future failure/debug artifact
+   writer. The current runtime does not persist raw responses or per-action
+   telemetry.
 7. A `companies` row and identity claim are created only from a strong provider
    id/profile URL/verified domain. A name-only company remains in the immutable
    parser observation with `listing.company_id = null`.
@@ -795,12 +830,13 @@ The managed graph minimizes SQLite write amplification:
     loop. It normalizes all result keys first, bulk-loads matching identities in
     one query, then uses set-based inserts/upserts with `RETURNING` for missing
     resources, listings, claims, tasks, and consumer edges.
-12. Requirements, providers, parser manifests, and policy versions are loaded
-    once into an immutable execution plan. Event batches reuse that plan rather
-    than rereading catalog rows for every listing.
-13. Fact materialization reads observation and current-fingerprint rows for the
-    whole affected-listing batch. Final assembly likewise uses bounded bulk
-    queries; neither phase may issue one query per listing.
+12. Requirements and providers are loaded once per coordinator event batch for
+    the affected source plans, then reused for every listing in that batch.
+    Parser manifests are resolved from the immutable in-process registry.
+13. Fact materialization bulk-loads current snapshots and enrichment-edge state
+    for the whole affected-listing batch. The normal observation path does not
+    issue snapshot or dependency-state queries per listing. Final assembly also
+    uses bounded bulk queries.
 14. The resource gate acquires a slot and advances pacing in one short
     transaction, then releases the fixed slot in one update. It never holds a
     SQLite transaction open during a network request.
@@ -811,7 +847,7 @@ diagnostics and recomputable projections out of the hot path.
 | Hot operation | Earlier normalized shape | Target shape |
 | --- | --- | --- |
 | One materialized fact set | `fact_sets` plus 1-5 member-table inserts and later joins | One `fact_sets` insert and one-row selector read |
-| One network action | `resource_requests` plus `request_attempts` inserts in graph DB | No graph-DB row; aggregate counters on parser attempt plus buffered JSONL |
+| One network action | `resource_requests` plus `request_attempts` inserts in graph DB | No graph-DB row; invocation-local counters are committed with the parser attempt |
 | Event dispatch | Claim update and handler transaction per event | One execution coordinator lease plus one transaction per bounded/coalesced batch |
 | Repeated strong company claim | Claim row plus one evidence row per observation | One claim row with first strong observation FK; repeated sightings write nothing |
 | Employer URL resolution | Separate resolution row plus task/dependency | Existing enrichment-request row records resolved/unresolved outcome |
@@ -981,7 +1017,8 @@ TaskRunner may now lease:
   HH detail A
   a shared profile task needed by several listings
 
-No source-level or listing-stage barrier exists.
+The fair lease balances the listing and enrichment branches by current active
+count and age. No source-level or listing-stage barrier exists.
 ```
 
 ## Resource Scheduling
@@ -992,17 +1029,49 @@ No source-level or listing-stage barrier exists.
 | --- | --- |
 | `maxConcurrency` | In-flight actions for the resource. |
 | `minDelayMs` | Delay between admitted action starts. |
-| `timeoutMs` | Per-action timeout. |
-| `maxAttempts` | Transport-level retries. |
-| `backoff` | Retry strategy. |
-| `retryableStatuses` | Retryable responses. |
-| `stopStatuses` | Breaker conditions. |
-| `maxActionsPerInvocation` | Bounds hidden multi-step work. |
-| `maxActionsPerExecution` | Execution resource budget. |
+| `fetchTimeoutSeconds` | Service-owned timeout applied by `ParserRuntime`. |
+| `sourceAttemptTimeoutSeconds` | Maximum duration of one managed parser call. |
+| `runTimeoutSeconds` | Global execution deadline. |
+| `RequestRetryPolicy` | Safe request statuses/errors, maximum attempts, per-attempt timeout, elapsed request budget, exponential backoff, full jitter, and `Retry-After`. |
+| Source-plan unit/item/invocation budgets | Bounds listing collection and bootstrap work. |
 
-Task-level parser-call retry belongs to `TaskRunner`. Network-action retry
-belongs to `ResourceGate`. Non-idempotent actions are never retried unless the
-action explicitly declares a safe idempotency contract.
+Only `RequestRetryPolicy` decides whether a concrete request is retried. The
+managed runner persists that decision on the same `ParserInvocation`; direct
+execution and `HttpArtifactFetcher` use the same policy through
+`InMemoryRequestRetrier`. There is no source-wide or run-wide retry override.
+`SourceFetchRequest` is a read-only contract: its POST form is reserved for
+idempotent search-query APIs such as Workday, never for mutations. Therefore
+these fetches are safe to retry after transient transport failures; arbitrary
+`HttpAction` values must declare their own `RetrySafety`.
+Safe retries cover timeouts, network errors, and explicit transient statuses
+`408`, `425`, `429`, `500`, `502`, `503`, and `504`. Other failures are
+terminal.
+
+Before a managed parser attempt starts, the bundle builds its pure `HttpAction`
+and `ResourceGate.try_admit` performs non-blocking preflight. If pacing delays
+the action, the invocation becomes `waiting` with
+`waiting_reason = resource_pacing`; no `parser_attempts` row, active slot, or
+lease is held. A retryable request failure becomes `waiting` with
+`waiting_reason = retry_backoff`, and only that invocation is eligible again at
+`available_at`.
+
+`ParserRuntime` owns network-target validation. DNS resolution and limiter I/O
+run outside the event loop. The runtime rejects credentials, unsupported URL
+schemes, and every non-global resolved address, then passes the exact validated
+address set to the HTTP transport. The transport connects only to those pinned
+addresses while preserving the original HTTP `Host` and TLS SNI hostname; it
+does not resolve the hostname again. Redirect targets repeat the same validation
+and pinning independently, and cross-origin redirects discard authorization,
+cookie, and proxy-authorization headers. This prevents a DNS change between
+validation and connection from turning a public URL into a private-network
+request.
+
+Managed tasks use a 30-second lease and one batched 10-second heartbeat for all
+currently running invocations owned by the worker. Long request backoff is not
+an active lease: it is durable `waiting` state. If heartbeats stop, lease expiry
+closes the active attempt as `worker_lost` and requeues the same invocation. A
+stale worker cannot commit after reassignment because its lease token no longer
+matches.
 
 The first implementation uses a deployment-scoped SQLite limiter at:
 
@@ -1013,17 +1082,22 @@ The first implementation uses a deployment-scoped SQLite limiter at:
 This file is separate from every run/execution database and is shared by all CLI
 processes using the same `runsRoot`. It contains:
 
-- `resource_state(resource_key, policy_version, next_start_at, breaker_state,
-  breaker_until)`;
+- `resource_state(resource_key, max_concurrency, min_interval_seconds,
+  lease_seconds, next_start_at, updated_at)`;
 - `resource_slots(resource_key, slot_number, operation_id, owner_id,
   lease_until)` with a fixed bounded slot set per policy.
 
 Acquisition uses one `BEGIN IMMEDIATE` transaction: find an empty or expired
-slot, verify `next_start_at <= now` and breaker state, update that slot with a
-crash-expiring owner, and advance `next_start_at` by `minDelayMs`. Release clears
+slot, verify `next_start_at <= now`, update that slot with a crash-expiring
+owner, and advance `next_start_at` by the configured interval. Release clears
 the same fixed row. This avoids an insert/update history row for every network
 action and prevents unbounded limiter-table growth. Direct and managed calls use
 the same backend, so concurrent CLI searches obey one resource limit.
+
+Cancellation does not abandon an acquire already running in a worker thread.
+Cleanup waits for that acquire and releases any resulting permit before
+propagating cancellation, including when cancellation is requested repeatedly
+during cleanup.
 
 Weighted fairness between task classes remains coordinator-local; resource
 concurrency/pacing is deployment-global. A multi-host deployment replaces only
@@ -1034,7 +1108,7 @@ It must not fall back to independent in-memory limiters.
 
 An execution is drained only when, in one coordinator transaction:
 
-1. no invocation is queued, leased, or waiting for retry;
+1. no invocation is queued, leased, or waiting;
 2. no outbox event is unprocessed;
 3. no dependency is waiting on a non-terminal invocation;
 4. every source plan is terminal;
@@ -1046,6 +1120,11 @@ At deadline, the execution enters `stopping`, rejects late commits, invalidates
 remaining leases, marks invocations/dependencies/source plans cancelled, and
 then performs the normal drain check. Final assembly keeps already committed
 facts and preserves `completion_reason = deadline`.
+
+Final artifacts expose `execution_quality` as `complete`, `degraded`, or
+`failed`, plus `source_coverage` with planned, complete, degraded, failed, and
+per-status source counts. Degraded sources do not erase usable observations,
+and a failed source never silently appears as a complete run.
 
 ## Run and Append Isolation
 
@@ -1128,6 +1207,13 @@ collapsed. Ranking operates on exact groups plus ungrouped/probable members.
 - normalized endpoint ids, task-key dedupe, and the persisted execution budget
   terminate recursive career discovery;
 - process restart recovers task leases and the execution coordinator lease;
+- a committed successful page is never fetched again, while an uncommitted
+  `worker_lost` invocation is safely reassigned;
+- retry backoff and resource pacing create no active parser attempt and hold no
+  task lease or resource slot;
+- all active invocation leases are renewed by one batched 10-second heartbeat;
+- full-catalog healthy execution stays within 120 seconds and widespread
+  degraded failure settles with explicit quality within 180 seconds;
 - parser versions referenced by active invocations remain installed; otherwise
   the invocation terminates explicitly as `implementation_unavailable`;
 - browser and HTTP scrapers can only reach the network through `ParserRuntime`;

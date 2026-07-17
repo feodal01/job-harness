@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import tempfile
 import unittest
@@ -39,6 +40,7 @@ from job_harness.v2.contracts import (
 )
 from job_harness.v2.persistence.graph_repository import SqliteGraphRepository
 from job_harness.v2.runtime.graph_coordinator import GraphCoordinator
+from job_harness.v2.runtime.source_registry import build_independent_parser_registry
 
 
 def _search_manifest() -> ParserManifest:
@@ -123,10 +125,36 @@ class _ProfileBundle:
         raise NotImplementedError
 
 
+def _site_manifest() -> ParserManifest:
+    return ParserManifest(
+        parser_id="web.company-site",
+        parser_type=ParserType.COMPANY_SITE,
+        implementation_version="1.0",
+        input_schema_id="web.company-site.input.v1",
+        output_schema_id="web.company-site.output.v1",
+        transport=TransportKind.HTTP,
+        provider_ids=("web",),
+        supported_url_patterns=(r"https://.*",),
+        output_facts=("careerEndpoints",),
+        invocation_scope=InvocationScope.STATELESS_UNIT,
+        is_fallback=True,
+    )
+
+
+class _SiteBundle:
+    manifest = _site_manifest()
+    input_type = CompanySiteInput
+    result_type = CompanySiteResult
+
+    async def execute(self, parser_input: object, runtime: object) -> object:
+        raise NotImplementedError
+
+
 class _DiscoveredSearchBundle:
     manifest = replace(
         _search_manifest(),
         parser_id="discovered.search",
+        provider_ids=("web",),
         supported_url_patterns=(r"https://example\.com/(?:careers|jobs)",),
         source_kinds=("discovered",),
     )
@@ -170,6 +198,149 @@ def _listing() -> SearchListingOutput:
 
 
 class GraphCoordinatorTest(unittest.TestCase):
+    def test_eventless_turn_does_not_open_a_write_transaction(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "run.sqlite"
+            repository = SqliteGraphRepository(database_path)
+            self.addCleanup(repository.close)
+            execution_id = repository.create_execution(
+                run_id="r-eventless",
+                intent={"queries": ["QA"]},
+                append_sequence=0,
+                policy_version="policy-v1",
+                runtime_config_version="runtime-v1",
+                active_runtime_budget_ms=1_000_000,
+            )
+            coordinator = GraphCoordinator(
+                repository=repository,
+                registry=ParserRegistry(()),
+                owner_id="coordinator",
+            )
+            statements: list[str] = []
+            repository._connection.set_trace_callback(statements.append)  # noqa: SLF001
+            try:
+                processed = coordinator.process_once(
+                    execution_id,
+                    limit=20,
+                    lease_seconds=30.0,
+                    now=100.0,
+                )
+            finally:
+                repository._connection.set_trace_callback(None)  # noqa: SLF001
+
+            self.assertEqual(processed, 0)
+            self.assertFalse(
+                any(
+                    statement.lstrip().upper().startswith(
+                        ("BEGIN", "COMMIT", "INSERT", "UPDATE", "DELETE")
+                    )
+                    for statement in statements
+                ),
+                statements,
+            )
+
+    def test_single_oversized_listing_event_is_resumed_in_250_item_batches(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "run.sqlite"
+            repository = SqliteGraphRepository(database_path)
+            self.addCleanup(repository.close)
+            manifest = replace(
+                _search_manifest(),
+                default_item_budget=300,
+                default_unit_budget=2,
+                default_invocation_budget=2,
+            )
+            execution_id = repository.create_execution(
+                run_id="r-bounded-coordinator",
+                intent={"query_variants": ["QA"]},
+                append_sequence=0,
+                policy_version="policy-v1",
+                runtime_config_version="runtime-v1",
+                active_runtime_budget_ms=1_000_000,
+            )
+            source_plan_id = repository.create_source_plan(
+                execution_id=execution_id,
+                source_id="hh_ru",
+                manifest=manifest,
+                queries=("QA",),
+                unit_budget=2,
+                item_budget=300,
+                invocation_budget=2,
+            )
+            repository.enqueue_invocation(
+                ParserInvocationSpec(
+                    execution_id=execution_id,
+                    source_plan_id=source_plan_id,
+                    parent_invocation_id=None,
+                    cause_event_id=None,
+                    parser_ref=manifest.ref,
+                    parser_type=ParserType.SEARCH_LISTING,
+                    input_schema_id=manifest.input_schema_id,
+                    parser_input=_input(0),
+                    task_class=TaskClass.LISTING,
+                    task_key="oversized-page",
+                    available_at=0.0,
+                    reserved_collection_units=1,
+                )
+            )
+            invocation = repository.lease_ready_invocations(
+                execution_id=execution_id,
+                owner_id="worker",
+                limit=1,
+                lease_seconds=30.0,
+                now=100.0,
+            )[0]
+            repository.commit_search_result(
+                invocation,
+                SearchListingResult(
+                    outcome=SearchResultOutcome.SUCCESS,
+                    items=tuple(
+                        replace(
+                            _listing(),
+                            source_listing_id=str(index),
+                            vacancy_url=f"https://hh.ru/vacancy/{index}",
+                        )
+                        for index in range(251)
+                    ),
+                    continuations=(),
+                    collection_units_consumed=1,
+                ),
+                manifest,
+                now=101.0,
+            )
+            registry = ParserRegistry(())
+            coordinator = GraphCoordinator(
+                repository=repository,
+                registry=registry,
+                owner_id="coordinator",
+            )
+
+            first_count = coordinator.process_once(
+                execution_id,
+                limit=20,
+                lease_seconds=30.0,
+                now=102.0,
+            )
+
+            self.assertEqual(first_count, 1)
+            self.assertEqual(self._scalar(database_path, "SELECT COUNT(*) FROM fact_sets"), 250)
+            self.assertIsNone(self._scalar(database_path, "SELECT processed_at FROM domain_events"))
+            self.assertEqual(
+                self._scalar(database_path, "SELECT processing_offset FROM domain_events"),
+                250,
+            )
+
+            second_count = coordinator.process_once(
+                execution_id,
+                limit=20,
+                lease_seconds=30.0,
+                now=103.0,
+            )
+
+            self.assertEqual(second_count, 1)
+            self.assertEqual(self._scalar(database_path, "SELECT COUNT(*) FROM fact_sets"), 251)
+            self.assertIsNotNone(self._scalar(database_path, "SELECT processed_at FROM domain_events"))
+
     def test_listing_event_schedules_missing_fact_provider_before_page_two_finishes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database_path = Path(directory) / "run.sqlite"
@@ -181,7 +352,7 @@ class GraphCoordinatorTest(unittest.TestCase):
                 append_sequence=0,
                 policy_version="policy-v1",
                 runtime_config_version="runtime-v1",
-                deadline_at=1000.0,
+                active_runtime_budget_ms=1_000_000,
             )
             source_plan_id = repository.create_source_plan(
                 execution_id=execution_id,
@@ -264,7 +435,7 @@ class GraphCoordinatorTest(unittest.TestCase):
             )
             self.assertEqual(
                 self._scalar(database_path, "SELECT deriver_version FROM fact_derivations"),
-                "1.0",
+            "6.0",
             )
             derivation_evidence = self._scalar(
                 database_path,
@@ -288,11 +459,14 @@ class GraphCoordinatorTest(unittest.TestCase):
                 lease_seconds=30.0,
                 now=103.0,
             )
-            self.assertEqual(tuple(item.spec.task_class for item in leased), (TaskClass.DETAIL, TaskClass.LISTING))
-            self.assertEqual(leased[0].spec.parent_invocation_id, first_id)
+            self.assertEqual(
+                tuple(item.spec.task_class for item in leased),
+                (TaskClass.LISTING, TaskClass.DETAIL),
+            )
+            self.assertEqual(leased[1].spec.parent_invocation_id, first_id)
 
             repository.commit_detail_result(
-                leased[0],
+                leased[1],
                 VacancyDetailResult(
                     outcome=SingletonResultOutcome.SUCCESS,
                     item=VacancyDetailOutput(
@@ -337,7 +511,7 @@ class GraphCoordinatorTest(unittest.TestCase):
                 "satisfied",
             )
 
-    def test_shared_profile_task_fans_out_to_two_listing_consumers(self) -> None:
+    def test_shared_profile_event_resumes_251_consumers_without_n_plus_one_reads(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database_path = Path(directory) / "run.sqlite"
             repository = SqliteGraphRepository(database_path)
@@ -348,7 +522,7 @@ class GraphCoordinatorTest(unittest.TestCase):
                 append_sequence=0,
                 policy_version="policy-v1",
                 runtime_config_version="runtime-v1",
-                deadline_at=1000.0,
+                active_runtime_budget_ms=1_000_000,
             )
             source_plan_id = repository.create_source_plan(
                 execution_id=execution_id,
@@ -356,7 +530,7 @@ class GraphCoordinatorTest(unittest.TestCase):
                 manifest=_search_manifest(),
                 queries=("QA",),
                 unit_budget=1,
-                item_budget=10,
+                item_budget=300,
                 invocation_budget=1,
             )
             repository.add_fact_requirement(
@@ -405,26 +579,26 @@ class GraphCoordinatorTest(unittest.TestCase):
                 profile_url="https://hh.ru/employer/10",
             )
             first = _listing()
-            second = replace(
-                first,
-                source_listing_id="124",
-                vacancy_url="https://hh.ru/vacancy/124",
+            shared_listings = tuple(
+                replace(
+                    first,
+                    source_listing_id=str(1000 + index),
+                    vacancy_url=f"https://hh.ru/vacancy/{1000 + index}",
+                    company=shared_company,
+                )
+                for index in range(251)
             )
             unresolved = replace(
                 first,
-                source_listing_id="125",
-                vacancy_url="https://hh.ru/vacancy/125",
+                source_listing_id="2000",
+                vacancy_url="https://hh.ru/vacancy/2000",
                 company=CompanyRef(name="Name Only"),
             )
             repository.commit_search_result(
                 listing_invocation,
                 SearchListingResult(
                     outcome=SearchResultOutcome.SUCCESS,
-                    items=(
-                        replace(first, company=shared_company),
-                        replace(second, company=shared_company),
-                        unresolved,
-                    ),
+                    items=(*shared_listings, unresolved),
                     continuations=(),
                     collection_units_consumed=1,
                 ),
@@ -438,8 +612,12 @@ class GraphCoordinatorTest(unittest.TestCase):
             )
 
             coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=102.0)
+            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=102.5)
 
-            self.assertEqual(self._scalar(database_path, "SELECT COUNT(*) FROM listing_enrichment_requests"), 3)
+            self.assertEqual(
+                self._scalar(database_path, "SELECT COUNT(*) FROM listing_enrichment_requests"),
+                252,
+            )
             self.assertEqual(
                 self._scalar(
                     database_path,
@@ -485,14 +663,42 @@ class GraphCoordinatorTest(unittest.TestCase):
                 now=104.0,
             )
 
-            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=105.0)
+            statements: list[str] = []
+            repository._connection.set_trace_callback(statements.append)  # noqa: SLF001
+            try:
+                coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=105.0)
+            finally:
+                repository._connection.set_trace_callback(None)  # noqa: SLF001
 
             self.assertEqual(
                 self._scalar(
                     database_path,
                     "SELECT COUNT(*) FROM listing_enrichment_requests WHERE status = 'satisfied'",
                 ),
-                2,
+                250,
+            )
+            self.assertIsNone(
+                self._scalar(
+                    database_path,
+                    "SELECT processed_at FROM domain_events "
+                    "WHERE event_type = 'company_profile_observation_stored'",
+                )
+            )
+            self.assertEqual(
+                self._scalar(
+                    database_path,
+                    "SELECT processing_offset FROM domain_events "
+                    "WHERE event_type = 'company_profile_observation_stored'",
+                ),
+                250,
+            )
+            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=106.0)
+            self.assertEqual(
+                self._scalar(
+                    database_path,
+                    "SELECT COUNT(*) FROM listing_enrichment_requests WHERE status = 'satisfied'",
+                ),
+                251,
             )
             self.assertEqual(
                 self._scalar(
@@ -506,10 +712,252 @@ class GraphCoordinatorTest(unittest.TestCase):
                     database_path,
                     "SELECT COUNT(*) FROM selection_evaluations WHERE stage = 'final' AND outcome = 'keep'",
                 ),
-                3,
+                252,
+            )
+            enrichment_selects = tuple(
+                statement
+                for statement in statements
+                if statement.lstrip().upper().startswith("SELECT")
+                and "FROM listing_enrichment_requests" in statement
+            )
+            self.assertLessEqual(len(enrichment_selects), 4, enrichment_selects)
+
+    def test_provider_graph_unlocks_detail_then_profile_then_site(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "run.sqlite"
+            repository = SqliteGraphRepository(database_path)
+            self.addCleanup(repository.close)
+            execution_id = repository.create_execution(
+                run_id="r-provider-chain",
+                intent={"queries": ["QA"]},
+                append_sequence=0,
+                policy_version="policy-v1",
+                runtime_config_version="runtime-v1",
+                active_runtime_budget_ms=1_000_000,
+            )
+            source_plan_id = repository.create_source_plan(
+                execution_id=execution_id,
+                source_id="hh_ru",
+                manifest=_search_manifest(),
+                queries=("QA",),
+                unit_budget=1,
+                item_budget=10,
+                invocation_budget=1,
+            )
+            for criterion, fact_path, provider in (
+                (
+                    "profile_target",
+                    "company.profile_url",
+                    FactProviderSpec(
+                        provider_id="hh-detail-profile-target",
+                        stage=ProviderStage.DETAIL_OUTPUT,
+                        parser_ref=_detail_manifest().ref,
+                        fact_path="company.profile_url",
+                        depends_on_fact_paths=(),
+                        required_for_final=False,
+                        cost_class="detail",
+                        ordering=10,
+                    ),
+                ),
+                (
+                    "official_site",
+                    "official_site_url",
+                    FactProviderSpec(
+                        provider_id="hh-profile-official-site",
+                        stage=ProviderStage.PROFILE_OUTPUT,
+                        parser_ref=_profile_manifest().ref,
+                        fact_path="official_site_url",
+                        depends_on_fact_paths=("company.profile_url",),
+                        required_for_final=False,
+                        cost_class="profile",
+                        ordering=20,
+                    ),
+                ),
+                (
+                    "career_endpoint",
+                    "career_endpoints",
+                    FactProviderSpec(
+                        provider_id="web-site-career-endpoint",
+                        stage=ProviderStage.SITE_OUTPUT,
+                        parser_ref=_site_manifest().ref,
+                        fact_path="career_endpoints",
+                        depends_on_fact_paths=("official_site_url",),
+                        required_for_final=False,
+                        cost_class="site",
+                        ordering=30,
+                    ),
+                ),
+            ):
+                repository.add_fact_requirement(
+                    source_plan_id=source_plan_id,
+                    criterion=criterion,
+                    fact_path=fact_path,
+                    comparison={"operator": "exists"},
+                    provider=provider,
+                )
+            repository.enqueue_invocation(
+                ParserInvocationSpec(
+                    execution_id=execution_id,
+                    source_plan_id=source_plan_id,
+                    parent_invocation_id=None,
+                    cause_event_id=None,
+                    parser_ref=_search_manifest().ref,
+                    parser_type=ParserType.SEARCH_LISTING,
+                    input_schema_id=_search_manifest().input_schema_id,
+                    parser_input=_input(0),
+                    task_class=TaskClass.LISTING,
+                    task_key="provider-chain-page-0",
+                    available_at=0.0,
+                    reserved_collection_units=1,
+                )
+            )
+            listing_invocation = repository.lease_ready_invocations(
+                execution_id=execution_id,
+                owner_id="listing-worker",
+                limit=1,
+                lease_seconds=30.0,
+                now=100.0,
+            )[0]
+            repository.commit_search_result(
+                listing_invocation,
+                SearchListingResult(
+                    outcome=SearchResultOutcome.SUCCESS,
+                    items=(_listing(),),
+                    continuations=(),
+                    collection_units_consumed=1,
+                ),
+                _search_manifest(),
+                now=101.0,
+            )
+            coordinator = GraphCoordinator(
+                repository=repository,
+                registry=ParserRegistry((_DetailBundle(), _ProfileBundle(), _SiteBundle())),
+                owner_id="coordinator",
             )
 
-    def test_late_consumer_reuses_already_completed_profile_observation(self) -> None:
+            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=102.0)
+            detail_invocation = repository.lease_ready_invocations(
+                execution_id=execution_id,
+                owner_id="detail-worker",
+                limit=5,
+                lease_seconds=30.0,
+                now=103.0,
+            )
+            self.assertEqual((TaskClass.DETAIL,), tuple(item.spec.task_class for item in detail_invocation))
+            repository.commit_detail_result(
+                detail_invocation[0],
+                VacancyDetailResult(
+                    outcome=SingletonResultOutcome.SUCCESS,
+                    item=VacancyDetailOutput(
+                        target_provider_id="hh",
+                        source_listing_id="123",
+                        canonical_vacancy_url="https://hh.ru/vacancy/123",
+                        title="QA Engineer",
+                        company=CompanyRef(
+                            name="Example",
+                            target_provider_id="hh",
+                            source_company_id="10",
+                            profile_url="https://hh.ru/employer/10",
+                        ),
+                        description="Full description",
+                        requirements=(),
+                        responsibilities=(),
+                        conditions=(),
+                        skills=(),
+                        employment_types=(),
+                        salary=None,
+                        work_formats=("hybrid",),
+                        remote_scopes=(),
+                        application_channels=(),
+                    ),
+                ),
+                _detail_manifest(),
+                now=104.0,
+            )
+
+            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=105.0)
+            profile_invocation = repository.lease_ready_invocations(
+                execution_id=execution_id,
+                owner_id="profile-worker",
+                limit=5,
+                lease_seconds=30.0,
+                now=106.0,
+            )
+            self.assertEqual((TaskClass.PROFILE,), tuple(item.spec.task_class for item in profile_invocation))
+            repository.commit_profile_result(
+                profile_invocation[0],
+                CompanyProfileResult(
+                    outcome=SingletonResultOutcome.SUCCESS,
+                    item=CompanyProfileOutput(
+                        target_provider_id="hh",
+                        profile_url="https://hh.ru/employer/10",
+                        source_company_id="10",
+                        company_name="Example",
+                        description=None,
+                        industry=None,
+                        size_text=None,
+                        locations=(),
+                        official_site_url="https://example.com",
+                        career_endpoints=(),
+                        contacts=(),
+                        social_links=(),
+                    ),
+                ),
+                _profile_manifest(),
+                now=107.0,
+            )
+
+            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=108.0)
+            site_invocation = repository.lease_ready_invocations(
+                execution_id=execution_id,
+                owner_id="site-worker",
+                limit=5,
+                lease_seconds=30.0,
+                now=109.0,
+            )
+            self.assertEqual((TaskClass.SITE,), tuple(item.spec.task_class for item in site_invocation))
+            repository.commit_site_result(
+                site_invocation[0],
+                CompanySiteResult(
+                    outcome=SingletonResultOutcome.SUCCESS,
+                    item=CompanySiteOutput(
+                        canonical_site_url="https://example.com",
+                        company_name="Example",
+                        contacts=(),
+                        social_links=(),
+                        career_endpoints=(
+                            DiscoveredEndpoint(
+                                kind="career_page",
+                                url="https://example.com/careers",
+                                provider_hint=None,
+                                confidence="confirmed",
+                                discovery_method="explicit_link",
+                            ),
+                        ),
+                    ),
+                ),
+                _site_manifest(),
+                now=110.0,
+            )
+
+            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=111.0)
+
+            self.assertEqual(
+                3,
+                self._scalar(
+                    database_path,
+                    "SELECT COUNT(*) FROM listing_enrichment_requests WHERE status = 'satisfied'",
+                ),
+            )
+            self.assertEqual(
+                "keep",
+                self._scalar(
+                    database_path,
+                    "SELECT outcome FROM selection_evaluations WHERE stage = 'final' ORDER BY rowid DESC LIMIT 1",
+                ),
+            )
+
+    def test_optional_child_late_consumer_reuses_completed_profile_observation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database_path = Path(directory) / "run.sqlite"
             repository = SqliteGraphRepository(database_path)
@@ -520,7 +968,18 @@ class GraphCoordinatorTest(unittest.TestCase):
                 append_sequence=0,
                 policy_version="policy-v1",
                 runtime_config_version="runtime-v1",
-                deadline_at=1000.0,
+                active_runtime_budget_ms=1_000_000,
+            )
+            enrichment_execution_id = repository.create_execution(
+                run_id="r-late-profile",
+                intent={"queries": ["QA"]},
+                append_sequence=0,
+                policy_version="enrichment-v1",
+                runtime_config_version="runtime-v1",
+                active_runtime_budget_ms=1_000_000,
+                speculative_admission_budget=2,
+                execution_kind="enrichment",
+                parent_execution_id=execution_id,
             )
             source_plan_id = repository.create_source_plan(
                 execution_id=execution_id,
@@ -587,15 +1046,36 @@ class GraphCoordinatorTest(unittest.TestCase):
                 _search_manifest(),
                 now=101.0,
             )
-            coordinator = GraphCoordinator(
+            parent_coordinator = GraphCoordinator(
                 repository=repository,
                 registry=ParserRegistry((_ProfileBundle(),)),
-                owner_id="coordinator",
+                owner_id="parent-coordinator",
+                request=SearchRequest(query_variants=("QA",)),
+                requirement_scope="required",
+                optional_execution_id=enrichment_execution_id,
             )
-            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=102.0)
+            child_coordinator = GraphCoordinator(
+                repository=repository,
+                registry=ParserRegistry((_ProfileBundle(),)),
+                owner_id="child-coordinator",
+                requirement_scope="optional",
+            )
+            parent_coordinator.process_once(
+                execution_id,
+                limit=20,
+                lease_seconds=30.0,
+                now=102.0,
+            )
 
-            profile_invocation = repository.lease_ready_invocations(
+            second_page = repository.lease_ready_invocations(
                 execution_id=execution_id,
+                owner_id="listing-worker",
+                limit=1,
+                lease_seconds=30.0,
+                now=103.0,
+            )[0]
+            profile_invocation = repository.lease_ready_invocations(
+                execution_id=enrichment_execution_id,
                 owner_id="profile-worker",
                 limit=1,
                 lease_seconds=30.0,
@@ -623,15 +1103,13 @@ class GraphCoordinatorTest(unittest.TestCase):
                 _profile_manifest(),
                 now=104.0,
             )
-            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=105.0)
-
-            second_page = repository.lease_ready_invocations(
-                execution_id=execution_id,
-                owner_id="listing-worker",
-                limit=1,
+            child_coordinator.process_once(
+                enrichment_execution_id,
+                limit=20,
                 lease_seconds=30.0,
-                now=106.0,
-            )[0]
+                now=105.0,
+            )
+
             repository.commit_search_result(
                 second_page,
                 SearchListingResult(
@@ -650,19 +1128,34 @@ class GraphCoordinatorTest(unittest.TestCase):
                 _search_manifest(),
                 now=107.0,
             )
-            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=108.0)
+            parent_coordinator.process_once(
+                execution_id,
+                limit=20,
+                lease_seconds=30.0,
+                now=108.0,
+            )
+            child_coordinator.process_once(
+                enrichment_execution_id,
+                limit=20,
+                lease_seconds=30.0,
+                now=109.0,
+            )
 
             self.assertEqual(
                 self._scalar(
                     database_path,
-                    "SELECT COUNT(*) FROM listing_enrichment_requests WHERE status = 'satisfied'",
+                    "SELECT COUNT(*) FROM listing_enrichment_requests "
+                    "WHERE execution_id = ? AND status = 'satisfied'",
+                    (enrichment_execution_id,),
                 ),
                 2,
             )
             self.assertEqual(
                 self._scalar(
                     database_path,
-                    "SELECT COUNT(*) FROM selection_evaluations WHERE stage = 'final' AND outcome = 'keep'",
+                    "SELECT COUNT(*) FROM selection_evaluations "
+                    "WHERE execution_id = ? AND stage = 'final' AND outcome = 'keep'",
+                    (enrichment_execution_id,),
                 ),
                 2,
             )
@@ -679,7 +1172,7 @@ class GraphCoordinatorTest(unittest.TestCase):
                 append_sequence=0,
                 policy_version="policy-v1",
                 runtime_config_version="runtime-v1",
-                deadline_at=1000.0,
+                active_runtime_budget_ms=1_000_000,
                 discovery_plan_budget=1,
             )
             site_manifest = ParserManifest(
@@ -776,10 +1269,103 @@ class GraphCoordinatorTest(unittest.TestCase):
                 1,
             )
 
+    def test_production_ats_discovery_persists_input_derived_page_request(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "run.sqlite"
+            repository = SqliteGraphRepository(database_path)
+            self.addCleanup(repository.close)
+            registry = build_independent_parser_registry(("hh_ru",))
+            site_manifest = registry.manifest(ParserRef("web.company-site", "1.0"))
+            request = SearchRequest(query_variants=("AI lead",))
+            execution_id = repository.create_execution(
+                run_id="r-production-discovery",
+                intent={"query_variants": ["AI lead"]},
+                append_sequence=0,
+                policy_version="policy-v1",
+                runtime_config_version="runtime-v1",
+                active_runtime_budget_ms=1_000_000,
+                discovery_plan_budget=1,
+            )
+            repository.enqueue_invocation(
+                ParserInvocationSpec(
+                    execution_id=execution_id,
+                    source_plan_id=None,
+                    parent_invocation_id=None,
+                    cause_event_id=None,
+                    parser_ref=site_manifest.ref,
+                    parser_type=ParserType.COMPANY_SITE,
+                    input_schema_id=site_manifest.input_schema_id,
+                    parser_input=CompanySiteInput(site_url="https://example.com"),
+                    task_class=TaskClass.SITE,
+                    task_key="production-site-example",
+                    available_at=0.0,
+                    reserved_collection_units=None,
+                )
+            )
+            site_invocation = repository.lease_ready_invocations(
+                execution_id=execution_id,
+                owner_id="site-worker",
+                limit=1,
+                lease_seconds=30.0,
+                now=100.0,
+            )[0]
+            repository.commit_site_result(
+                site_invocation,
+                CompanySiteResult(
+                    outcome=SingletonResultOutcome.SUCCESS,
+                    item=CompanySiteOutput(
+                        canonical_site_url="https://example.com",
+                        company_name="Example",
+                        contacts=(),
+                        social_links=(),
+                        career_endpoints=(
+                            DiscoveredEndpoint(
+                                kind="career_page",
+                                url="https://jobs.lever.co/example-company",
+                                provider_hint="ats:lever",
+                                confidence="confirmed",
+                                discovery_method="explicit_link",
+                            ),
+                        ),
+                    ),
+                ),
+                site_manifest,
+                now=101.0,
+            )
+            coordinator = GraphCoordinator(
+                repository=repository,
+                registry=registry,
+                owner_id="coordinator",
+                request=request,
+            )
+
+            coordinator.process_once(execution_id, limit=20, lease_seconds=30.0, now=102.0)
+
+            with closing(sqlite3.connect(database_path)) as connection:
+                row = connection.execute(
+                    """
+                    SELECT parser_id, input_json
+                    FROM parser_invocations
+                    WHERE parser_type = 'search_listing'
+                    """
+                ).fetchone()
+            assert row is not None
+            parser_input = json.loads(row[1])
+            self.assertEqual(row[0], "ats.discovered.search")
+            self.assertEqual(
+                parser_input["cursor"]["request"]["url"],
+                "https://api.lever.co/v0/postings/example-company?mode=json",
+            )
+            self.assertEqual(parser_input["source_id"], parser_input["target_provider_id"])
+
     @staticmethod
-    def _scalar(database_path: Path, query: str) -> object:
+    def _scalar(
+        database_path: Path,
+        query: str,
+        parameters: tuple[object, ...] = (),
+    ) -> object:
         with closing(sqlite3.connect(database_path)) as connection:
-            row = connection.execute(query).fetchone()
+            row = connection.execute(query, parameters).fetchone()
         if row is None:
             raise AssertionError("expected one row")
         return row[0]

@@ -10,12 +10,12 @@ from tests.v2._support.contract_runtime import listing
 from job_harness.v2.contracts import (
     AttemptCounts,
     AttemptEvidence,
+    CompensationCriterion,
+    CompensationPeriod,
     CriteriaDiagnostics,
     DescriptionAvailability,
     Grade,
     RawSearchRecord,
-    RetryInfo,
-    RetryNextAction,
     SearchCriterion,
     SearchRequest,
     SourceAttemptRecord,
@@ -80,6 +80,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual(
             {
                 "append_to_run_id": None,
+                "employer_geographies": [],
                 "exclude_companies": ["blocked"],
                 "exclude_text": [
                     {
@@ -94,7 +95,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                 "query_variants": ["QA"],
                 "relocation": None,
                 "remote_scopes": [],
-                "salary_from": None,
+                "compensation": None,
+                "scenarios": [],
                 "source_types": [],
                 "sources": [],
                 "vacancy_geographies": [],
@@ -766,7 +768,13 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual([], payload["results"])
-        self.assertEqual({"work_format_mismatch": 2}, payload["removed_counts"])
+        self.assertEqual(
+            {
+                "insufficient_evidence:work_formats": 2,
+                "insufficient_evidence:remote_scopes": 2,
+            },
+            payload["removed_counts"],
+        )
         self.assertEqual(["unknown", "unknown"], [row["remote_scope"] for row in payload["filtered_out_results"]])
         self.assertEqual([None, None], [row["display_work_format"] for row in payload["filtered_out_results"]])
 
@@ -880,7 +888,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual([], [row["source_listing_id"] for row in payload["results"]])
         self.assertEqual("remote", payload["filtered_out_results"][0]["display_work_format"])
         self.assertEqual("unknown", payload["filtered_out_results"][0]["remote_scope"])
-        self.assertEqual({"remote_scope_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual(
+            {"insufficient_evidence:remote_scopes": 1},
+            payload["removed_counts"],
+        )
 
     def test_remote_eu_locations_use_region_scope(self) -> None:
         # Arrange / Act
@@ -1058,7 +1069,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         row = payload["filtered_out_results"][0]
         self.assertEqual("NL, GB", row["country"])
         self.assertEqual("unknown", row["remote_scope"])
-        self.assertEqual(["remote_scope_mismatch"], row["decision_reasons"])
+        self.assertEqual(
+            ["insufficient_evidence:remote_scopes"],
+            row["decision_reasons"],
+        )
 
     def test_specific_location_does_not_merge_hidden_source_office_countries(self) -> None:
         # Arrange / Act
@@ -1159,7 +1173,13 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(["2"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual({"vacancy_geography_mismatch": 2}, payload["removed_counts"])
+        self.assertEqual(
+            {
+                "vacancy_geography_mismatch": 1,
+                "insufficient_evidence:vacancy_geographies": 1,
+            },
+            payload["removed_counts"],
+        )
 
     def test_country_gb_remote_scope_and_region_eu_vacancy_require_both_dimensions(self) -> None:
         # Arrange / Act
@@ -1327,9 +1347,22 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(["1"], [row["source_listing_id"] for row in global_payload["results"]])
-        self.assertEqual({"remote_scope_mismatch": 1, "work_format_mismatch": 1}, global_payload["removed_counts"])
+        self.assertEqual(
+            {
+                "remote_scope_mismatch": 1,
+                "insufficient_evidence:work_formats": 1,
+                "insufficient_evidence:remote_scopes": 1,
+            },
+            global_payload["removed_counts"],
+        )
         self.assertEqual(["1"], [row["source_listing_id"] for row in non_remote_payload["results"]])
-        self.assertEqual({"work_format_mismatch": 2}, non_remote_payload["removed_counts"])
+        self.assertEqual(
+            {
+                "work_format_mismatch": 1,
+                "insufficient_evidence:work_formats": 1,
+            },
+            non_remote_payload["removed_counts"],
+        )
 
     def test_bare_remote_without_global_evidence_is_removed_from_global_remote_scope(self) -> None:
         # Arrange / Act
@@ -1350,7 +1383,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual([], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual({"remote_scope_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual(
+            {"insufficient_evidence:remote_scopes": 1},
+            payload["removed_counts"],
+        )
         self.assertEqual("unknown", payload["filtered_out_results"][0]["remote_scope"])
 
     def test_requested_hybrid_and_office_accept_physical_formats_in_vacancy_geography(self) -> None:
@@ -1374,14 +1410,20 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(["2", "3"], [row["source_listing_id"] for row in payload["results"]])
-        self.assertEqual({"vacancy_geography_mismatch": 3}, payload["removed_counts"])
+        self.assertEqual(
+            {
+                "vacancy_geography_mismatch": 2,
+                "insufficient_evidence:vacancy_geographies": 1,
+            },
+            payload["removed_counts"],
+        )
         self.assertEqual("hybrid", payload["results"][0]["display_work_format"])
         self.assertEqual(["hybrid"], payload["results"][0]["work_formats"])
         self.assertEqual(
             [
                 ["vacancy_geography_mismatch"],
                 ["vacancy_geography_mismatch"],
-                ["vacancy_geography_mismatch"],
+                ["insufficient_evidence:vacancy_geographies"],
             ],
             [row["decision_reasons"] for row in payload["filtered_out_results"]],
         )
@@ -1620,7 +1662,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual(["QA Engineer"], [row["title"] for row in payload["filtered_out_results"]])
         self.assertEqual(["work_format_mismatch"], payload["filtered_out_results"][0]["decision_reasons"])
 
-    def test_grade_filter_keeps_unknown_native_grade(self) -> None:
+    def test_grade_filter_rejects_unknown_native_grade_as_insufficient_evidence(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(query_variants=("QA",), grades=(Grade.MIDDLE,)),
@@ -1647,9 +1689,15 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(1, payload["result_count"])
-        self.assertEqual("QA Engineer", payload["results"][0]["title"])
-        self.assertEqual({}, payload["removed_counts"])
+        self.assertEqual(0, payload["result_count"])
+        self.assertEqual(
+            {"insufficient_evidence:grades": 1},
+            payload["removed_counts"],
+        )
+        self.assertEqual(
+            ["QA Engineer"],
+            [row["title"] for row in payload["filtered_out_results"]],
+        )
 
     def test_grade_filter_rejects_known_mismatched_native_grade(self) -> None:
         # Arrange / Act
@@ -1678,12 +1726,12 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual({"grade_mismatch": 1}, payload["removed_counts"])
         self.assertEqual(["QA Engineer"], [row["title"] for row in payload["filtered_out_results"]])
 
-    def test_unknown_requested_filter_facts_do_not_remove_listing(self) -> None:
+    def test_unknown_requested_filter_facts_are_rejected_with_explicit_reasons(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(
                 query_variants=("QA",),
-                salary_from=100000,
+                compensation=CompensationCriterion(100_000, "RUB", CompensationPeriod.MONTH),
                 published_since=date(2026, 1, 1),
                 relocation=True,
                 work_formats=(WorkFormat.REMOTE,),
@@ -1713,7 +1761,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     requested=frozenset(
                         {
                             SearchCriterion.QUERY,
-                            SearchCriterion.SALARY_FROM,
+                            SearchCriterion.COMPENSATION,
                             SearchCriterion.PUBLISHED_SINCE,
                             SearchCriterion.RELOCATION,
                             SearchCriterion.WORK_FORMATS,
@@ -1724,7 +1772,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     structured=frozenset({SearchCriterion.QUERY}),
                     unsupported=frozenset(
                         {
-                            SearchCriterion.SALARY_FROM,
+                            SearchCriterion.COMPENSATION,
                             SearchCriterion.PUBLISHED_SINCE,
                             SearchCriterion.RELOCATION,
                             SearchCriterion.WORK_FORMATS,
@@ -1734,7 +1782,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
                     postprocess=frozenset(
                         {
                             SearchCriterion.QUERY,
-                            SearchCriterion.SALARY_FROM,
+                            SearchCriterion.COMPENSATION,
                             SearchCriterion.PUBLISHED_SINCE,
                             SearchCriterion.RELOCATION,
                             SearchCriterion.WORK_FORMATS,
@@ -1747,7 +1795,17 @@ class ResultTablePostProcessorTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(0, payload["result_count"])
-        self.assertEqual({"work_format_mismatch": 1, "vacancy_geography_mismatch": 1}, payload["removed_counts"])
+        self.assertEqual(
+            {
+                "insufficient_evidence:compensation": 1,
+                "insufficient_evidence:published_since": 1,
+                "insufficient_evidence:work_formats": 1,
+                "insufficient_evidence:remote_scopes": 1,
+                "insufficient_evidence:vacancy_geographies": 1,
+                "insufficient_evidence:relocation": 1,
+            },
+            payload["removed_counts"],
+        )
 
     def test_query_postprocess_does_not_match_description_only_role_mentions(self) -> None:
         # Arrange / Act
@@ -1790,7 +1848,7 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         self.assertEqual(["Developer Advocate"], [row["title"] for row in payload["results"]])
         self.assertEqual({"query_mismatch": 1}, payload["removed_counts"])
 
-    def test_fuzzy_query_postprocess_matches_title_tokens(self) -> None:
+    def test_role_matcher_does_not_match_query_inside_larger_title_token(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(query_variants=("QA",)),
@@ -1826,10 +1884,10 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["AQA"], [row["title"] for row in payload["results"]])
-        self.assertEqual({"query_mismatch": 2}, payload["removed_counts"])
+        self.assertEqual([], payload["results"])
+        self.assertEqual({"query_mismatch": 3}, payload["removed_counts"])
 
-    def test_fuzzy_query_postprocess_matches_russian_inflected_title(self) -> None:
+    def test_role_matcher_does_not_infer_unconfigured_inflection(self) -> None:
         # Arrange / Act
         payload = _process_payload(
             request=SearchRequest(query_variants=("тестировщик",)),
@@ -1857,7 +1915,8 @@ class ResultTablePostProcessorTest(unittest.TestCase):
         )
 
         # Assert
-        self.assertEqual(["Инженер по тестированию"], [row["title"] for row in payload["results"]])
+        self.assertEqual([], payload["results"])
+        self.assertEqual({"query_mismatch": 1}, payload["removed_counts"])
 
     def test_fuzzy_city_filter_matches_case_and_inflection(self) -> None:
         # Arrange / Act
@@ -2030,7 +2089,6 @@ def _attempt_record(
             unsupported=unsupported,
             postprocess=postprocess,
         ),
-        retry=RetryInfo(attempts=1, max_attempts=1, next_action=RetryNextAction.NONE),
         evidence=AttemptEvidence(),
     )
 

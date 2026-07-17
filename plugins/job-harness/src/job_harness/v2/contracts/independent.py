@@ -47,13 +47,15 @@ class SingletonResultOutcome(StrEnum):
 class ParserFailureKind(StrEnum):
     BLOCKED = "blocked"
     RATE_LIMITED = "rate_limited"
-    TIMEOUT = "timeout"
-    NETWORK = "network"
-    PARSE = "parse"
+    SOURCE_TIMEOUT = "source_timeout"
+    HTTP_CLIENT_ERROR = "http_client_error"
+    HTTP_SERVER_ERROR = "http_server_error"
+    NETWORK_ERROR = "network_error"
+    PARSE_ERROR = "parse_error"
     INVALID_INPUT = "invalid_input"
-    INVALID_OUTPUT = "invalid_output"
+    INVALID_SOURCE_OUTPUT = "invalid_source_output"
     IMPLEMENTATION_UNAVAILABLE = "implementation_unavailable"
-    RESOURCE = "resource"
+    RESOURCE_FAILURE = "resource_failure"
     UNSUPPORTED_TARGET = "unsupported_target"
 
 
@@ -87,6 +89,7 @@ class ParserManifest:
     default_item_budget: int | None = None
     default_invocation_budget: int | None = None
     max_units_per_invocation: int = 1
+    is_fallback: bool = False
 
     def __post_init__(self) -> None:
         self._validate_common_fields()
@@ -113,6 +116,8 @@ class ParserManifest:
 
     def _validate_scope(self) -> None:
         is_listing = self.parser_type == ParserType.SEARCH_LISTING
+        if is_listing and self.is_fallback:
+            raise ValueError("search_listing parsers cannot be target fallbacks")
         if self.invocation_scope == InvocationScope.SESSION_BATCH and not is_listing:
             raise ValueError("session_batch is only valid for search_listing parsers")
         if self.invocation_scope == InvocationScope.STATELESS_UNIT and self.max_units_per_invocation != 1:
@@ -228,10 +233,24 @@ class CompanyRef:
 
 @dataclass(frozen=True)
 class SourceLocation:
-    text: str
+    text: str | None = None
+    cities: tuple[str, ...] = ()
+    countries: tuple[str, ...] = ()
+    regions: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        _require_text(self.text, "text")
+        text = self.text.strip() if self.text is not None else None
+        cities = _clean_values(self.cities)
+        countries = tuple(value.upper() for value in _clean_values(self.countries))
+        regions = tuple(value.upper() for value in _clean_values(self.regions))
+        if not any((text, cities, countries, regions)):
+            raise ValueError("source location requires explicit evidence")
+        if any(not re.fullmatch(r"[A-Z]{2}", value) for value in countries):
+            raise ValueError("location countries must be ISO 3166-1 alpha-2 codes")
+        object.__setattr__(self, "text", text)
+        object.__setattr__(self, "cities", cities)
+        object.__setattr__(self, "countries", countries)
+        object.__setattr__(self, "regions", regions)
 
 
 @dataclass(frozen=True)
@@ -247,8 +266,15 @@ class SalaryRange:
             raise ValueError("salary_from must be >= 0")
         if self.salary_to is not None and self.salary_to < 0:
             raise ValueError("salary_to must be >= 0")
-        if self.currency is not None and not re.fullmatch(r"[A-Z]{3}", self.currency):
-            raise ValueError("currency must be an ISO 4217 alpha-3 code")
+        if self.currency is not None:
+            currency = self.currency.strip().upper()
+            if currency == "RUR":
+                currency = "RUB"
+            if not re.fullmatch(r"[A-Z]{3}", currency):
+                raise ValueError("currency must be an ISO 4217 alpha-3 code")
+            object.__setattr__(self, "currency", currency)
+        if self.gross is not None and not isinstance(self.gross, bool):
+            raise ValueError("gross must be boolean when provided")
         if self.period not in {None, "hour", "day", "month", "year"}:
             raise ValueError("invalid salary period")
 
@@ -325,6 +351,8 @@ class SearchListingOutput:
     vacancy_url: str
     apply_url: str | None
     summary: str | None
+    relocation: bool | None = None
+    relocation_destinations: tuple[SourceLocation, ...] = ()
 
     def __post_init__(self) -> None:
         _require_text(self.source_id, "source_id")
@@ -334,6 +362,8 @@ class SearchListingOutput:
         _require_http_url(self.vacancy_url, "vacancy_url")
         if self.apply_url is not None:
             _require_http_url(self.apply_url, "apply_url")
+        if self.relocation_destinations and self.relocation is not True:
+            raise ValueError("relocation destinations require relocation=True")
 
 
 @dataclass(frozen=True)
@@ -353,11 +383,17 @@ class VacancyDetailOutput:
     work_formats: tuple[str, ...]
     remote_scopes: tuple[RemoteScope, ...]
     application_channels: tuple[ApplicationChannel, ...]
+    native_grade: str | None = None
+    location: SourceLocation | None = None
+    relocation: bool | None = None
+    relocation_destinations: tuple[SourceLocation, ...] = ()
 
     def __post_init__(self) -> None:
         _require_text(self.target_provider_id, "target_provider_id")
         _require_http_url(self.canonical_vacancy_url, "canonical_vacancy_url")
         _require_work_formats(self.work_formats)
+        if self.relocation_destinations and self.relocation is not True:
+            raise ValueError("relocation destinations require relocation=True")
 
 
 @dataclass(frozen=True)
@@ -479,7 +515,6 @@ class SearchScraperBundle(Protocol):
 @dataclass(frozen=True)
 class ParserFailure:
     kind: ParserFailureKind
-    retryable: bool
     public_notice: str | None = None
 
 
@@ -498,6 +533,59 @@ class TargetResolution:
     kind: str
     parser_ref: ParserRef | None = None
     candidate_refs: tuple[ParserRef, ...] = ()
+
+
+class TargetParserResolver:
+    """Resolve a typed provider URL to a parser without registry-order coupling."""
+
+    def __init__(self, manifests: Iterable[ParserManifest]) -> None:
+        self._manifests = tuple(sorted(manifests, key=lambda manifest: manifest.ref))
+
+    def resolve(
+        self,
+        parser_type: ParserType,
+        provider_hint: str | None,
+        normalized_url: str,
+    ) -> TargetResolution:
+        _require_http_url(normalized_url, "normalized_url")
+        if provider_hint is not None:
+            _require_text(provider_hint, "provider_hint")
+        matching = tuple(
+            manifest
+            for manifest in self._manifests
+            if manifest.parser_type == parser_type
+            and any(re.search(pattern, normalized_url) for pattern in manifest.supported_url_patterns)
+        )
+        specific = tuple(
+            manifest.ref
+            for manifest in matching
+            if not manifest.is_fallback
+            and (provider_hint is None or provider_hint in manifest.provider_ids)
+        )
+        if specific:
+            return _target_resolution(specific)
+        fallbacks = tuple(manifest.ref for manifest in matching if manifest.is_fallback)
+        return _target_resolution(fallbacks)
+
+    def has_candidate(
+        self,
+        parser_type: ParserType,
+        provider_hint: str | None,
+        *,
+        output_fact: str | None = None,
+    ) -> bool:
+        if provider_hint is not None:
+            _require_text(provider_hint, "provider_hint")
+        return any(
+            manifest.parser_type == parser_type
+            and (output_fact is None or output_fact in manifest.output_facts)
+            and (
+                manifest.is_fallback
+                or provider_hint is None
+                or provider_hint in manifest.provider_ids
+            )
+            for manifest in self._manifests
+        )
 
 
 class ParserRegistry:
@@ -542,30 +630,19 @@ class ParserRegistry:
             if manifest.parser_type == ParserType.SEARCH_LISTING
         )
 
-    def resolve_target(self, parser_type: ParserType, url: str) -> TargetResolution:
-        _require_http_url(url, "url")
-        candidates = tuple(
-            sorted(
-                (
-                    parser_ref
-                    for parser_ref, manifest in self._manifests.items()
-                    if manifest.parser_type == parser_type
-                    and any(re.search(pattern, url) for pattern in manifest.supported_url_patterns)
-                )
-            )
-        )
-        if not candidates:
-            return TargetResolution(kind="unsupported_target")
-        if len(candidates) > 1:
-            return TargetResolution(kind="ambiguous_target", candidate_refs=candidates)
-        return TargetResolution(kind="resolved", parser_ref=candidates[0])
-
-
 def _validate_singleton(outcome: SingletonResultOutcome, item: object | None) -> None:
     if outcome == SingletonResultOutcome.SUCCESS and item is None:
         raise ValueError("success requires exactly one item")
     if outcome == SingletonResultOutcome.NOT_FOUND and item is not None:
         raise ValueError("not_found requires item=None")
+
+
+def _target_resolution(candidates: tuple[ParserRef, ...]) -> TargetResolution:
+    if not candidates:
+        return TargetResolution(kind="unsupported_target")
+    if len(candidates) > 1:
+        return TargetResolution(kind="ambiguous_target", candidate_refs=candidates)
+    return TargetResolution(kind="resolved", parser_ref=candidates[0])
 
 
 def _validate_bundle_contract(implementation: object, manifest: ParserManifest) -> None:
@@ -594,6 +671,10 @@ def _validate_bundle_contract(implementation: object, manifest: ParserManifest) 
 def _require_text(value: str, name: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{name} must be non-empty")
+
+
+def _clean_values(values: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(value.strip() for value in values if value.strip()))
 
 
 def _require_http_url(value: object, name: str) -> None:

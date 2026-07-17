@@ -14,6 +14,8 @@ from job_harness.v2.contracts.source import SourceDescriptor
 
 @dataclass(frozen=True)
 class SourceFetchRequest:
+    """Read-only source fetch; POST bodies may encode queries but never mutations."""
+
     source_id: str
     query_variant: str
     url: str

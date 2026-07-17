@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
-from job_harness.v2.contracts import SearchRequest, SelectionDecision
-from job_harness.v2.geography import is_region_scope, normalize_source_geographies
+from job_harness.v2.contracts import (
+    CompensationFact,
+    CompensationPeriod,
+    SearchRequest,
+    SelectionDecision,
+    SelectionOutcome,
+)
 from job_harness.v2.postprocessing.filter_policy import (
     VacancyFilterCriteria,
     VacancyFilterFacts,
@@ -17,26 +22,36 @@ class GraphVacancySelector:
         self._criteria = VacancyFilterCriteria.from_search_request(request)
 
     def evaluate(self, facts: JsonObject) -> SelectionDecision:
+        return self._evaluate(facts)
+
+    def evaluate_preliminary(self, facts: JsonObject) -> SelectionDecision:
+        return self._evaluate(facts)
+
+    def _evaluate(self, facts: JsonObject) -> SelectionDecision:
         decision = decide_vacancy_filter(
             criteria=self._criteria,
             vacancy=_filter_facts(facts),
         )
-        return SelectionDecision(keep=decision.keep, reasons=decision.reasons)
+        return SelectionDecision(
+            outcome=decision.outcome,
+            reasons=decision.reasons,
+            criteria=decision.criteria,
+        )
 
 
 def keep_all(_facts: JsonObject) -> SelectionDecision:
-    return SelectionDecision(keep=True, reasons=())
+    return SelectionDecision(outcome=SelectionOutcome.KEEP, reasons=())
 
 
 def _filter_facts(facts: JsonObject) -> VacancyFilterFacts:
     company = _object(facts.get("company"))
-    salary = _object(facts.get("salary"))
-    location = _object(facts.get("location"))
     derived = _selection_facts(facts)
-    work_formats = _strings(derived.get("work_formats")) or tuple(
-        "office" if value == "onsite" else value for value in _strings(facts.get("work_formats"))
-    )
-    location_text = _text(location.get("text")) if location else None
+    location = _object(derived.get("location")) or {}
+    workplace = _object(derived.get("workplace")) or {}
+    grade = _object(derived.get("grade")) or {}
+    compensation = _object(derived.get("compensation")) or {}
+    relocation = _object(derived.get("relocation")) or {}
+    cities = _strings(location.get("cities"))
     return VacancyFilterFacts(
         title=_text(facts.get("title")) or "",
         company=_text(company.get("name")) if company else None,
@@ -52,20 +67,16 @@ def _filter_facts(facts: JsonObject) -> VacancyFilterFacts:
             )
             if value
         ),
-        native_grade=_text(derived.get("grade")) or _text(facts.get("native_grade")),
-        salary_min=_integer(derived.get("salary_min")) or (
-            _integer(salary.get("salary_from")) if salary else None
-        ),
-        salary_max=_integer(derived.get("salary_max")) or (
-            _integer(salary.get("salary_to")) if salary else None
-        ),
+        grades=_strings(grade.get("resolved")),
+        compensation=_compensation_fact(compensation),
         posted_at=_text(facts.get("posted_at")),
-        work_formats=work_formats,
-        remote_scopes=_strings(derived.get("remote_scopes")) or _remote_scopes(facts.get("remote_scopes")),
-        vacancy_geographies=_strings(derived.get("vacancy_geographies"))
-        or _vacancy_geographies(location_text),
-        relocation=_boolean(facts.get("relocation")),
-        city=location_text,
+        work_formats=_strings(workplace.get("formats")),
+        countries=_strings(location.get("countries")),
+        remote_scopes=_strings(workplace.get("remote_scopes")),
+        vacancy_geographies=_canonical_vacancy_geographies(location),
+        employer_geographies=_strings(derived.get("employer_geographies")),
+        relocation=_boolean(relocation.get("supported")),
+        city=cities[0] if cities else None,
     )
 
 
@@ -76,31 +87,26 @@ def _selection_facts(facts: JsonObject) -> JsonObject:
     return _object(derived.get("structured-selection-facts")) or {}
 
 
-def _remote_scopes(value: object) -> tuple[str, ...]:
-    if not isinstance(value, list):
-        return ("unknown",)
-    scopes: list[str] = []
-    for item in value:
-        scope = _object(item)
-        if scope is None:
-            continue
-        kind = _text(scope.get("kind"))
-        code = _text(scope.get("code"))
-        if kind == "worldwide":
-            scopes.append("global")
-        elif kind in {"country", "region"} and code:
-            scopes.append(f"{kind}:{code}")
-    return tuple(dict.fromkeys(scopes)) or ("unknown",)
+def _canonical_vacancy_geographies(location: JsonObject) -> tuple[str, ...]:
+    values = (
+        *(f"country:{value}" for value in _strings(location.get("countries"))),
+        *(f"region:{value}" for value in _strings(location.get("regions"))),
+        *(f"city:{value}" for value in _strings(location.get("cities"))),
+    )
+    return tuple(dict.fromkeys(values))
 
 
-def _vacancy_geographies(location_text: str | None) -> tuple[str, ...]:
-    if not location_text:
-        return ("unknown",)
-    normalized = normalize_source_geographies(location_text)
-    return tuple(
-        f"region:{value}" if is_region_scope(value) else f"country:{value}"
-        for value in normalized
-    ) or ("unknown",)
+def _compensation_fact(value: JsonObject) -> CompensationFact:
+    raw_period = _text(value.get("period"))
+    period = CompensationPeriod(raw_period) if raw_period else None
+    return CompensationFact(
+        minimum=_integer(value.get("minimum")),
+        maximum=_integer(value.get("maximum")),
+        currency=_text(value.get("currency")),
+        period=period,
+        gross=_boolean(value.get("gross")),
+        evidence=_strings(value.get("evidence")),
+    )
 
 
 def _object(value: object) -> JsonObject | None:

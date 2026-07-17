@@ -55,8 +55,12 @@ structured grade or qualification value. Examples include Habr Career
 
 Scrapers must not estimate grade from ordinary prose inside source modules.
 Keep role text in `title`, `description`, `requirements`, `skills`, `raw_text`,
-or `raw`. Downstream post-processing owns filtering and any future text
-enrichment.
+or `raw`. The downstream `structured-selection-facts` deriver may recognize an
+explicit grade token in the vacancy title (`Junior`, `Senior`, `Lead`, and
+their configured equivalents). It does not infer grade from responsibilities,
+years of experience, or general prose. A structured `native_grade` always has
+precedence and the derived payload records `grade_evidence` as `source` or
+`title`.
 
 When a source supports grade via a native request parameter, add request mapping
 tests proving that the requested `Grade` changes the outgoing URL/API payload.
@@ -65,8 +69,8 @@ proving `native_grade` is extracted from the captured source artifact.
 
 ## Filtering Semantics
 
-Current v2 post-processing keeps a listing for a grade-filtered request when
-`row["native_grade"]` is absent or exactly matches one of the requested grades.
+Current v2 graph selection keeps a listing for a grade-filtered request when
+the normalized derived grade is absent or exactly matches one of the requested grades.
 Known mismatches remain strict: a senior-only listing does not pass
 `grades=(Grade.MIDDLE,)`. Unknown grade is treated as insufficient source
 evidence, not as evidence that the listing is the wrong grade.

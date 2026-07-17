@@ -58,7 +58,7 @@ class GraphCompanyObservationTest(unittest.TestCase):
             append_sequence=0,
             policy_version="policy-v1",
             runtime_config_version="runtime-v1",
-            deadline_at=1000.0,
+            active_runtime_budget_ms=1_000_000,
         )
 
     def test_profile_observation_creates_strong_claims_and_endpoint(self) -> None:

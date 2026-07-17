@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import sqlite3
 import tempfile
 import unittest
 from contextlib import closing
 from pathlib import Path
+from unittest.mock import patch
 
 from job_harness.v2.contracts import (
     CompanyRef,
@@ -18,15 +20,35 @@ from job_harness.v2.contracts import (
     ParserRegistry,
     ParserType,
     SingletonResultOutcome,
+    SourceOutcome,
+    StaleLeaseError,
     TaskClass,
     TransportKind,
     VacancyDetailInput,
     VacancyDetailOutput,
     VacancyDetailResult,
 )
+from job_harness.v2.contracts.errors import ClassifiedSourceError
 from job_harness.v2.persistence.graph_repository import SqliteGraphRepository
-from job_harness.v2.ports import HttpAction, HttpResponse, OperationContext, ParserRuntime
+from job_harness.v2.ports import (
+    HttpAction,
+    HttpResponse,
+    OperationContext,
+    ParserAttemptMetrics,
+    ParserRuntime,
+    RetrySafety,
+)
+from job_harness.v2.runtime.errors import (
+    HttpStatusError,
+    ResponseSizeLimitError,
+    UnsafeTargetError,
+)
 from job_harness.v2.runtime.executors import ManagedTaskRunner
+from job_harness.v2.runtime.request_retry import (
+    RequestAttemptError,
+    RequestFailureKind,
+    RequestRetryPolicy,
+)
 
 
 def _manifest(parser_id: str) -> ParserManifest:
@@ -75,26 +97,48 @@ def _result(vacancy_id: str) -> VacancyDetailResult:
     )
 
 
+def _request_retry_policy() -> RequestRetryPolicy:
+    return RequestRetryPolicy(
+        max_attempts=3,
+        attempt_timeout_seconds=15.0,
+        base_delay_seconds=1.0,
+        max_delay_seconds=8.0,
+        request_budget_seconds=55.0,
+        random_fraction=lambda: 0.0,
+    )
+
+
 class _Runtime(ParserRuntime):
-    def __init__(self, context: OperationContext, reserved_collection_units: int) -> None:
+    def __init__(
+        self,
+        context: OperationContext,
+        reserved_collection_units: int,
+        metrics: ParserAttemptMetrics,
+    ) -> None:
         self.context = context
         self._reserved_collection_units = reserved_collection_units
+        self._metrics = metrics
 
     @property
     def reserved_collection_units(self) -> int:
         return self._reserved_collection_units
+
+    @property
+    def attempt_metrics(self) -> ParserAttemptMetrics:
+        return self._metrics
 
     async def http(self, _action: HttpAction) -> HttpResponse:
         raise AssertionError("network is not used by this fake bundle")
 
 
 class _RuntimeFactory:
-    def __init__(self) -> None:
+    def __init__(self, metrics: ParserAttemptMetrics | None = None) -> None:
         self.contexts: list[OperationContext] = []
+        self.metrics = metrics or ParserAttemptMetrics()
 
     def create(self, context: OperationContext, *, reserved_collection_units: int) -> ParserRuntime:
         self.contexts.append(context)
-        return _Runtime(context, reserved_collection_units)
+        return _Runtime(context, reserved_collection_units, self.metrics)
 
 
 class _DetailBundle:
@@ -123,6 +167,51 @@ class _FlakyDetailBundle(_DetailBundle):
         if self._remaining_failures:
             self._remaining_failures -= 1
             raise TimeoutError("temporary timeout")
+        return await super().execute(parser_input, runtime)
+
+
+class _FlakyRequestDetailBundle(_DetailBundle):
+    def __init__(self, parser_id: str) -> None:
+        super().__init__(parser_id)
+        self._failed = False
+
+    async def execute(self, parser_input: VacancyDetailInput, runtime: ParserRuntime) -> VacancyDetailResult:
+        if not self._failed:
+            self._failed = True
+            raise RequestAttemptError(
+                failure_kind=RequestFailureKind.TIMEOUT,
+                retry_safety=RetrySafety.SAFE,
+                message="temporary page timeout",
+            )
+        return await super().execute(parser_input, runtime)
+
+
+class _PacedDetailBundle(_DetailBundle):
+    def build_action(self, parser_input: VacancyDetailInput) -> HttpAction:
+        return HttpAction(
+            method="GET",
+            url=parser_input.vacancy_url,
+            retry_safety=RetrySafety.SAFE,
+        )
+
+    async def execute(self, parser_input: VacancyDetailInput, runtime: ParserRuntime) -> VacancyDetailResult:
+        del parser_input, runtime
+        raise AssertionError("paced invocation must not start parser execution")
+
+
+class _PacedRuntime(_Runtime):
+    async def prepare_http(self, _action: HttpAction) -> float | None:
+        return 2.0
+
+
+class _PacedRuntimeFactory:
+    def create(self, context: OperationContext, *, reserved_collection_units: int) -> ParserRuntime:
+        return _PacedRuntime(context, reserved_collection_units, ParserAttemptMetrics())
+
+
+class _SlowDetailBundle(_DetailBundle):
+    async def execute(self, parser_input: VacancyDetailInput, runtime: ParserRuntime) -> VacancyDetailResult:
+        await asyncio.sleep(0.05)
         return await super().execute(parser_input, runtime)
 
 
@@ -167,7 +256,7 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
             append_sequence=0,
             policy_version="policy-v1",
             runtime_config_version="runtime-v1",
-            deadline_at=1000.0,
+            active_runtime_budget_ms=1_000_000,
         )
 
     async def _cleanup(self) -> None:
@@ -184,6 +273,7 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
             runtime_factory=runtime_factory,
             owner_id="worker",
             lease_seconds=30.0,
+            request_retry_policy=_request_retry_policy(),
         )
 
         completed = await runner.run_once(self.execution_id, limit=1, now=100.0)
@@ -201,10 +291,10 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(runtime_factory.contexts[0].execution_id, self.execution_id)
         self.assertEqual(runtime_factory.contexts[0].invocation_id, invocation_id)
         attempt = self._query(
-            "SELECT attempt_number, outcome, retryable FROM parser_attempts WHERE invocation_id = ?",
+            "SELECT attempt_number, outcome, retry_decision FROM parser_attempts WHERE invocation_id = ?",
             (invocation_id,),
         )
-        self.assertEqual(tuple(attempt[0]), (1, "success", 0))
+        self.assertEqual(tuple(attempt[0]), (1, "success", None))
 
     async def test_one_failed_task_does_not_prevent_unrelated_task(self) -> None:
         failing = _DetailBundle("hh.detail.fail", failure=ValueError("broken parser"))
@@ -217,6 +307,7 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
             runtime_factory=_RuntimeFactory(),
             owner_id="worker",
             lease_seconds=30.0,
+            request_retry_policy=_request_retry_policy(),
         )
 
         completed = await runner.run_once(self.execution_id, limit=2, now=100.0)
@@ -229,6 +320,27 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(statuses, ("failed", "succeeded"))
         self.assertEqual(self._scalar("SELECT COUNT(*) FROM vacancy_detail_observations"), 1)
         self.assertEqual(self._scalar("SELECT COUNT(*) FROM domain_events"), 2)
+
+    async def test_stale_lease_while_committing_failure_does_not_escape_worker(self) -> None:
+        bundle = _DetailBundle("hh.detail.stale-failure", failure=ValueError("broken parser"))
+        self._enqueue(bundle.manifest.ref, "1", task_key="detail-stale-failure")
+        runner = ManagedTaskRunner(
+            repository=self.repository,
+            registry=ParserRegistry((bundle,)),
+            runtime_factory=_RuntimeFactory(),
+            owner_id="worker",
+            lease_seconds=30.0,
+            request_retry_policy=_request_retry_policy(),
+        )
+
+        with patch.object(
+            self.repository,
+            "commit_failure",
+            side_effect=StaleLeaseError("lease reassigned"),
+        ):
+            completed = await runner.run_once(self.execution_id, limit=1, now=100.0)
+
+        self.assertEqual(completed, 1)
 
     async def test_company_site_uses_the_same_managed_runner(self) -> None:
         bundle = _SiteBundle()
@@ -254,6 +366,7 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
             runtime_factory=_RuntimeFactory(),
             owner_id="worker",
             lease_seconds=30.0,
+            request_retry_policy=_request_retry_policy(),
         )
 
         completed = await runner.run_once(self.execution_id, limit=1, now=100.0)
@@ -266,7 +379,7 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_retryable_failure_waits_then_succeeds_with_two_attempt_rows(self) -> None:
-        bundle = _FlakyDetailBundle("hh.detail.flaky", failures=1)
+        bundle = _FlakyRequestDetailBundle("hh.detail.flaky")
         invocation_id = self._enqueue(bundle.manifest.ref, "123", task_key="detail-flaky")
         runner = ManagedTaskRunner(
             repository=self.repository,
@@ -274,8 +387,14 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
             runtime_factory=_RuntimeFactory(),
             owner_id="worker",
             lease_seconds=30.0,
-            max_attempts=3,
-            retry_delay_seconds=2.0,
+            request_retry_policy=RequestRetryPolicy(
+                max_attempts=3,
+                attempt_timeout_seconds=15.0,
+                base_delay_seconds=2.0,
+                max_delay_seconds=8.0,
+                request_budget_seconds=55.0,
+                random_fraction=lambda: 1.0,
+            ),
         )
 
         first = await runner.run_once(self.execution_id, limit=1, now=100.0)
@@ -288,11 +407,187 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
             "succeeded",
         )
         attempts = self._query(
-            "SELECT attempt_number, outcome, retryable FROM parser_attempts ORDER BY attempt_number",
+            (
+                "SELECT attempt_number, outcome, retry_decision, retry_delay_ms "
+                "FROM parser_attempts ORDER BY attempt_number"
+            ),
             (),
         )
-        self.assertEqual(tuple(tuple(row) for row in attempts), ((1, "timeout", 1), (2, "success", 0)))
+        self.assertEqual(
+            tuple(tuple(row) for row in attempts),
+            ((1, "source_timeout", "scheduled", 2_000), (2, "success", None, 0)),
+        )
         self.assertEqual(self._scalar("SELECT COUNT(*) FROM domain_events"), 1)
+
+    async def test_resource_pacing_releases_lease_without_consuming_request_retry(self) -> None:
+        bundle = _PacedDetailBundle("hh.detail.paced")
+        invocation_id = self._enqueue(bundle.manifest.ref, "123", task_key="detail-paced")
+        runner = ManagedTaskRunner(
+            repository=self.repository,
+            registry=ParserRegistry((bundle,)),
+            runtime_factory=_PacedRuntimeFactory(),
+            owner_id="worker",
+            lease_seconds=30.0,
+            request_retry_policy=_request_retry_policy(),
+        )
+
+        completed = await runner.run_once(self.execution_id, limit=1, now=100.0)
+
+        self.assertEqual(completed, 1)
+        self.assertEqual(
+            tuple(
+                self._query(
+                    "SELECT status, waiting_reason, available_at, lease_owner "
+                    "FROM parser_invocations WHERE invocation_id = ?",
+                    (invocation_id,),
+                )[0]
+            ),
+            ("waiting", "resource_pacing", 102.0, None),
+        )
+        self.assertEqual(self._scalar("SELECT COUNT(*) FROM parser_attempts"), 0)
+        self.assertEqual(self.repository.request_attempt_number(invocation_id), 0)
+
+    async def test_attempt_timeout_retries_only_the_timed_out_invocation(self) -> None:
+        bundle = _SlowDetailBundle("hh.detail.slow")
+        invocation_id = self._enqueue(bundle.manifest.ref, "123", task_key="detail-slow")
+        runner = ManagedTaskRunner(
+            repository=self.repository,
+            registry=ParserRegistry((bundle,)),
+            runtime_factory=_RuntimeFactory(),
+            owner_id="worker",
+            lease_seconds=30.0,
+            request_retry_policy=_request_retry_policy(),
+            attempt_timeout_seconds=0.01,
+        )
+
+        first = await runner.run_once(self.execution_id, limit=1, now=100.0)
+        second = await runner.run_once(self.execution_id, limit=1, now=101.0)
+        third = await runner.run_once(self.execution_id, limit=1, now=102.0)
+
+        self.assertEqual((first, second, third), (1, 1, 1))
+        self.assertEqual(
+            self._scalar("SELECT outcome FROM parser_invocations WHERE invocation_id = ?", (invocation_id,)),
+            "source_timeout",
+        )
+        self.assertEqual(
+            tuple(
+                tuple(row)
+                for row in self._query(
+                    "SELECT attempt_number, outcome, retry_decision "
+                    "FROM parser_attempts ORDER BY attempt_number",
+                    (),
+                )
+            ),
+            (
+                (1, "source_timeout", "scheduled"),
+                (2, "source_timeout", "scheduled"),
+                (3, "source_timeout", "exhausted"),
+            ),
+        )
+
+    async def test_rate_limited_response_is_classified_without_a_second_retry_policy(self) -> None:
+        bundle = _DetailBundle(
+            "hh.detail.rate-limited",
+            failure=HttpStatusError(
+                status_code=429,
+                final_url="https://hh.ru/vacancy/123",
+            ),
+        )
+        invocation_id = self._enqueue(bundle.manifest.ref, "123", task_key="detail-rate-limited")
+        runtime_factory = _RuntimeFactory(
+            ParserAttemptMetrics(
+                network_action_count=1,
+                network_elapsed_ms=37,
+                last_status_code=429,
+                last_error_class="HttpStatusError",
+            )
+        )
+        runner = ManagedTaskRunner(
+            repository=self.repository,
+            registry=ParserRegistry((bundle,)),
+            runtime_factory=runtime_factory,
+            owner_id="worker",
+            lease_seconds=30.0,
+            request_retry_policy=_request_retry_policy(),
+        )
+
+        completed = await runner.run_once(self.execution_id, limit=1, now=100.0)
+
+        self.assertEqual(completed, 1)
+        attempt = self._query(
+            (
+                "SELECT outcome, failure_kind, retry_decision, network_action_count, "
+                "network_elapsed_ms, last_status_code, last_error_class "
+                "FROM parser_attempts WHERE invocation_id = ?"
+            ),
+            (invocation_id,),
+        )
+        self.assertEqual(
+            tuple(attempt[0]),
+            ("rate_limited", "rate_limited", "terminal", 1, 37, 429, "HttpStatusError"),
+        )
+
+    async def test_failure_classifier_uses_canonical_runtime_outcomes(self) -> None:
+        cases = (
+            (HttpStatusError(status_code=404, final_url="https://hh.ru/missing"), "http_client_error"),
+            (HttpStatusError(status_code=503, final_url="https://hh.ru/down"), "http_server_error"),
+            (OSError("connection reset"), "network_error"),
+            (ValueError("malformed payload"), "parse_error"),
+            (TimeoutError("source deadline"), "source_timeout"),
+            (ResponseSizeLimitError("too large"), "resource_failure"),
+            (UnsafeTargetError("private target"), "unsupported_target"),
+            (
+                ClassifiedSourceError(SourceOutcome.BLOCKED, "Jobvite unavailable redirect"),
+                "blocked",
+            ),
+        )
+        for index, (failure, expected) in enumerate(cases):
+            with self.subTest(expected=expected):
+                bundle = _DetailBundle(f"hh.detail.failure-{index}", failure=failure)
+                invocation_id = self._enqueue(
+                    bundle.manifest.ref,
+                    str(index),
+                    task_key=f"detail-failure-{index}",
+                )
+                runner = ManagedTaskRunner(
+                    repository=self.repository,
+                    registry=ParserRegistry((bundle,)),
+                    runtime_factory=_RuntimeFactory(),
+                    owner_id="worker",
+                    lease_seconds=30.0,
+                    request_retry_policy=_request_retry_policy(),
+                )
+
+                await runner.run_once(self.execution_id, limit=1, now=100.0 + index)
+
+                self.assertEqual(
+                    self._scalar(
+                        "SELECT failure_kind FROM parser_attempts WHERE invocation_id = ?",
+                        (invocation_id,),
+                    ),
+                    expected,
+                )
+
+    async def test_failure_uses_completion_clock_for_attempt_timestamps(self) -> None:
+        bundle = _DetailBundle("hh.detail.fail-clock", failure=ValueError("broken parser"))
+        invocation_id = self._enqueue(bundle.manifest.ref, "123", task_key="detail-fail-clock")
+        runner = ManagedTaskRunner(
+            repository=self.repository,
+            registry=ParserRegistry((bundle,)),
+            runtime_factory=_RuntimeFactory(),
+            owner_id="worker",
+            lease_seconds=30.0,
+            request_retry_policy=_request_retry_policy(),
+            clock=lambda: 115.0,
+        )
+
+        await runner.run_once(self.execution_id, limit=1, now=100.0)
+
+        attempt = self._query(
+            "SELECT started_at, finished_at FROM parser_attempts WHERE invocation_id = ?",
+            (invocation_id,),
+        )
+        self.assertEqual(tuple(attempt[0]), (100.0, 115.0))
 
     async def test_missing_pinned_implementation_fails_explicitly(self) -> None:
         parser_ref = ParserRef("removed.detail", "9.9")
@@ -303,6 +598,7 @@ class ManagedTaskRunnerTest(unittest.IsolatedAsyncioTestCase):
             runtime_factory=_RuntimeFactory(),
             owner_id="worker",
             lease_seconds=30.0,
+            request_retry_policy=_request_retry_policy(),
         )
 
         completed = await runner.run_once(self.execution_id, limit=1, now=100.0)

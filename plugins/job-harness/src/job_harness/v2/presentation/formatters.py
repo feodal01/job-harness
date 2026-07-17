@@ -110,19 +110,21 @@ def _listing_meta_lines(item: dict[str, object]) -> list[str]:
         meta.append(f"**Company:** {company_name}")
     for key, label in (
         ("sourceId", "**Source:** `{}`"),
-        ("nativeGrade", "**Grade:** {}"),
         ("postedAt", "**Posted:** {}"),
     ):
         value = _text(item.get(key))
         if value:
             meta.append(label.format(value))
 
-    salary = _salary_text(item.get("salary"))
+    grade = _grade_text(item.get("grade"))
+    if grade:
+        meta.append(f"**Grade:** {grade}")
+
+    salary = _compensation_text(item.get("compensation"))
     if salary:
         meta.append(f"**Salary:** {salary}")
 
-    raw_location = item.get("location")
-    location = _text(raw_location.get("text")) if isinstance(raw_location, dict) else ""
+    location = _location_text(item.get("location"))
     if location:
         meta.append(f"**Location:** {location}")
 
@@ -229,19 +231,51 @@ def _append_body_section(
 
 
 def _work_mode(item: dict[str, object]) -> str | None:
-    formats = item.get("workFormats")
+    workplace = item.get("workplace")
+    formats = workplace.get("formats") if isinstance(workplace, dict) else None
     values = [_text(value) for value in formats] if isinstance(formats, list) else []
     return ", ".join(value for value in values if value) or None
 
 
-def _salary_text(value: object) -> str:
+def _grade_text(value: object) -> str:
     if not isinstance(value, dict):
         return ""
-    salary_from = _text(value.get("from"))
-    salary_to = _text(value.get("to"))
+    resolved = value.get("resolved")
+    if not isinstance(resolved, list):
+        return ""
+    text = ", ".join(_text(item) for item in resolved if _text(item))
+    if text and value.get("conflict") is True:
+        return f"{text} (source conflict)"
+    return text
+
+
+def _compensation_text(value: object) -> str:
+    if not isinstance(value, dict):
+        return ""
+    minimum = _text(value.get("minimum"))
+    maximum = _text(value.get("maximum"))
     currency = _text(value.get("currency"))
-    bounds = " - ".join(item for item in (salary_from, salary_to) if item)
-    return " ".join(item for item in (bounds, currency) if item)
+    period = _text(value.get("period"))
+    bounds = " - ".join(item for item in (minimum, maximum) if item)
+    components = [item for item in (bounds, currency) if item]
+    text = " ".join(components)
+    if period:
+        text = f"{text} / {period}" if text else f"per {period}"
+    gross = value.get("gross")
+    if isinstance(gross, bool):
+        text = f"{text} {'gross' if gross else 'net'}".strip()
+    return text
+
+
+def _location_text(value: object) -> str:
+    if not isinstance(value, dict):
+        return ""
+    structured = " | ".join(
+        ", ".join(_text(item) for item in items if _text(item))
+        for field in ("cities", "countries", "regions")
+        if isinstance((items := value.get(field)), list) and items
+    )
+    return structured or _text(value.get("rawText"))
 
 
 def _body_text(value: object) -> str:

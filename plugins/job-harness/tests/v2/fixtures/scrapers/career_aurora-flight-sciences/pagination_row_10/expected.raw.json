@@ -60,8 +60,8 @@
   "raw_contains": {
     "4060": {
       "ats_platform": "taleo",
-      "board_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
-      "career_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "board_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?act=sort&cws=37&org=AURORA&sortColumn=0",
+      "career_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/jobSearch?act=redirectCwsV2&cws=37&org=AURORA",
       "id": "4060",
       "department": "Structures",
       "employment_type": null,
@@ -74,8 +74,8 @@
     },
     "4032": {
       "ats_platform": "taleo",
-      "board_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
-      "career_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?cws=37&org=AURORA",
+      "board_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?act=sort&cws=37&org=AURORA&sortColumn=0",
+      "career_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/jobSearch?act=redirectCwsV2&cws=37&org=AURORA",
       "id": "4032",
       "department": "Supply Chain",
       "employment_type": null,

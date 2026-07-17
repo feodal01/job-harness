@@ -21,6 +21,7 @@ from job_harness.v2.contracts import (
     SearchResultOutcome,
     SingletonResultOutcome,
     SourceLocation,
+    TargetParserResolver,
     TransportKind,
     VacancyDetailInput,
     VacancyDetailResult,
@@ -34,6 +35,7 @@ def _manifest(
     invocation_scope: InvocationScope = InvocationScope.STATELESS_UNIT,
     max_units_per_invocation: int = 1,
     patterns: tuple[str, ...] = (r"https://hh\.ru/.*",),
+    is_fallback: bool = False,
 ) -> ParserManifest:
     return ParserManifest(
         parser_id=parser_id,
@@ -54,6 +56,7 @@ def _manifest(
         default_item_budget=100 if parser_type == ParserType.SEARCH_LISTING else None,
         default_invocation_budget=6 if parser_type == ParserType.SEARCH_LISTING else None,
         max_units_per_invocation=max_units_per_invocation,
+        is_fallback=is_fallback,
     )
 
 
@@ -186,16 +189,22 @@ class ParserRegistryTest(unittest.TestCase):
         with self.assertRaisesRegex(KeyError, "hh.search@2.0"):
             registry.get(ParserRef("hh.search", "2.0"))
 
-    def test_url_resolution_rejects_ambiguous_matches(self) -> None:
-        registry = ParserRegistry(
+    def test_registry_has_no_implicit_target_routing(self) -> None:
+        registry = ParserRegistry((_Bundle(_manifest()),))
+
+        self.assertFalse(hasattr(registry, "resolve_target"))
+
+    def test_target_resolution_rejects_ambiguous_specific_matches(self) -> None:
+        resolver = TargetParserResolver(
             (
-                _Bundle(_manifest(parser_id="hh.detail.a", parser_type=ParserType.VACANCY_DETAIL)),
-                _Bundle(_manifest(parser_id="hh.detail.b", parser_type=ParserType.VACANCY_DETAIL)),
+                _manifest(parser_id="hh.detail.a", parser_type=ParserType.VACANCY_DETAIL),
+                _manifest(parser_id="hh.detail.b", parser_type=ParserType.VACANCY_DETAIL),
             )
         )
 
-        resolution = registry.resolve_target(
+        resolution = resolver.resolve(
             ParserType.VACANCY_DETAIL,
+            "hh",
             "https://hh.ru/vacancy/123",
         )
         self.assertEqual(resolution.kind, "ambiguous_target")
@@ -203,6 +212,64 @@ class ParserRegistryTest(unittest.TestCase):
             resolution.candidate_refs,
             (ParserRef("hh.detail.a", "1.0"), ParserRef("hh.detail.b", "1.0")),
         )
+
+    def test_target_resolution_prefers_provider_specific_parser_over_fallback(self) -> None:
+        resolver = TargetParserResolver(
+            (
+                _manifest(
+                    parser_id="web.fallback",
+                    parser_type=ParserType.COMPANY_SITE,
+                    patterns=(r"https://.+",),
+                    is_fallback=True,
+                ),
+                replace(
+                    _manifest(
+                        parser_id="acme.site",
+                        parser_type=ParserType.COMPANY_SITE,
+                        patterns=(r"https://careers\.acme\.test/.*",),
+                    ),
+                    provider_ids=("acme",),
+                ),
+            )
+        )
+
+        resolution = resolver.resolve(
+            ParserType.COMPANY_SITE,
+            "acme",
+            "https://careers.acme.test/jobs",
+        )
+
+        self.assertEqual("resolved", resolution.kind)
+        self.assertEqual(ParserRef("acme.site", "1.0"), resolution.parser_ref)
+
+    def test_target_resolution_uses_declared_fallback_only_without_specific_match(self) -> None:
+        resolver = TargetParserResolver(
+            (
+                _manifest(
+                    parser_id="web.fallback",
+                    parser_type=ParserType.COMPANY_SITE,
+                    patterns=(r"https://.+",),
+                    is_fallback=True,
+                ),
+                replace(
+                    _manifest(
+                        parser_id="acme.site",
+                        parser_type=ParserType.COMPANY_SITE,
+                        patterns=(r"https://careers\.acme\.test/.*",),
+                    ),
+                    provider_ids=("acme",),
+                ),
+            )
+        )
+
+        resolution = resolver.resolve(
+            ParserType.COMPANY_SITE,
+            "other",
+            "https://other.test/careers",
+        )
+
+        self.assertEqual("resolved", resolution.kind)
+        self.assertEqual(ParserRef("web.fallback", "1.0"), resolution.parser_ref)
 
     def test_registration_requires_a_complete_self_contained_bundle(self) -> None:
         with self.assertRaisesRegex(TypeError, "input_type"):

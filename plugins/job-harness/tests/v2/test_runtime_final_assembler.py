@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import tempfile
 import unittest
 from contextlib import closing
+from dataclasses import replace
 from pathlib import Path
 
 from job_harness.v2.contracts import (
@@ -32,7 +34,7 @@ def _manifest(source_id: str) -> ParserManifest:
         parser_type=ParserType.SEARCH_LISTING,
         implementation_version="1.0",
         input_schema_id=f"{source_id}.search.input.v1",
-        output_schema_id="search-listing-output.v1",
+        output_schema_id="search-listing-output.v2",
         transport=TransportKind.HTTP,
         provider_ids=("hh",),
         supported_url_patterns=(),
@@ -91,6 +93,153 @@ def _listing(
 
 
 class FinalAssemblerTest(unittest.TestCase):
+    def test_same_canonical_url_converges_across_provider_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "run.sqlite"
+            repository = SqliteGraphRepository(database_path)
+            self.addCleanup(repository.close)
+            execution_id = repository.create_execution(
+                run_id="r-url-identity",
+                intent={"queries": ["QA"]},
+                append_sequence=0,
+                policy_version="policy-v1",
+                runtime_config_version="runtime-v1",
+                active_runtime_budget_ms=1_000_000,
+            )
+            canonical_url = "https://jobs.example.com/vacancies/42"
+            for index, (source_id, provider_id, source_listing_id) in enumerate(
+                (("board-a", "a", "a-42"), ("board-b", "b", "b-900"))
+            ):
+                source_plan = self._source_plan(repository, execution_id, source_id)
+                invocation_id = repository.enqueue_invocation(
+                    ParserInvocationSpec(
+                        execution_id=execution_id,
+                        source_plan_id=source_plan,
+                        parent_invocation_id=None,
+                        cause_event_id=None,
+                        parser_ref=_manifest(source_id).ref,
+                        parser_type=ParserType.SEARCH_LISTING,
+                        input_schema_id=_manifest(source_id).input_schema_id,
+                        parser_input=_input(source_id, 0, target_provider_id=provider_id),
+                        task_class=TaskClass.LISTING,
+                        task_key=f"{source_id}-page-0",
+                        available_at=0.0,
+                        reserved_collection_units=1,
+                    )
+                )
+                leased = repository.lease_ready_invocations(
+                    execution_id=execution_id,
+                    owner_id=f"worker-{index}",
+                    limit=1,
+                    lease_seconds=30.0,
+                    now=100.0 + index,
+                )[0]
+                self.assertEqual(invocation_id, leased.invocation_id)
+                listing = _listing(
+                    source_id,
+                    target_provider_id=provider_id,
+                    source_listing_id=source_listing_id,
+                )
+                repository.commit_search_result(
+                    leased,
+                    SearchListingResult(
+                        outcome=SearchResultOutcome.SUCCESS,
+                        items=(replace(listing, vacancy_url=canonical_url),),
+                        continuations=(),
+                        collection_units_consumed=1,
+                    ),
+                    _manifest(source_id),
+                    now=102.0 + index,
+                )
+            GraphCoordinator(
+                repository=repository,
+                registry=ParserRegistry(()),
+                owner_id="coordinator",
+            ).process_once(execution_id, limit=20, lease_seconds=30.0, now=105.0)
+
+            assembly = FinalAssembler(repository).assemble(execution_id, now=106.0)
+
+            self.assertEqual(1, len(assembly.items))
+            self.assertEqual(("board-a", "board-b"), tuple(assembly.items[0]["sourceVariants"]))
+            self.assertEqual(
+                1,
+                self._scalar(database_path, "SELECT COUNT(*) FROM vacancy_resources"),
+            )
+            self.assertEqual(
+                2,
+                self._scalar(database_path, "SELECT COUNT(*) FROM vacancy_provider_aliases"),
+            )
+
+    def test_latest_final_reject_wins_when_fact_sets_share_a_timestamp(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "run.sqlite"
+            repository = SqliteGraphRepository(database_path)
+            self.addCleanup(repository.close)
+            execution_id = repository.create_execution(
+                run_id="r-latest-evaluation",
+                intent={"queries": ["QA"]},
+                append_sequence=0,
+                policy_version="policy-v1",
+                runtime_config_version="runtime-v1",
+                active_runtime_budget_ms=1_000_000,
+            )
+            source_plan = self._source_plan(repository, execution_id, "hh_ru")
+            invocation_id = self._enqueue(
+                repository,
+                execution_id,
+                source_plan,
+                "hh_ru",
+                page=0,
+            )
+            self._commit(
+                repository,
+                execution_id,
+                invocation_id,
+                "hh_ru",
+                SearchListingResult(
+                    outcome=SearchResultOutcome.SUCCESS,
+                    items=(_listing("hh_ru"),),
+                    continuations=(),
+                    collection_units_consumed=1,
+                ),
+                now=101.0,
+            )
+            GraphCoordinator(
+                repository=repository,
+                registry=ParserRegistry(()),
+                owner_id="coordinator",
+            ).process_once(execution_id, limit=20, lease_seconds=30.0, now=102.0)
+
+            with closing(sqlite3.connect(database_path)) as connection:
+                listing_id, created_at, facts_json = connection.execute(
+                    "SELECT listing_id, created_at, materialized_facts_json FROM fact_sets"
+                ).fetchone()
+                facts = json.loads(facts_json)
+                facts["description"] = "later evidence"
+                connection.execute(
+                    """
+                    INSERT INTO fact_sets (
+                        fact_set_id, execution_id, listing_id, evidence_refs_json,
+                        materialized_facts_json, fingerprint, created_at
+                    ) VALUES ('later-facts', ?, ?, '{}', ?, 'later-fingerprint', ?)
+                    """,
+                    (execution_id, listing_id, json.dumps(facts), created_at),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO selection_evaluations (
+                        evaluation_id, execution_id, listing_id, fact_set_id,
+                        stage, outcome, reason_codes_json
+                    ) VALUES ('later-reject', ?, ?, 'later-facts', 'final', 'reject', '["later"]')
+                    """,
+                    (execution_id, listing_id),
+                )
+                connection.commit()
+
+            assembly = FinalAssembler(repository).assemble(execution_id, now=103.0)
+
+            self.assertEqual((), assembly.items)
+
     def test_only_global_assembly_waits_for_all_branches_and_collapses_exact_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database_path = Path(directory) / "run.sqlite"
@@ -102,7 +251,7 @@ class FinalAssemblerTest(unittest.TestCase):
                 append_sequence=0,
                 policy_version="policy-v1",
                 runtime_config_version="runtime-v1",
-                deadline_at=1000.0,
+                active_runtime_budget_ms=1_000_000,
             )
             hh_plan = self._source_plan(repository, execution_id, "hh_ru")
             mirror_plan = self._source_plan(repository, execution_id, "mirror")
@@ -181,7 +330,7 @@ class FinalAssemblerTest(unittest.TestCase):
             self.assertEqual(self._scalar(database_path, "SELECT COUNT(*) FROM final_vacancies"), 1)
             self.assertEqual(
                 self._scalar(database_path, "SELECT status FROM search_executions"),
-                "completed",
+                "assembling",
             )
 
     def test_probable_duplicates_are_grouped_but_not_collapsed(self) -> None:
@@ -195,7 +344,7 @@ class FinalAssemblerTest(unittest.TestCase):
                 append_sequence=0,
                 policy_version="policy-v1",
                 runtime_config_version="runtime-v1",
-                deadline_at=1000.0,
+                active_runtime_budget_ms=1_000_000,
             )
             company = CompanyRef(name="Example", official_site_url="https://example.com")
             for index, (source_id, provider_id) in enumerate((("board-a", "a"), ("board-b", "b"))):

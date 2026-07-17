@@ -139,7 +139,17 @@ digraph IndependentScraperEventGraph {
     runner [
       fillcolor="#f0fdf4",
       color="#16a34a",
-      label="TaskRunner\nweighted-fair lease\nlease token + parser-call retry"
+      label="TaskRunner\ntwo-branch fair lease\nactive-count balance + oldest tie-break\nexact invocation only"
+    ];
+    preflight [
+      fillcolor="#ecfccb",
+      color="#4d7c0f",
+      label="Managed HTTP preflight\nbundle.build_action(input)\nResourceGate.try_admit\nresource_pacing before parser attempt"
+    ];
+    lease_heartbeat [
+      fillcolor="#f0fdf4",
+      color="#16a34a",
+      label="Lease liveness\n30-second lease\n10-second heartbeat\none batch renew for active invocations\nexpiry -> worker_lost + requeue"
     ];
     parser_registry [
       fillcolor="#f0fdfa",
@@ -161,12 +171,17 @@ digraph IndependentScraperEventGraph {
     parser_runtime [
       fillcolor="#ecfccb",
       color="#4d7c0f",
-      label="ParserRuntime\nHTTP actions + invocation-scoped browser"
+      label="ParserRuntime\nsafe HTTP actions\npublic DNS validation + pinned IP\noriginal Host/TLS SNI\ninvocation-local attempt metrics"
     ];
     resource_gate [
       fillcolor="#ecfccb",
       color="#4d7c0f",
-      label="Deployment-scoped ResourceGate\nfixed shared SQLite slots across CLI processes\npacing/concurrency/retry + network safety"
+      label="Deployment-scoped ResourceGate\nfixed shared SQLite slots across CLI processes\npacing + concurrency admission"
+    ];
+    request_retry [
+      fillcolor="#fff7ed",
+      color="#f59e0b",
+      label="RequestRetryPolicy (single owner)\nsafe timeout/network/transient HTTP only\n3 attempts + elapsed budget\nexponential backoff + full jitter + Retry-After"
     ];
     network [
       shape=component,
@@ -176,7 +191,7 @@ digraph IndependentScraperEventGraph {
     result_envelope [
       fillcolor="#f0fdf4",
       color="#16a34a",
-      label="Discriminated typed result\nor ParserFailure"
+      label="Discriminated typed result\nor canonical ParserFailure\nHTTP/network/parse/resource stay distinct"
     ];
     direct_result [
       shape=component,
@@ -187,12 +202,21 @@ digraph IndependentScraperEventGraph {
 
     task_queue -> runner [label="lease runnable invocation"];
     runner -> parser_registry [label="pinned id + version"];
+    parser_registry -> preflight [label="managed build_action"];
+    preflight -> resource_gate [label="try_admit before attempt"];
+    resource_gate -> runner [label="prepared permit", color="#4d7c0f"];
+    resource_gate -> task_queue [label="waiting(resource_pacing)\nno attempt/lease/slot", color="#f59e0b", constraint=false];
+    runner -> lease_heartbeat [label="active lease token"];
+    lease_heartbeat -> task_queue [label="worker_lost requeue only after heartbeat expiry", color="#dc2626", constraint=false];
     direct_call -> parser_registry [label="direct exact parser ref"];
     parser_registry -> scraper_contracts [label="execute typed input"];
     scraper_contracts -> parser_runtime [label="bounded source-specific actions"];
     parser_runtime -> resource_gate [label="every network action"];
     resource_gate -> network [label="admitted action"];
     network -> resource_gate [label="response", style=dashed];
+    parser_runtime -> request_retry [label="typed request failure"];
+    request_retry -> task_queue [label="waiting(retry_backoff)\nonly failed page/URL", color="#f59e0b", constraint=false];
+    request_retry -> result_envelope [label="exhausted / terminal", color="#dc2626"];
     scraper_contracts -> result_envelope [label="typed result"];
     result_envelope -> direct_result [label="when direct", color="#2563eb"];
   }
@@ -205,7 +229,7 @@ digraph IndependentScraperEventGraph {
     result_tx [
       fillcolor="#fefce8",
       color="#ca8a04",
-      label="Result transaction\nvalidate kind/schema/lease\nupsert identity anchors\nappend immutable observations\nreserve accepted continuations\nupdate source branch + close lease"
+      label="Result transaction\nvalidate kind/schema/lease\nupsert identity anchors\nappend immutable observations\nreserve accepted continuations\nupdate source branch + close lease\ncommitted success is never fetched again"
     ];
     terminal_tx [
       fillcolor="#fef2f2",
@@ -245,7 +269,7 @@ digraph IndependentScraperEventGraph {
       shape=cylinder,
       fillcolor="#f8fafc",
       color="#475569",
-      label="Hot DB: aggregate parser attempts\nBuffered JSONL: network actions\nDB artifact index: failures/debug only"
+      label="Hot DB: aggregate parser attempts\nactions + elapsed + last HTTP/error\nartifact index reserved for explicit capture"
     ];
 
     result_envelope -> result_tx [label="managed success/not_found/partial", color="#16a34a"];
@@ -257,8 +281,7 @@ digraph IndependentScraperEventGraph {
     terminal_tx -> source_lifecycle [label="branch failure"];
     result_tx -> outbox [label="observation stored event"];
     terminal_tx -> outbox [label="invocation_terminal"];
-    runner -> ops_store [label="parser attempts", style=dashed];
-    resource_gate -> ops_store [label="network attempts", style=dashed];
+    runner -> ops_store [label="one terminal attempt update", style=dashed];
 
     { rank=same; identity_store; observation_store; endpoint_store; }
   }
@@ -285,7 +308,7 @@ digraph IndependentScraperEventGraph {
     fact_materializer [
       fillcolor="#faf5ff",
       color="#7c3aed",
-      label="FactMaterializer\nselect exact observation ids"
+      label="FactMaterializer\nselect exact observation ids\ncanonicalize trusted company target facts"
     ];
     fact_deriver [
       fillcolor="#faf5ff",
@@ -310,7 +333,7 @@ digraph IndependentScraperEventGraph {
     employer_resolver [
       fillcolor="#f0fdfa",
       color="#0f766e",
-      label="EmployerTargetResolver\ntrusted parser/catalog/redirect URLs only\nbare name -> unresolved_no_trusted_url"
+      label="EmployerTargetResolver\ntrusted listing site direct | profile fallback\nparser/catalog/redirect URLs only\nbare name -> unresolved_no_trusted_url"
     ];
     target_resolver [
       fillcolor="#f0fdfa",
@@ -344,7 +367,7 @@ digraph IndependentScraperEventGraph {
       label="fact_derivations\ncompact fact_sets: materialized facts + evidence-id JSON\nselection_evaluations"
     ];
 
-    outbox -> event_consumer [label="claim next event"];
+    outbox -> event_consumer [label="read unprocessed event batch"];
     event_consumer -> fact_materializer [label="observation stored"];
     event_consumer -> dependency_settler [label="enrichment result/terminal"];
     event_consumer -> endpoint_planner [label="profile/site endpoint"];
@@ -353,7 +376,7 @@ digraph IndependentScraperEventGraph {
     provider_catalog -> fact_deriver [label="declared derivation providers"];
     fact_deriver -> preliminary [label="first materialized fact set"];
     fact_deriver -> final_selector [label="relevant enriched fact set"];
-    preliminary -> requirement_planner [label="unresolved required facts"];
+    preliminary -> requirement_planner [label="missing facts after keep"];
     provider_catalog -> requirement_planner [label="declared provider DAG"];
     requirement_planner -> target_resolver [label="known vacancy target"];
     requirement_planner -> employer_resolver [label="profile/site provider"];
@@ -406,12 +429,19 @@ digraph IndependentScraperEventGraph {
       color="#dc2626",
       label="final_vacancies\nimmutable execution snapshot"
     ];
+    execution_output [
+      shape=component,
+      fillcolor="#fef2f2",
+      color="#dc2626",
+      label="Receipt + processed JSON + HTML\nexecution_quality: complete | degraded | failed\nsource_coverage: planned / complete / degraded / failed"
+    ];
 
     policy_tx -> completion [label="drain check after every transaction"];
     completion -> duplicate_resolver [label="execution_drained"];
     duplicate_resolver -> duplicate_store;
     duplicate_resolver -> final_assembler [label="resolved groups"];
     final_assembler -> final_store;
+    final_store -> execution_output;
   }
 
   source_plans -> completion [label="terminal states", style=dashed, constraint=false];

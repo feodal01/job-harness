@@ -91,6 +91,8 @@ def has_specific_location_hint(value: str) -> bool:
 
 @lru_cache(maxsize=8192)
 def _normalize_source_geography_candidate(value: str, *, has_us_context: bool) -> str | None:
+    if not any(character.isalpha() for character in value):
+        return None
     geography = _normalize_direct_source_geography_candidate(value, has_us_context=has_us_context)
     if geography:
         return geography

@@ -2,6 +2,7 @@
   "capture_method": "live_http_get",
   "captured_at": "2026-07-02",
   "captured_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
+  "request_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?act=sort&cws=37&org=KEYLOGIC&sortColumn=0",
   "content_type": "text/html; charset=utf-8",
   "final_url": "https://phg.tbe.taleo.net/phg02/ats/careers/v2/searchResults?cws=37&org=KEYLOGIC",
   "notes": "Real public Taleo Business Edition career board HTML captured for career:keylogic.",

@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS resource_slots (
 CREATE INDEX IF NOT EXISTS resource_slots_available_idx
     ON resource_slots (resource_key, slot_number, lease_until);
 """
+_BUSY_SLOT_POLL_SECONDS = 0.25
 
 
 @dataclass(frozen=True)
@@ -247,7 +248,10 @@ class SqliteResourceGateBackend:
         earliest_lease = None if row is None else row["earliest_lease"]
         if earliest_lease is None:
             return 0.01
-        return max(float(earliest_lease) - now, 0.01)
+        return max(
+            min(float(earliest_lease) - now, _BUSY_SLOT_POLL_SECONDS),
+            0.01,
+        )
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path, timeout=30.0)
@@ -263,6 +267,57 @@ class ResourceGate:
         self._backend = backend
         self._owner_id = owner_id
 
+    def try_admit(
+        self,
+        resource_key: str,
+        policy: ResourcePolicy,
+        context: OperationContext,
+    ) -> AcquireDecision:
+        return self._backend.try_acquire(
+            resource_key=resource_key,
+            policy=policy,
+            operation_id=context.operation_id,
+            owner_id=self._owner_id,
+            now=time.time(),
+        )
+
+    async def try_admit_async(
+        self,
+        resource_key: str,
+        policy: ResourcePolicy,
+        context: OperationContext,
+    ) -> AcquireDecision:
+        admission = asyncio.create_task(
+            asyncio.to_thread(
+                self.try_admit,
+                resource_key,
+                policy,
+                context,
+            )
+        )
+        try:
+            return await asyncio.shield(admission)
+        except asyncio.CancelledError as cancelled:
+            cleanup = asyncio.create_task(self._release_cancelled_admission(admission))
+            while not cleanup.done():
+                try:
+                    await asyncio.shield(cleanup)
+                except asyncio.CancelledError:
+                    continue
+            cleanup.result()
+            raise cancelled
+
+    async def _release_cancelled_admission(
+        self,
+        admission: asyncio.Task[AcquireDecision],
+    ) -> None:
+        try:
+            decision = await admission
+        except Exception:
+            return
+        if decision.permit is not None:
+            await self.release_async(decision.permit)
+
     async def admit(
         self,
         resource_key: str,
@@ -270,19 +325,25 @@ class ResourceGate:
         context: OperationContext,
     ) -> ResourceSlotPermit:
         while True:
-            decision = self._backend.try_acquire(
-                resource_key=resource_key,
-                policy=policy,
-                operation_id=context.operation_id,
-                owner_id=self._owner_id,
-                now=time.time(),
-            )
+            decision = await self.try_admit_async(resource_key, policy, context)
             if decision.permit is not None:
                 return decision.permit
-            await asyncio.sleep(decision.retry_after_seconds)
+            await asyncio.sleep(max(decision.retry_after_seconds, 0.001))
 
     def release(self, permit: ResourceSlotPermit) -> None:
         self._backend.release(permit)
+
+    async def release_async(self, permit: ResourceSlotPermit) -> None:
+        release = asyncio.create_task(asyncio.to_thread(self.release, permit))
+        cancellation: asyncio.CancelledError | None = None
+        while not release.done():
+            try:
+                await asyncio.shield(release)
+            except asyncio.CancelledError as exc:
+                cancellation = cancellation or exc
+        release.result()
+        if cancellation is not None:
+            raise cancellation
 
 
 def _require_text(value: str, name: str) -> None:

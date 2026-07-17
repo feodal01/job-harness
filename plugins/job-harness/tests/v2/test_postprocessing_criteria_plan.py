@@ -60,11 +60,11 @@ class CriteriaProcessingPlannerTest(unittest.TestCase):
         # Arrange
         source_attempts = (
             _attempt(
-                requested=("query", "salary_from"),
+                requested=("query", "compensation"),
                 native=("query",),
                 structured=(),
-                unsupported=("salary_from",),
-                postprocess=("salary_from",),
+                unsupported=("compensation",),
+                postprocess=("compensation",),
             ),
         )
         rows = (_row(raw_text="Competitive salary discussed with successful candidates"),)
@@ -77,8 +77,8 @@ class CriteriaProcessingPlannerTest(unittest.TestCase):
 
         # Assert
         actions = _actions_by_criterion(plan[0])
-        self.assertEqual("text_enrichment_required", actions["salary_from"]["action"])
-        self.assertTrue(actions["salary_from"]["requires_enrichment"])
+        self.assertEqual("text_enrichment_required", actions["compensation"]["action"])
+        self.assertTrue(actions["compensation"]["requires_enrichment"])
 
     def test_requires_structured_evidence_for_non_text_enrichable_criterion(self) -> None:
         # Arrange

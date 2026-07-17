@@ -8,8 +8,8 @@ from job_harness.v2.runtime.ats_probe import (
 from job_harness.v2.runtime.catalog import SourceCatalog, SupportedSource
 from job_harness.v2.runtime.config import (
     ApplicationChannelServiceConfig,
-    DetailServiceConfig,
-    RetryServiceConfig,
+    RequestRetryServiceConfig,
+    ResourceServiceConfig,
     SearchServiceConfig,
 )
 from job_harness.v2.runtime.errors import ClassifiedSourceError
@@ -18,8 +18,8 @@ from job_harness.v2.runtime.graph_pipeline import (
     GraphSearchPipelineConfig,
     GraphSearchPipelineExecution,
 )
+from job_harness.v2.runtime.graph_scheduler import GraphSearchProgress
 from job_harness.v2.runtime.http import HttpArtifactFetcher
-from job_harness.v2.runtime.retry import RetryPolicy
 from job_harness.v2.runtime.run_layout import RunLayout, RunPaths
 from job_harness.v2.runtime.source_registry import (
     build_independent_parser_registry,
@@ -31,13 +31,13 @@ __all__ = [
     "ApplicationChannelServiceConfig",
     "AtsCompanyUrlParseResult",
     "ClassifiedSourceError",
-    "DetailServiceConfig",
+    "ResourceServiceConfig",
     "GraphSearchPipeline",
     "GraphSearchPipelineConfig",
     "GraphSearchPipelineExecution",
+    "GraphSearchProgress",
     "HttpArtifactFetcher",
-    "RetryPolicy",
-    "RetryServiceConfig",
+    "RequestRetryServiceConfig",
     "RunLayout",
     "RunPaths",
     "SearchServiceConfig",

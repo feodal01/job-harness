@@ -30,6 +30,7 @@ class SourceDescriptor:
     countries: tuple[str, ...]
     source_limit: int
     criteria: tuple[CriterionDeclaration, ...]
+    identity_namespace: str | None = None
 
     def __post_init__(self) -> None:
         source_id = self.source_id.strip()
@@ -37,7 +38,11 @@ class SourceDescriptor:
             raise ValueError("source_id must match ^[a-z0-9][a-z0-9_:-]*$")
         if self.source_limit < 1:
             raise ValueError("source_limit must be >= 1")
+        identity_namespace = (self.identity_namespace or source_id).strip()
+        if not _SOURCE_ID_RE.fullmatch(identity_namespace):
+            raise ValueError("identity_namespace must match ^[a-z0-9][a-z0-9_:-]*$")
         object.__setattr__(self, "source_id", source_id)
+        object.__setattr__(self, "identity_namespace", identity_namespace)
         object.__setattr__(self, "countries", tuple(country.upper() for country in self.countries))
 
         seen = {item.criterion for item in self.criteria}
@@ -60,6 +65,7 @@ class SourceDescriptor:
         countries: tuple[str, ...],
         source_limit: int,
         capabilities: dict[SearchCriterion, CriterionCapability],
+        identity_namespace: str | None = None,
     ) -> SourceDescriptor:
         return cls(
             source_id=source_id,
@@ -71,6 +77,7 @@ class SourceDescriptor:
                 CriterionDeclaration(criterion, capabilities[criterion])
                 for criterion in ALL_SEARCH_CRITERIA
             ),
+            identity_namespace=identity_namespace,
         )
 
     def capability_for(self, criterion: SearchCriterion) -> CriterionCapability:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from job_harness.v2.contracts.enums import CriterionState, SelectionOutcome
 from job_harness.v2.contracts.independent import ParserRef
 from job_harness.v2.contracts.json_types import JsonObject
 
@@ -45,8 +46,8 @@ class FactProviderSpec:
             ProviderStage.PROFILE_OUTPUT,
             ProviderStage.SITE_OUTPUT,
         }
-        if (self.stage in parser_stages) != (self.parser_ref is not None):
-            raise ValueError("parser_ref is required exactly for parser provider stages")
+        if self.stage not in parser_stages and self.parser_ref is not None:
+            raise ValueError("parser_ref is only valid for parser provider stages")
         if self.stage == ProviderStage.DERIVED_FACT:
             if not self.deriver_id or not self.deriver_version:
                 raise ValueError("derived_fact provider requires a pinned deriver")
@@ -55,9 +56,25 @@ class FactProviderSpec:
 
 
 @dataclass(frozen=True)
+class CriterionEvaluation:
+    criterion: str
+    state: CriterionState
+    reason: str | None = None
+
+
+@dataclass(frozen=True)
 class SelectionDecision:
-    keep: bool
+    outcome: SelectionOutcome
     reasons: tuple[str, ...]
+    criteria: tuple[CriterionEvaluation, ...] = ()
+
+    @property
+    def keep(self) -> bool:
+        return self.outcome == SelectionOutcome.KEEP
+
+    @property
+    def can_enrich(self) -> bool:
+        return self.outcome != SelectionOutcome.REJECT
 
 
 @dataclass(frozen=True)

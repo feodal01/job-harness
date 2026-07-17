@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import base64
-from dataclasses import dataclass
+import hashlib
+from collections.abc import Callable
+from dataclasses import dataclass, replace
 from datetime import datetime
+from urllib.parse import urlsplit
 
 from job_harness.v2.contracts import (
     ApplicationChannel,
@@ -20,11 +23,13 @@ from job_harness.v2.contracts import (
     HttpMethod,
     InvocationScope,
     ParserManifest,
+    ParserRef,
     ParserType,
     PublicContact,
     RawListing,
     RemoteScope,
     SalaryRange,
+    SearchCriterion,
     SearchListingInput,
     SearchListingOutput,
     SearchListingResult,
@@ -41,7 +46,8 @@ from job_harness.v2.contracts import (
     VacancyDetailOutput,
     VacancyDetailResult,
 )
-from job_harness.v2.ports import HttpAction, ParserRuntime
+from job_harness.v2.geography import is_region_scope, normalize_source_geographies
+from job_harness.v2.ports import HttpAction, ParserRuntime, RetrySafety
 from job_harness.v2.runtime.application_channel_profiles import official_site_url_from_profile
 from job_harness.v2.runtime.application_channel_resolver import best_career_link
 from job_harness.v2.runtime.application_channel_sources import (
@@ -49,6 +55,13 @@ from job_harness.v2.runtime.application_channel_sources import (
     ApplicationChannelResolutionPolicy,
 )
 from job_harness.v2.runtime.company_contacts import profile_contacts_from_html, site_contacts_from_html
+from job_harness.v2.runtime.errors import HttpStatusError
+from job_harness.v2.runtime.sources.companies.ats import (
+    AtsCompanySourceConfig,
+    ats_company_initial_request,
+    ats_company_source_from_config,
+    detect_ats_company_config,
+)
 from job_harness.v2.serialization import JsonObject, to_jsonable
 
 _WORK_FORMAT_MARKERS = {
@@ -64,6 +77,48 @@ _WORK_FORMAT_MARKERS = {
     "офис": "onsite",
 }
 _WORK_FORMAT_ORDER = ("remote", "hybrid", "onsite")
+_ATS_PROVIDER_IDS = (
+    "ats:ashby",
+    "ats:bamboohr",
+    "ats:breezy",
+    "ats:comeet",
+    "ats:dreamjob",
+    "ats:greenhouse",
+    "ats:huntflow",
+    "ats:icims",
+    "ats:jazzhr",
+    "ats:jobvite",
+    "ats:join",
+    "ats:lever",
+    "ats:personio",
+    "ats:recruitee",
+    "ats:smartrecruiters",
+    "ats:successfactors",
+    "ats:taleo",
+    "ats:teamtailor",
+    "ats:workable",
+    "ats:workday",
+    "ats:ycombinator",
+)
+_ATS_DISCOVERY_URL_PATTERNS = (
+    r"https?://(?:jobs|api)(?:\.eu)?\.lever\.co/.*",
+    r"https?://(?:job-boards(?:\.eu)?|boards|boards-api)\.greenhouse\.io/.*",
+    r"https?://(?:jobs|api)\.ashbyhq\.com/.*",
+    r"https?://apply\.workable\.com/.*",
+    r"https?://[^/]+\.(?:recruitee\.com|bamboohr\.com|breezy\.hr|huntflow\.io|teamtailor\.com)/.*",
+    r"https?://(?:jobs|api)\.smartrecruiters\.com/.*",
+    r"https?://(?:www\.)?comeet\.com/.*",
+    r"https?://jobs\.jobvite\.com/.*",
+    r"https?://[^/]+\.applytojob\.com/.*",
+    r"https?://[^/]+\.icims\.com/jobs/search.*",
+    r"https?://[^/]+\.taleo\.net/.*/ats/careers/v2/searchResults.*",
+    r"https?://[^/]*successfactors[^/]*/career(?:\?.*)?",
+    r"https?://[^/]+\.myworkdayjobs\.com/.*",
+    r"https?://[^/]+\.jobs\.personio\.(?:de|com)/.*",
+    r"https?://join\.com/companies/[^/]+.*",
+    r"https?://dreamjob\.ru/employers/[^/]+/vakansii.*",
+    r"https?://www\.ycombinator\.com/companies/[^/]+/jobs.*",
+)
 
 
 @dataclass(frozen=True)
@@ -75,12 +130,19 @@ class SearchSourceBundle:
 
     def plan_initial(self, intent: SearchRequest, target: JsonObject) -> tuple[SearchListingInput, ...]:
         requests = self.source.build_search_requests(intent)
-        native_filters = _native_filters(intent)
+        native_filters = _native_filters(intent, self.manifest.native_criteria)
         return tuple(
             SearchListingInput(
                 source_id=self.source.descriptor.source_id,
-                target_provider_id=self.source.descriptor.source_id,
-                queries=request.query_variants,
+                target_provider_id=(
+                    self.source.descriptor.identity_namespace
+                    or self.source.descriptor.source_id
+                ),
+                queries=(
+                    intent.query_variants
+                    if self.manifest.query_mode == "downstream_only"
+                    else request.query_variants
+                ),
                 target=target,
                 cursor={"request": _request_payload(request)},
                 native_filters=native_filters,
@@ -88,6 +150,9 @@ class SearchSourceBundle:
             )
             for request in requests
         )
+
+    def build_action(self, parser_input: SearchListingInput) -> HttpAction:
+        return _http_action(_request_from_input(parser_input))
 
     async def execute(self, parser_input: SearchListingInput, runtime: ParserRuntime) -> SearchListingResult:
         request = _request_from_input(parser_input)
@@ -118,21 +183,135 @@ class SearchSourceBundle:
 
 
 @dataclass(frozen=True)
+class DiscoveredAtsSearchBundle:
+    """Parse a discovered ATS board without requiring a catalog source row."""
+
+    manifest = ParserManifest(
+        parser_id="ats.discovered.search",
+        parser_type=ParserType.SEARCH_LISTING,
+        implementation_version="1.0",
+        input_schema_id="ats.discovered.search.input.v1",
+        output_schema_id="search-listing-output.v2",
+        transport=TransportKind.HTTP,
+        provider_ids=_ATS_PROVIDER_IDS,
+        supported_url_patterns=_ATS_DISCOVERY_URL_PATTERNS,
+        output_facts=(
+            "title",
+            "company",
+            "location",
+            "salary",
+            "work_formats",
+            "remote_scopes",
+            "native_grade",
+            "posted_at",
+            "vacancy_url",
+            "apply_url",
+            "summary",
+            "relocation",
+            "relocation_destinations",
+        ),
+        invocation_scope=InvocationScope.STATELESS_UNIT,
+        source_kinds=("company_career",),
+        query_mode="query_group",
+        collection_unit="page",
+        native_criteria=(),
+        default_unit_budget=200,
+        default_item_budget=200,
+        default_invocation_budget=201,
+        max_units_per_invocation=1,
+    )
+    input_type = SearchListingInput
+    result_type = SearchListingResult
+
+    def plan_initial(self, intent: SearchRequest, target: JsonObject) -> tuple[SearchListingInput, ...]:
+        config = _discovered_ats_config(target)
+        if config is None:
+            return ()
+        query_variants = (
+            intent.query_variants
+            if config.platform == "workday"
+            else intent.query_variants[:1]
+        )
+        return tuple(
+            SearchListingInput(
+                source_id=config.source_id,
+                target_provider_id=config.source_id,
+                queries=intent.query_variants,
+                target=target,
+                cursor={
+                    "request": _request_payload(
+                        ats_company_initial_request(config, query_variant=query_variant)
+                    )
+                },
+                native_filters={},
+                resolved_state={"platform": config.platform},
+            )
+            for query_variant in query_variants
+        )
+
+    def build_action(self, parser_input: SearchListingInput) -> HttpAction:
+        return _http_action(_request_from_input(parser_input))
+
+    async def execute(
+        self,
+        parser_input: SearchListingInput,
+        runtime: ParserRuntime,
+    ) -> SearchListingResult:
+        config = _discovered_ats_config(parser_input.target)
+        if config is None or config.source_id != parser_input.source_id:
+            raise ValueError("discovered ATS input does not match its target URL")
+        request = _request_from_input(parser_input)
+        response = await runtime.http(_http_action(request))
+        artifact = SourceResponseArtifact(
+            source_id=request.source_id,
+            url=response.final_url,
+            media_type=response.media_type,
+            body=response.body.decode("utf-8", errors="replace"),
+        )
+        source = ats_company_source_from_config(config)
+        parsed = source.parse_search_response(artifact, request)
+        continuations = parsed.parallel_requests or (
+            (parsed.next_request,) if parsed.next_request is not None else ()
+        )
+        outcome = _search_outcome(parsed.outcome)
+        if outcome == SearchResultOutcome.SUCCESS and not parsed.listings and not continuations:
+            outcome = SearchResultOutcome.NO_RESULTS
+        return SearchListingResult(
+            outcome=outcome,
+            items=tuple(
+                _listing_output(listing, target_provider_id=parser_input.target_provider_id)
+                for listing in parsed.listings
+            ),
+            continuations=tuple(
+                _continuation(parser_input, continuation)
+                for continuation in continuations
+            ),
+            collection_units_consumed=1,
+        )
+
+
+@dataclass(frozen=True)
 class DetailSourceBundle:
     source: DetailEnrichmentScraper
     manifest: ParserManifest
     input_type = VacancyDetailInput
     result_type = VacancyDetailResult
 
+    def build_action(self, parser_input: VacancyDetailInput) -> HttpAction:
+        _anchor, request = self._request(parser_input)
+        return _http_action(request)
+
     async def execute(self, parser_input: VacancyDetailInput, runtime: ParserRuntime) -> VacancyDetailResult:
-        anchor = RawListing(
-            source_listing_id=parser_input.source_listing_id,
-            title=parser_input.source_listing_id or parser_input.vacancy_url,
-            url=parser_input.vacancy_url,
-            source=self.source.descriptor.source_id,
-        )
-        request = self.source.build_detail_request(anchor)
-        response = await runtime.http(_http_action(request))
+        anchor, request = self._request(parser_input)
+        try:
+            response = await runtime.http(_http_action(request))
+        except HttpStatusError as exc:
+            if _is_missing_resource(exc):
+                return VacancyDetailResult(
+                    outcome=SingletonResultOutcome.NOT_FOUND,
+                    item=None,
+                )
+            raise
         artifact = SourceResponseArtifact(
             source_id=request.source_id,
             url=response.final_url,
@@ -145,16 +324,41 @@ class DetailSourceBundle:
             item=_detail_output(detailed, parser_input),
         )
 
+    def _request(self, parser_input: VacancyDetailInput) -> tuple[RawListing, SourceFetchRequest]:
+        anchor = RawListing(
+            source_listing_id=parser_input.source_listing_id,
+            title=parser_input.source_listing_id or parser_input.vacancy_url,
+            url=parser_input.vacancy_url,
+            source=self.source.descriptor.source_id,
+        )
+        return anchor, self.source.build_detail_request(anchor)
+
 
 @dataclass(frozen=True)
 class CompanyProfileSourceBundle:
     policy: ApplicationChannelResolutionPolicy
     manifest: ParserManifest
+    profile_locations: Callable[[str], tuple[str, ...]]
     input_type = CompanyProfileInput
     result_type = CompanyProfileResult
 
+    def build_action(self, parser_input: CompanyProfileInput) -> HttpAction:
+        return HttpAction(
+            method="GET",
+            url=parser_input.company_profile_url,
+            retry_safety=RetrySafety.SAFE,
+        )
+
     async def execute(self, parser_input: CompanyProfileInput, runtime: ParserRuntime) -> CompanyProfileResult:
-        response = await runtime.http(HttpAction(method="GET", url=parser_input.company_profile_url))
+        try:
+            response = await runtime.http(self.build_action(parser_input))
+        except HttpStatusError as exc:
+            if _is_missing_resource(exc):
+                return CompanyProfileResult(
+                    outcome=SingletonResultOutcome.NOT_FOUND,
+                    item=None,
+                )
+            raise
         html = response.body.decode("utf-8", errors="replace")
         official_site_url = official_site_url_from_profile(
             base_url=response.final_url,
@@ -171,7 +375,10 @@ class CompanyProfileSourceBundle:
                 description=None,
                 industry=None,
                 size_text=None,
-                locations=(),
+                locations=tuple(
+                    SourceLocation(value)
+                    for value in self.profile_locations(html)
+                ),
                 official_site_url=official_site_url,
                 career_endpoints=(),
                 contacts=_public_contacts(
@@ -193,8 +400,23 @@ class CompanySiteSourceBundle:
     input_type = CompanySiteInput
     result_type = CompanySiteResult
 
+    def build_action(self, parser_input: CompanySiteInput) -> HttpAction:
+        return HttpAction(
+            method="GET",
+            url=parser_input.site_url,
+            retry_safety=RetrySafety.SAFE,
+        )
+
     async def execute(self, parser_input: CompanySiteInput, runtime: ParserRuntime) -> CompanySiteResult:
-        response = await runtime.http(HttpAction(method="GET", url=parser_input.site_url))
+        try:
+            response = await runtime.http(self.build_action(parser_input))
+        except HttpStatusError as exc:
+            if _is_missing_resource(exc):
+                return CompanySiteResult(
+                    outcome=SingletonResultOutcome.NOT_FOUND,
+                    item=None,
+                )
+            raise
         html = response.body.decode("utf-8", errors="replace")
         career_url = best_career_link(
             base_url=response.final_url,
@@ -208,7 +430,7 @@ class CompanySiteSourceBundle:
                 DiscoveredEndpoint(
                     kind="career_page",
                     url=career_url,
-                    provider_hint=None,
+                    provider_hint=_ats_provider_hint(career_url),
                     confidence="confirmed",
                     discovery_method="explicit_link",
                 ),
@@ -232,14 +454,14 @@ class CompanySiteSourceBundle:
         )
 
 
-def search_bundle(source: SourceScraper) -> SearchSourceBundle:
+def search_bundle(source: SourceScraper, parser_ref: ParserRef) -> SearchSourceBundle:
     descriptor = source.descriptor
     manifest = ParserManifest(
-        parser_id=f"{descriptor.source_id}.search",
+        parser_id=parser_ref.parser_id,
         parser_type=ParserType.SEARCH_LISTING,
-        implementation_version="1.0",
+        implementation_version=parser_ref.implementation_version,
         input_schema_id=f"{descriptor.source_id}.search.input.v1",
-        output_schema_id="search-listing-output.v1",
+        output_schema_id="search-listing-output.v2",
         transport=TransportKind.HTTP,
         provider_ids=(descriptor.source_id,),
         supported_url_patterns=(),
@@ -248,17 +470,23 @@ def search_bundle(source: SourceScraper) -> SearchSourceBundle:
             "company",
             "location",
             "salary",
-            "workFormats",
-            "remoteScopes",
-            "nativeGrade",
-            "postedAt",
-            "vacancyUrl",
-            "applyUrl",
+            "work_formats",
+            "remote_scopes",
+            "native_grade",
+            "posted_at",
+            "vacancy_url",
+            "apply_url",
             "summary",
+            "relocation",
+            "relocation_destinations",
         ),
         invocation_scope=InvocationScope.STATELESS_UNIT,
         source_kinds=(descriptor.source_type.value,),
-        query_mode="per_query",
+        query_mode=(
+            "per_query"
+            if SearchCriterion.QUERY in descriptor.native_request_criteria
+            else "downstream_only"
+        ),
         collection_unit="page",
         native_criteria=tuple(sorted(item.value for item in descriptor.native_request_criteria)),
         default_unit_budget=max(1, descriptor.source_limit),
@@ -267,6 +495,10 @@ def search_bundle(source: SourceScraper) -> SearchSourceBundle:
         max_units_per_invocation=1,
     )
     return SearchSourceBundle(source=source, manifest=manifest)
+
+
+def discovered_ats_search_bundle() -> DiscoveredAtsSearchBundle:
+    return DiscoveredAtsSearchBundle()
 
 
 def detail_bundle(source: SourceScraper) -> DetailSourceBundle:
@@ -278,30 +510,38 @@ def detail_bundle(source: SourceScraper) -> DetailSourceBundle:
         parser_type=ParserType.VACANCY_DETAIL,
         implementation_version="1.0",
         input_schema_id=f"{descriptor.source_id}.detail.input.v1",
-        output_schema_id="vacancy-detail-output.v1",
+        output_schema_id="vacancy-detail-output.v3",
         transport=TransportKind.HTTP,
         provider_ids=(descriptor.source_id,),
-        supported_url_patterns=(),
+        supported_url_patterns=(r"https?://.+",),
         output_facts=(
             "description",
+            "company",
             "requirements",
             "responsibilities",
             "conditions",
             "skills",
-            "employmentTypes",
+            "employment_types",
             "salary",
-            "workFormats",
-            "remoteScopes",
-            "applicationChannels",
+            "work_formats",
+            "remote_scopes",
+            "application_channels",
+            "location",
+            "native_grade",
+            "relocation",
+            "relocation_destinations",
         ),
         invocation_scope=InvocationScope.STATELESS_UNIT,
     )
     return DetailSourceBundle(source=source, manifest=manifest)
 
 
-def hh_company_profile_bundle() -> CompanyProfileSourceBundle:
+def hh_company_profile_bundle(
+    profile_locations: Callable[[str], tuple[str, ...]],
+) -> CompanyProfileSourceBundle:
     return CompanyProfileSourceBundle(
         policy=HH_APPLICATION_CHANNEL_POLICY,
+        profile_locations=profile_locations,
         manifest=ParserManifest(
             parser_id="hh_ru.company-profile",
             parser_type=ParserType.COMPANY_PROFILE,
@@ -311,7 +551,7 @@ def hh_company_profile_bundle() -> CompanyProfileSourceBundle:
             transport=TransportKind.HTTP,
             provider_ids=("hh_ru",),
             supported_url_patterns=(r"https://(?:[^/]+\.)?hh\.ru/employer/[^/?#]+",),
-            output_facts=("officialSiteUrl", "contacts"),
+            output_facts=("official_site_url", "locations", "contacts"),
             invocation_scope=InvocationScope.STATELESS_UNIT,
         ),
     )
@@ -337,10 +577,37 @@ def generic_company_site_bundle() -> CompanySiteSourceBundle:
             transport=TransportKind.HTTP,
             provider_ids=("web",),
             supported_url_patterns=(r"https?://.+",),
-            output_facts=("contacts", "careerEndpoints"),
+            output_facts=("contacts", "career_endpoints"),
             invocation_scope=InvocationScope.STATELESS_UNIT,
+            is_fallback=True,
         ),
     )
+
+
+def _discovered_ats_config(target: JsonObject) -> AtsCompanySourceConfig | None:
+    if target.get("kind") != "discovered_url":
+        return None
+    url = target.get("url")
+    if not isinstance(url, str):
+        return None
+    try:
+        detected = detect_ats_company_config(url)
+    except ValueError:
+        return None
+    digest = hashlib.sha256(
+        f"{detected.platform}\0{detected.career_url}".encode()
+    ).hexdigest()[:16]
+    return replace(
+        detected,
+        source_id=f"ats:{detected.platform}:{digest}",
+    )
+
+
+def _ats_provider_hint(url: str) -> str | None:
+    try:
+        return f"ats:{detect_ats_company_config(url).platform}"
+    except ValueError:
+        return None
 
 
 def _request_payload(request: SourceFetchRequest) -> JsonObject:
@@ -385,7 +652,12 @@ def _http_action(request: SourceFetchRequest) -> HttpAction:
         url=request.url,
         headers=request.headers,
         body=request.body,
+        retry_safety=RetrySafety.SAFE,
     )
+
+
+def _is_missing_resource(exc: HttpStatusError) -> bool:
+    return exc.status_code in {404, 410}
 
 
 def _continuation(original: SearchListingInput, request: SourceFetchRequest) -> SearchListingInput:
@@ -407,7 +679,7 @@ def _listing_output(listing: RawListing, *, target_provider_id: str) -> SearchLi
         source_listing_id=listing.source_listing_id,
         title=listing.title,
         company=_company_ref(listing, target_provider_id=target_provider_id),
-        location=SourceLocation(listing.location_text) if listing.location_text else None,
+        location=_source_location(listing),
         salary=_salary(listing),
         work_formats=_explicit_work_formats(listing),
         remote_scopes=_explicit_remote_scopes(listing),
@@ -416,6 +688,8 @@ def _listing_output(listing: RawListing, *, target_provider_id: str) -> SearchLi
         vacancy_url=listing.url,
         apply_url=_optional_raw_url(listing.raw, "apply_url"),
         summary=listing.description,
+        relocation=listing.relocation,
+        relocation_destinations=_relocation_destinations(listing),
     )
 
 
@@ -436,6 +710,10 @@ def _detail_output(listing: RawListing, parser_input: VacancyDetailInput) -> Vac
         work_formats=_explicit_work_formats(listing),
         remote_scopes=_explicit_remote_scopes(listing),
         application_channels=_application_channels(listing.raw),
+        native_grade=listing.native_grade,
+        location=_source_location(listing),
+        relocation=listing.relocation,
+        relocation_destinations=_relocation_destinations(listing),
     )
 
 
@@ -462,17 +740,53 @@ def _company_ref(listing: RawListing, *, target_provider_id: str) -> CompanyRef 
 def _salary(listing: RawListing) -> SalaryRange | None:
     if listing.salary_min is None and listing.salary_max is None:
         return None
-    gross = None
-    compensation = listing.raw.get("compensation")
-    if isinstance(compensation, dict) and isinstance(compensation.get("gross"), bool):
-        gross = compensation["gross"]
     return SalaryRange(
         salary_from=listing.salary_min,
         salary_to=listing.salary_max,
         currency=listing.salary_currency,
-        gross=gross,
-        period=None,
+        gross=listing.salary_gross,
+        period=listing.salary_period,
     )
+
+
+def _source_location(listing: RawListing) -> SourceLocation | None:
+    text = listing.location_text.strip() if listing.location_text else None
+    cities = listing.location_cities or ((listing.city,) if listing.city else ())
+    normalized_country = (
+        normalize_source_geographies(listing.country)
+        if listing.country and not listing.location_countries
+        else ()
+    )
+    countries = listing.location_countries or tuple(
+        value for value in normalized_country if not is_region_scope(value)
+    )
+    regions = listing.location_regions or tuple(
+        value for value in normalized_country if is_region_scope(value)
+    )
+    if not any((text, cities, countries, regions)):
+        return None
+    return SourceLocation(
+        text=text,
+        cities=cities,
+        countries=countries,
+        regions=regions,
+    )
+
+
+def _relocation_destinations(listing: RawListing) -> tuple[SourceLocation, ...]:
+    destinations: list[SourceLocation] = []
+    for raw_destination in listing.relocation_destinations:
+        geographies = normalize_source_geographies(raw_destination)
+        destinations.append(
+            SourceLocation(
+                text=raw_destination,
+                countries=tuple(
+                    value for value in geographies if not is_region_scope(value)
+                ),
+                regions=tuple(value for value in geographies if is_region_scope(value)),
+            )
+        )
+    return tuple(destinations)
 
 
 def _explicit_work_formats(listing: RawListing) -> tuple[str, ...]:
@@ -493,7 +807,11 @@ def _explicit_work_formats(listing: RawListing) -> tuple[str, ...]:
 def _explicit_remote_scopes(listing: RawListing) -> tuple[RemoteScope, ...]:
     if listing.remote_global is True:
         return (RemoteScope(kind="worldwide", code=None),)
-    return ()
+    scopes = [
+        *(RemoteScope(kind="country", code=code.upper()) for code in listing.remote_scope_countries),
+        *(RemoteScope(kind="region", code=code.upper()) for code in listing.remote_scope_regions),
+    ]
+    return tuple(dict.fromkeys(scopes))
 
 
 def _posted_at(value: str | None) -> datetime | None:
@@ -505,24 +823,17 @@ def _posted_at(value: str | None) -> datetime | None:
         return None
 
 
-def _native_filters(intent: SearchRequest) -> JsonObject:
+def _native_filters(
+    intent: SearchRequest,
+    native_criteria: tuple[str, ...],
+) -> JsonObject:
     payload = to_jsonable(intent)
     if not isinstance(payload, dict):
         raise TypeError("search request must serialize to an object")
     return {
         key: value
         for key, value in payload.items()
-        if key
-        in {
-            "country",
-            "city",
-            "salary_from",
-            "grades",
-            "work_formats",
-            "remote_scope",
-            "vacancy_geography",
-            "posted_within_days",
-        }
+        if key in native_criteria
         and value not in (None, [], {})
     }
 
@@ -613,15 +924,22 @@ def _append_text_values(values: list[str], value: object) -> None:
 
 def _first_url(payload: dict[str, object], keys: tuple[str, ...]) -> str | None:
     for key in keys:
-        value = _optional_text(payload.get(key))
-        if value and value.startswith(("http://", "https://")):
+        value = _absolute_http_url(payload.get(key))
+        if value is not None:
             return value
     return None
 
 
 def _optional_raw_url(payload: dict[str, object], key: str) -> str | None:
-    value = _optional_text(payload.get(key))
-    return value if value and value.startswith(("http://", "https://")) else None
+    return _absolute_http_url(payload.get(key))
+
+
+def _absolute_http_url(value: object) -> str | None:
+    text = _optional_text(value)
+    if text is None:
+        return None
+    parsed = urlsplit(text)
+    return text if parsed.scheme in {"http", "https"} and parsed.netloc else None
 
 
 def _optional_identifier(value: object) -> str | None:

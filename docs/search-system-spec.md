@@ -49,17 +49,21 @@ The public search request should contain:
 
 - `query_variants: list[str]`: required; one or more text formulations, such as `["QA", "AQA", "SDET", "тестировщик", "quality assurance"]`. The CLI accepts repeated `--query` flags and compact pipe-separated `--queries` strings for the same engine contract.
 - `grades: list[Grade] | null`: optional exact grade list. Valid values: `intern`, `junior`, `middle`, `senior`, `lead`. The exact enum can be narrowed by implementation, but the semantics must stay exact-match, not minimum seniority.
-- `salary_from: int | null`: optional lower salary bound.
+- `compensation: CompensationCriterion | null`: optional hard minimum with
+  mandatory `minimum`, ISO 4217 `currency`, and `period` (`hour`, `day`,
+  `month`, or `year`), plus optional `gross`. `RUR` normalizes to `RUB`; no
+  other currency is converted.
 - `published_since: date | null`: optional lower date bound for freshness. The name should avoid the ambiguity of "не позже"; this means "vacancy was published on or after this date".
 - `exclude_companies: list[str] | null`: optional case-insensitive company exclusion. This applies both to returned listings and, when possible, to source/company target selection.
 - `exclude_text: list[TextExclusion] | null`: optional post-processing exclusions over vacancy text.
 - `relocation: bool | null`: optional relocation support filter.
-- `work_formats: list[WorkFormat] | null`: optional workplace format set. Valid values are `remote`, `hybrid`, `office`, and `unknown`. `unknown` can expand a concrete request but cannot be the only value.
-- `remote_scopes: list[RemoteScope] | null`: optional remote eligibility scopes. Valid values are `global`, `country:<code>`, `region:<code>`, and `unknown`. This field is only meaningful with `work_formats` containing `remote`; `unknown` can expand a concrete request but cannot be the only value.
-- `vacancy_geographies: list[VacancyGeography] | null`: optional vacancy, office, employer market, or source-card geography. Valid values are `country:<code>`, `region:<code>`, `city:<name>`, and `unknown`. `unknown` can expand a concrete request but cannot be the only value.
-- `max_results: int`: final desired result count after filtering. `0` means no final presentation cap; source-local limits and run deadlines still apply.
+- `work_formats: list[WorkFormat] | null`: optional workplace format set. Valid values are `remote`, `hybrid`, and `office`.
+- `remote_scopes: list[RemoteScope] | null`: optional remote eligibility scopes. Valid values are `global`, `country:<code>`, and `region:<code>`. This field requires `work_formats` to contain `remote`.
+- `vacancy_geographies: list[VacancyGeography] | null`: optional vacancy location. Valid values are `country:<code>`, `region:<code>`, and `city:<name>`.
+- `employer_geographies: list[EmployerGeography] | null`: optional employer location with the same country/region/city syntax; it requires profile evidence and is not inferred from vacancy location.
+- `scenarios: list[SearchScenario] | null`: optional OR branches over relocation, workplace, remote scope, vacancy geography, and employer geography. Scenarios cannot be combined with the corresponding flat fields.
 - `sources: list[str] | null`: optional exact source ids.
-- `source_groups: list[SourceType] | null`: optional broad source selection.
+- `source_types: list[SourceType] | null`: optional broad selection using `aggregator` or `company_career`.
 - `append_to_run_id: str | null`: optional existing run/corpus id for append mode.
 
 `TextExclusion`:
@@ -80,16 +84,21 @@ remote work is allowed, and a broader remote region such as `region:EU` or
 
 Definitions:
 
-- Work format means a normalized workplace format in `SearchRequest.work_formats`: `remote`, `hybrid`, `office`, or `unknown`.
-- Remote scope means a normalized remote eligibility scope in `SearchRequest.remote_scopes`: `global`, `country:<code>`, `region:<code>`, or `unknown`. Physical formats must not be stored here.
-- Vacancy geography means a normalized location scope in `SearchRequest.vacancy_geographies`: `country:<code>`, `region:<code>`, `city:<name>`, or `unknown`.
+- Work format means a normalized workplace format in `SearchRequest.work_formats`: `remote`, `hybrid`, or `office`.
+- Remote scope means a normalized remote eligibility scope in `SearchRequest.remote_scopes`: `global`, `country:<code>`, or `region:<code>`. Physical formats must not be stored here.
+- Vacancy geography means a normalized location scope in `SearchRequest.vacancy_geographies`: `country:<code>`, `region:<code>`, or `city:<name>`.
 - Vacancy country means the normalized country or region scope derived from source evidence such as `listing.country`, `location_text`, source `regions`, source `remote_restrictions`, source `remote_type`, or city inference.
 - Remote global means the vacancy can be performed remotely from any country unless the source exposes explicit exclusions. A plain `remote` / `удаленно` marker is not enough evidence for global remote; it becomes country-limited or `unknown` unless the source explicitly exposes `global`, `worldwide`, `anywhere`, `Весь мир`, or an equivalent structured scope.
 - Hybrid and office are physical work formats, not remote scopes. Request them through `work_formats`; constrain their location through `vacancy_geographies`.
 - When source evidence lists remote together with hybrid or onsite options, all supported formats are preserved. Remote-scope rules apply to the remote branch of the filter AST. A country or city without any remote/work-format evidence remains `work_format=unknown` and does not satisfy requested workplace filters by default.
 - A `remote_scopes=["global"]` request is global-only. A `country:<code>` or `region:<code>` request uses scope intersection, so globally remote rows also satisfy it.
 - Timezone ranges such as `remote from GMT-7 to GMT+4` are eligibility hints, not geography. They can support the `remote` work format but do not create a country or region scope. A remote vacancy with city-only evidence gets a country-limited remote scope inferred from the city, and multi-city locations may produce multiple country scopes.
-- Unknown means the source did not provide enough structured or text evidence. Unknown must not be silently converted to `false`. For requested workplace/geography filters, unknown rows are removed by default unless the generated filter AST explicitly includes `unknown` alongside at least one concrete requested value for that field.
+- Unknown means the source did not provide enough structured or text evidence.
+  It is an internal criterion state, never a public filter value, and must not be
+  silently converted to `false`. The graph may schedule a declared provider for
+  the missing fact. If providers are exhausted, the final row is rejected with
+  `insufficient_evidence:<criterion>` and remains visible in filtered-out
+  diagnostics.
 
 Search request parameters compile into a filter AST. For example:
 
@@ -113,7 +122,9 @@ summary in sync with that file.
 
 For this matrix, vacancy remote scope is the normalized post-processing interpretation of source evidence. It does not have to be one raw field. Examples are `global`, `country:RU`, `country:TR`, `region:EU`, and `unknown`. Physical formats such as `hybrid` and `office` live in `work_format`, not in `remote_scope`.
 
-Rows assume that earlier filters such as query, title, grade, salary, publication date, excluded company, and excluded text did not already remove the vacancy.
+Rows assume that earlier filters such as query, title, grade, compensation,
+publication date, excluded company, and excluded text did not already remove
+the vacancy.
 
 | Case | Request `work_formats` | Request `remote_scopes` | Request `vacancy_geographies` | Request `relocation` | Vacancy geography | Vacancy scope / work format | Vacancy relocation | Decision | Reason if removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -126,19 +137,22 @@ Rows assume that earlier filters such as query, title, grade, salary, publicatio
 | 7 | `remote` | `region:EU` | empty | `null` | `PL` | `region:EU`, `remote` | any | keep | n/a |
 | 8 | `remote` | `region:EU` | empty | `null` | `RU` | `country:RU`, `remote` | any | remove, because the project EU scope excludes `RU` | `remote_scope_mismatch` |
 | 9 | `remote` | `global` | `region:EU` | `null` | `PL` | `global`, `remote` | any | keep | n/a |
-| 10 | `remote` | `global` | `region:EU` | `null` | unknown | `global`, `remote` | any | remove | `vacancy_geography_mismatch` |
+| 10 | `remote` | `global` | `region:EU` | `null` | unknown | `global`, `remote` | any | remove | `insufficient_evidence:vacancy_geographies` |
 | 11 | `hybrid` | empty | `country:GB` | `null` | `GB` | `hybrid` | any | keep | n/a |
 | 12 | `hybrid` | empty | `country:GB` | `null` | `PL` | `hybrid` | any | remove | `vacancy_geography_mismatch` |
 | 13 | `remote` | `global` | empty | `null` | `GB` | `hybrid` | any | remove | `work_format_mismatch` |
 | 14 | `hybrid, office` | empty | empty | `null` | any | `remote`, `global` | any | remove | `work_format_mismatch` |
-| 15 | `remote` | `global, unknown` | empty | `null` | any | `unknown`, `remote` | any | keep | n/a |
-| 16 | `unknown` | empty | empty | `null` | any | no work-format evidence | any | invalid request | pure `unknown` work-format filters are rejected |
+| 15 | `remote` | `global` | empty | `null` | any | unknown scope, `remote` | any | remove | `insufficient_evidence:remote_scopes` |
+| 16 | `unknown` | empty | empty | `null` | any | no work-format evidence | any | invalid request | `unknown` is not a public filter value |
 | 17 | `remote` | `global` | empty | `true` | any | `global`, `remote` | `false` | remove | `relocation_mismatch` |
-| 18 | `remote` | `global` | empty | `false` | any | `global`, `remote` | `false` or `unknown` | keep | n/a |
+| 18 | `remote` | `global` | empty | `false` | any | `global`, `remote` | `false` | keep | n/a |
+| 19 | `remote` | `global` | empty | `false` | any | `global`, `remote` | unknown | remove | `insufficient_evidence:relocation` |
 
 Region scopes must be explicit. `EU` means the current European Union country list. `europe` means the project-defined Europe scope and intentionally does not include `GB` or `RU`. The system must not infer region membership from time zones, source domain, language, or source popularity.
 
-The implementation should preserve enough debug evidence for the agent to audit each decision. A filtered card should make it clear whether the row was removed because the country or remote eligibility was explicitly different; missing evidence should remain visible as unknown on kept rows.
+The implementation preserves enough evidence for the agent to audit each
+decision. A filtered card distinguishes explicit mismatch from missing evidence;
+a requested hard fact cannot remain unknown on a kept row.
 
 ## Source Capability Contract
 
@@ -159,8 +173,8 @@ For each search criterion, a source declares exactly one collection capability:
 
 | Capability | Meaning | Example |
 | --- | --- | --- |
-| `native_request` | The source can enforce the criterion before returning listings. | hh.ru `salary=200000`; Habr `qualification=middle`. |
-| `structured_output` | The source cannot filter by the criterion, but returns a stable field that downstream processing can use. | API field `workType=REMOTE`; JSON field `publishedAt`. |
+| `native_request` | The source can enforce the criterion before returning listings. | Habr `qualification=middle`; source-native query text. |
+| `structured_output` | The source cannot safely enforce the full criterion, but returns stable fields that downstream selection can use. | HH salary amount/currency/period; API field `workType=REMOTE`. |
 | `unsupported` | The source cannot enforce or expose the criterion honestly. | Relocation is absent from search params and listing fields. |
 
 Free-text inference is downstream enrichment, not source support.
@@ -191,60 +205,66 @@ There are exactly three related concepts in the system:
 | --- | --- | --- | --- |
 | Source capability | Static source catalog | Scraper registry | `native_request`, `structured_output`, `unsupported` per criterion |
 | Source attempt outcome | One source run for one query variant | Orchestrator | The outcome taxonomy below |
-| Processing decision | One listing and one downstream rule | Post-processing pipeline | `kept`, `removed`, `unknown`, with a reason |
+| Criterion state | One listing and one hard criterion | Selection policy | `match`, `mismatch`, or `unknown`, with a reason |
+| Selection outcome | One canonical fact set | Graph coordinator | `keep`, `reject`, or `needs_evidence` |
 
 These concepts must not be collapsed into one enum.
 
-## Raw Listing Schema
+## Listing Observation Schema
 
-The raw search corpus is stored in the `raw_listings` table inside the run's
-`run.sqlite` database. Each row keeps normalized columns for common access and
-the immutable JSON record payload:
+Search parsers write immutable `SearchListingOutput` payloads to
+`listing_observations` in the run's `run.sqlite`. The observation is source
+evidence only; request settings, ranking, selection decisions, page rank, and
+queue state are stored elsewhere or derived later.
 
 ```json
 {
-  "schema_version": 1,
-  "record_type": "raw_listing",
-  "run_id": "r-...",
-  "append_sequence": 0,
-  "query_variant": "QA",
-  "source": "hh_ru",
-  "source_type": "aggregator",
-  "collected_at": "2026-06-22T10:00:00Z",
-  "listing": {
-    "source_listing_id": "123",
-    "title": "QA Engineer",
-    "url": "https://example.com/jobs/123",
-    "company": "Acme",
-    "country": "RU",
-    "city": "Москва",
-    "location_text": "Москва или удаленно",
-    "salary_text": "от 200000 RUB",
-    "salary_min": 200000,
-    "salary_max": null,
-    "salary_currency": "RUB",
-    "posted_at": "2026-06-20",
-    "remote_in_country": true,
-    "remote_global": null,
-    "relocation": null,
-    "native_grade": "middle",
-    "description": "Full vacancy description when available",
-    "requirements": "Requirements when separately available",
-    "skills": ["Python", "API"],
-    "raw_text": "Concatenated source text used for downstream text filters",
-    "raw": {}
+  "source_id": "hh_ru",
+  "target_provider_id": "hh_ru",
+  "source_listing_id": "123",
+  "title": "QA Engineer",
+  "company": {
+    "name": "Acme",
+    "target_provider_id": "hh_ru",
+    "source_company_id": "456",
+    "profile_url": "https://hh.ru/employer/456",
+    "official_site_url": null,
+    "source_vacancies_url": null
   },
-  "evidence": {
-    "description_availability": "present",
-    "detail_fetched": true,
-    "source_url": "https://example.com/search?q=QA"
-  }
+  "location": {
+    "text": "Москва или удаленно",
+    "cities": ["Москва"],
+    "countries": ["RU"],
+    "regions": []
+  },
+  "salary": {
+    "salary_from": 200000,
+    "salary_to": null,
+    "currency": "RUB",
+    "gross": true,
+    "period": "month"
+  },
+  "work_formats": ["remote"],
+  "remote_scopes": [{"kind": "country", "code": "RU"}],
+  "native_grade": "middle",
+  "posted_at": "2026-06-20",
+  "vacancy_url": "https://hh.ru/vacancy/123",
+  "apply_url": null,
+  "summary": "Short text exposed by the search result"
 }
 ```
 
-Required listing fields are `title`, `url`, `source`, and a stable source identity. Fields such as `description`, `requirements`, salary, remote, relocation, country, city, and posted date must always exist in the serialized schema but can be `null` when unavailable.
+Required listing fields are source/provider identity, title, and absolute vacancy
+URL. Structured location, salary dimensions, workplace, native grade, posted
+date, company reference, and summary may be absent only when the listing page
+does not expose them.
 
-`description` is part of the raw schema because post-processing quality depends on it. A source may still return `description=null` only when it genuinely cannot expose full text within the source runtime policy. That absence must be visible through `evidence.description_availability`, for example `present`, `not_exposed`, `detail_timeout`, `detail_blocked`, or `not_requested`.
+Full description, requirements, responsibilities, skills, application channels,
+and detail-only location/salary evidence belong to an independent
+`VacancyDetailOutput`. Company profile and company site facts likewise come from
+their own parser observations. The coordinator merges immutable observations
+into a versioned fact set; a listing parser never performs those downstream
+calls itself.
 
 Vacancy URLs must be absolute and stripped of tracking parameters.
 
@@ -284,42 +304,57 @@ Append behavior:
 
 Manual retry is not the same thing as append mode. Retry re-dispatches failed or partial source attempts. Append mode broadens the evidence corpus with additional search intent.
 
-## Post-Processing Contract
+## Canonical Facts And Selection
 
-Post-processing reads raw records and produces derived result views. It owns:
+Every listing/detail/profile/site observation can advance its own graph branch
+without waiting for all listing pages or sources. `FactMaterializer` merges the
+immutable observations for one listing and runs pinned, versioned fact derivers.
+The canonical selection snapshot contains:
 
-- dedupe;
-- text exclusions;
-- company exclusions;
-- grade estimation when no native grade exists;
-- salary parsing and lower-bound filtering when source-native filtering was unavailable;
-- freshness filtering when source-native filtering was unavailable and `posted_at` exists;
-- remote/relocation inference from description and structured fields;
-- country/city filtering when source-native filtering was unavailable;
-- ranking;
-- final `max_results` slicing.
+- structured location (`raw_text`, cities, countries, regions);
+- workplace formats and remote eligibility scopes;
+- title/source grade evidence, resolved grades, and conflict state;
+- compensation minimum, maximum, currency, period, and gross/net;
+- relocation support and visa sponsorship as separate facts;
+- employer geographies.
 
-Post-processing must be idempotent:
+The shared `RoleMatcher` requires ordered title tokens and a versioned alias
+table. Hard selection and ranking consume the same role match, so description
+tokens cannot promote a title mismatch.
 
-- same raw corpus plus same processing config produces the same output;
-- dedupe keys are stable;
-- filter decisions are explainable;
-- unknown values are handled explicitly and retained rather than silently converted to false.
+Each requested hard criterion evaluates to `match`, `mismatch`, or `unknown`.
+An explicit mismatch rejects immediately. Unknown produces `needs_evidence`
+while a declared provider remains; after provider exhaustion it becomes final
+reject with `insufficient_evidence:<criterion>`. A compensation minimum matches
+only an explicit lower bound with equal currency and period (and equal gross/net
+when requested). Maximum-only or dimensionally incomplete compensation is
+unknown. No FX conversion or compensation-period inference is performed.
 
-For each listing removed or kept by a requested post-processing criterion, the derived output should preserve a machine-readable decision reason. The agent can then audit why a vacancy survived or disappeared.
+Dedupe and ranking operate over final canonical fact sets. The public projection
+uses those same location, workplace, grade, compensation, and relocation facts,
+but omits evidence references, raw parser payloads, request settings, and queue
+state. Re-materializing the same observations with the same pinned derivers and
+request is deterministic and idempotent.
 
 ## Enrichment Jobs
 
-When a source does not natively support a requested criterion but exposes enough text or detail pages to infer it, the orchestrator must schedule post-processing or enrichment jobs.
+When a listing fact is unknown and the fact requirement plan declares an
+autonomous provider, the coordinator schedules only that provider for that
+listing.
 
 Examples:
 
 - source lacks relocation filter, but detail text may mention relocation;
 - source lacks global remote filter, but description includes global remote policy;
-- source lacks grade filter, but title/requirements include seniority signals;
+- source listing lacks grade evidence, but a detail parser declares
+  `native_grade` or detail text;
 - source search page lacks description, but detail page can be fetched.
 
-Enrichment jobs must be source-aware and bounded by runtime policy. They must record whether they succeeded, timed out, were blocked, or were not available.
+Each detail/profile/site parser accepts its own URL input and does not read graph
+storage or schedule another parser. Enrichment invocations are independently
+leased, retried, and classified. Their consumer edges record whether the fact
+was satisfied, the successful output lacked it, the parser failed, or no trusted
+URL/provider existed.
 
 ## Source Attempt Record
 
@@ -362,16 +397,11 @@ The source attempt record shape is:
     "pages_visited": 3
   },
     "criteria": {
-    "requested": ["query", "salary_from", "work_formats", "remote_scopes"],
-    "native_applied": ["query", "salary_from"],
-    "structured_evidence_available": [],
-    "unsupported": ["work_formats", "remote_scopes"],
-    "postprocess": ["work_formats", "remote_scopes"]
-  },
-  "retry": {
-    "attempts": 1,
-    "max_attempts": 2,
-    "next_action": "none"
+    "requested": ["query", "compensation", "work_formats", "remote_scopes"],
+    "native_applied": ["query"],
+    "structured_evidence_available": ["compensation", "work_formats", "remote_scopes"],
+    "unsupported": [],
+    "postprocess": ["compensation", "work_formats", "remote_scopes"]
   },
   "evidence": {
     "no_results": false,
@@ -381,26 +411,33 @@ The source attempt record shape is:
 }
 ```
 
-Only `outcome` is the source attempt terminal state. Fields under `criteria`, `retry`, and `evidence` explain that outcome; they are not additional states.
+Only `outcome` is the source-plan terminal state. Fields under `criteria` and
+`evidence` explain that outcome; they are not additional states. Request retry
+state belongs to the internal page/URL invocation, not the source summary or
+public search input.
 
 ## Retry Contract
 
-Retries are policy-driven and per-source.
+Retries are policy-driven and apply to one concrete page or URL request.
+`RequestRetryPolicy` is the only component that decides them. No source-wide,
+parser-wide, or run-wide retry policy may restart already successful work.
 
 Automatic retry is allowed only when:
 
-- previous attempt produced no usable listings;
-- outcome is transient;
-- source has attempts remaining;
-- retry backoff fits within the run budget.
+- the current request is explicitly marked safe;
+- the current request failed with a timeout, network error, or transient status
+  `408`, `425`, `429`, `500`, `502`, `503`, or `504`;
+- the request has attempts remaining;
+- retry backoff plus the next attempt fits within the request budget.
 
-Default retryable outcomes:
+The default policy uses at most three attempts, exponential backoff with full
+jitter, honors `Retry-After`, and never repeats a page whose result transaction
+committed successfully.
 
-- `source_timeout`;
-- `network_error`;
-- retryable `rate_limited`;
-- selected retryable `http_server_error`;
-- selected local runtime acquire failures.
+Managed retries move only the failed invocation to
+`waiting_reason = retry_backoff`. Resource pacing uses the separate
+`waiting_reason = resource_pacing` before a parser attempt starts. Neither wait
+holds a task lease or resource slot.
 
 Do not automatically retry:
 
@@ -414,7 +451,11 @@ Do not automatically retry:
 - `invalid_source_output`;
 - permanent `http_client_error`.
 
-Retries must preserve attempts, retries, final outcome, and final raw listing set.
+An active invocation uses a 30-second lease with a batched 10-second heartbeat.
+If the worker disappears before the atomic result commit, the attempt becomes
+`worker_lost` and the same invocation may be reassigned. The old lease token can
+no longer commit. Retries must preserve request attempts, decisions, delays,
+final outcome, and the final raw listing set.
 
 ## Test Contract
 

@@ -30,6 +30,7 @@ _FILESYSTEM_ALLOWED_MODULES = {
     _SOURCE_CATALOG_MODULE,
     "job_harness.v2.persistence.graph_repository",
     "job_harness.v2.presentation.report",
+    "job_harness.v2.runtime.atomic_artifacts",
     "job_harness.v2.runtime.config",
     "job_harness.v2.runtime.graph_pipeline",
     "job_harness.v2.runtime.resource_gate",
@@ -79,6 +80,7 @@ _ALLOWED_RUNTIME_IMPORTS = {
     ),
     "job_harness.v2.runtime.application_channel_sources": (_CONTRACTS_PREFIX,),
     "job_harness.v2.runtime.artifacts": (),
+    "job_harness.v2.runtime.atomic_artifacts": (_CONTRACTS_PREFIX,),
     "job_harness.v2.runtime.ats_probe": (
         _CONTRACTS_PREFIX,
         _PORTS_MODULE,
@@ -88,7 +90,7 @@ _ALLOWED_RUNTIME_IMPORTS = {
     "job_harness.v2.runtime.catalog": (_CONTRACTS_PREFIX,),
     "job_harness.v2.runtime.company_contacts": (),
     "job_harness.v2.runtime.config": (
-        "job_harness.v2.runtime.retry",
+        "job_harness.v2.runtime.request_retry",
         _SERIALIZATION_MODULE,
     ),
     "job_harness.v2.runtime.errors": (_CONTRACTS_PREFIX,),
@@ -96,15 +98,29 @@ _ALLOWED_RUNTIME_IMPORTS = {
         _CONTRACTS_PREFIX,
         _PORTS_MODULE,
         "job_harness.v2.runtime.errors",
+        "job_harness.v2.runtime.request_retry",
     ),
     "job_harness.v2.runtime.executors": (
         _CONTRACTS_PREFIX,
         _PERSISTENCE_PREFIX,
         _PORTS_MODULE,
+        "job_harness.v2.runtime.errors",
+        "job_harness.v2.runtime.invocation_resources",
+        "job_harness.v2.runtime.request_retry",
+        "job_harness.v2.runtime.resource_gate",
+    ),
+    "job_harness.v2.runtime.execution_artifacts": (
+        _CONTRACTS_PREFIX,
+        _SERIALIZATION_MODULE,
+        "job_harness.v2.runtime.run_layout",
     ),
     "job_harness.v2.runtime.fact_derivers": (
         _CONTRACTS_PREFIX,
         _GEOGRAPHY_MODULE,
+        _SERIALIZATION_MODULE,
+    ),
+    "job_harness.v2.runtime.fact_requirement_planner": (
+        _CONTRACTS_PREFIX,
         _SERIALIZATION_MODULE,
     ),
     "job_harness.v2.runtime.final_assembly": (
@@ -117,24 +133,91 @@ _ALLOWED_RUNTIME_IMPORTS = {
         _PERSISTENCE_PREFIX,
         _SERIALIZATION_MODULE,
         "job_harness.v2.runtime.fact_derivers",
+        "job_harness.v2.runtime.fact_requirement_planner",
+        "job_harness.v2.runtime.ranking",
         "job_harness.v2.runtime.selection",
+    ),
+    "job_harness.v2.runtime.graph_artifacts": (
+        _CONTRACTS_PREFIX,
+        _PERSISTENCE_PREFIX,
+        _PRESENTATION_PREFIX,
+        _SERIALIZATION_MODULE,
+        "job_harness.v2.runtime.atomic_artifacts",
+        "job_harness.v2.runtime.execution_artifacts",
+        "job_harness.v2.runtime.public_projection",
+        "job_harness.v2.runtime.run_layout",
+    ),
+    "job_harness.v2.runtime.graph_execution": (
+        _CONTRACTS_PREFIX,
+        _PERSISTENCE_PREFIX,
+        _PORTS_MODULE,
+        _SERIALIZATION_MODULE,
+        _SOURCE_CATALOG_MODULE,
+        "job_harness.v2.runtime.executors",
+        "job_harness.v2.runtime.fact_requirement_planner",
+        "job_harness.v2.runtime.final_assembly",
+        "job_harness.v2.runtime.graph_coordinator",
+        "job_harness.v2.runtime.graph_pipeline_models",
+        "job_harness.v2.runtime.graph_scheduler",
+        "job_harness.v2.runtime.invocation_resources",
+        "job_harness.v2.runtime.ranking",
+    ),
+    "job_harness.v2.runtime.graph_scheduler": (
+        _CONTRACTS_PREFIX,
+        _PERSISTENCE_PREFIX,
+        "job_harness.v2.runtime.executors",
+        "job_harness.v2.runtime.graph_coordinator",
     ),
     "job_harness.v2.runtime.graph_pipeline": (
         _CONTRACTS_PREFIX,
         _PERSISTENCE_PREFIX,
         _PORTS_MODULE,
-        _PRESENTATION_PREFIX,
         _SERIALIZATION_MODULE,
-        "job_harness.v2.runtime.executors",
+        _SOURCE_CATALOG_MODULE,
+        "job_harness.v2.runtime.atomic_artifacts",
         "job_harness.v2.runtime.final_assembly",
-        "job_harness.v2.runtime.graph_coordinator",
+        "job_harness.v2.runtime.graph_artifacts",
+        "job_harness.v2.runtime.graph_execution",
+        "job_harness.v2.runtime.graph_pipeline_models",
+        "job_harness.v2.runtime.graph_resume",
+        "job_harness.v2.runtime.ranking",
         "job_harness.v2.runtime.run_layout",
+    ),
+    "job_harness.v2.runtime.graph_pipeline_models": (
+        _CONTRACTS_PREFIX,
+        _SERIALIZATION_MODULE,
+        "job_harness.v2.runtime.graph_scheduler",
+        "job_harness.v2.runtime.request_retry",
+        "job_harness.v2.runtime.run_layout",
+    ),
+    "job_harness.v2.runtime.graph_resume": (
+        _CONTRACTS_PREFIX,
+        _PERSISTENCE_PREFIX,
+        _SERIALIZATION_MODULE,
+        "job_harness.v2.runtime.execution_artifacts",
+        "job_harness.v2.runtime.final_assembly",
+        "job_harness.v2.runtime.graph_artifacts",
+        "job_harness.v2.runtime.graph_execution",
+        "job_harness.v2.runtime.graph_pipeline_models",
+        "job_harness.v2.runtime.ranking",
+        "job_harness.v2.runtime.run_layout",
+    ),
+    "job_harness.v2.runtime.invocation_resources": (
+        _CONTRACTS_PREFIX,
+        _PORTS_MODULE,
     ),
     "job_harness.v2.runtime.parser_runtime": (
         _PORTS_MODULE,
+        "job_harness.v2.runtime.errors",
+        "job_harness.v2.runtime.request_retry",
         "job_harness.v2.runtime.resource_gate",
     ),
     "job_harness.v2.runtime.public_projection": (_SERIALIZATION_MODULE,),
+    "job_harness.v2.runtime.ranking": (
+        _CONTRACTS_PREFIX,
+        _MATCHING_MODULE,
+        _SERIALIZATION_MODULE,
+    ),
     "job_harness.v2.runtime.resource_gate": (_PORTS_MODULE,),
     "job_harness.v2.runtime.selection": (
         _CONTRACTS_PREFIX,
@@ -144,14 +227,17 @@ _ALLOWED_RUNTIME_IMPORTS = {
     ),
     "job_harness.v2.runtime.source_bundles": (
         _CONTRACTS_PREFIX,
+        _GEOGRAPHY_MODULE,
         _PORTS_MODULE,
         _SERIALIZATION_MODULE,
         "job_harness.v2.runtime.application_channel_profiles",
         "job_harness.v2.runtime.application_channel_resolver",
         "job_harness.v2.runtime.application_channel_sources",
         "job_harness.v2.runtime.company_contacts",
+        "job_harness.v2.runtime.errors",
+        "job_harness.v2.runtime.sources.companies.ats",
     ),
-    "job_harness.v2.runtime.retry": (_CONTRACTS_PREFIX,),
+    "job_harness.v2.runtime.request_retry": (_PORTS_MODULE,),
     "job_harness.v2.runtime.run_layout": ("job_harness.v2.runtime.artifacts",),
     "job_harness.v2.runtime.source_registry": (
         _CONTRACTS_PREFIX,
@@ -421,6 +507,24 @@ class V2ArchitectureBoundaryTest(unittest.TestCase):
                 violations = _source_country_policy_violations(path)
 
                 # Assert
+                self.assertEqual((), violations)
+
+    def test_detail_request_builders_do_not_read_listing_raw_payloads(self) -> None:
+        for path in _source_modules():
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            violations = tuple(
+                node.lineno
+                for function in ast.walk(tree)
+                if isinstance(function, ast.FunctionDef)
+                and function.name == "build_detail_request"
+                for node in ast.walk(function)
+                if isinstance(node, ast.Attribute)
+                and node.attr == "raw"
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "listing"
+            )
+
+            with self.subTest(path=path.relative_to(_SRC_ROOT)):
                 self.assertEqual((), violations)
 
 

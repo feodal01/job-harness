@@ -55,7 +55,6 @@ class VKCareerSource(DetailEnrichmentScraper):
         payload = _extract_json_object(response.body)
         items = payload.get("results")
         total_count = payload.get("count")
-        next_url = payload.get("next")
         if not isinstance(items, list) or not isinstance(total_count, int):
             raise ValueError("VK vacancies API payload is malformed")
         if total_count == 0 and not items:
@@ -72,19 +71,9 @@ class VKCareerSource(DetailEnrichmentScraper):
             total_count=total_count,
             source_limit=self.descriptor.source_limit,
         )
-        next_request = (
-            SourceFetchRequest(
-                source_id=_request.source_id,
-                query_variant=_request.query_variant,
-                url=next_url,
-            )
-            if isinstance(next_url, str) and next_url and not parallel_requests
-            else None
-        )
         return SourceSearchParseResult(
             outcome=SourceOutcome.SUCCESS,
             listings=tuple(_vk_listing(item) for item in items if isinstance(item, dict)),
-            next_request=next_request,
             parallel_requests=parallel_requests,
         )
 

@@ -24,7 +24,7 @@ direct:
   no run, queue, observation, event, or final snapshot
 
 managed:
-  ManagedGraphExecutor -> execution + durable invocation
+  V2SearchApplication -> GraphSearchPipeline -> execution + durable invocations
   -> scraper -> immutable observations + graph events
 ```
 
@@ -41,7 +41,9 @@ job-harness-v2 search \
   --source hh_ru \
   --source habr_career \
   --grade middle \
-  --salary-from 250000 \
+  --salary-minimum 250000 \
+  --salary-currency RUB \
+  --salary-period month \
   --work-format remote \
   --vacancy-geography country:RU
 ```
@@ -52,7 +54,12 @@ The application stores a normalized business intent:
 {
   "queries": ["QA Engineer"],
   "grades": ["middle"],
-  "salaryFrom": 250000,
+  "compensation": {
+    "minimum": 250000,
+    "currency": "RUB",
+    "period": "month",
+    "gross": null
+  },
   "workFormats": ["remote"],
   "vacancyGeography": ["country:RU"],
   "sources": ["hh_ru", "habr_career"]
@@ -81,20 +88,19 @@ Example HH input:
   "queries": ["QA Engineer"],
   "target": {"kind": "catalog"},
   "cursor": {"kind": "initial"},
-  "nativeFilters": {
-    "areaName": "Russia",
-    "grade": "middle",
-    "salaryFrom": 250000
-  },
+  "nativeFilters": {},
   "resolvedState": null
 }
 ```
 
-The HH bundle owns the schema and mapping above. The coordinator does not know
-HH parameter names. If HH requires an area id, the first invocation may resolve
-it through `ParserRuntime` and fetch page 1 in the same bounded call. The page 2
-continuation carries the resolved state. A zero-unit continuation is reserved
-for protocols whose bootstrap response cannot yet emit a listing unit.
+The HH listing manifest declares only query as native request support. Grade and
+the complete compensation criterion are evaluated from structured output; the
+bundle must not send only a numeric minimum and silently discard currency or
+period. The coordinator does not know HH parameter names. If HH requires an area
+id, the first invocation may resolve it through `ParserRuntime` and fetch page 1
+in the same bounded call. The page 2 continuation carries the resolved state. A
+zero-unit continuation is reserved for protocols whose bootstrap response
+cannot yet emit a listing unit.
 
 ## Mixed Durable Queue
 
@@ -109,16 +115,46 @@ The initial queue contains:
 `parserId + parserVersion` in `ParserRegistry`. It does not select a parser by
 URL at execution time.
 
-The parser performs bounded source-specific work only through `ParserRuntime`:
+Runnable work is leased as two fair branches: listing continuations and
+enrichment (`detail/profile/site`). A single bounded SELECT returns candidates
+and active counts for both. Free slots go to the branch with fewer active
+tasks; an equal count uses the oldest ready task. Thus HH page 2 and details
+from HH page 1 can run together, while either branch still progresses with a
+single worker. This policy adds no separate scheduling-history writes.
+
+The runner performs non-blocking resource preflight before an attempt exists,
+then the parser performs bounded source-specific work only through
+`ParserRuntime`:
 
 ```text
 TaskRunner
   -> ParserRegistry exact lookup
+  -> bundle.build_action(typed input)
+  -> ResourceGate.try_admit
+       delayed -> invocation waiting(resource_pacing), no attempt or lease held
+       admitted -> begin parser_attempt
   -> scraper.execute(typed input, ParserRuntime)
-  -> ParserRuntime HTTP/browser action
-  -> ResourceGate admission
+  -> ParserRuntime resolves and validates the target outside the event loop
+  -> HTTP transport connects to a pinned public IP with original Host/TLS SNI
   -> typed parser result
 ```
+
+Each redirect target is resolved, validated, admitted, and pinned as a new
+network action. Cross-origin redirects do not carry authorization or cookie
+headers. A hostname is never resolved a second time inside the transport, so a
+DNS change cannot bypass the public-address check.
+
+`RequestRetryPolicy` is the only retry decision owner. For a safe timeout,
+network error, or explicit transient HTTP status, only the current page/URL
+invocation moves to `waiting(retry_backoff)` with its next `available_at`.
+Successful pages remain terminal and are not fetched again. Direct calls use the
+same decisions in memory; they never restart an earlier successful page.
+
+Running invocations have a 30-second lease. The scheduler renews every active
+lease with one batched 10-second heartbeat. Backoff and pacing waits hold no
+lease. If the heartbeat disappears, the active attempt is recorded as
+`worker_lost`, the invocation is requeued with a new lease token, and any stale
+worker result is rejected.
 
 ## HH Page 1 Commits Without Waiting
 
@@ -173,7 +209,7 @@ Assume A has an explicit remote signal but no salary and no description:
 | Requirement | Available fact | Declared providers | Decision |
 | --- | --- | --- | --- |
 | remote | listing output | listing | satisfied |
-| salary >= 250000 | unknown | listing salary, detail salary, salary-from-text derivation | schedule detail because derivation input text is missing |
+| compensation >= 250000 RUB/month | unknown | listing salary, declared detail salary provider | schedule detail only when its manifest declares the missing dimensions |
 | grade middle | native grade | listing | evaluate now |
 | application channel | not selection-required | detail, company site | defer |
 
@@ -184,20 +220,31 @@ listing_enrichment_requests
   execution = E1
   listing = A
   invocation = detail-task-A
-  provider = vacancy_detail.salary-or-description
+  provider = <provider id selected from the detail parser manifest>
   required = true
   status = waiting
 ```
 
-It does not automatically scrape profile and company site merely because their
-URLs exist. Optional contact/career enrichment begins after keep unless the
-criteria plan explicitly requires those facts.
+The internal company-enrichment policy adds optional profile/site providers only
+when the registry contains the corresponding verified scraper. A trusted
+official site from the listing runs the generic company-site scraper directly.
+If the listing has only an HH profile URL, the fallback is HH profile -> verified
+official site -> generic company-site scraper. It begins only after preliminary
+keep, does not search by bare company name, and does not block another source
+branch.
 
-When detail A arrives, `FactDeriver.salaryFromText` runs only if structured
-salary is still missing. Its persisted output records the deriver version and
-the exact listing/detail observation ids used as input. Derived geography,
-remote scope, work format, and grade follow the same rule and never become
-parser output.
+When detail A arrives, canonical compensation uses only structured minimum,
+maximum, currency, period, and gross/net fields. It does not parse or guess a
+dimensioned minimum from display text. Persisted derivations record the deriver
+version and exact listing/detail observation ids used as input. Derived
+geography, remote scope, work format, and grade follow the same evidence rule
+and never become parser output.
+
+Relocation and visa sponsorship remain separate facts throughout this path.
+Only explicit relocation assistance/package evidence satisfies a relocation
+criterion. A detail page that offers visa sponsorship but requires the employee
+to already be in another country is recorded as `visa_sponsorship = true` and
+still fails `relocation = true`.
 
 ## Detail, Profile, and Site Are Independent Scrapers
 
@@ -212,10 +259,12 @@ A detail scraper input is only:
 ```
 
 It can be called directly without a run and returns only
-`VacancyDetailResult`. When submitted through `ManagedGraphExecutor` with
-persistence, the coordinator upserts a standalone `vacancy_resource` and stores
-an immutable `vacancy_detail_observation`. A listing may link to that resource
-now or later.
+`VacancyDetailResult`. The managed repository/task-runner path can persist the
+same typed call without a source plan; it upserts a standalone
+`vacancy_resource` and stores an immutable `vacancy_detail_observation`. A
+listing may link to that resource now or later. The current public CLI exposes
+managed search and direct single-target execution, not a separate managed
+single-target command.
 
 The same rule applies to profile and site scrapers:
 
@@ -394,10 +443,12 @@ must be settled. Final assembly reads evaluations and fact snapshots in bounded
 batches instead of rereading them per vacancy.
 
 `fact_set` contains one materialized-facts JSON plus evidence-id JSON; there are
-no listing/detail/profile/site member rows. Detailed network telemetry is
-buffered to append-only operational JSONL and batch-flushed outside the result
-transaction. The graph DB keeps only aggregate parser-attempt counters and
-failure/debug artifact indexes.
+no listing/detail/profile/site member rows. The graph DB keeps only aggregate
+parser-attempt diagnostics: network-action count, network elapsed time, last
+HTTP status, and last error class. They are written in the existing terminal
+attempt update. The current runtime writes neither per-network-action telemetry
+nor raw response artifacts; `artifact_index` is reserved for a future explicit
+failure/debug capture policy.
 
 Each network action still requires limiter coordination, but only in the
 separate deployment DB: one short acquire transaction updates pacing and claims
@@ -426,7 +477,7 @@ There is no barrier between listing and enrichment work. Final assembly starts
 only when:
 
 - all source plans are terminal;
-- no parser invocation is queued, leased, or waiting for retry;
+- no parser invocation is queued, leased, or waiting;
 - no event is unprocessed;
 - no listing dependency waits on a non-terminal invocation;
 - no valid lease can still commit;
@@ -437,6 +488,12 @@ reads terminal evaluations and immutable fact sets, collapses exact groups only,
 and performs ranking, top-N, and field projection into an execution-scoped
 snapshot.
 
+The final receipt, processed JSON, and HTML report expose
+`execution_quality = complete | degraded | failed` and `source_coverage`.
+Coverage reports planned, complete, degraded, failed, and per-status source
+counts, so partial operational failure remains visible even when usable
+vacancies were committed.
+
 ## Full Ownership Chain
 
 | Step | Owner | Durable output | Work unlocked |
@@ -444,12 +501,12 @@ snapshot.
 | 1 | Application | intent + execution | source selection |
 | 2 | `SourceSelector` | selected source instances | bundle planning |
 | 3 | Listing bundles | typed initial inputs | initial source plans/tasks |
-| 4 | `TaskRunner` | task lease | one exact parser call |
-| 5 | Parser + runtime | typed result + aggregate attempt metrics; buffered network JSONL | result transaction |
-| 6 | `GraphCoordinator` | immutable observations + continuations + event | next pages and event handling |
+| 4 | `TaskRunner` + `ResourceGate` | preflight result, then task lease | one exact admitted parser call or durable `resource_pacing` wait |
+| 5 | Parser + runtime | typed result + invocation-local attempt metrics | result transaction |
+| 6 | `GraphCoordinator` | immutable observations + continuations + event, or request-level `retry_backoff` | next pages and event handling |
 | 7 | Fact materializer + derivers | derived facts + exact fact sets | evidence-aware selection |
 | 8 | Selectors/provider planner | evaluations + dependency edges | minimum required enrichment |
-| 9 | Mixed queue | listing/detail/profile/site tasks | independent graph progress |
+| 9 | Two-branch fair mixed queue | listing/detail/profile/site tasks | independent graph progress without branch starvation |
 | 10 | Employer/target resolver | trusted resolved target or explicit unresolved outcome | profile/site/discovered source work |
 | 11 | Duplicate resolver | exact/probable groups | safe detail reuse and final grouping |
 | 12 | Source lifecycle | terminal source outcome | execution drain |
@@ -474,7 +531,7 @@ row.
 | Identity | vacancy resources/aliases, companies, company identity claims, duplicate groups |
 | Immutable facts | listing, detail, profile, and site observations; discovered endpoints |
 | Derived | fact derivations, compact fact-set snapshots, evaluations, duplicate groups, final snapshots |
-| Operational | aggregate parser attempts; buffered JSONL network telemetry; failure/debug artifacts |
+| Operational | aggregate parser attempts; reserved failure/debug artifact index |
 | Deployment limiter | shared resource state and fixed crash-expiring resource slots under `runsRoot/_runtime` |
 
 ## Regenerating Diagrams

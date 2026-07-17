@@ -9,7 +9,6 @@ from urllib.parse import urlparse
 
 from job_harness.v2.contracts.enums import (
     DescriptionAvailability,
-    RetryNextAction,
     SearchCriterion,
     SourceOutcome,
     SourceType,
@@ -40,14 +39,22 @@ class RawListing:
     country: str | None = None
     city: str | None = None
     location_text: str | None = None
+    location_cities: tuple[str, ...] = ()
+    location_countries: tuple[str, ...] = ()
+    location_regions: tuple[str, ...] = ()
     salary_text: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
     salary_currency: str | None = None
+    salary_period: str | None = None
+    salary_gross: bool | None = None
     posted_at: str | None = None
     remote_in_country: bool | None = None
     remote_global: bool | None = None
+    remote_scope_countries: tuple[str, ...] = ()
+    remote_scope_regions: tuple[str, ...] = ()
     relocation: bool | None = None
+    relocation_destinations: tuple[str, ...] = ()
     native_grade: str | None = None
     description: str | None = None
     requirements: str | None = None
@@ -67,6 +74,24 @@ class RawListing:
             raise ValueError("salary_max must be >= 0")
         if self.salary_min is not None and self.salary_max is not None and self.salary_min > self.salary_max:
             raise ValueError("salary_min must be <= salary_max")
+        if self.salary_period not in {None, "hour", "day", "month", "year"}:
+            raise ValueError("invalid salary period")
+        if self.salary_gross is not None and not isinstance(self.salary_gross, bool):
+            raise ValueError("salary_gross must be boolean when provided")
+        for field_name in (
+            "location_cities",
+            "location_countries",
+            "location_regions",
+            "remote_scope_countries",
+            "remote_scope_regions",
+            "relocation_destinations",
+        ):
+            values = tuple(
+                dict.fromkeys(value.strip() for value in getattr(self, field_name) if value.strip())
+            )
+            object.__setattr__(self, field_name, values)
+        if self.relocation_destinations and self.relocation is not True:
+            raise ValueError("relocation destinations require relocation=True")
         if self.remote_global is True and not _has_explicit_global_remote_evidence(self):
             raise ValueError("remote_global=True requires explicit global remote evidence")
 
@@ -135,19 +160,6 @@ class AttemptCounts:
 
 
 @dataclass(frozen=True)
-class RetryInfo:
-    attempts: int
-    max_attempts: int
-    next_action: RetryNextAction
-
-    def __post_init__(self) -> None:
-        if self.attempts < 1:
-            raise ValueError("attempts must be >= 1")
-        if self.max_attempts < self.attempts:
-            raise ValueError("max_attempts must be >= attempts")
-
-
-@dataclass(frozen=True)
 class AttemptEvidence:
     no_results: bool = False
     multi_step_terminal: bool = False
@@ -169,7 +181,6 @@ class SourceAttemptRecord:
     limit_reached: bool
     counts: AttemptCounts
     criteria: CriteriaDiagnostics
-    retry: RetryInfo
     evidence: AttemptEvidence = field(default_factory=AttemptEvidence)
 
     def __post_init__(self) -> None:
