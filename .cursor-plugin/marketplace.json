@@ -1,0 +1,17 @@
+{
+  "name": "job-harness",
+  "owner": {
+    "name": "job-harness"
+  },
+  "metadata": {
+    "description": "Job Search OS plugins for agent-first job hunting."
+  },
+  "plugins": [
+    {
+      "name": "job-harness",
+      "source": "./plugins/job-harness",
+      "version": "0.5.1",
+      "description": "AI agent runtime for job search, employer career page resolution, and local career-page cache management."
+    }
+  ]
+}

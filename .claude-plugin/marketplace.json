@@ -9,6 +9,7 @@
     {
       "name": "job-harness",
       "source": "./plugins/job-harness",
+      "version": "0.5.1",
       "description": "AI agent runtime for job search, employer career page resolution, and local career-page cache management.",
       "author": {
         "name": "Local developer"

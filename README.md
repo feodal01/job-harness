@@ -43,8 +43,8 @@ see [Update](#update) after installation.
 
 - **Codex**: install the plugin and ask Codex to run a job search.
 - **Claude Code**: install the plugin and use `/job-search`.
-- **Cursor**: clone this repository, open it in Cursor, and Cursor will use the
-  root `AGENTS.md` instructions for repository work.
+- **Cursor**: install the plugin in Cursor's local plugin directory and ask
+  Cursor Agent to run a job search.
 
 ## Installation
 
@@ -59,8 +59,8 @@ Before you start, check only the commands for your path:
 ```bash
 codex --version   # Codex install
 claude --version  # Claude Code install
-git --version     # Cursor checkout
-uv --version      # job-harness runtime and local CLI
+git --version     # Cursor plugin install
+uv --version      # job-harness runtime
 ```
 
 If a command for your path is missing, install that app first and then return to
@@ -128,39 +128,32 @@ marketplace, and install or update the plugin from the UI.
 
 ### Cursor
 
-Cursor uses this repository as a workspace. There is no separate Cursor plugin
-install step for job-harness.
+Install the job-harness plugin bundle in Cursor's local plugin directory.
 
 1. Open a terminal.
-2. Clone the repository:
+2. Clone a temporary copy, install the plugin, and initialize its Python
+   environment:
 
 ```bash
-git clone https://github.com/feodal01/job-harness.git
-cd job-harness
+tmp_dir="$(mktemp -d)"
+git clone --depth 1 https://github.com/feodal01/job-harness.git "$tmp_dir/job-harness"
+mkdir -p "$HOME/.cursor/plugins/local"
+rm -rf "$HOME/.cursor/plugins/local/job-harness"
+cp -R "$tmp_dir/job-harness/plugins/job-harness" "$HOME/.cursor/plugins/local/job-harness"
+rm -rf "$tmp_dir"
+uv --directory "$HOME/.cursor/plugins/local/job-harness" sync
 ```
 
-3. Install the Python environment used by the job-harness CLI:
-
-```bash
-uv --directory plugins/job-harness sync
-```
-
-4. Open Cursor.
-5. Choose **File -> Open Folder...**.
-6. Select the cloned `job-harness` folder.
-7. Open Cursor Agent chat in that workspace. Cursor will pick up the root
-   `AGENTS.md` instructions for this repository.
-8. Use Cursor's terminal to confirm the CLI works:
-
-```bash
-uv --directory plugins/job-harness run job-harness-v2 list-sources
-```
-
-After that, ask Cursor Agent to work in this repository, for example:
+3. Open Cursor and run **Developer: Reload Window**.
+4. Open Cursor Agent chat in any workspace and ask for a job search, for
+   example:
 
 ```text
-Use job-harness to inspect the v2 search workflow.
+Find QA jobs matching my brief.
 ```
+
+Cursor loads the skills, commands, agents, and MCP configuration from
+`$HOME/.cursor/plugins/local/job-harness`.
 
 ## Update
 
@@ -201,17 +194,33 @@ right away.
 
 ### Cursor
 
-Cursor uses the repository checkout directly. Update the checkout and reload
-Cursor:
+Replace the installed plugin bundle with a fresh copy, synchronize its Python
+environment, and reload Cursor:
+
+```bash
+tmp_dir="$(mktemp -d)"
+git clone --depth 1 https://github.com/feodal01/job-harness.git "$tmp_dir/job-harness"
+mkdir -p "$HOME/.cursor/plugins/local"
+rm -rf "$HOME/.cursor/plugins/local/job-harness"
+cp -R "$tmp_dir/job-harness/plugins/job-harness" "$HOME/.cursor/plugins/local/job-harness"
+rm -rf "$tmp_dir"
+uv --directory "$HOME/.cursor/plugins/local/job-harness" sync
+```
+
+Then run **Developer: Reload Window** in Cursor.
+
+If Cursor imports MCP servers from an installed Claude Code plugin, Claude Code
+auto update can keep those imported MCP entries current. That imported copy is
+separate from the local Cursor plugin above and does not update it. Enable only
+one copy of the job-harness MCP server in Cursor to avoid running duplicates.
+
+For local repository development, update the checkout from its repository root
+and synchronize the in-repository plugin separately:
 
 ```bash
 git pull
 uv --directory plugins/job-harness sync
 ```
 
-Then run **Developer: Reload Window** in Cursor so it reloads the updated
-`AGENTS.md` instructions and workspace files.
-
-If Cursor imports MCP servers from an installed Claude Code plugin, Claude Code
-auto update can keep those imported MCP entries current. It does not update this
-repository checkout; use `git pull` for Cursor workspace updates.
+This development checkout is not the installed Cursor plugin unless you copy it
+to `$HOME/.cursor/plugins/local/job-harness`.
