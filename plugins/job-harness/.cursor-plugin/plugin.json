@@ -1,0 +1,21 @@
+{
+  "name": "job-harness",
+  "displayName": "Job Harness",
+  "version": "0.5.1",
+  "description": "Agent-first job search runtime with MCP tools, skills, employer resolution, and bundled company directory.",
+  "author": {
+    "name": "Local developer"
+  },
+  "repository": "https://github.com/feodal01/job-harness",
+  "license": "MIT",
+  "keywords": [
+    "jobs",
+    "search",
+    "career",
+    "employer-resolution"
+  ],
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "mcpServers": "./.mcp.json"
+}

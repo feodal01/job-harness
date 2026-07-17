@@ -29,7 +29,10 @@ gets metadata inside or alongside that root:
 All version-bearing manifests and marketplace entries use `0.5.1`, matching
 the current Codex manifest, `pyproject.toml`, and `uv.lock`. The Cursor manifest
 declares the existing skills, commands, agents, and MCP configuration from the
-same plugin root rather than duplicating runtime files.
+same plugin root rather than duplicating runtime files. The shared MCP launcher
+resolves `CURSOR_PLUGIN_ROOT` before the Codex and Claude plugin-root variables
+so a Cursor install does not accidentally use the open workspace as its runtime
+root.
 
 ## User Workflows
 

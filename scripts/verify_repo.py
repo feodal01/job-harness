@@ -84,6 +84,7 @@ def main() -> int:
 
 def _run_lint() -> int:
     checks = (
+        [sys.executable, "scripts/check_plugin_packaging.py"],
         [sys.executable, "scripts/check_no_compat_comments.py"],
         ["uv", "--directory", PLUGIN_ARG, "run", "ruff", "check", "src", "scripts", "tests", "../../scripts"],
     )
