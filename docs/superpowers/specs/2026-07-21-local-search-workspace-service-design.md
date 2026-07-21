@@ -1,6 +1,6 @@
 # Local Search Workspace Service — Design Specification
 
-**Status:** Draft for user review
+**Status:** Approved
 
 **Date:** 2026-07-21
 
@@ -880,7 +880,7 @@ fixtures, and tests move directly to the new contract.
 
 ## 17. Verification strategy
 
-### 16.1 Domain and storage tests
+### 17.1 Domain and storage tests
 
 - SearchTrack/draft/BriefRevision state transitions;
 - immutability of confirmed revisions;
@@ -892,7 +892,7 @@ fixtures, and tests move directly to the new contract.
 - durable Job manifest creation before `202` and terminal retention/cleanup;
 - idempotency-key replay and conflicting-key rejection.
 
-### 16.2 Engine integration tests
+### 17.2 Engine integration tests
 
 - `WorkspaceApplication` invokes `V2SearchApplication`, not CLI subprocesses;
 - full-catalog behavior remains unchanged when no source is selected;
@@ -902,7 +902,7 @@ fixtures, and tests move directly to the new contract.
 - one workspace-level resource gate coordinates all brief-local run roots;
 - verified artifact rules prevent indexing incomplete output.
 
-### 16.3 Concurrency tests
+### 17.3 Concurrency tests
 
 - two different Runs execute concurrently;
 - two writers for the same Run cannot race append sequence allocation;
@@ -913,7 +913,7 @@ fixtures, and tests move directly to the new contract.
 - append sequence allocation and latest-projection replacement share one
   writer lease.
 
-### 16.4 API and frontend tests
+### 17.4 API and frontend tests
 
 - background launch returns `202 + job_id`;
 - reconnect obtains a durable snapshot after missed events;
@@ -927,7 +927,7 @@ fixtures, and tests move directly to the new contract.
 - `report.html` cannot access the privileged service session when opened;
 - source-filter and result-tab state round-trips through a deep link.
 
-### 16.5 Distribution smoke test
+### 17.5 Distribution smoke test
 
 On a clean supported macOS account without project development tools:
 
