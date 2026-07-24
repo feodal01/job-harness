@@ -3319,6 +3319,49 @@ class AdditionalCompanyCareerSourceFixtureTest(unittest.TestCase):
         self.assertIsNone(listing.remote_in_country)
         self.assertFalse(listing.remote_global)
 
+    def test_ashby_plain_remote_location_does_not_imply_global_scope(self) -> None:
+        source = build_supported_source_catalog(("career:supabase",)).get("career:supabase")
+        request = SourceFetchRequest(
+            source_id="career:supabase",
+            query_variant="Engineer",
+            url="https://api.ashbyhq.com/posting-api/job-board/supabase",
+        )
+        parsed = source.parse_search_response(
+            SourceResponseArtifact(
+                source_id="career:supabase",
+                url=request.url,
+                media_type="application/json",
+                body=json.dumps(
+                    {
+                        "jobs": [
+                            {
+                                "id": "job-1",
+                                "title": "Customer Solution Architect",
+                                "jobUrl": "https://jobs.ashbyhq.com/supabase/job-1",
+                                "location": "Remote",
+                                "address": {
+                                    "postalAddress": {
+                                        "addressRegion": "",
+                                        "addressCountry": "",
+                                        "addressLocality": "",
+                                    }
+                                },
+                                "secondaryLocations": [],
+                                "isRemote": True,
+                                "workplaceType": "Remote",
+                            }
+                        ]
+                    }
+                ),
+            ),
+            request,
+        )
+
+        self.assertEqual(SourceOutcome.SUCCESS, parsed.outcome)
+        self.assertEqual(1, len(parsed.listings))
+        self.assertIsNone(parsed.listings[0].remote_in_country)
+        self.assertFalse(parsed.listings[0].remote_global)
+
     def test_workday_request_mapping_posts_cxs_search_payload(self) -> None:
         source = build_supported_source_catalog(("career:semrush",)).get("career:semrush")
 
