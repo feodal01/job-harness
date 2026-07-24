@@ -201,7 +201,137 @@ class AtsCompanySourceConfig:
     taleo_parallel_pagination_window: int = _DEFAULT_TALEO_PARALLEL_PAGINATION_WINDOW
 
 
+_BULK_PROBE_SOURCE_ROWS: tuple[tuple[str, str, AtsPlatform, str, str], ...] = (
+    ("career:alan", "Alan", "ashby", "https://api.ashbyhq.com/posting-api/job-board/alan", "https://jobs.ashbyhq.com/alan"),
+    ("career:algolia", "Algolia", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/algolia/jobs?content=true", "https://boards.greenhouse.io/algolia"),
+    ("career:amplitude", "Amplitude", "ashby", "https://api.ashbyhq.com/posting-api/job-board/amplitude", "https://jobs.ashbyhq.com/amplitude"),
+    (
+        "career:anthropic",
+        "Anthropic",
+        "greenhouse",
+        "https://boards-api.greenhouse.io/v1/boards/anthropic/jobs?content=true",
+        "https://boards.greenhouse.io/anthropic",
+    ),
+    ("career:anyscale", "Anyscale", "ashby", "https://api.ashbyhq.com/posting-api/job-board/anyscale", "https://jobs.ashbyhq.com/anyscale"),
+    ("career:astral", "Astral", "ashby", "https://api.ashbyhq.com/posting-api/job-board/astral", "https://jobs.ashbyhq.com/astral"),
+    ("career:backmarket", "Backmarket", "ashby", "https://api.ashbyhq.com/posting-api/job-board/backmarket", "https://jobs.ashbyhq.com/backmarket"),
+    ("career:baseten", "Baseten", "ashby", "https://api.ashbyhq.com/posting-api/job-board/baseten", "https://jobs.ashbyhq.com/baseten"),
+    ("career:bolt", "Bolt", "ashby", "https://api.ashbyhq.com/posting-api/job-board/bolt", "https://jobs.ashbyhq.com/bolt"),
+    ("career:brex", "Brex", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/brex/jobs?content=true", "https://boards.greenhouse.io/brex"),
+    ("career:clerk", "Clerk", "ashby", "https://api.ashbyhq.com/posting-api/job-board/clerk", "https://jobs.ashbyhq.com/clerk"),
+    ("career:coda", "Coda", "workable", "https://apply.workable.com/coda/jobs.md", "https://apply.workable.com/coda/"),
+    ("career:cohere", "Cohere", "ashby", "https://api.ashbyhq.com/posting-api/job-board/cohere", "https://jobs.ashbyhq.com/cohere"),
+    (
+        "career:contentful",
+        "Contentful",
+        "greenhouse",
+        "https://boards-api.greenhouse.io/v1/boards/contentful/jobs?content=true",
+        "https://boards.greenhouse.io/contentful",
+    ),
+    ("career:convex", "Convex", "workable", "https://apply.workable.com/convex/jobs.md", "https://apply.workable.com/convex/"),
+    ("career:cypress", "Cypress", "workable", "https://apply.workable.com/cypress/jobs.md", "https://apply.workable.com/cypress/"),
+    ("career:datadog", "Datadog", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/datadog/jobs?content=true", "https://boards.greenhouse.io/datadog"),
+    ("career:deel", "Deel", "ashby", "https://api.ashbyhq.com/posting-api/job-board/deel", "https://jobs.ashbyhq.com/deel"),
+    ("career:deepgram", "Deepgram", "ashby", "https://api.ashbyhq.com/posting-api/job-board/deepgram", "https://jobs.ashbyhq.com/deepgram"),
+    ("career:doctolib", "Doctolib", "ashby", "https://api.ashbyhq.com/posting-api/job-board/doctolib", "https://jobs.ashbyhq.com/doctolib"),
+    ("career:elevenlabs", "Elevenlabs", "ashby", "https://api.ashbyhq.com/posting-api/job-board/elevenlabs", "https://jobs.ashbyhq.com/elevenlabs"),
+    ("career:figma", "Figma", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/figma/jobs?content=true", "https://boards.greenhouse.io/figma"),
+    ("career:flink", "Flink", "ashby", "https://api.ashbyhq.com/posting-api/job-board/flink", "https://jobs.ashbyhq.com/flink"),
+    ("career:framer", "Framer", "personio", "https://framer.jobs.personio.de/", "https://framer.jobs.personio.de/"),
+    ("career:fullstory", "Fullstory", "ashby", "https://api.ashbyhq.com/posting-api/job-board/fullstory", "https://jobs.ashbyhq.com/fullstory"),
+    (
+        "career:getyourguide",
+        "Getyourguide",
+        "greenhouse",
+        "https://boards-api.greenhouse.io/v1/boards/getyourguide/jobs?content=true",
+        "https://boards.greenhouse.io/getyourguide",
+    ),
+    ("career:gorgias", "Gorgias", "ashby", "https://api.ashbyhq.com/posting-api/job-board/gorgias", "https://jobs.ashbyhq.com/gorgias"),
+    ("career:grafana", "Grafana", "workable", "https://apply.workable.com/grafana/jobs.md", "https://apply.workable.com/grafana/"),
+    ("career:gusto", "Gusto", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/gusto/jobs?content=true", "https://boards.greenhouse.io/gusto"),
+    ("career:huggingface", "Huggingface", "workable", "https://apply.workable.com/huggingface/jobs.md", "https://apply.workable.com/huggingface/"),
+    (
+        "career:intercom",
+        "Intercom",
+        "greenhouse",
+        "https://boards-api.greenhouse.io/v1/boards/intercom/jobs?content=true",
+        "https://boards.greenhouse.io/intercom",
+    ),
+    ("career:kahoot", "Kahoot", "workable", "https://apply.workable.com/kahoot/jobs.md", "https://apply.workable.com/kahoot/"),
+    ("career:klarna", "Klarna", "workable", "https://apply.workable.com/klarna/jobs.md", "https://apply.workable.com/klarna/"),
+    ("career:langchain", "Langchain", "ashby", "https://api.ashbyhq.com/posting-api/job-board/langchain", "https://jobs.ashbyhq.com/langchain"),
+    ("career:lattice", "Lattice", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/lattice/jobs?content=true", "https://boards.greenhouse.io/lattice"),
+    ("career:launchdarkly", "Launchdarkly", "ashby", "https://api.ashbyhq.com/posting-api/job-board/launchdarkly", "https://jobs.ashbyhq.com/launchdarkly"),
+    ("career:linear", "Linear", "ashby", "https://api.ashbyhq.com/posting-api/job-board/linear", "https://jobs.ashbyhq.com/linear"),
+    ("career:loom", "Loom", "ashby", "https://api.ashbyhq.com/posting-api/job-board/loom", "https://jobs.ashbyhq.com/loom"),
+    ("career:mercury", "Mercury", "ashby", "https://api.ashbyhq.com/posting-api/job-board/mercury", "https://jobs.ashbyhq.com/mercury"),
+    ("career:miro", "Miro", "ashby", "https://api.ashbyhq.com/posting-api/job-board/miro", "https://jobs.ashbyhq.com/miro"),
+    ("career:mistral", "Mistral", "lever", "https://api.lever.co/v0/postings/mistral?mode=json", "https://jobs.lever.co/mistral"),
+    (
+        "career:mixpanel",
+        "Mixpanel",
+        "greenhouse",
+        "https://boards-api.greenhouse.io/v1/boards/mixpanel/jobs?content=true",
+        "https://boards.greenhouse.io/mixpanel",
+    ),
+    ("career:monzo", "Monzo", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/monzo/jobs?content=true", "https://boards.greenhouse.io/monzo"),
+    ("career:n26", "N26", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/n26/jobs?content=true", "https://boards.greenhouse.io/n26"),
+    ("career:notion", "Notion", "ashby", "https://api.ashbyhq.com/posting-api/job-board/notion", "https://jobs.ashbyhq.com/notion"),
+    ("career:openai", "OpenAI", "ashby", "https://api.ashbyhq.com/posting-api/job-board/openai", "https://jobs.ashbyhq.com/openai"),
+    ("career:oyster", "Oyster", "ashby", "https://api.ashbyhq.com/posting-api/job-board/oyster", "https://jobs.ashbyhq.com/oyster"),
+    ("career:personio", "Personio", "workable", "https://apply.workable.com/personio/jobs.md", "https://apply.workable.com/personio/"),
+    ("career:pinecone", "Pinecone", "ashby", "https://api.ashbyhq.com/posting-api/job-board/pinecone", "https://jobs.ashbyhq.com/pinecone"),
+    ("career:pitch", "Pitch", "workable", "https://apply.workable.com/pitch/jobs.md", "https://apply.workable.com/pitch/"),
+    ("career:plaid", "Plaid", "ashby", "https://api.ashbyhq.com/posting-api/job-board/plaid", "https://jobs.ashbyhq.com/plaid"),
+    ("career:pleo", "Pleo", "ashby", "https://api.ashbyhq.com/posting-api/job-board/pleo", "https://jobs.ashbyhq.com/pleo"),
+    ("career:posthog", "Posthog", "ashby", "https://api.ashbyhq.com/posting-api/job-board/posthog", "https://jobs.ashbyhq.com/posthog"),
+    ("career:postman", "Postman", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/postman/jobs?content=true", "https://boards.greenhouse.io/postman"),
+    ("career:qdrant", "Qdrant", "workable", "https://apply.workable.com/qdrant/jobs.md", "https://apply.workable.com/qdrant/"),
+    ("career:qonto", "Qonto", "ashby", "https://api.ashbyhq.com/posting-api/job-board/qonto", "https://jobs.ashbyhq.com/qonto"),
+    ("career:remote", "Remote", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/remote/jobs?content=true", "https://boards.greenhouse.io/remote"),
+    ("career:replit", "Replit", "ashby", "https://api.ashbyhq.com/posting-api/job-board/replit", "https://jobs.ashbyhq.com/replit"),
+    ("career:resend", "Resend", "ashby", "https://api.ashbyhq.com/posting-api/job-board/resend", "https://jobs.ashbyhq.com/resend"),
+    ("career:revolut", "Revolut", "workable", "https://apply.workable.com/revolut/jobs.md", "https://apply.workable.com/revolut/"),
+    ("career:rippling", "Rippling", "workable", "https://apply.workable.com/rippling/jobs.md", "https://apply.workable.com/rippling/"),
+    ("career:segment", "Segment", "workable", "https://apply.workable.com/segment/jobs.md", "https://apply.workable.com/segment/"),
+    ("career:sentry", "Sentry", "ashby", "https://api.ashbyhq.com/posting-api/job-board/sentry", "https://jobs.ashbyhq.com/sentry"),
+    ("career:smallpdf", "Smallpdf", "ashby", "https://api.ashbyhq.com/posting-api/job-board/smallpdf", "https://jobs.ashbyhq.com/smallpdf"),
+    ("career:snyk", "Snyk", "ashby", "https://api.ashbyhq.com/posting-api/job-board/snyk", "https://jobs.ashbyhq.com/snyk"),
+    ("career:spendesk", "Spendesk", "ashby", "https://api.ashbyhq.com/posting-api/job-board/spendesk", "https://jobs.ashbyhq.com/spendesk"),
+    ("career:stripe", "Stripe", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/stripe/jobs?content=true", "https://boards.greenhouse.io/stripe"),
+    ("career:sumup", "Sumup", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/sumup/jobs?content=true", "https://boards.greenhouse.io/sumup"),
+    ("career:supabase", "Supabase", "ashby", "https://api.ashbyhq.com/posting-api/job-board/supabase", "https://jobs.ashbyhq.com/supabase"),
+    ("career:swile", "Swile", "lever", "https://api.lever.co/v0/postings/swile?mode=json", "https://jobs.lever.co/swile"),
+    ("career:temporal", "Temporal", "ashby", "https://api.ashbyhq.com/posting-api/job-board/temporal", "https://jobs.ashbyhq.com/temporal"),
+    (
+        "career:typeform",
+        "Typeform",
+        "greenhouse",
+        "https://boards-api.greenhouse.io/v1/boards/typeform/jobs?content=true",
+        "https://boards.greenhouse.io/typeform",
+    ),
+    ("career:vanta", "Vanta", "ashby", "https://api.ashbyhq.com/posting-api/job-board/vanta", "https://jobs.ashbyhq.com/vanta"),
+    ("career:vercel", "Vercel", "ashby", "https://api.ashbyhq.com/posting-api/job-board/vercel", "https://jobs.ashbyhq.com/vercel"),
+    ("career:vinted", "Vinted", "workable", "https://apply.workable.com/vinted/jobs.md", "https://apply.workable.com/vinted/"),
+    ("career:weaviate", "Weaviate", "ashby", "https://api.ashbyhq.com/posting-api/job-board/weaviate", "https://jobs.ashbyhq.com/weaviate"),
+    ("career:webflow", "Webflow", "ashby", "https://api.ashbyhq.com/posting-api/job-board/webflow", "https://jobs.ashbyhq.com/webflow"),
+    ("career:wise", "Wise", "workable", "https://apply.workable.com/wise/jobs.md", "https://apply.workable.com/wise/"),
+    ("career:wolt", "Wolt", "greenhouse", "https://boards-api.greenhouse.io/v1/boards/wolt/jobs?content=true", "https://boards.greenhouse.io/wolt"),
+)
+
+
 ATS_COMPANY_SOURCE_CONFIGS: dict[str, AtsCompanySourceConfig] = {
+    **{
+        source_id: AtsCompanySourceConfig(
+            source_id=source_id,
+            company=company,
+            platform=platform,
+            board_url=board_url,
+            career_url=career_url,
+            workable_slug=source_id.removeprefix("career:") if platform == "workable" else None,
+        )
+        for source_id, company, platform, board_url, career_url in _BULK_PROBE_SOURCE_ROWS
+    },
     "career:jetbrains": AtsCompanySourceConfig(
         source_id="career:jetbrains",
         company="JetBrains",
@@ -6193,7 +6323,7 @@ def _lever_posted_at(value: object, config: AtsCompanySourceConfig) -> str | Non
 
 def _has_global_remote_scope(remote_locations: tuple[str, ...]) -> bool:
     return any(
-        location.strip().casefold() in {"anywhere", "global", "remote", "worldwide"}
+        location.strip().casefold() in {"anywhere", "global", "worldwide"}
         for location in remote_locations
     )
 
