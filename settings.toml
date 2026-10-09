@@ -1,0 +1,31 @@
+# JOB_SEARCH_<NAME> and JOB_SEARCH_SOURCES__HH_RU__<NAME> override this file.
+log_level = "INFO"
+log_format = "text"
+log_max_bytes = 10485760
+log_backup_count = 5
+run_timeout_seconds = 900
+max_active_runs = 3
+
+[sources.hh_ru]
+max_items_per_query = 50
+max_pages_per_query = 2
+concurrency = 2
+interval_seconds = 1.5
+request_timeout_seconds = 20
+max_attempts = 2
+retry_base_seconds = 1
+breaker_threshold = 3
+breaker_seconds = 30
+geography_cache_seconds = 300
+
+[sources.getmatch]
+max_items_per_query = 2000
+max_pages_per_query = 15
+concurrency = 1
+interval_seconds = 1
+request_timeout_seconds = 20
+max_attempts = 2
+retry_base_seconds = 1
+breaker_threshold = 3
+breaker_seconds = 30
+page_size = 100

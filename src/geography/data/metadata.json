@@ -1,0 +1,61 @@
+{
+  "format_version": 1,
+  "attribution": "GeoNames geographical database",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "homepage": "https://www.geonames.org/",
+  "coverage": "cities500: populated places over 500 people or administrative seats; 32 countries",
+  "countries": [
+    "RU",
+    "BY",
+    "KZ",
+    "AM",
+    "UZ",
+    "KG",
+    "AZ",
+    "GE",
+    "UA",
+    "MD",
+    "RS",
+    "ME",
+    "TR",
+    "CY",
+    "AE",
+    "IL",
+    "DE",
+    "PL",
+    "NL",
+    "FR",
+    "ES",
+    "PT",
+    "GB",
+    "US",
+    "CA",
+    "AU",
+    "TH",
+    "ID",
+    "VN",
+    "SG",
+    "CH",
+    "CZ"
+  ],
+  "cities": 112357,
+  "inputs": [
+    {
+      "file": "cities500.zip",
+      "url": "https://download.geonames.org/export/dump/cities500.zip",
+      "sha256": "b5782a2f689e3d7acc9f57d543f481610e207bc07b2ba5709c351b78bd34cbed"
+    },
+    {
+      "file": "admin1CodesASCII.txt",
+      "url": "https://download.geonames.org/export/dump/admin1CodesASCII.txt",
+      "sha256": "1da92a6323a5fec3176f3f743bf4cf4040fd56a876da55e46fbca23c863aa60a"
+    },
+    {
+      "file": "alternateNamesV2.zip",
+      "url": "https://download.geonames.org/export/dump/alternateNamesV2.zip",
+      "sha256": "a89836526a59f854f4f0c1e549f0b190b7cc24a37d27b612a370508903f98665"
+    }
+  ],
+  "snapshot_sha256": "87f7c4f4d87e1008eeb778e4ae6dfecc0ef37fb21189f88d5e10557099ce5f36",
+  "downloaded_on": "2026-10-08"
+}

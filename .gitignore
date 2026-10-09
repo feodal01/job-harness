@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+/data/
+dist/
+.mypy_cache/
+.DS_Store
+.idea/
+*.pyc
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.log
+/reports/

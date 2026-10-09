@@ -1,0 +1,8 @@
+{
+  "source": "hh_ru",
+  "captured_url": "https://spb.hh.ru/vacancy/134519442",
+  "capture_date": "2026-06-24",
+  "capture_method": "curl anonymous desktop user-agent",
+  "fixture_purpose": "HH detail page structured vacancy facts: key skills, experience, employment form, schedule, working hours, work format, and labor contract flag",
+  "minimization": "Preserved real HH-Lux-InitialState vacancyView keys relevant to structured fact extraction and a minimal real-shape vacancy-description block."
+}

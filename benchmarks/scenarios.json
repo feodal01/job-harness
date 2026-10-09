@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hh-qa-moscow",
+    "description": "HH, одна фраза, один город, профили работодателей",
+    "queries": ["QA"],
+    "filters": {"locations": [{"country": "RU", "city": "Москва"}]},
+    "sources": ["hh_ru"],
+    "limits": {"hh_ru": {"max_items_per_query": 30, "max_pages_per_query": 3}},
+    "company_profiles": true
+  },
+  {
+    "id": "hh-three-phrases",
+    "description": "HH, три формулировки одной роли по всей России; 20 на фразу = 60 всего, как в бейзлайне",
+    "queries": ["QA", "тестировщик", "AQA"],
+    "filters": {"locations": [{"country": "RU"}]},
+    "sources": ["hh_ru"],
+    "limits": {"hh_ru": {"max_items_per_query": 20, "max_pages_per_query": 2}},
+    "company_profiles": true
+  },
+  {
+    "id": "getmatch-feed",
+    "description": "Getmatch, общая лента без условий; 102 вакансии, как в бейзлайне",
+    "queries": [],
+    "filters": {},
+    "sources": ["getmatch"],
+    "limits": {"getmatch": {"max_items_per_query": 102, "max_pages_per_query": 10}}
+  },
+  {
+    "id": "hh-and-getmatch",
+    "description": "HH и Getmatch одновременно по одному брифу",
+    "queries": ["QA"],
+    "filters": {"locations": [{"country": "RU"}]},
+    "sources": ["hh_ru", "getmatch"],
+    "limits": {
+      "hh_ru": {"max_items_per_query": 30, "max_pages_per_query": 2},
+      "getmatch": {"max_items_per_query": 100, "max_pages_per_query": 10}
+    },
+    "company_profiles": true
+  },
+  {
+    "id": "hh-qa-moscow-rerun",
+    "description": "Второй запуск того же брифа сразу после первого: метрики второго",
+    "queries": ["QA"],
+    "filters": {"locations": [{"country": "RU", "city": "Москва"}]},
+    "sources": ["hh_ru"],
+    "limits": {"hh_ru": {"max_items_per_query": 30, "max_pages_per_query": 3}},
+    "company_profiles": true,
+    "runs_in_a_row": 2
+  }
+]

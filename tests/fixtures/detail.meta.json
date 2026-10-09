@@ -1,0 +1,11 @@
+{
+  "source_id": "hh_ru",
+  "captured_url": "https://hh.ru/vacancy/134371846",
+  "capture_date": "2026-06-23",
+  "capture_method": "curl -L --compressed with desktop Chrome user-agent",
+  "fixture_kind": "detail",
+  "redactions": [
+    "Minimized to the real data-qa=\"vacancy-description\" DOM subtree; page chrome, scripts, styles, analytics, and unrelated widgets were removed."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

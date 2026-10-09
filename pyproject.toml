@@ -1,0 +1,49 @@
+[project]
+name = "hh-search-prototype"
+version = "0.4.0"
+description = "Local job search: FastAPI, one SQLite database, common filters and source adapters"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "httpx>=0.28",
+    "pydantic-settings>=2.7",
+    "beautifulsoup4>=4.12",
+    "nh3>=0.3.6",
+    "mcp>=1.26,<2",
+    "alembic>=1.16,<2",
+    "sqlalchemy>=2.0,<3",
+]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"settings.toml" = "src/settings.toml"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.1",
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.9",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+files = ["src"]
+check_untyped_defs = true
+disallow_untyped_defs = true

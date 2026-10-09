@@ -1,0 +1,827 @@
+[
+  {
+    "id": "113",
+    "name": "Россия",
+    "url": "https://api.hh.ru/areas/113"
+  },
+  {
+    "id": "2112",
+    "name": "Абхазия",
+    "url": "https://api.hh.ru/areas/2112"
+  },
+  {
+    "id": "5",
+    "name": "Украина",
+    "url": "https://api.hh.ru/areas/5"
+  },
+  {
+    "id": "6",
+    "name": "Австралия",
+    "url": "https://api.hh.ru/areas/6"
+  },
+  {
+    "id": "40",
+    "name": "Казахстан",
+    "url": "https://api.hh.ru/areas/40"
+  },
+  {
+    "id": "7",
+    "name": "Австрия",
+    "url": "https://api.hh.ru/areas/7"
+  },
+  {
+    "id": "9",
+    "name": "Азербайджан",
+    "url": "https://api.hh.ru/areas/9"
+  },
+  {
+    "id": "2357",
+    "name": "Албания",
+    "url": "https://api.hh.ru/areas/2357"
+  },
+  {
+    "id": "16",
+    "name": "Беларусь",
+    "url": "https://api.hh.ru/areas/16"
+  },
+  {
+    "id": "2368",
+    "name": "Алжир",
+    "url": "https://api.hh.ru/areas/2368"
+  },
+  {
+    "id": "28",
+    "name": "Грузия",
+    "url": "https://api.hh.ru/areas/28"
+  },
+  {
+    "id": "2376",
+    "name": "Ангола",
+    "url": "https://api.hh.ru/areas/2376"
+  },
+  {
+    "id": "2354",
+    "name": "Андорра",
+    "url": "https://api.hh.ru/areas/2354"
+  },
+  {
+    "id": "48",
+    "name": "Кыргызстан",
+    "url": "https://api.hh.ru/areas/48"
+  },
+  {
+    "id": "235",
+    "name": "Аргентина",
+    "url": "https://api.hh.ru/areas/235"
+  },
+  {
+    "id": "97",
+    "name": "Узбекистан",
+    "url": "https://api.hh.ru/areas/97"
+  },
+  {
+    "id": "13",
+    "name": "Армения",
+    "url": "https://api.hh.ru/areas/13"
+  },
+  {
+    "id": "2110",
+    "name": "Афганистан",
+    "url": "https://api.hh.ru/areas/2110"
+  },
+  {
+    "id": "11515",
+    "name": "Беловское",
+    "url": "https://api.hh.ru/areas/11515"
+  },
+  {
+    "id": "6010",
+    "name": "Багамские Острова",
+    "url": "https://api.hh.ru/areas/6010"
+  },
+  {
+    "id": "303",
+    "name": "Бангладеш",
+    "url": "https://api.hh.ru/areas/303"
+  },
+  {
+    "id": "6359",
+    "name": "Барбадос",
+    "url": "https://api.hh.ru/areas/6359"
+  },
+  {
+    "id": "2361",
+    "name": "Бахрейн",
+    "url": "https://api.hh.ru/areas/2361"
+  },
+  {
+    "id": "5047",
+    "name": "Белиз",
+    "url": "https://api.hh.ru/areas/5047"
+  },
+  {
+    "id": "18",
+    "name": "Бельгия",
+    "url": "https://api.hh.ru/areas/18"
+  },
+  {
+    "id": "200",
+    "name": "Болгария",
+    "url": "https://api.hh.ru/areas/200"
+  },
+  {
+    "id": "2228",
+    "name": "Боливия",
+    "url": "https://api.hh.ru/areas/2228"
+  },
+  {
+    "id": "2358",
+    "name": "Босния и Герцеговина",
+    "url": "https://api.hh.ru/areas/2358"
+  },
+  {
+    "id": "243",
+    "name": "Бразилия",
+    "url": "https://api.hh.ru/areas/243"
+  },
+  {
+    "id": "6329",
+    "name": "Бруней Даруссалам",
+    "url": "https://api.hh.ru/areas/6329"
+  },
+  {
+    "id": "306",
+    "name": "Буркина Фасо",
+    "url": "https://api.hh.ru/areas/306"
+  },
+  {
+    "id": "21",
+    "name": "Великобритания",
+    "url": "https://api.hh.ru/areas/21"
+  },
+  {
+    "id": "114",
+    "name": "Венгрия",
+    "url": "https://api.hh.ru/areas/114"
+  },
+  {
+    "id": "2371",
+    "name": "Венесуэла",
+    "url": "https://api.hh.ru/areas/2371"
+  },
+  {
+    "id": "203",
+    "name": "Вьетнам",
+    "url": "https://api.hh.ru/areas/203"
+  },
+  {
+    "id": "2586",
+    "name": "Габон",
+    "url": "https://api.hh.ru/areas/2586"
+  },
+  {
+    "id": "202",
+    "name": "Гвинея",
+    "url": "https://api.hh.ru/areas/202"
+  },
+  {
+    "id": "27",
+    "name": "Германия",
+    "url": "https://api.hh.ru/areas/27"
+  },
+  {
+    "id": "2435",
+    "name": "Государство Палестина",
+    "url": "https://api.hh.ru/areas/2435"
+  },
+  {
+    "id": "213",
+    "name": "Греция",
+    "url": "https://api.hh.ru/areas/213"
+  },
+  {
+    "id": "30",
+    "name": "Дания",
+    "url": "https://api.hh.ru/areas/30"
+  },
+  {
+    "id": "311",
+    "name": "Демократическая Республика Конго",
+    "url": "https://api.hh.ru/areas/311"
+  },
+  {
+    "id": "6517",
+    "name": "Джибути",
+    "url": "https://api.hh.ru/areas/6517"
+  },
+  {
+    "id": "2730",
+    "name": "Доминиканская Республика",
+    "url": "https://api.hh.ru/areas/2730"
+  },
+  {
+    "id": "6868",
+    "name": "Другое",
+    "url": "https://api.hh.ru/areas/6868"
+  },
+  {
+    "id": "305",
+    "name": "Египет",
+    "url": "https://api.hh.ru/areas/305"
+  },
+  {
+    "id": "6367",
+    "name": "Замбия",
+    "url": "https://api.hh.ru/areas/6367"
+  },
+  {
+    "id": "33",
+    "name": "Израиль",
+    "url": "https://api.hh.ru/areas/33"
+  },
+  {
+    "id": "209",
+    "name": "Индия",
+    "url": "https://api.hh.ru/areas/209"
+  },
+  {
+    "id": "2108",
+    "name": "Индонезия",
+    "url": "https://api.hh.ru/areas/2108"
+  },
+  {
+    "id": "2365",
+    "name": "Иордания",
+    "url": "https://api.hh.ru/areas/2365"
+  },
+  {
+    "id": "2232",
+    "name": "Ирак",
+    "url": "https://api.hh.ru/areas/2232"
+  },
+  {
+    "id": "2227",
+    "name": "Иран",
+    "url": "https://api.hh.ru/areas/2227"
+  },
+  {
+    "id": "36",
+    "name": "Ирландия",
+    "url": "https://api.hh.ru/areas/36"
+  },
+  {
+    "id": "302",
+    "name": "Исландия",
+    "url": "https://api.hh.ru/areas/302"
+  },
+  {
+    "id": "37",
+    "name": "Испания",
+    "url": "https://api.hh.ru/areas/37"
+  },
+  {
+    "id": "38",
+    "name": "Италия",
+    "url": "https://api.hh.ru/areas/38"
+  },
+  {
+    "id": "2109",
+    "name": "Йемен",
+    "url": "https://api.hh.ru/areas/2109"
+  },
+  {
+    "id": "245",
+    "name": "Камбоджа",
+    "url": "https://api.hh.ru/areas/245"
+  },
+  {
+    "id": "45",
+    "name": "Канада",
+    "url": "https://api.hh.ru/areas/45"
+  },
+  {
+    "id": "210",
+    "name": "Катар",
+    "url": "https://api.hh.ru/areas/210"
+  },
+  {
+    "id": "236",
+    "name": "Кипр",
+    "url": "https://api.hh.ru/areas/236"
+  },
+  {
+    "id": "50",
+    "name": "Китай",
+    "url": "https://api.hh.ru/areas/50"
+  },
+  {
+    "id": "2113",
+    "name": "Колумбия",
+    "url": "https://api.hh.ru/areas/2113"
+  },
+  {
+    "id": "2380",
+    "name": "Кооперативная Республика Гайана",
+    "url": "https://api.hh.ru/areas/2380"
+  },
+  {
+    "id": "2362",
+    "name": "Королевство Саудовская Аравия",
+    "url": "https://api.hh.ru/areas/2362"
+  },
+  {
+    "id": "2363",
+    "name": "Кувейт",
+    "url": "https://api.hh.ru/areas/2363"
+  },
+  {
+    "id": "6323",
+    "name": "Лаос",
+    "url": "https://api.hh.ru/areas/6323"
+  },
+  {
+    "id": "11317",
+    "name": "Республика Гамбия",
+    "url": "https://api.hh.ru/areas/11317"
+  },
+  {
+    "id": "57",
+    "name": "Латвия",
+    "url": "https://api.hh.ru/areas/57"
+  },
+  {
+    "id": "2111",
+    "name": "Ливан",
+    "url": "https://api.hh.ru/areas/2111"
+  },
+  {
+    "id": "2106",
+    "name": "Ливия",
+    "url": "https://api.hh.ru/areas/2106"
+  },
+  {
+    "id": "59",
+    "name": "Литва",
+    "url": "https://api.hh.ru/areas/59"
+  },
+  {
+    "id": "2355",
+    "name": "Лихтенштейн",
+    "url": "https://api.hh.ru/areas/2355"
+  },
+  {
+    "id": "206",
+    "name": "Люксембург",
+    "url": "https://api.hh.ru/areas/206"
+  },
+  {
+    "id": "2359",
+    "name": "Македония",
+    "url": "https://api.hh.ru/areas/2359"
+  },
+  {
+    "id": "238",
+    "name": "Малайзия",
+    "url": "https://api.hh.ru/areas/238"
+  },
+  {
+    "id": "6518",
+    "name": "Мали",
+    "url": "https://api.hh.ru/areas/6518"
+  },
+  {
+    "id": "2798",
+    "name": "Мальдивская Республика",
+    "url": "https://api.hh.ru/areas/2798"
+  },
+  {
+    "id": "2353",
+    "name": "Мальта",
+    "url": "https://api.hh.ru/areas/2353"
+  },
+  {
+    "id": "2372",
+    "name": "Марокко",
+    "url": "https://api.hh.ru/areas/2372"
+  },
+  {
+    "id": "2229",
+    "name": "Мексика",
+    "url": "https://api.hh.ru/areas/2229"
+  },
+  {
+    "id": "62",
+    "name": "Молдова",
+    "url": "https://api.hh.ru/areas/62"
+  },
+  {
+    "id": "2356",
+    "name": "Монако",
+    "url": "https://api.hh.ru/areas/2356"
+  },
+  {
+    "id": "2231",
+    "name": "Монголия",
+    "url": "https://api.hh.ru/areas/2231"
+  },
+  {
+    "id": "2487",
+    "name": "Мьянма",
+    "url": "https://api.hh.ru/areas/2487"
+  },
+  {
+    "id": "2375",
+    "name": "Намибия",
+    "url": "https://api.hh.ru/areas/2375"
+  },
+  {
+    "id": "6326",
+    "name": "Непал",
+    "url": "https://api.hh.ru/areas/6326"
+  },
+  {
+    "id": "240",
+    "name": "Нигерия",
+    "url": "https://api.hh.ru/areas/240"
+  },
+  {
+    "id": "65",
+    "name": "Нидерланды",
+    "url": "https://api.hh.ru/areas/65"
+  },
+  {
+    "id": "204",
+    "name": "Новая Зеландия",
+    "url": "https://api.hh.ru/areas/204"
+  },
+  {
+    "id": "207",
+    "name": "Норвегия",
+    "url": "https://api.hh.ru/areas/207"
+  },
+  {
+    "id": "208",
+    "name": "ОАЭ",
+    "url": "https://api.hh.ru/areas/208"
+  },
+  {
+    "id": "6058",
+    "name": "Объединенная Республика Танзания",
+    "url": "https://api.hh.ru/areas/6058"
+  },
+  {
+    "id": "2364",
+    "name": "Оман",
+    "url": "https://api.hh.ru/areas/2364"
+  },
+  {
+    "id": "6521",
+    "name": "Острова Кайман",
+    "url": "https://api.hh.ru/areas/6521"
+  },
+  {
+    "id": "316",
+    "name": "Пакистан",
+    "url": "https://api.hh.ru/areas/316"
+  },
+  {
+    "id": "2587",
+    "name": "Панама",
+    "url": "https://api.hh.ru/areas/2587"
+  },
+  {
+    "id": "6327",
+    "name": "Парагвай",
+    "url": "https://api.hh.ru/areas/6327"
+  },
+  {
+    "id": "2395",
+    "name": "Перу",
+    "url": "https://api.hh.ru/areas/2395"
+  },
+  {
+    "id": "74",
+    "name": "Польша",
+    "url": "https://api.hh.ru/areas/74"
+  },
+  {
+    "id": "241",
+    "name": "Португалия",
+    "url": "https://api.hh.ru/areas/241"
+  },
+  {
+    "id": "2752",
+    "name": "Республика Бенин",
+    "url": "https://api.hh.ru/areas/2752"
+  },
+  {
+    "id": "6377",
+    "name": "Республика Гаити",
+    "url": "https://api.hh.ru/areas/6377"
+  },
+  {
+    "id": "2491",
+    "name": "Республика Гана",
+    "url": "https://api.hh.ru/areas/2491"
+  },
+  {
+    "id": "5131",
+    "name": "Республика Гватемала",
+    "url": "https://api.hh.ru/areas/5131"
+  },
+  {
+    "id": "2504",
+    "name": "Республика Зимбабве",
+    "url": "https://api.hh.ru/areas/2504"
+  },
+  {
+    "id": "2669",
+    "name": "Республика Камерун",
+    "url": "https://api.hh.ru/areas/2669"
+  },
+  {
+    "id": "2453",
+    "name": "Республика Кения",
+    "url": "https://api.hh.ru/areas/2453"
+  },
+  {
+    "id": "312",
+    "name": "Республика Конго",
+    "url": "https://api.hh.ru/areas/312"
+  },
+  {
+    "id": "2636",
+    "name": "Республика Коста-Рика",
+    "url": "https://api.hh.ru/areas/2636"
+  },
+  {
+    "id": "2454",
+    "name": "Республика Кот-д’Ивуар",
+    "url": "https://api.hh.ru/areas/2454"
+  },
+  {
+    "id": "2635",
+    "name": "Республика Куба",
+    "url": "https://api.hh.ru/areas/2635"
+  },
+  {
+    "id": "2398",
+    "name": "Республика Либерия",
+    "url": "https://api.hh.ru/areas/2398"
+  },
+  {
+    "id": "2370",
+    "name": "Республика Маврикий",
+    "url": "https://api.hh.ru/areas/2370"
+  },
+  {
+    "id": "2488",
+    "name": "Республика Мадагаскар",
+    "url": "https://api.hh.ru/areas/2488"
+  },
+  {
+    "id": "6337",
+    "name": "Республика Малави",
+    "url": "https://api.hh.ru/areas/6337"
+  },
+  {
+    "id": "2378",
+    "name": "Республика Нигер",
+    "url": "https://api.hh.ru/areas/2378"
+  },
+  {
+    "id": "3666",
+    "name": "Республика Никарагуа",
+    "url": "https://api.hh.ru/areas/3666"
+  },
+  {
+    "id": "2446",
+    "name": "Республика Северный Судан",
+    "url": "https://api.hh.ru/areas/2446"
+  },
+  {
+    "id": "2367",
+    "name": "Республика Сейшельские острова",
+    "url": "https://api.hh.ru/areas/2367"
+  },
+  {
+    "id": "2374",
+    "name": "Республика Сенегал",
+    "url": "https://api.hh.ru/areas/2374"
+  },
+  {
+    "id": "6504",
+    "name": "Республика Сьерра-Леоне",
+    "url": "https://api.hh.ru/areas/6504"
+  },
+  {
+    "id": "6350",
+    "name": "Республика Чад",
+    "url": "https://api.hh.ru/areas/6350"
+  },
+  {
+    "id": "6356",
+    "name": "Республика Эль-Сальвадор",
+    "url": "https://api.hh.ru/areas/6356"
+  },
+  {
+    "id": "2369",
+    "name": "Реюньон",
+    "url": "https://api.hh.ru/areas/2369"
+  },
+  {
+    "id": "234",
+    "name": "Румыния",
+    "url": "https://api.hh.ru/areas/234"
+  },
+  {
+    "id": "11177",
+    "name": "Сан-Томе и Принсипи",
+    "url": "https://api.hh.ru/areas/11177"
+  },
+  {
+    "id": "5048",
+    "name": "Сент-Винсент и Гренадины",
+    "url": "https://api.hh.ru/areas/5048"
+  },
+  {
+    "id": "146",
+    "name": "Сербия",
+    "url": "https://api.hh.ru/areas/146"
+  },
+  {
+    "id": "233",
+    "name": "Сингапур",
+    "url": "https://api.hh.ru/areas/233"
+  },
+  {
+    "id": "317",
+    "name": "Сирия",
+    "url": "https://api.hh.ru/areas/317"
+  },
+  {
+    "id": "318",
+    "name": "Словакия",
+    "url": "https://api.hh.ru/areas/318"
+  },
+  {
+    "id": "2105",
+    "name": "Словения",
+    "url": "https://api.hh.ru/areas/2105"
+  },
+  {
+    "id": "85",
+    "name": "США",
+    "url": "https://api.hh.ru/areas/85"
+  },
+  {
+    "id": "86",
+    "name": "Таджикистан",
+    "url": "https://api.hh.ru/areas/86"
+  },
+  {
+    "id": "300",
+    "name": "Таиланд",
+    "url": "https://api.hh.ru/areas/300"
+  },
+  {
+    "id": "148",
+    "name": "Тайвань",
+    "url": "https://api.hh.ru/areas/148"
+  },
+  {
+    "id": "6330",
+    "name": "Тоголезская Республика",
+    "url": "https://api.hh.ru/areas/6330"
+  },
+  {
+    "id": "244",
+    "name": "Тунис",
+    "url": "https://api.hh.ru/areas/244"
+  },
+  {
+    "id": "93",
+    "name": "Туркменистан",
+    "url": "https://api.hh.ru/areas/93"
+  },
+  {
+    "id": "94",
+    "name": "Турция",
+    "url": "https://api.hh.ru/areas/94"
+  },
+  {
+    "id": "4635",
+    "name": "Уганда",
+    "url": "https://api.hh.ru/areas/4635"
+  },
+  {
+    "id": "2810",
+    "name": "Уругвай",
+    "url": "https://api.hh.ru/areas/2810"
+  },
+  {
+    "id": "2360",
+    "name": "Филиппины",
+    "url": "https://api.hh.ru/areas/2360"
+  },
+  {
+    "id": "100",
+    "name": "Финляндия",
+    "url": "https://api.hh.ru/areas/100"
+  },
+  {
+    "id": "101",
+    "name": "Франция",
+    "url": "https://api.hh.ru/areas/101"
+  },
+  {
+    "id": "2103",
+    "name": "Хорватия",
+    "url": "https://api.hh.ru/areas/2103"
+  },
+  {
+    "id": "6448",
+    "name": "Центральноафриканская Республика",
+    "url": "https://api.hh.ru/areas/6448"
+  },
+  {
+    "id": "5046",
+    "name": "Черногория",
+    "url": "https://api.hh.ru/areas/5046"
+  },
+  {
+    "id": "199",
+    "name": "Чехия",
+    "url": "https://api.hh.ru/areas/199"
+  },
+  {
+    "id": "2396",
+    "name": "Чили",
+    "url": "https://api.hh.ru/areas/2396"
+  },
+  {
+    "id": "108",
+    "name": "Швейцария",
+    "url": "https://api.hh.ru/areas/108"
+  },
+  {
+    "id": "149",
+    "name": "Швеция",
+    "url": "https://api.hh.ru/areas/149"
+  },
+  {
+    "id": "239",
+    "name": "Шотландия",
+    "url": "https://api.hh.ru/areas/239"
+  },
+  {
+    "id": "2511",
+    "name": "Шри-Ланка",
+    "url": "https://api.hh.ru/areas/2511"
+  },
+  {
+    "id": "242",
+    "name": "Эквадор",
+    "url": "https://api.hh.ru/areas/242"
+  },
+  {
+    "id": "6328",
+    "name": "Эритрея",
+    "url": "https://api.hh.ru/areas/6328"
+  },
+  {
+    "id": "109",
+    "name": "Эстония",
+    "url": "https://api.hh.ru/areas/109"
+  },
+  {
+    "id": "2520",
+    "name": "Эфиопия",
+    "url": "https://api.hh.ru/areas/2520"
+  },
+  {
+    "id": "211",
+    "name": "ЮАР",
+    "url": "https://api.hh.ru/areas/211"
+  },
+  {
+    "id": "110",
+    "name": "Южная Корея",
+    "url": "https://api.hh.ru/areas/110"
+  },
+  {
+    "id": "2524",
+    "name": "Южная Осетия",
+    "url": "https://api.hh.ru/areas/2524"
+  },
+  {
+    "id": "2440",
+    "name": "Ямайка",
+    "url": "https://api.hh.ru/areas/2440"
+  },
+  {
+    "id": "111",
+    "name": "Япония",
+    "url": "https://api.hh.ru/areas/111"
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "name": "job-search",
+  "version": "0.4.0",
+  "description": "Локальный поиск вакансий по брифу, сохранённые результаты и веб-интерфейс.",
+  "author": {
+    "name": "Job Search"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Job Search",
+    "shortDescription": "Поиск вакансий по вашему брифу.",
+    "longDescription": "Ищет вакансии на HH и Getmatch, сохраняет брифы и результаты локально и открывает веб-интерфейс. Сервис запускается по запросу. macOS и Linux; при первом запуске загружаются Python и зависимости.",
+    "developerName": "Job Search",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": ["Помоги составить бриф и найти вакансии", "Покажи мои сохранённые поиски", "Останови сервис поиска вакансий"]
+  },
+  "mcpServers": "./.mcp.json"
+}

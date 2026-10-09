@@ -1,0 +1,224 @@
+{
+  "items": [
+    {
+      "id": "1",
+      "text": "Москва",
+      "url": "https://api.hh.ru/areas/1",
+      "parent": {
+        "id": "113",
+        "text": "Россия",
+        "url": "https://api.hh.ru/areas/113"
+      }
+    },
+    {
+      "id": "2095",
+      "text": "Троицк (Москва)",
+      "url": "https://api.hh.ru/areas/2095",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "2036",
+      "text": "Московский (Москва)",
+      "url": "https://api.hh.ru/areas/2036",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "2096",
+      "text": "Щербинка (Москва)",
+      "url": "https://api.hh.ru/areas/2096",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "2486",
+      "text": "Кокошкино (Москва)",
+      "url": "https://api.hh.ru/areas/2486",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "6579",
+      "text": "Ватутинки (Москва)",
+      "url": "https://api.hh.ru/areas/6579",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "17607",
+      "text": "Вороново (Москва)",
+      "url": "https://api.hh.ru/areas/17607",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "13240",
+      "text": "Воскресенское (Москва)",
+      "url": "https://api.hh.ru/areas/13240",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "6066",
+      "text": "Знамя Октября (Москва)",
+      "url": "https://api.hh.ru/areas/6066",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "4599",
+      "text": "Киевский (Москва)",
+      "url": "https://api.hh.ru/areas/4599",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "4302",
+      "text": "Коммунарка (Москва)",
+      "url": "https://api.hh.ru/areas/4302",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "6608",
+      "text": "ЛМС (Москва)",
+      "url": "https://api.hh.ru/areas/6608",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "17608",
+      "text": "Львово (Москва)",
+      "url": "https://api.hh.ru/areas/17608",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "17506",
+      "text": "Марьино (Новомосковский административный округ, Москва)",
+      "url": "https://api.hh.ru/areas/17506",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    },
+    {
+      "id": "8228",
+      "text": "Мосрентген (Москва)",
+      "url": "https://api.hh.ru/areas/8228",
+      "parent": {
+        "id": "2019",
+        "text": "Московская область",
+        "url": "https://api.hh.ru/areas/2019",
+        "parent": {
+          "id": "113",
+          "text": "Россия",
+          "url": "https://api.hh.ru/areas/113"
+        }
+      }
+    }
+  ]
+}
