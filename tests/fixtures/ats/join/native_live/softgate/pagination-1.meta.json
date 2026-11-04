@@ -1,0 +1,32 @@
+{
+  "captured_at": "2026-10-12T09:58:49.345216+00:00",
+  "request": {
+    "url": "https://join.com/candidate-api/graphql",
+    "query": "",
+    "stage": "listing",
+    "location": null,
+    "method": "POST",
+    "json_body": {
+      "query": "query PublicJobsList($input: PublicJobsQueryInput!) {\n  publicJobs(input: $input) {\n    items {\n      id idParam title companyId createdAt workplaceType remoteType\n      city { cityName countryCode countryName } country { iso3166 name }\n      category { id name } employmentType { name }\n    }\n    pageInfo { page pageCount pageSize rowCount }\n  }\n}",
+      "variables": {
+        "input": {
+          "companyId": 79714,
+          "paginationPage": {
+            "page": 1,
+            "pageSize": 1
+          },
+          "filters": {
+            "categoryIds": [
+              351
+            ]
+          }
+        }
+      }
+    },
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://join.com/candidate-api/graphql",
+  "response_sha256": "ce2cf7cacb99217c8f0c128b5760d985210e60e7e1fbe97967b4a10e7047b49c",
+  "note": "Initial request pageSize set to 1 to exercise provider pagination; subsequent requests emitted by adapter."
+}

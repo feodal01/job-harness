@@ -1,0 +1,32 @@
+{
+  "captured_at": "2026-10-12T09:57:19.422470+00:00",
+  "request": {
+    "url": "https://join.com/candidate-api/graphql",
+    "query": "",
+    "stage": "listing",
+    "location": null,
+    "method": "POST",
+    "json_body": {
+      "query": "query PublicJobsList($input: PublicJobsQueryInput!) {\n  publicJobs(input: $input) {\n    items {\n      id idParam title companyId createdAt workplaceType remoteType\n      city { cityName countryCode countryName } country { iso3166 name }\n      category { id name } employmentType { name }\n    }\n    pageInfo { page pageCount pageSize rowCount }\n  }\n}",
+      "variables": {
+        "input": {
+          "companyId": 54,
+          "paginationPage": {
+            "page": 1,
+            "pageSize": 50
+          },
+          "filters": {
+            "categoryIds": [
+              372
+            ]
+          }
+        }
+      }
+    },
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://join.com/candidate-api/graphql",
+  "response_sha256": "a0894748a55fa94d7e467c7c2a7ad800f68be8a8feb4a22834a3f8e0666567c1",
+  "response_file": "positive-1.json"
+}

@@ -17,6 +17,7 @@ from src.engine.recorder import SourceRecorder
 from src.engine.reuse import KnownData
 from src.engine.source_run import SourceRun
 from src.engine.tasks import TaskRegistry
+from src.enrichment.registry import Enrichment, default_enrichment
 from src.models.brief import BriefInput
 from src.models.run import RunInput
 from src.network.client import Network
@@ -33,8 +34,11 @@ class SearchEngine:
         store: SearchStorage,
         sources: dict[str, SourceAdapter],
         client: httpx.AsyncClient,
+        enrichment: Enrichment | None = None,
     ) -> None:
         self.settings, self.store, self.sources = settings, store, sources
+        # The application passes its single enrichment (built on its geography catalog).
+        self.enrichment = enrichment or default_enrichment()
         resources: dict[str, Network] = {}
         self.networks: dict[str, Network] = {}
         for key, source in sources.items():
@@ -47,7 +51,7 @@ class SearchEngine:
         self.tasks: dict[str, asyncio.Task] = {}
         self.cancelled_runs: set[str] = set()
         self.registry = TaskRegistry()
-        self.known = KnownData(store.vacancies, store.companies)
+        self.known = KnownData(store.vacancies, store.companies, self.enrichment)
         self.stopping = False
 
     def start(self, request: RunInput) -> dict:
@@ -170,6 +174,7 @@ class SearchEngine:
                 source,
                 clock,
                 publish,
+                enrichment=self.enrichment,
                 unsupported=frozenset(
                     key for key, mode in self.sources[source].search.parameters.items() if mode == "none"
                 ),
@@ -199,6 +204,7 @@ class SearchEngine:
                             recorders[source],
                             self.known,
                             self.registry,
+                            self.enrichment,
                         )
                         group.create_task(runner.run())
             status, error = outcome(recorders)

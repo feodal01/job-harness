@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-12T09:57:14.165112+00:00",
+  "request": {
+    "url": "https://boards-api.greenhouse.io/v1/boards/atwellgroup/jobs/5250400007?content=true",
+    "query": "",
+    "stage": "listing",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://boards-api.greenhouse.io/v1/boards/atwellgroup/jobs/5250400007?content=true",
+  "response_sha256": "6ea6e94abec1a897e52d15075f81ecc7d815fbc069a86222e98267b177486efe",
+  "response_file": "detail.json"
+}

@@ -1,0 +1,19 @@
+{
+  "captured_at": "2026-10-12T10:07:55.005465+00:00",
+  "request": {
+    "url": "https://apply.workable.com/api/v3/accounts/destinusgroup/jobs",
+    "query": "engineer",
+    "stage": "listing",
+    "location": null,
+    "method": "POST",
+    "json_body": {
+      "query": "engineer",
+      "token": "WzE1Ljc4NDUxNCw2MTgyNTk3XQ=="
+    },
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://apply.workable.com/api/v3/accounts/destinusgroup/jobs",
+  "response_sha256": "2a126c27b2f88321dfbd0e924999f36209017b1539c0ebf4c96948b6c5f05f69",
+  "response_file": "8.json"
+}

@@ -1,8 +1,8 @@
 [project]
 name = "job-search-plugin-runtime"
-version = "0.4.0"
+version = "0.9.2"
 requires-python = ">=3.12,<3.13"
 dependencies = ["hh-search-prototype"]
 
 [tool.uv.sources]
-hh-search-prototype = { path = "hh_search_prototype-0.4.0-py3-none-any.whl" }
+hh-search-prototype = { path = "hh_search_prototype-0.9.2-py3-none-any.whl" }

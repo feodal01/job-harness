@@ -1,0 +1,37 @@
+{
+  "fixture_kind": "unseen_employer_live_listing",
+  "company": "Finom",
+  "input_board_url": "https://jobs.eu.lever.co/pnlfin",
+  "captured_url": "https://api.eu.lever.co/v0/postings/pnlfin?mode=json",
+  "capture_method": "single public HTTP GET, redirects disabled, timeout 20 seconds",
+  "request": {
+    "method": "GET",
+    "url": "https://api.eu.lever.co/v0/postings/pnlfin?mode=json",
+    "headers": {
+      "User-Agent": "hh-search-prototype-parser-check/0.5.1",
+      "Accept-Encoding": "identity"
+    }
+  },
+  "started_at": "2026-10-12T05:26:27.248547+00:00",
+  "parser_frozen_at": "2026-10-12T05:26:27.170315+00:00",
+  "parser_sha256_before_capture": "bd82b5173712474f746d263975850000701086a0d7fb0ac58f00a4a3e9cd4da3",
+  "donor_membership": "Employer name and native board key absent from donor ATS source configuration literals",
+  "candidate_provenance": "reports/ats-migration-2026-10-11/catalog-mapping.json; input only, no runtime import",
+  "scope": "One listing request, no details or pagination requests. Saved response tests do not establish universal live support.",
+  "completed_at": "2026-10-12T05:26:29.649387+00:00",
+  "http_status": 200,
+  "final_url": "https://api.eu.lever.co/v0/postings/pnlfin?mode=json",
+  "content_type": "application/json; charset=utf-8",
+  "content_encoding": null,
+  "response_sha256": "838171fd72d375b372325271593e32a68df880af0d873043e242cd2a88586403",
+  "response_bytes": 1818895,
+  "unchanged_parser_result": {
+    "outcome": "success",
+    "vacancy_count": 76,
+    "total": 76,
+    "next_request_count": 0
+  },
+  "parser_sha256_after_capture": "bd82b5173712474f746d263975850000701086a0d7fb0ac58f00a4a3e9cd4da3",
+  "donor_source_sha256": "445e94938079934b501c8579f342b1cee1004aa71fed0be2092e0615d5451cf2",
+  "manual_review": "Reviewed first three IDs/titles, EU hosted URLs, Netherlands/Spain/Poland categories, remote enum, Full Time commitment, createdAt timestamps and description HTML against the saved response."
+}

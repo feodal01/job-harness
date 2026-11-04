@@ -1,0 +1,37 @@
+{
+  "fixture_kind": "unseen_employer_live_listing",
+  "company": "Nova Credit",
+  "input_board_url": "https://job-boards.greenhouse.io/novacredit",
+  "captured_url": "https://boards-api.greenhouse.io/v1/boards/novacredit/jobs?content=true",
+  "capture_method": "single public HTTP GET, redirects disabled, timeout 20 seconds",
+  "request": {
+    "method": "GET",
+    "url": "https://boards-api.greenhouse.io/v1/boards/novacredit/jobs?content=true",
+    "headers": {
+      "User-Agent": "hh-search-prototype-parser-check/0.5.1",
+      "Accept-Encoding": "identity"
+    }
+  },
+  "started_at": "2026-10-12T05:26:27.248239+00:00",
+  "parser_frozen_at": "2026-10-12T05:26:27.170315+00:00",
+  "parser_sha256_before_capture": "1fae229df1430cfd1bbdfdfe53e78037fb8972a0b72b4747573c90d06bbf2577",
+  "donor_membership": "Employer name and native board key absent from donor ATS source configuration literals",
+  "candidate_provenance": "reports/ats-migration-2026-10-11/catalog-mapping.json; input only, no runtime import",
+  "scope": "One listing request, no details or pagination requests. Saved response tests do not establish universal live support.",
+  "completed_at": "2026-10-12T05:26:27.872299+00:00",
+  "http_status": 200,
+  "final_url": "https://boards-api.greenhouse.io/v1/boards/novacredit/jobs?content=true",
+  "content_type": "application/json",
+  "content_encoding": null,
+  "response_sha256": "7f17a60b058422bea36050b27d2e48ccd2fa046b97cfb2c1b93de84970e3fed1",
+  "response_bytes": 84577,
+  "unchanged_parser_result": {
+    "outcome": "success",
+    "vacancy_count": 8,
+    "total": 8,
+    "next_request_count": 0
+  },
+  "parser_sha256_after_capture": "1fae229df1430cfd1bbdfdfe53e78037fb8972a0b72b4747573c90d06bbf2577",
+  "donor_source_sha256": "445e94938079934b501c8579f342b1cee1004aa71fed0be2092e0615d5451cf2",
+  "manual_review": "Reviewed first three IDs/titles and URLs; first job New York, NY location, first_published timestamp and escaped HTML description. No office assumption from city."
+}

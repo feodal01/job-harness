@@ -1,0 +1,46 @@
+{
+  "positive": {
+    "timestamp": "2026-10-12T05:58:15.300102+00:00",
+    "request": {
+      "url": "https://apply.workable.com/api/v3/accounts/atmio/jobs",
+      "query": "Production",
+      "stage": "listing",
+      "location": null,
+      "method": "POST",
+      "json_body": {
+        "query": "Production",
+        "location": [],
+        "department": [],
+        "worktype": [],
+        "remote": []
+      }
+    },
+    "status": 200,
+    "final_url": "https://apply.workable.com/api/v3/accounts/atmio/jobs",
+    "response_sha256": "7d3f66d6c4753eaafa27be4f860bc56c218a80df986023f8256ad9c218a6134e",
+    "response_file": "positive.json",
+    "origin": "ATS generalization review 2026-10-12 public API capture"
+  },
+  "negative": {
+    "timestamp": "2026-10-12T05:58:29.894617+00:00",
+    "request": {
+      "url": "https://apply.workable.com/api/v3/accounts/atmio/jobs",
+      "query": "zzqnojobgeneralization20261012",
+      "stage": "listing",
+      "location": null,
+      "method": "POST",
+      "json_body": {
+        "query": "zzqnojobgeneralization20261012",
+        "location": [],
+        "department": [],
+        "worktype": [],
+        "remote": []
+      }
+    },
+    "status": 200,
+    "final_url": "https://apply.workable.com/api/v3/accounts/atmio/jobs",
+    "response_sha256": "8bdb9043955fc773a47310959e7fb5be4fc49444394d1aaa114b343bd10534b2",
+    "response_file": "negative.json",
+    "origin": "ATS generalization review 2026-10-12 public API capture"
+  }
+}

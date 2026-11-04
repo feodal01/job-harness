@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-02",
+  "captured_url": "https://careers-westernsouthern.icims.com/jobs/search?pr=2&in_iframe=1&searchRelation=keyword_all",
+  "content_type": "text/html;charset=UTF-8",
+  "final_url": "https://careers-westernsouthern.icims.com/jobs/search?pr=2&in_iframe=1&searchRelation=keyword_all",
+  "notes": "Real public iCIMS rel-next pagination HTML captured for career:western-southern.",
+  "source_id": "career:western-southern"
+}

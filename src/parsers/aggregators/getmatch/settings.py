@@ -8,3 +8,5 @@ class GetmatchSettings(RequestSettings):
     max_items_per_query: int = Field(default=2000, ge=1, le=5000)
     max_pages_per_query: int = Field(default=15, ge=1, le=50)
     page_size: int = Field(default=100, ge=1, le=100)
+    # Lifetime of the checked vacancy-form zone values (docs/getmatch-geography-plan.md §8).
+    geography_cache_seconds: float = Field(default=86400, ge=0)

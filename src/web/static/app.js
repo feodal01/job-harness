@@ -1,7 +1,8 @@
 const $ = id => document.getElementById(id);
 let servicePaused = false, pollTimer = null;
-let briefs = [], sources = [], countries = [], selectedLocations = [], chosenCity = null,
-  cityVersion = 0, cityTimer = null, cityController = null, catalogReady = false, submitting = false;
+let validationAttempted = false, validationFields = [], validationId = 0;
+const validationSummary = "Проверьте поля, выделенные красным.";
+let briefs = [], sources = [], catalogReady = false, submitting = false;
 let route = {}, viewVersion = 0, requestVersion = 0, refreshController = null,
   renderedCards = null, renderedPagination = null, renderedHome = null, renderedFolders = null,
   pageItems = [], searchTimer = null, toastTimer = null, detailVersion = 0,
@@ -75,34 +76,28 @@ const checkStatusNames = {accepted:"Подходит",rejected:"Не подхо�
         );
       return data;
     }
+    const queryTokens = new TokenEditor($("queriesEditor"), $("queries"),
+      {label: "Поисковые запросы", maxItems: 10, maxLength: 500, onChange: updateFormFeedback});
+    const companyTokens = new TokenEditor($("excludedCompaniesEditor"), $("excludedCompanies"),
+      {label: "Исключённые компании", maxItems: 50, maxLength: 200, onChange: updateFormFeedback});
+    const textTokens = new TokenEditor($("excludedTextEditor"), $("excludedText"),
+      {label: "Исключённый текст", maxItems: 50, maxLength: 200, onChange: updateFormFeedback});
+    const tokenEditors = [queryTokens, companyTokens, textTokens];
+    const locationEditor = new LocationEditor($("locationGroups"), $("locationCount"),
+      $("addLocationGroup"), api, () => {updateUnsupportedConditions(); updateStart();});
     const chosenSources = () => sources.filter((s) => $("source-" + s.id)?.checked);
     function updateStart() {
       const active=["queued","running"].includes(currentBrief()?.last_run?.status);
-      $("start").disabled = submitting || active || !catalogReady || !chosenSources().length;
+      $("start").disabled = submitting || active;
       $("start").textContent=submitting?"Сохраняем…":active?"Поиск уже идёт":"Сохранить и искать";
       $("settingsSearchState").textContent=active?"Поиск уже идёт по условиям на момент запуска. Изменения можно сохранить для следующего поиска.":"";
       $("settingsSearchState").hidden=!active;
-      $("saveBrief").disabled = submitting || !catalogReady;
-    }
-    function clearCity() {
-      cityVersion++;
-      clearTimeout(cityTimer);
-      cityController?.abort();
-      chosenCity = null;
-      $("city").value = "";
-      $("city").disabled = !$("country").value;
-      $("cityOptions").replaceChildren();
-      $("cityOptions").hidden = true;
-      $("city").setAttribute("aria-expanded", "false");
-      $("cityRetry").hidden = true;
-      $("cityStatus").textContent = $("country").value
-        ? "Без города — вся страна. Подсказки уточняют одноимённые города." : "Выберите страну для поиска города.";
-      updateStart();
+      $("saveBrief").disabled = submitting;
+      if (validationAttempted) validateSearchForm();
     }
     function updateSource() {
       const chosen = chosenSources();
-      $("sourceStatus").textContent = chosen.map((s) => s.name + ": " + s.capabilities.query_notes).join(" ");
-      $("queries").required = chosen.length > 0 && chosen.every((s) => s.capabilities.query_parameters.query === "native");
+      queryTokens.setRequired(chosen.length > 0 && chosen.every(s => s.capabilities.query_parameters.query === "native"));
       $("profiles").disabled = !chosen.some((s) => s.capabilities.actions.includes("company_profile"));
       if ($("profiles").disabled) $("profiles").checked = false;
       updateUnsupportedConditions();
@@ -110,16 +105,16 @@ const checkStatusNames = {accepted:"Подходит",rejected:"Не подхо�
     }
     function updateUnsupportedConditions() {
       const enabled = {
-        query: lines("queries").length > 0,
-        locations: selectedLocations.length > 0 || !!$("country").value,
-        minimum_work_format: !!$("minimumWorkFormat").value,
+        query: queryTokens.values.length > 0,
+        locations: locationEditor.count > 0,
+        minimum_work_format: locationEditor.groups.some(group => !!group.minimum),
+        relocation_support: locationEditor.groups.some(group => group.relocation),
         employment: selected("employment").length > 0,
         experience_years: $("experience").value !== "",
         salary: $("salaryMin").value !== "",
         published_after: !!$("publishedAfter").value,
-        relocation_support: $("relocation").checked,
-        excluded_companies: lines("excludedCompanies").length > 0,
-        excluded_text: lines("excludedText").length > 0,
+        excluded_companies: companyTokens.values.length > 0,
+        excluded_text: textTokens.values.length > 0,
       };
       const host = $("unsupportedConditions"); host.replaceChildren();
       for (const source of chosenSources()) {
@@ -129,36 +124,12 @@ const checkStatusNames = {accepted:"Подходит",rejected:"Не подхо�
       host.hidden = !host.childElementCount;
     }
     async function loadGeography() {
-      countries = await api("/api/v1/geography/countries");
-      $("country").replaceChildren(el("option", "Без ограничения"));
-      $("country").firstChild.value = "";
-      for (const p of countries) {
-        const option = el("option", p.name); option.value = p.code; $("country").append(option);
-      }
-      $("country").disabled = false;
+      const countries = await api("/api/v1/geography/countries");
+      locationEditor.setCountries(countries);
       catalogReady = true;
-      clearCity();
+      $("countryRetry").hidden = true;
       updateSource();
     }
-    function drawLocations() {
-      $("selectedLocations").replaceChildren();
-      selectedLocations.forEach((p, i) => {
-        const row = el("div");
-        row.append(el("span", [countries.find(c => c.code === p.country)?.name, p.city, p.region].filter(Boolean).join(" · ")));
-        const remove = el("button", "Убрать", "secondary"); remove.type = "button";
-        remove.onclick = () => {selectedLocations.splice(i, 1); drawLocations();}; row.append(remove);
-        $("selectedLocations").append(row);
-      });
-      updateUnsupportedConditions();
-    }
-    function addLocation() {
-      if (!$("country").value) return;
-      const city = $("city").value.trim() || null;
-      const place = {country: $("country").value, city, region: chosenCity?.region || null};
-      if (!selectedLocations.some(p => JSON.stringify(p) === JSON.stringify(place))) selectedLocations.push(place);
-      $("country").value = ""; clearCity(); drawLocations();
-    }
-    $("addLocation").onclick = addLocation;
     const employmentLabels = {full_time:"Полная", part_time:"Частичная", contract:"Проектная / контракт", internship:"Стажировка", volunteer:"Волонтёрство"};
     for (const [value, text] of Object.entries(employmentLabels)) {
         const label = el("label"); const input = document.createElement("input");
@@ -167,99 +138,28 @@ const checkStatusNames = {accepted:"Подходит",rejected:"Не подхо�
     }
     const selected = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(e => e.value);
     const setSelected = (name, values) => document.querySelectorAll(`input[name="${name}"]`).forEach(e => { e.checked = values.includes(e.value); });
-    const lines = id => $(id).value.split("\n").map(s => s.trim()).filter(Boolean);
     function readFilters() {
-      addLocation();
       return {
-        locations: selectedLocations,
-        minimum_work_format: $("minimumWorkFormat").value || null, employment: selected("employment"),
+        locations: locationEditor.read(),
+        employment: selected("employment"),
         experience_years: $("experience").value === "" ? null : Number($("experience").value),
         salary: $("salaryMin").value === "" ? null : {minimum:Number($("salaryMin").value), currency:$("currency").value,
           period:$("salaryPeriod").value},
         published_after: $("publishedAfter").value || null,
-        relocation_support: $("relocation").checked,
-        excluded_companies: lines("excludedCompanies"), excluded_text: lines("excludedText"),
+        excluded_companies: companyTokens.values, excluded_text: textTokens.values,
       };
     }
     function fillFilters(f = {}) {
-      selectedLocations = structuredClone(f.locations || []); drawLocations();
-      $("country").value = ""; clearCity();
-      $("minimumWorkFormat").value = f.minimum_work_format || "";
+      locationEditor.load(f);
       setSelected("employment", f.employment || []);
       $("experience").value = f.experience_years ?? "";
       $("salaryMin").value = f.salary?.minimum ?? ""; $("currency").value = f.salary?.currency || "RUB";
       $("salaryPeriod").value = f.salary?.period || "month";
-      $("publishedAfter").value = f.published_after || ""; $("relocation").checked = !!f.relocation_support;
-      $("excludedCompanies").value = (f.excluded_companies || []).join("\n");
-      $("excludedText").value = (f.excluded_text || []).join("\n");
+      $("publishedAfter").value = f.published_after || "";
+      companyTokens.setValues(f.excluded_companies || []);
+      textTokens.setValues(f.excluded_text || []);
     }
-    function chooseCity(city) {
-      chosenCity = city;
-      $("city").value = city.name;
-      $("cityStatus").textContent = [city.name, ...city.path].join(" · ");
-      $("cityOptions").hidden = true;
-      $("city").setAttribute("aria-expanded", "false");
-      updateStart();
-    }
-    async function suggestCities(version) {
-      const text = $("city").value.trim();
-      const params = new URLSearchParams({country: $("country").value, text});
-      $("cityStatus").textContent = "Ищем варианты…";
-      cityController = new AbortController();
-      try {
-        const items = await api(`/api/v1/geography/cities?${params}`,
-          "GET", undefined, cityController.signal);
-        if (version !== cityVersion) return;
-        $("cityOptions").replaceChildren();
-        for (const city of items) {
-          const button = el("button", [city.name, ...city.path].join(" · "), "secondary");
-          button.type = "button";
-          button.style.cssText = "display:block;width:100%;text-align:left;margin-bottom:4px";
-          button.onclick = () => chooseCity(city);
-          $("cityOptions").append(button);
-        }
-        $("cityOptions").hidden = !items.length;
-        $("city").setAttribute("aria-expanded", String(!!items.length));
-        $("cityStatus").textContent = items.length
-          ? "Выберите город из подсказок." : "Ничего не найдено. Уточните название или очистите поле.";
-      } catch (e) {
-        if (version !== cityVersion || e.name === "AbortError") return;
-        $("cityStatus").textContent = "Не удалось получить подсказки: " + e.message;
-        $("cityRetry").hidden = false;
-      }
-    }
-    $("city").oninput = () => {
-      const version = ++cityVersion;
-      clearTimeout(cityTimer);
-      cityController?.abort();
-      chosenCity = null;
-      $("cityOptions").replaceChildren();
-      $("cityOptions").hidden = true;
-      $("city").setAttribute("aria-expanded", "false");
-      $("cityRetry").hidden = true;
-      const text = $("city").value.trim();
-      $("cityStatus").textContent = text ? "Введите хотя бы два символа и выберите подсказку."
-        : "Без города — поиск по всей выбранной стране.";
-      updateStart();
-      if (text.length >= 2 && $("country").value)
-        cityTimer = setTimeout(() => suggestCities(version), 400);
-    };
-    $("city").onkeydown = (e) => {
-      if (e.key === "ArrowDown" && !$("cityOptions").hidden) {
-        e.preventDefault();
-        $("cityOptions").firstElementChild?.focus();
-      }
-      if (e.key === "Escape") {
-        $("cityOptions").hidden = true;
-        $("city").setAttribute("aria-expanded", "false");
-      }
-    };
-    $("country").onchange = clearCity;
     $("countryRetry").onclick = () => { error(""); loadGeography().catch(e => error(e.message)); };
-    $("cityRetry").onclick = () => {
-      $("cityRetry").hidden = true;
-      suggestCities(++cityVersion);
-    };
     async function loadCatalog() {
       sources = await api("/api/v1/sources");
       for (const source of sources) {
@@ -647,10 +547,10 @@ function searchOptionsForBrief(b) {
   };
 }
 function fillSettings(b) {
+  resetFormValidation();
   $("settingsTitle").textContent=b?"Поиск · "+b.name:"Новый бриф";
   $("settingsBack").textContent=b?"← К вакансиям":"← Все брифы";
-  $("name").value=b?.name || "";$("queries").value=(b?.queries || []).join("\n");$("briefText").value=b?.text || "";
-  $("queries").rows=Math.max(3,Math.min(10,(b?.queries.length || 0)+1));$("queries").scrollTop=0;
+  $("name").value=b?.name || "";queryTokens.setValues(b?.queries || []);$("briefText").value=b?.text || "";
   $("briefNotice").textContent=b?.migration_note || b?.filters_migration_notice || "";fillFilters(b?.filters || {});
   settingsSearch=searchOptionsForBrief(b);
   const selected=settingsSearch.sources?.length?settingsSearch.sources:sources.map(s=>s.id);
@@ -661,6 +561,7 @@ function fillSettings(b) {
     $(id).placeholder=values.length>1?"Разные лимиты источников":"По настройкам";
   }
   initialLimit=$("limit").value;initialPages=$("pages").value;
+  $("searchForm").querySelector(".search-volume").open = false;
   $("secondChance").checked=settingsSearch.second_chance===true;
   $("profiles").checked=settingsSearch.company_profiles!==false;updateSource();
 }
@@ -675,15 +576,76 @@ function readSearchOptions() {
   }
   return {sources:chosenSources().map(s=>s.id),limits,company_profiles:$("profiles").checked,second_chance:$("secondChance").checked};
 }
-$("searchForm").addEventListener("input",updateUnsupportedConditions);
-$("searchForm").addEventListener("change",updateUnsupportedConditions);
+function clearFormErrors() {
+  for (const {target, message} of validationFields) {
+    target.removeAttribute("aria-invalid");
+    const descriptions = (target.getAttribute("aria-describedby") || "").split(" ").filter(id => id && id !== message.id);
+    if (descriptions.length) target.setAttribute("aria-describedby", descriptions.join(" "));
+    else target.removeAttribute("aria-describedby");
+    message.remove();
+  }
+  validationFields = [];
+}
+function resetFormValidation() {
+  validationAttempted = false;
+  clearFormErrors();
+  if ($("error").textContent === validationSummary) error("");
+}
+function validateSearchForm(focus = false) {
+  clearFormErrors();
+  const errors = new Map();
+  if (!$("name").value.trim()) errors.set($("name"), "Введите название брифа.");
+  for (const editor of tokenEditors) if (editor.error) errors.set(editor.input, editor.error);
+  if (queryTokens.required && !queryTokens.values.length)
+    errors.set($("queries"), "Добавьте хотя бы один поисковый запрос для выбранного источника.");
+  if (!chosenSources().length) errors.set($("sourcesBox"), "Выберите хотя бы один источник поиска.");
+  for (const {target, message} of locationEditor.validationErrors()) errors.set(target, message);
+  for (const field of $("searchForm").querySelectorAll("input, textarea, select")) {
+    if (field.disabled || field.validity.valid || errors.has(field)) continue;
+    const validity = field.validity;
+    errors.set(field, validity.valueMissing ? "Заполните это поле."
+      : validity.badInput ? "Введите число."
+      : validity.rangeUnderflow ? `Значение должно быть не меньше ${field.min}.`
+      : validity.rangeOverflow ? `Значение должно быть не больше ${field.max}.`
+      : validity.stepMismatch ? `Допустимый шаг значения: ${field.step}.`
+      : validity.tooLong ? `Не больше ${field.maxLength} символов.` : "Укажите корректное значение.");
+  }
+  for (const [target, text] of errors) {
+    const message = el("small", text, "field-error"); message.id = `brief-field-error-${++validationId}`;
+    target.setAttribute("aria-invalid", "true");
+    target.setAttribute("aria-describedby", [target.getAttribute("aria-describedby"), message.id].filter(Boolean).join(" "));
+    (target.closest(".token-editor, .location-picker") || target).after(message); validationFields.push({target, message});
+  }
+  if (focus && errors.size) {
+    error(validationSummary);
+    const target = [...errors.keys()].find(field => !field.disabled);
+    if (target) {
+      if (!target.matches("input, textarea, select")) target.tabIndex = -1;
+      for (let parent = target.parentElement; parent; parent = parent.parentElement) {
+        if (parent.tagName === "DETAILS") parent.open = true;
+      }
+      target.focus({preventScroll: true}); target.scrollIntoView({block: "center", behavior: "smooth"});
+    }
+  } else if (!errors.size && $("error").textContent === validationSummary) error("");
+  return errors.size === 0;
+}
+function updateFormFeedback() {
+  updateUnsupportedConditions();
+  if (validationAttempted) validateSearchForm();
+}
+$("searchForm").addEventListener("input", updateFormFeedback);
+$("searchForm").addEventListener("change", updateFormFeedback);
 $("searchForm").onsubmit=async e=>{
-  e.preventDefault();if(submitting)return;const launch=e.submitter?.id==="start",id=route.briefId;submitting=true;updateStart();error("");
+  e.preventDefault();if(submitting)return;
+  validationAttempted = true;
+  if (!validateSearchForm(true)) return;
+  for (const editor of tokenEditors) editor.commit();
+  const launch=e.submitter?.id==="start",id=route.briefId;submitting=true;updateStart();error("");
   try{
     if(launch && ["queued","running"].includes(currentBrief()?.last_run?.status))throw Error("Поиск уже идёт. Дождитесь его завершения или остановите его в ленте.");
     if(!catalogReady)throw Error("Дождитесь загрузки географии");
     const search=readSearchOptions();if(!search.sources.length)throw Error("Выберите хотя бы один источник");
-    const payload={name:$("name").value,queries:lines("queries"),text:$("briefText").value,filters:readFilters(),search};
+    const payload={name:$("name").value,queries:queryTokens.values,text:$("briefText").value,filters:readFilters(),search};
     const b=await api(id?`/api/v1/briefs/${id}`:"/api/v1/briefs",id?"PUT":"POST",payload);
     await loadOverviews();
     if(launch){
@@ -756,7 +718,7 @@ async function refresh() {
 }
 function showServiceStopped(title="Сервис остановлен") {
   servicePaused=true;clearTimeout(pollTimer);refreshController?.abort();readerController?.abort();
-  clearTimeout(cityTimer);clearTimeout(searchTimer);cityController?.abort();
+  locationEditor.abort();clearTimeout(searchTimer);
   if($("vacancyDialog").open)$("vacancyDialog").close();
   $("mainContent").inert=true;$("serviceStopped").hidden=false;
   $("serviceStoppedTitle").textContent=title;$("stopService").hidden=true;error("");

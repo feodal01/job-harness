@@ -149,8 +149,11 @@ def test_regular_vacancy_does_not_accept_promotional_template():
 
 
 def test_getmatch_normalizes_geography_and_salary_without_using_employer_address():
+    from src.enrichment.registry import default_enrichment
+
     search, (request,) = offers_request()
-    v = search.parse(response("feed_page1"), request).vacancies[2]
+    # The engine enriches parsed vacancies (parsers stay pure).
+    v = default_enrichment().enrich(search.parse(response("feed_page1"), request).vacancies[2], "getmatch")
     assert v.salary["period"] == "month"
     assert [(p.country, p.city, p.format) for p in v.locations] == [
         ("RU", "Москва", "hybrid"),
@@ -160,7 +163,9 @@ def test_getmatch_normalizes_geography_and_salary_without_using_employer_address
 
 
 def test_worldwide_and_excluded_countries_survive_feed_and_stored_normalization():
-    from src.parsers.normalization import normalize_stored_vacancy
+    from src.enrichment.registry import default_enrichment
+
+    enrich = default_enrichment().enrich
 
     search, (request,) = offers_request()
     payload = json.loads(response("qa_auto"))
@@ -168,8 +173,8 @@ def test_worldwide_and_excluded_countries_survive_feed_and_stored_normalization(
         {"format": "remote", "country": "", "location_id": "_cu-world"},
         {"format": "remote", "country": "Германия", "exclude": True},
     ]
-    vacancy = search.parse(json.dumps(payload), request).vacancies[0]
+    vacancy = enrich(search.parse(json.dumps(payload), request).vacancies[0], "getmatch")
     assert vacancy.work_formats == ["remote_worldwide"]
     assert vacancy.locations[0].worldwide
     assert vacancy.locations[1].country == "DE" and vacancy.locations[1].excluded
-    assert normalize_stored_vacancy(vacancy, "getmatch") == vacancy
+    assert enrich(vacancy, "getmatch") == vacancy

@@ -9,6 +9,7 @@ from pydantic_settings import (
     TomlConfigSettingsSource,
 )
 
+from src.auth.settings import AuthSettings
 from src.parsers.aggregators.getmatch.settings import GetmatchSettings
 from src.parsers.aggregators.hh.settings import HHSettings
 from src.runtime.config import RuntimeSettings
@@ -35,6 +36,7 @@ class Settings(BaseSettings):
     log_max_bytes: int = Field(default=10 * 1024 * 1024, gt=0)
     log_backup_count: int = Field(default=5, ge=1)
     sources: SourceSettings = Field(default_factory=SourceSettings)
+    auth: AuthSettings = Field(default_factory=AuthSettings)
     second_chance: bool = False
     run_timeout_seconds: float = Field(default=900, gt=0)
     max_active_runs: int = Field(default=3, ge=1, le=10)

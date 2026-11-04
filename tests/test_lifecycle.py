@@ -153,8 +153,17 @@ async def test_engine_construction_failure_closes_http_and_database(
         async with app.router.lifespan_context(app):
             pytest.fail("Startup must fail before serving")
     assert caught.value is failure
-    assert probe.events == ["database.open", "http.enter", "http.acquired", "http.close", "database.close"]
-    assert probe.clients[0].is_closed
+    assert probe.events == [
+        "database.open",
+        "http.enter",
+        "http.acquired",
+        "http.enter",
+        "http.acquired",
+        "http.close",
+        "http.close",
+        "database.close",
+    ]
+    assert len(probe.clients) == 2 and all(client.is_closed for client in probe.clients)
     assert_database_released(tmp_path, probe)
 
 
@@ -172,8 +181,8 @@ async def test_late_service_failure_closes_engine_http_and_database(
         async with app.router.lifespan_context(app):
             pytest.fail("Startup must fail before serving")
     assert caught.value is failure
-    assert probe.events[-3:] == ["engine.close", "http.close", "database.close"]
-    assert probe.clients[0].is_closed
+    assert probe.events[-4:] == ["engine.close", "http.close", "http.close", "database.close"]
+    assert all(client.is_closed for client in probe.clients)
     assert_database_released(tmp_path, probe)
 
 
@@ -188,8 +197,8 @@ async def test_engine_close_failure_still_closes_http_and_database(
             assert not probe.clients[0].is_closed
             assert app.state.database.stats()["briefs"] == 0
     assert caught.value is failure
-    assert probe.events[-3:] == ["engine.close", "http.close", "database.close"]
-    assert probe.clients[0].is_closed
+    assert probe.events[-4:] == ["engine.close", "http.close", "http.close", "database.close"]
+    assert all(client.is_closed for client in probe.clients)
     assert_database_released(tmp_path, probe)
 
 
@@ -198,15 +207,18 @@ async def test_normal_shutdown_closes_engine_before_http_before_database(
 ) -> None:
     app = application(tmp_path)
     async with app.router.lifespan_context(app):
-        assert probe.events == ["database.open", "http.enter", "http.acquired"]
-        assert not probe.clients[0].is_closed
+        assert probe.events == ["database.open", "http.enter", "http.acquired", "http.enter", "http.acquired"]
+        assert all(not client.is_closed for client in probe.clients)
     assert probe.events == [
         "database.open",
         "http.enter",
         "http.acquired",
+        "http.enter",
+        "http.acquired",
         "engine.close",
+        "http.close",
         "http.close",
         "database.close",
     ]
-    assert probe.clients[0].is_closed
+    assert all(client.is_closed for client in probe.clients)
     assert_database_released(tmp_path, probe)

@@ -21,6 +21,10 @@ class SourceService:
                 "state": self._state(source.resource),
                 "geography": source.geography.mode if source.geography else None,
                 "capabilities": source.capabilities.model_dump(mode="json"),
+                "default_limits": {
+                    "max_items_per_query": source.settings.max_items_per_query,
+                    "max_pages_per_query": source.settings.max_pages_per_query,
+                },
             }
             for source in self.sources.values()
         ]

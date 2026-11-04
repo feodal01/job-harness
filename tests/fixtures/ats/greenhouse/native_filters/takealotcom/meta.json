@@ -1,0 +1,28 @@
+{
+  "positive": {
+    "timestamp": "2026-10-12T06:06:58.855731+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/takealotcom?keyword=iOS+Software+Engineer&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/takealotcom?keyword=iOS+Software+Engineer&_data=routes%2F%24url_token",
+    "file": "positive.json",
+    "response_sha256": "e6f20c061c45fdb68b46495e6a7fb940f7a4138a17bf64209b8f6b936b02bb6e",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  },
+  "negative": {
+    "timestamp": "2026-10-12T06:06:59.429373+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/takealotcom?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/takealotcom?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+    "file": "negative.json",
+    "response_sha256": "2f7dde60e929cc2feba81a3baef5d51542eb21849c119f1b3bb90a2ce1c5b74a",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  }
+}

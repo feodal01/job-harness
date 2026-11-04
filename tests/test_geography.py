@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import pytest
+from geo_support import confirmed
 
 from src.app import create_app
 from src.core.config import Settings
@@ -45,12 +46,12 @@ async def test_dynamic_countries_city_selection_cache_and_search(tmp_path):
             payload = {
                 "name": "Город",
                 "queries": ["QA"],
-                "filters": {"locations": [{"country": "RU", "city": "Москва"}]},
+                "filters": confirmed(),
             }
             response = await c.post("/api/v1/briefs", json=payload)
             assert response.status_code == 201
             brief = response.json()
-            assert brief["filters"]["locations"][0] == {"country": "RU", "city": "Москва", "region": None}
+            assert brief["filters"]["locations"][0]["city"] == "Moscow"
             invalid_source = await c.post(
                 "/api/v1/runs", json={"brief_id": brief["id"], "sources": ["unknown"]}
             )
@@ -156,7 +157,11 @@ async def test_catalog_and_search_share_same_hh_request_limit(tmp_path):
     )
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
-            brief = (await c.post("/api/v1/briefs", json={"name": "Budget", "queries": ["QA"]})).json()
+            brief = (
+                await c.post(
+                    "/api/v1/briefs", json={"name": "Budget", "queries": ["QA"], "filters": confirmed()}
+                )
+            ).json()
             catalog, search = await asyncio.gather(
                 app.state.engine.sources["hh_ru"].geography.countries(
                     app.state.engine.catalog_fetch("hh_ru")

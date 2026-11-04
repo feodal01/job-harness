@@ -6,6 +6,7 @@ from time import monotonic
 
 import httpx
 import pytest
+from geo_support import confirmed, scheduling_sources, with_geography
 
 from src.app import create_app
 from src.core.config import Settings
@@ -24,8 +25,9 @@ async def client_for(tmp_path, handler, **overrides):
         sources={"hh_ru": {"interval_seconds": 0, "max_attempts": 1, "breaker_threshold": 10}},
         **overrides,
     )
-    app = create_app(settings, transport=httpx.MockTransport(handler))
+    app = create_app(settings, transport=httpx.MockTransport(with_geography(handler)))
     async with app.router.lifespan_context(app):
+        scheduling_sources(app)
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app), base_url="http://localhost"
         ) as client:
@@ -33,7 +35,9 @@ async def client_for(tmp_path, handler, **overrides):
 
 
 async def launch(client, *, name="Тест", queries=None, max_items=2, companies=False):
-    response = await client.post("/api/v1/briefs", json={"name": name, "queries": queries or ["QA"]})
+    response = await client.post(
+        "/api/v1/briefs", json={"name": name, "queries": queries or ["QA"], "filters": confirmed()}
+    )
     assert response.status_code == 201
     brief = response.json()
     response = await client.post(
@@ -58,10 +62,10 @@ async def wait_run(client, run_id, condition=lambda r: r["status"] not in {"queu
             await asyncio.sleep(0.01)
 
 
-async def test_company_directory_is_not_exposed_after_restart(tmp_path):
+async def test_company_catalog_requires_login_after_restart_and_is_not_a_local_stat(tmp_path):
     for _ in range(2):
         async with client_for(tmp_path, lambda r: httpx.Response(200)) as client:
-            assert (await client.get("/api/v1/companies")).status_code == 404
+            assert (await client.get("/api/v1/companies")).status_code == 401
             assert "companies" not in (await client.get("/api/v1/stats")).json()
 
 
@@ -165,7 +169,10 @@ async def test_rerun_deduplicates_but_retains_each_run_and_brief_snapshot(tmp_pa
     async with client_for(tmp_path, handler) as client:
         first, brief = await launch(client)
         await wait_run(client, first["id"])
-        await client.put(f"/api/v1/briefs/{brief['id']}", json={"name": "Изменён", "queries": ["AQA"]})
+        await client.put(
+            f"/api/v1/briefs/{brief['id']}",
+            json={"name": "Изменён", "queries": ["AQA"], "filters": confirmed()},
+        )
         second = (
             await client.post(
                 "/api/v1/runs",
@@ -260,8 +267,9 @@ async def test_shared_resource_limit_for_two_runs(tmp_path):
         database_path=tmp_path / "test.sqlite",
         sources={"hh_ru": {"interval_seconds": 0.02, "concurrency": 2}},
     )
-    app = create_app(settings, transport=httpx.MockTransport(handler))
+    app = create_app(settings, transport=httpx.MockTransport(with_geography(handler)))
     async with app.router.lifespan_context(app):
+        scheduling_sources(app)
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app), base_url="http://localhost"
         ) as client:
@@ -302,6 +310,13 @@ async def test_versioned_api_is_documented_by_resource(tmp_path):
         assert (await client.get("/api/health")).status_code == 404
         paths = (await client.get("/openapi.json")).json()["paths"]
         expected = {
+            "/api/v1/auth": {"get": "auth"},
+            "/api/v1/auth/authorize": {"post": "auth"},
+            "/api/v1/auth/providers": {"get": "auth"},
+            "/api/v1/auth/start": {"post": "auth"},
+            "/api/v1/auth/logout": {"post": "auth"},
+            "/api/v1/companies": {"get": "companies"},
+            "/api/v1/companies/filters": {"get": "companies"},
             "/api/v1/briefs": {"get": "briefs", "post": "briefs"},
             "/api/v1/briefs/{brief_id}": {"put": "briefs"},
             "/api/v1/briefs/{brief_id}/vacancies/{vacancy_key}/adjacent": {"get": "briefs"},

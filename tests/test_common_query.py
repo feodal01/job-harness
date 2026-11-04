@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import pytest
+from geo_support import confirmed, getmatch_form, with_geography
 
 from src.app import create_app
 from src.core.config import Settings
@@ -17,7 +18,10 @@ from src.parsers.registry import build_sources
     [
         ({"locations": [{"country": "KZ"}], "minimum_work_format": "office"}, {"relocate", "remote"}),
         (
-            {"locations": [{"country": "RU", "city": "Москва"}], "minimum_work_format": "hybrid"},
+            {
+                "locations": [{"country": "RU", "city": "Moscow", "geoname_id": 524901}],
+                "minimum_work_format": "hybrid",
+            },
             {"moscow", "remote"},
         ),
         (
@@ -32,11 +36,8 @@ from src.parsers.registry import build_sources
 async def test_getmatch_translates_common_conditions_without_confusing_relocation(filters, expected):
     source = build_sources(Settings())["getmatch"]
 
-    async def fetch(url):
-        raise AssertionError("Getmatch feed needs no catalog request")
-
     brief = BriefInput(name="Shared", queries=["QA", "Python"], filters=filters)
-    plan = await source.search.prepare(brief, fetch)
+    plan = await source.search.prepare(brief, getmatch_form)
     assert len(plan.requests) == 1
     params = parse_qs(urlsplit(plan.requests[0].url).query)
     assert set(params.get("l", [])) == expected
@@ -56,7 +57,9 @@ async def test_hh_resolves_country_and_city_and_retains_all_query_branches():
         )
 
     brief = BriefInput(
-        name="Shared", queries=["QA", "Python"], filters={"locations": [{"country": "KZ", "city": "Алматы"}]}
+        name="Shared",
+        queries=["QA", "Python"],
+        filters={"locations": [{"country": "KZ", "city": "Almaty", "geoname_id": 1526384}]},
     )
     plan = await source.search.prepare(brief, fetch)
     params = [parse_qs(urlsplit(r.url).query) for r in plan.requests]
@@ -105,14 +108,16 @@ async def test_common_brief_roundtrip_and_filtering_before_and_after_details(tmp
         database_path=tmp_path / "search.sqlite",
         sources={"getmatch": {"interval_seconds": 0, "page_size": 10}},
     )
-    app = create_app(settings, transport=httpx.MockTransport(handler))
+    app = create_app(settings, transport=httpx.MockTransport(with_geography(handler)))
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
             filters = {"excluded_companies": ["Excluded"], "relocation_support": True}
-            response = await c.post("/api/v1/briefs", json={"name": "Common filters", "filters": filters})
+            response = await c.post(
+                "/api/v1/briefs", json={"name": "Common filters", "filters": confirmed(filters)}
+            )
             assert response.status_code == 201, response.text
             b = response.json()
-            assert b["filters"]["relocation_support"] is True
+            assert b["filters"]["locations"][0]["relocation_support"] is True
             assert "location" not in b
             r = await c.post(
                 "/api/v1/runs",
@@ -146,7 +151,7 @@ async def test_common_country_catalog_has_no_source_ids(tmp_path):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
             response = await c.get("/api/v1/geography/countries")
             assert response.status_code == 200
-            assert {"code": "KZ", "name": "Казахстан"} in response.json()
+            assert {"code": "KZ", "name": "Kazakhstan"} in response.json()
             assert all("id" not in p for p in response.json())
 
 
@@ -159,7 +164,7 @@ async def test_hh_preparation_requests_are_in_run_metrics(tmp_path):
 
     app = create_app(
         Settings(database_path=tmp_path / "search.sqlite", sources={"hh_ru": {"interval_seconds": 0}}),
-        transport=httpx.MockTransport(handler),
+        transport=httpx.MockTransport(with_geography(handler)),
     )
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
@@ -169,7 +174,9 @@ async def test_hh_preparation_requests_are_in_run_metrics(tmp_path):
                     json={
                         "name": "Preparation",
                         "queries": ["QA"],
-                        "filters": {"locations": [{"country": "KZ"}]},
+                        "filters": confirmed(
+                            {"locations": [{"country": "KZ"}], "minimum_work_format": "remote_country"}
+                        ),
                     },
                 )
             ).json()
@@ -200,7 +207,7 @@ async def test_second_chance_controls_hh_soft_parameters_and_worldwide_branch():
         name="Native",
         queries=["QA"],
         filters={
-            "locations": [{"country": "RU", "city": "Томск"}],
+            "locations": [{"country": "RU", "city": "Tomsk", "geoname_id": 1489425}],
             "minimum_work_format": "hybrid",
             "employment": ["full_time", "part_time"],
             "experience_years": 3,

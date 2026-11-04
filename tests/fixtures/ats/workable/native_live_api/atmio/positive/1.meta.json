@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-10-12T10:07:56.867072+00:00",
+  "request": {
+    "url": "https://apply.workable.com/api/v3/accounts/atmio/jobs",
+    "query": "Production",
+    "stage": "listing",
+    "location": null,
+    "method": "POST",
+    "json_body": {
+      "query": "Production"
+    },
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://apply.workable.com/api/v3/accounts/atmio/jobs",
+  "response_sha256": "7d3f66d6c4753eaafa27be4f860bc56c218a80df986023f8256ad9c218a6134e",
+  "response_file": "1.json"
+}

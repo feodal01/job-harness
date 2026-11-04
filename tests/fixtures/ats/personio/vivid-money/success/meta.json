@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-01",
+  "captured_url": "https://vivid.jobs.personio.de/",
+  "content_type": "text/html; charset=utf-8",
+  "final_url": "https://vivid.jobs.personio.de/",
+  "notes": "Real Personio SSR job list HTML from Vivid Money public board.",
+  "source_id": "career:vivid-money"
+}

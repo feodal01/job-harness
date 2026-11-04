@@ -10,6 +10,11 @@ class SourceAvailability(BaseModel):
     until: float | None
 
 
+class SourceDefaultLimits(BaseModel):
+    max_items_per_query: int
+    max_pages_per_query: int
+
+
 class SourceResponse(BaseModel):
     id: str
     name: str
@@ -17,3 +22,4 @@ class SourceResponse(BaseModel):
     state: SourceAvailability
     geography: Literal["country_city", "regions"] | None
     capabilities: SourceCapabilities
+    default_limits: SourceDefaultLimits

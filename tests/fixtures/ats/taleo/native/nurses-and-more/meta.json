@@ -1,0 +1,73 @@
+{
+  "company": "Nurses and More",
+  "form_url": "https://phh.tbe.taleo.net/phh04/ats/careers/v2/jobSearch?org=NFINDY&cws=37",
+  "captured_at": "2026-10-12T05:58:09.220075+00:00",
+  "responses": {
+    "positive": {
+      "request": {
+        "method": "POST",
+        "url": "https://phh.tbe.taleo.net/phh04/ats/careers/v2/searchResults?org=NFINDY&cws=37",
+        "form_body": {
+          "act": "search",
+          "org": "NFINDY",
+          "cws": "37",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "0",
+          "keywords": "Behavioral Individual Care Nurse"
+        }
+      },
+      "captured_at": "2026-10-12T06:04:18.603418+00:00",
+      "ids": [
+        "623",
+        "17",
+        "618",
+        "403",
+        "628",
+        "486",
+        "548",
+        "550",
+        "613",
+        "503"
+      ],
+      "total": 41
+    },
+    "negative": {
+      "request": {
+        "method": "POST",
+        "url": "https://phh.tbe.taleo.net/phh04/ats/careers/v2/searchResults?org=NFINDY&cws=37",
+        "form_body": {
+          "act": "search",
+          "org": "NFINDY",
+          "cws": "37",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "0",
+          "keywords": "zzqnojobgeneralization20261012"
+        }
+      },
+      "captured_at": "2026-10-12T06:04:20.144692+00:00",
+      "ids": [],
+      "total": 0
+    },
+    "narrow": {
+      "request": {
+        "url": "https://phh.tbe.taleo.net/phh04/ats/careers/v2/searchResults?org=NFINDY&cws=37",
+        "method": "POST",
+        "form_body": {
+          "act": "search",
+          "org": "NFINDY",
+          "cws": "37",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "0",
+          "keywords": "Behavioral"
+        }
+      },
+      "captured_at": "2026-10-12T06:05:53.801404+00:00",
+      "ids": [
+        "623",
+        "591",
+        "507"
+      ],
+      "total": 3
+    }
+  }
+}

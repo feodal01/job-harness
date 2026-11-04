@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from src.models.company import Company
 from src.models.filters import SearchFilters
 from src.models.vacancy import Vacancy
-from src.selection.filtering import evaluate
+from tests.filter_support import evaluate
 
 
 def vacancy(**values):
@@ -45,42 +45,7 @@ def test_invalid_or_removed_filters_are_rejected(values):
         SearchFilters.model_validate(values)
 
 
-@pytest.mark.parametrize(
-    ("text", "status"),
-    [
-        ("We provide relocation assistance and visa support.", "accepted"),
-        ("Помогаем с переездом и оформлением визы.", "accepted"),
-        ("Помощь с релокацией", "accepted"),
-        ("Релокационный пакет", "accepted"),
-        ("Предоставляем релокационный пакет.", "accepted"),
-        ("Готовность к релокации обязательна.", "unknown"),
-        ("Наш офис в Алматы.", "unknown"),
-        ("Relocation support is not provided.", "rejected"),
-        ("We do not provide relocation assistance.", "rejected"),
-        ("Не предоставляем помощь с переездом.", "rejected"),
-        ("Без помощи с переездом", "rejected"),
-        ("Помощь с релокацией не предоставляется", "rejected"),
-        ("Опыт работы в агентстве релокации.", "unknown"),
-        ("We provide relocation assistance. Relocation support is not provided.", "unknown"),
-        ("Relocation support is not required.", "unknown"),
-        ("Relocation assistance may be available.", "unknown"),
-        ("Relocation assistance is available for senior candidates only.", "unknown"),
-        ("We do not charge candidates for relocation assistance.", "unknown"),
-        ("Помощь с переездом возможна после испытательного срока", "unknown"),
-    ],
-)
-def test_relocation_means_employer_assistance_only(text, status):
-    result = evaluate(vacancy(description=text), SearchFilters(relocation_support=True), complete=True)
-    assert check(result, "relocation_support").status == status
-    assert result.status == ("maybe" if status == "rejected" else "accepted")
-
-
-def test_relocation_is_not_proved_by_a_summary():
-    result = evaluate(
-        vacancy(summary="We provide relocation assistance."), SearchFilters(relocation_support=True)
-    )
-    assert check(result, "relocation_support").status == "unknown"
-    assert result.status == "accepted"
+# Relocation wording moved to the HH normalizer: tests/test_hh_enrichment.py (§11).
 
 
 @pytest.mark.parametrize(
@@ -134,16 +99,3 @@ def test_more_than_six_years_does_not_match_exactly_six():
     v = vacancy(min_experience=6, min_experience_exclusive=True)
     assert evaluate(v, SearchFilters(experience_years=6)).status == "maybe"
     assert evaluate(v, SearchFilters(experience_years=6.5)).status == "accepted"
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "Experience administering relocation assistance is required.",
-        "Relocation assistance is required.",
-        "Опыт оформления помощи с релокацией обязателен.",
-    ],
-)
-def test_relocation_assistance_mentioned_as_job_duty_is_not_an_offer(text):
-    result = evaluate(vacancy(description=text), SearchFilters(relocation_support=True), complete=True)
-    assert check(result, "relocation_support").status == "unknown"

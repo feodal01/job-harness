@@ -13,7 +13,7 @@ class NativeRequest:
 
     pending: deque[SearchRequest]
     pages: int = 0
-    visited: set[str] = field(default_factory=set)
+    visited: set[tuple[str, str, str]] = field(default_factory=set)
 
 
 @dataclass
@@ -80,9 +80,9 @@ class ListingWalker:
         return max(left, 0)
 
     def repeated(self, step: Step) -> bool:
-        if step.request.url in step.native.visited:
+        if step.request.identity in step.native.visited:
             return True
-        step.native.visited.add(step.request.url)
+        step.native.visited.add(step.request.identity)
         return False
 
     def finished(self, step: Step, page: SearchPage, new_items: int) -> None:

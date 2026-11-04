@@ -1,0 +1,371 @@
+{
+  "jobSearchResult": [
+    {
+      "response": {
+        "jobLocationShort": [
+          "Nordborg, DNK    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Senior-Professional%2C-Network-Engineering",
+        "unifiedStandardStart": "24/07/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Information Technology"
+        ],
+        "unifiedStandardTitle": "Senior Professional, Network Engineering",
+        "filter3": [
+          "Associate"
+        ],
+        "id": "50713",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Nordborg, DNK    ",
+            "key": "55.055721,9.751009"
+          }
+        ],
+        "urlTitle": "Senior-Professional%2C-Network-Engineering"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Graasten, DNK    ",
+          "Kolding, DNK    ",
+          "Tampere, FIN    ",
+          "Vaasa, FIN    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "DevOps-Lead",
+        "unifiedStandardStart": "10/07/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "DevOps Lead",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "50312",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Kolding, DNK    ",
+            "key": "55.495973,9.4730519"
+          },
+          {
+            "value": "Graasten, DNK    ",
+            "key": "54.91866101,9.582813"
+          },
+          {
+            "value": "Tampere, FIN    ",
+            "key": "61.4971456,23.7525985"
+          },
+          {
+            "value": "Vaasa, FIN    ",
+            "key": "63.0950331,21.6163866"
+          }
+        ],
+        "urlTitle": "DevOps-Lead"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Kolding, DNK    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Student-Worker",
+        "unifiedStandardStart": "28/09/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Sales"
+        ],
+        "unifiedStandardTitle": "Student Worker",
+        "filter3": [
+          "Student/Internship"
+        ],
+        "id": "51796",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Kolding, DNK    ",
+            "key": "55.495973,9.4730519"
+          }
+        ],
+        "urlTitle": "Student-Worker"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Nordborg, DNK    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Cost-down-Pipeline-and-ESG-Manager",
+        "unifiedStandardStart": "14/09/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Procurement & Purchasing"
+        ],
+        "unifiedStandardTitle": "Cost-down Pipeline and ESG Manager",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "51658",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Nordborg, DNK    ",
+            "key": "55.055721,9.751009"
+          }
+        ],
+        "urlTitle": "Cost-down-Pipeline-and-ESG-Manager"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Copenhagen, DNK    ",
+          "Hamburg, DEU    ",
+          "Kamnik, SVN    ",
+          "Kolding, DNK    "
+        ],
+        "unifiedStandardEnd": "08/11/2026",
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Sales-Director-Europe",
+        "unifiedStandardStart": "08/10/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Sales"
+        ],
+        "unifiedStandardTitle": "Sales Director Europe",
+        "filter3": [
+          "Director"
+        ],
+        "id": "51939",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Kolding, DNK    ",
+            "key": "55.495973,9.4730519"
+          },
+          {
+            "value": "Hamburg, DEU    ",
+            "key": "53.5488282,9.9871703"
+          },
+          {
+            "value": "Kamnik, SVN    ",
+            "key": "46.2221964,14.6072968"
+          },
+          {
+            "value": "Copenhagen, DNK    ",
+            "key": "55.6760968,12.5683371"
+          }
+        ],
+        "urlTitle": "Sales-Director-Europe"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Graasten, DNK    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Power-Electronics-Architect",
+        "unifiedStandardStart": "06/07/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Power Electronics Architect",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "50195",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Graasten, DNK    ",
+            "key": "54.91866101,9.582813"
+          }
+        ],
+        "urlTitle": "Power-Electronics-Architect"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Nordborg, DNK    ",
+          "Hamburg, DEU    ",
+          "Kolding, DNK    ",
+          "Venice, ITA    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Software-Architect-Edge-Platform-%28mfd%29",
+        "unifiedStandardStart": "03/08/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Software Architect Edge Platform (m/f/d)",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "50671",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Venice, ITA    ",
+            "key": "45.440379,12.3159547"
+          },
+          {
+            "value": "Kolding, DNK    ",
+            "key": "55.495973,9.4730519"
+          },
+          {
+            "value": "Hamburg, DEU    ",
+            "key": "53.5488282,9.9871703"
+          },
+          {
+            "value": "Nordborg, DNK    ",
+            "key": "55.055721,9.751009"
+          }
+        ],
+        "urlTitle": "Software-Architect-Edge-Platform-%28mfd%29"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Nordborg, DNK    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Sourcing-Project-Manager%2C-Pipeline",
+        "unifiedStandardStart": "21/09/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Project Management"
+        ],
+        "unifiedStandardTitle": "Sourcing Project Manager, Pipeline",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "51659",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Nordborg, DNK    ",
+            "key": "55.055721,9.751009"
+          }
+        ],
+        "urlTitle": "Sourcing-Project-Manager%2C-Pipeline"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Hamburg, DEU    ",
+          "Kolding, DNK    ",
+          "Nordborg, DNK    ",
+          "Silkeborg, DNK    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Senior-Manager%2C-Front-End-Portfolio-Management-%28mfd%29",
+        "unifiedStandardStart": "07/10/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Marketing & Communication"
+        ],
+        "unifiedStandardTitle": "Senior Manager, Front-End Portfolio Management (m/f/d)",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "52051",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Silkeborg, DNK    ",
+            "key": "56.176362,9.5549216"
+          },
+          {
+            "value": "Kolding, DNK    ",
+            "key": "55.495973,9.4730519"
+          },
+          {
+            "value": "Hamburg, DEU    ",
+            "key": "53.5488282,9.9871703"
+          },
+          {
+            "value": "Nordborg, DNK    ",
+            "key": "55.055721,9.751009"
+          }
+        ],
+        "urlTitle": "Senior-Manager%2C-Front-End-Portfolio-Management-%28mfd%29"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Hamburg, DEU    ",
+          "Silkeborg, DNK    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Product-Specialist",
+        "unifiedStandardStart": "07/10/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Marketing & Communication"
+        ],
+        "unifiedStandardTitle": "Product Specialist",
+        "filter3": [
+          "Associate"
+        ],
+        "id": "51937",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Silkeborg, DNK    ",
+            "key": "56.176362,9.5549216"
+          },
+          {
+            "value": "Hamburg, DEU    ",
+            "key": "53.5488282,9.9871703"
+          }
+        ],
+        "urlTitle": "Product-Specialist"
+      }
+    }
+  ],
+  "totalJobs": 44
+}

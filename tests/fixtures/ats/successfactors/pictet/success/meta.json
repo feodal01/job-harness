@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-02",
+  "captured_url": "https://career012.successfactors.eu/career?company=banquepict&career_ns=job_listing_summary&resultType=XML",
+  "content_type": "application/octet-stream",
+  "final_url": "https://career012.successfactors.eu/career?company=banquepict&career_ns=job_listing_summary&resultType=XML",
+  "notes": "Real public SAP SuccessFactors XML job feed captured for career:pictet.",
+  "source_id": "career:pictet"
+}

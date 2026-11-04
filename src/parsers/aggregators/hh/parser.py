@@ -8,9 +8,10 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 
 from bs4 import BeautifulSoup
 
+from src.geography.catalog import GeographyCatalog, default_catalog
 from src.models.brief import BriefInput
 from src.models.company import Company
-from src.models.filters import COUNTRIES, Employment, WorkLocation
+from src.models.filters import REMOTE_FORMATS, Employment, WorkFormat, WorkLocation, accepted_formats
 from src.models.vacancy import Vacancy
 from src.parsers.aggregators.hh.geography import HHGeography, resolve_city
 from src.parsers.aggregators.hh.settings import HHSettings
@@ -31,8 +32,11 @@ from src.parsers.interfaces import (
     filter_parameters,
 )
 from src.parsers.models import Location
-from src.parsers.normalization import FORMATS, normalize_stored_vacancy
+from src.parsers.normalization import FORMATS
 from src.parsers.rich_text import parse_rich_text
+
+# A minimum that excludes office-only jobs: HH can then pass it as work_format.
+NOT_OFFICE_ONLY = frozenset(accepted_formats("hybrid"))
 
 
 def _is_captcha(body: str) -> bool:
@@ -76,7 +80,9 @@ def _website(value: object) -> str | None:
     return None
 
 
-def _normalize(vacancy: Vacancy, data: dict, location: Location | None = None) -> None:
+def _normalize(
+    vacancy: Vacancy, data: dict, location: Location | None = None, catalog: GeographyCatalog | None = None
+) -> None:
     formats = FORMATS
     vacancy.work_formats = [
         formats.get(f, f) for f in vacancy.work_formats if f in formats or f in formats.values()
@@ -109,13 +115,11 @@ def _normalize(vacancy: Vacancy, data: dict, location: Location | None = None) -
         vacancy.employment = [employments[employment]]
     area = _object(data.get("area"))
     country = area.get("countryIsoCode")
-    if not country and location and location.country:
-        country = next((code for code, name in COUNTRIES.items() if name == location.country.name), None)
+    if not country and location and location.country and catalog is not None:
+        # The searched HH country: its HH name resolved through CLDR, not a hand table.
+        country = catalog.country(location.country.name).value
     if country:
         vacancy.locations = [WorkLocation(country=country, city=area.get("name"))]
-    normalized = normalize_stored_vacancy(vacancy, "hh_ru")
-    vacancy.work_formats = normalized.work_formats
-    vacancy.locations = normalized.locations
 
 
 class HHSearch(Search):
@@ -137,8 +141,9 @@ class HHSearch(Search):
         }
     )
 
-    def __init__(self, geography: HHGeography | None = None) -> None:
+    def __init__(self, geography: HHGeography | None = None, catalog: GeographyCatalog | None = None) -> None:
         self.geography = geography or HHGeography(300)
+        self.catalog = catalog or default_catalog()
 
     @property
     def parameters(self) -> dict[str, ParameterMode]:
@@ -150,10 +155,6 @@ class HHSearch(Search):
         filters = brief.filters
         application = filter_parameters(self.fields | HHVacancyDetails.fields, {"query": "native"})
         soft: dict[str, list[str]] = {}
-        minimum = None if second_chance else filters.minimum_work_format
-        if minimum in {"hybrid", "remote_country", "remote_worldwide"}:
-            soft["work_format"] = ["HYBRID", "REMOTE"] if minimum == "hybrid" else ["REMOTE"]
-            application["minimum_work_format"] = "native"
         if not second_chance:
             employment = {"full_time": "FULL", "part_time": "PART"}
             # Do not narrow an OR condition when any selected kind has no safe mapping.
@@ -173,33 +174,45 @@ class HHSearch(Search):
                 # Earlier midnight covers timezones and HH five-minute rounding.
                 soft["date_from"] = [(filters.published_after - timedelta(days=1)).isoformat()]
                 application["published_after"] = "native"
-        branches: list[tuple[Location | None, bool]] = []
+        branches: list[tuple[Location | None, bool, WorkFormat | None]] = []
         if filters.locations:
             application["locations"] = "native"
             countries = await self.geography.countries(fetch)
             for place in filters.locations:
-                country = next((c for c in countries if c.name == COUNTRIES[place.country]), None)
+                minimum = None if second_chance else filters.location_conditions(place)[0]
+                if minimum in NOT_OFFICE_ONLY:
+                    application["minimum_work_format"] = "native"
+                # HH's own country list, each name resolved to ISO through CLDR.
+                country = next(
+                    (c for c in countries if self.catalog.country(c.name).value == place.country), None
+                )
                 if country is None:
-                    raise ValueError(f"HH cannot resolve country {COUNTRIES[place.country]}")
+                    raise ValueError(f"HH cannot resolve country {place.country}")
                 city = None
-                if place.city and minimum not in {"remote_country", "remote_worldwide"}:
-                    choices = await self.geography.cities(fetch, country.id, place.city)
-                    city = resolve_city(choices, place)
-                if minimum not in {"remote_country", "remote_worldwide"}:
-                    branches.append((Location(source="hh_ru", country=country, city=city), False))
-                if city or minimum in {"remote_country", "remote_worldwide"}:
-                    branches.append((Location(source="hh_ru", country=country), True))
+                if place.city and minimum not in REMOTE_FORMATS:
+                    city_text = self.catalog.label(place.geoname_id, "ru") if place.geoname_id else place.city
+                    choices = await self.geography.cities(fetch, country.id, city_text)
+                    city = resolve_city(choices, place, self.catalog)
+                if minimum not in REMOTE_FORMATS:
+                    branches.append((Location(source="hh_ru", country=country, city=city), False, minimum))
+                if city or minimum in REMOTE_FORMATS:
+                    branches.append((Location(source="hh_ru", country=country), True, minimum))
             # Worldwide jobs may be published abroad; HH has no worldwide flag.
-            branches.append((None, True))
+            branches.append((None, True, None))
         else:
-            branches.append((None, False))
+            minimum = None if second_chance else filters.minimum_work_format
+            if minimum in NOT_OFFICE_ONLY:
+                application["minimum_work_format"] = "native"
+            branches.append((None, False, minimum))
         requests: dict[str, SearchRequest] = {}
         for query in brief.queries:
-            for location, remote in branches:
+            for location, remote, minimum in branches:
                 request = self.build(query, location)
                 params = {**parse_qs(urlsplit(request.url).query), **soft}
-                if remote:
+                if remote or minimum in REMOTE_FORMATS:
                     params["work_format"] = ["REMOTE"]
+                elif minimum == "hybrid":
+                    params["work_format"] = ["HYBRID", "REMOTE"]
                 request = replace(
                     request, url="https://hh.ru/search/vacancy?" + urlencode(params, doseq=True)
                 )
@@ -285,12 +298,13 @@ class HHSearch(Search):
             url = "https://hh.ru/search/vacancy?" + urlencode(params, doseq=True)
             following = (SearchRequest(url, request.query, location=request.location),)
         for vacancy in vacancies:
-            _normalize(vacancy, vacancy.source_data, request.location)
+            _normalize(vacancy, vacancy.source_data, request.location, self.catalog)
         return SearchPage(vacancies, result["totalResults"], following)
 
 
 class HHVacancyDetails(VacancyDetails):
-    fields = HHSearch.fields | {"description", "skills"}
+    # The HH normalizer reads relocation of the places from the card description.
+    fields = HHSearch.fields | {"description", "skills", "locations.relocation_support"}
 
     def url(self, vacancy: Vacancy) -> str:
         return vacancy.url
@@ -386,7 +400,7 @@ class HHCompanyProfile(CompanyProfile):
         )
 
 
-def create_adapter(settings: HHSettings) -> SourceAdapter:
+def create_adapter(settings: HHSettings, catalog: GeographyCatalog | None = None) -> SourceAdapter:
     geography = HHGeography(settings.geography_cache_seconds)
     return SourceAdapter(
         id="hh_ru",
@@ -395,7 +409,7 @@ def create_adapter(settings: HHSettings) -> SourceAdapter:
         resource="hh.ru",
         allowed_hosts=("hh.ru",),
         settings=settings,
-        search=HHSearch(geography),
+        search=HHSearch(geography, catalog),
         vacancy_details=HHVacancyDetails(),
         company_profile=HHCompanyProfile(),
         geography=geography,

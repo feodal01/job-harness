@@ -1,14 +1,14 @@
 """Reuse complete cards and employer profiles across runs and briefs."""
 
 from src.db.protocols import CompanyStore, VacancyStore
+from src.enrichment.registry import Enrichment
 from src.models.company import Company
 from src.models.vacancy import Vacancy
-from src.parsers.normalization import normalize_stored_vacancy
 
 
 class KnownData:
-    def __init__(self, vacancies: VacancyStore, companies: CompanyStore) -> None:
-        self.vacancies, self.companies = vacancies, companies
+    def __init__(self, vacancies: VacancyStore, companies: CompanyStore, enrichment: Enrichment) -> None:
+        self.vacancies, self.companies, self.enrichment = vacancies, companies, enrichment
 
     def card(self, source: str, listing: Vacancy) -> Vacancy | None:
         """The stored card merged with this run's listing fields (the listing is saved first)."""
@@ -18,7 +18,7 @@ class KnownData:
             # Fetch it normally on discovery; do not invent markup from flattened text.
             return None
         fields = {k: v for k, v in data.items() if k in Vacancy.model_fields}
-        return normalize_stored_vacancy(Vacancy.model_validate(fields), source)
+        return self.enrichment.enrich(Vacancy.model_validate(fields), source)
 
     @staticmethod
     def company_key(source: str, profile_url: str) -> str:

@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 import pytest
+from geo_support import confirmed
 from starlette.types import Message, Receive, Scope, Send
 
 from src.core.logger import JsonFormatter
@@ -245,7 +246,7 @@ async def test_concurrent_http_runs_keep_engine_source_and_network_contexts(
         )
 
     adapters = {name: source(name) for name in ("left", "right")}
-    monkeypatch.setattr("src.app.build_sources", lambda settings: adapters)
+    monkeypatch.setattr("src.app.build_sources", lambda settings, catalog=None: adapters)
     settings = Settings(database_path=tmp_path / "logging.sqlite")
     arrived = 0
     all_listings_started = asyncio.Event()
@@ -288,6 +289,7 @@ async def test_concurrent_http_runs_keep_engine_source_and_network_contexts(
                             "/api/v1/briefs",
                             json={
                                 "name": "Logging",
+                                "filters": confirmed(),
                                 "text": "PRIVATE_BRIEF",
                                 "queries": [f"PRIVATE_QUERY_{number}"],
                             },

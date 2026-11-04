@@ -8,10 +8,11 @@ from email.utils import parsedate_to_datetime
 from urllib.parse import urljoin, urlsplit
 
 import httpx
+from pydantic import JsonValue
 
 from src.core.observability import log_context
 from src.db.protocols import EventStore, ResourceStore
-from src.parsers.interfaces import ResponseInfo, SourceAdapter
+from src.parsers.interfaces import ResponseInfo, SearchRequest, SourceAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -57,14 +58,48 @@ class Network:
             self.resources.resource(self.source.resource, self.state)
 
     async def get(self, run_id: str | None, url: str, stage: str) -> str:
+        return await self._fetch(run_id, url, stage)
+
+    async def fetch(self, run_id: str | None, request: SearchRequest) -> str:
+        """Execute a parser's read-only listing request under the common request budget."""
+        return await self._fetch(
+            run_id,
+            request.url,
+            request.stage,
+            method=request.method,
+            json_body=request.json_body,
+            form_body=request.form_body,
+        )
+
+    async def _fetch(
+        self,
+        run_id: str | None,
+        url: str,
+        stage: str,
+        *,
+        method: str = "GET",
+        json_body: dict[str, JsonValue] | None = None,
+        form_body: dict[str, str | list[str]] | None = None,
+    ) -> str:
         with log_context(run_id=run_id or "-", source_id=self.source.id, stage=stage):
             logger.debug("source.request.started")
             try:
-                return await self._request(run_id, url, stage)
+                return await self._request(
+                    run_id, url, stage, method=method, json_body=json_body, form_body=form_body
+                )
             finally:
                 logger.debug("source.request.finished")
 
-    async def _request(self, run_id: str | None, url: str, stage: str) -> str:
+    async def _request(
+        self,
+        run_id: str | None,
+        url: str,
+        stage: str,
+        *,
+        method: str,
+        json_body: dict[str, JsonValue] | None,
+        form_body: dict[str, str | list[str]] | None,
+    ) -> str:
         redirects = 0
         attempt = 0
         while attempt < self.settings.max_attempts:
@@ -84,11 +119,23 @@ class Network:
                     await self._admit()
                     sent = time.monotonic()
                     self.events.event(
-                        run_id, "http.started", source=self.source.id, url=url, stage=stage, attempt=attempt
+                        run_id,
+                        "http.started",
+                        source=self.source.id,
+                        url=url,
+                        stage=stage,
+                        method=method,
+                        attempt=attempt,
                     )
                     # Account for time spent committing the event before the actual send.
                     self.state["next_request_at"] = time.time() + self.settings.interval_seconds
-                    response = await self.client.get(url, timeout=self.settings.request_timeout_seconds)
+                    response = await self.client.request(
+                        method,
+                        url,
+                        json=json_body,
+                        data=form_body,
+                        timeout=self.settings.request_timeout_seconds,
+                    )
                     self.events.event(
                         run_id,
                         "http.finished",
@@ -111,6 +158,11 @@ class Network:
                     redirects += 1
                     if redirects > 5 or "location" not in response.headers:
                         raise FetchError("redirect_error", "Redirect limit or missing Location")
+                    if method == "POST":
+                        if response.status_code == 303:
+                            method, json_body, form_body = "GET", None, None
+                        elif response.status_code not in {307, 308}:
+                            raise FetchError("redirect_error", "Ambiguous redirect for a POST search request")
                     url = urljoin(url, response.headers["location"])
                     attempt -= 1
                     continue

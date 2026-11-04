@@ -1,0 +1,29 @@
+{
+  "capture_method": "public_browser_network",
+  "captured_at": "2026-10-12T06:07:55.659Z",
+  "captured_url": "https://jobs.danfoss.com/services/recruiting/v1/jobs",
+  "board_url": "https://jobs.danfoss.com/search/",
+  "query": "51763",
+  "request_body": {
+    "locale": "en_GB",
+    "pageNumber": 0,
+    "sortBy": "",
+    "keywords": "51763",
+    "location": "",
+    "facetFilters": {},
+    "brand": "",
+    "skills": [],
+    "categoryId": 0,
+    "alertId": "",
+    "rcmCandidateId": ""
+  },
+  "status": 200,
+  "reference_ids": [
+    "51763"
+  ],
+  "reference_total": 1,
+  "independent_job_urls": [
+    "https://jobs.danfoss.com/job/Engineer%2C-Quality-Engineering/51763-en_GB"
+  ],
+  "provenance": "/tmp/ats-generalization-review-20261012/browser-evidence/sf-danfoss-ui.json"
+}

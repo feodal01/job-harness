@@ -1,0 +1,37 @@
+{
+  "fixture_kind": "unseen_employer_live_listing",
+  "company": "Destinus",
+  "input_board_url": "https://apply.workable.com/destinusgroup/",
+  "captured_url": "https://apply.workable.com/destinusgroup/jobs.md",
+  "capture_method": "single public HTTP GET, redirects disabled, timeout 20 seconds",
+  "request": {
+    "method": "GET",
+    "url": "https://apply.workable.com/destinusgroup/jobs.md",
+    "headers": {
+      "User-Agent": "hh-search-prototype-parser-check/0.5.1",
+      "Accept-Encoding": "identity"
+    }
+  },
+  "started_at": "2026-10-12T05:26:27.248746+00:00",
+  "parser_frozen_at": "2026-10-12T05:26:27.170315+00:00",
+  "parser_sha256_before_capture": "8ae983163b06789bca2798262437ce95e6c75e04a06ab582de5384f1f90aa6e2",
+  "donor_membership": "Employer name and native board key absent from donor ATS source configuration literals",
+  "candidate_provenance": "reports/ats-migration-2026-10-11/catalog-mapping.json; input only, no runtime import",
+  "scope": "One listing request, no details or pagination requests. Saved response tests do not establish universal live support.",
+  "completed_at": "2026-10-12T05:26:27.632887+00:00",
+  "http_status": 200,
+  "final_url": "https://apply.workable.com/destinusgroup/jobs.md",
+  "content_type": "text/markdown; charset=utf-8",
+  "content_encoding": null,
+  "response_sha256": "349a99e36514e31ba247bdaea6fd950c45ae27bd9b8ff516b231976d9408d0da",
+  "response_bytes": 2318,
+  "unchanged_parser_result": {
+    "outcome": "parse_error",
+    "type": "ParseError",
+    "message": "Workable response contains no jobs table"
+  },
+  "parser_sha256_after_capture": "8ae983163b06789bca2798262437ce95e6c75e04a06ab582de5384f1f90aa6e2",
+  "donor_source_sha256": "445e94938079934b501c8579f342b1cee1004aa71fed0be2092e0615d5451cf2",
+  "manual_review": "The exact Markdown body contains a search directory for 121 jobs and no table. Fifteen top-level department counts sum to 118; a speculative department fanout would not establish complete enumeration. Retained as an explicit unsupported response regression.",
+  "post_capture_change": "Generic recognition of the search-directory response now raises an explicit unsupported-format ParseError. No employer exception; no additional network request."
+}

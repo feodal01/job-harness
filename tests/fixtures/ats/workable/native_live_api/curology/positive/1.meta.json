@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-10-12T10:07:57.450447+00:00",
+  "request": {
+    "url": "https://apply.workable.com/api/v3/accounts/curology/jobs",
+    "query": "Manager",
+    "stage": "listing",
+    "location": null,
+    "method": "POST",
+    "json_body": {
+      "query": "Manager"
+    },
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://apply.workable.com/api/v3/accounts/curology/jobs",
+  "response_sha256": "83d027e07f944f18faad15201955eee2ad4f1350fa4462769e419e54a54ad7ba",
+  "response_file": "1.json"
+}

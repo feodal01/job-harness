@@ -1,0 +1,14 @@
+{
+  "captured_at": "2026-10-12T09:58:53.925757+00:00",
+  "request": {
+    "url": "https://join.com/companies/join/16817388-senior-backend-engineer",
+    "query": "",
+    "stage": "listing",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "response_sha256": "17759c2623fe0dd890819572483be9ee2d5c3b7e106baea5c0d790b81eb709a3"
+}

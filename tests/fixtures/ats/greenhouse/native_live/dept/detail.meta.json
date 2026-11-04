@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-12T09:57:16.314502+00:00",
+  "request": {
+    "url": "https://boards-api.greenhouse.io/v1/boards/dept/jobs/7825924?content=true",
+    "query": "",
+    "stage": "listing",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://boards-api.greenhouse.io/v1/boards/dept/jobs/7825924?content=true",
+  "response_sha256": "ed458751ad3f41080a69558085786073f70c91a693fffe13138cc2bddf880793",
+  "response_file": "detail.json"
+}

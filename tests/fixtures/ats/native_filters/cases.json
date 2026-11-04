@@ -1,0 +1,2318 @@
+[
+  {
+    "platform": "breezy",
+    "company": "brookhill",
+    "label": "positive",
+    "board_url": "https://brookhill.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "Bullard, TX"
+    },
+    "pages": [
+      {
+        "file": "breezy/brookhill/positive/1.body.gz",
+        "url": "https://brookhill.breezy.hr/?location=Bullard%2C+TX",
+        "method": "GET",
+        "ids": [
+          "9c7cf993f958-substitute-campus-nurse",
+          "c99da7ce7f2d-part-time-bus-drivers"
+        ],
+        "sha256": "a72b85ac4da7a5a94a989c13f38c034a6ae29a9aebd8d5afbd2324ebed6da9ad",
+        "captured_at": "2026-10-12T05:59:48.515960+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "breezy",
+    "company": "brookhill",
+    "label": "negative",
+    "board_url": "https://brookhill.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "breezy/brookhill/negative/1.body.gz",
+        "url": "https://brookhill.breezy.hr/?location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "d2a76d8187192cb8a971176f72a7831bd6a2a12f9eb966fa37ab60cb79eaae8f",
+        "captured_at": "2026-10-12T05:59:49.184122+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "breezy",
+    "company": "cyborgmobile",
+    "label": "positive",
+    "board_url": "https://cyborgmobile.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "Redmond, WA"
+    },
+    "pages": [
+      {
+        "file": "breezy/cyborgmobile/positive/1.body.gz",
+        "url": "https://cyborgmobile.breezy.hr/?location=Redmond%2C+WA",
+        "method": "GET",
+        "ids": [
+          "621ecf1d2361-data-ai-program-manager"
+        ],
+        "sha256": "de0b3086230447adcea74d92b583be75a409a7e880b7f74f5040fc06ee78b67d",
+        "captured_at": "2026-10-12T05:59:45.911605+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "breezy",
+    "company": "cyborgmobile",
+    "label": "negative",
+    "board_url": "https://cyborgmobile.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "breezy/cyborgmobile/negative/1.body.gz",
+        "url": "https://cyborgmobile.breezy.hr/?location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "d0b4b8c7c669514454a0c1e68edac3775e29c576c4752a4811cff8af7573416a",
+        "captured_at": "2026-10-12T05:59:46.577266+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "breezy",
+    "company": "fireclay-partners",
+    "label": "positive",
+    "board_url": "https://fireclay-partners.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "Kansas City, MO"
+    },
+    "pages": [
+      {
+        "file": "breezy/fireclay-partners/positive/1.body.gz",
+        "url": "https://fireclay-partners.breezy.hr/?location=Kansas+City%2C+MO",
+        "method": "GET",
+        "ids": [
+          "119260a3d4cd-analyst-current-student-remote",
+          "264398137e1b-investment-banking-analyst-summer-2027-start",
+          "76912836bf4d-vice-president-investment-banking",
+          "7768f9e6d0cd-internship-investment-banking-analyst-summer-2027",
+          "a854b4247cf3-investment-banking-associate-current-mba-student-remote",
+          "b0c211b46b1a-director-investment-banking",
+          "b0cb24cbf7dd-internship-investment-banking-summer-associate-summer-2027",
+          "bd360e63031c-investment-banking-associate-summer-2027-start"
+        ],
+        "sha256": "95b9af2618e5d5e8327e5dd1e0e9b2a0ffe916af53890a046663604527add453",
+        "captured_at": "2026-10-12T05:59:44.615128+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "breezy",
+    "company": "fireclay-partners",
+    "label": "negative",
+    "board_url": "https://fireclay-partners.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "breezy/fireclay-partners/negative/1.body.gz",
+        "url": "https://fireclay-partners.breezy.hr/?location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "e6c2671c064121ca95cbb5eff67db38b8fc8d2297d4cb1cc17305bf1dddc82d2",
+        "captured_at": "2026-10-12T05:59:45.314587+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "breezy",
+    "company": "raftelis",
+    "label": "positive",
+    "board_url": "https://raftelis.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "Charlotte, NC"
+    },
+    "pages": [
+      {
+        "file": "breezy/raftelis/positive/1.body.gz",
+        "url": "https://raftelis.breezy.hr/?location=Charlotte%2C+NC",
+        "method": "GET",
+        "ids": [
+          "31326c5af68f-proposal-manager",
+          "a511e7672f38-senior-consultant-finance",
+          "a7653441c296-proposal-coordinator",
+          "ae2a27e6ba57-analyst-associate-consultant-finance",
+          "eca74bacc5ec-administrative-manager"
+        ],
+        "sha256": "fa7489ccc6ab5d6cd352a72e0e4910a94729e7fbdc98ceaefb7b9ad9f4138335",
+        "captured_at": "2026-10-12T05:59:47.223863+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "breezy",
+    "company": "raftelis",
+    "label": "negative",
+    "board_url": "https://raftelis.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "breezy/raftelis/negative/1.body.gz",
+        "url": "https://raftelis.breezy.hr/?location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "101471400007a67b8e023f1665bc436952aa469bca70260c1026d8a8bc7f7d41",
+        "captured_at": "2026-10-12T05:59:47.886200+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "breezy",
+    "company": "sa-global",
+    "label": "positive",
+    "board_url": "https://sa-global.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "Tampa, FL"
+    },
+    "pages": [
+      {
+        "file": "breezy/sa-global/positive/1.body.gz",
+        "url": "https://sa-global.breezy.hr/?location=Tampa%2C+FL",
+        "method": "GET",
+        "ids": [
+          "3194457e3a8e01-associate-consultant-hb1"
+        ],
+        "sha256": "6a0d9458e28cd7d1eaea3df8990d100f6fe56f539e1e67e4d6923e09789a666e",
+        "captured_at": "2026-10-12T05:59:43.344801+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "breezy",
+    "company": "sa-global",
+    "label": "negative",
+    "board_url": "https://sa-global.breezy.hr/",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "breezy/sa-global/negative/1.body.gz",
+        "url": "https://sa-global.breezy.hr/?location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "d88b7059ee98c389282290ff4ba197a9e6dac8c81740cf9cfbb12b074bf5e723",
+        "captured_at": "2026-10-12T05:59:44.025044+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "104931",
+    "label": "positive",
+    "board_url": "https://dreamjob.ru/employers/104931/vakansii",
+    "query": "Руководитель направления по управленческой отчетности блока МСБ",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/104931/positive/1.body.gz",
+        "url": "https://dreamjob.ru/employers/104931/vakansii?jbfrp%5Btext%5D=%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D0%BD%D0%B0%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D1%8F+%D0%BF%D0%BE+%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B9+%D0%BE%D1%82%D1%87%D0%B5%D1%82%D0%BD%D0%BE%D1%81%D1%82%D0%B8+%D0%B1%D0%BB%D0%BE%D0%BA%D0%B0+%D0%9C%D0%A1%D0%91",
+        "method": "GET",
+        "ids": [
+          "137876775"
+        ],
+        "sha256": "80eab13608507e1a871bcb1752be24ebcdcff21a74552249f2c211b177f1f85d",
+        "captured_at": "2026-10-12T05:57:10.604573+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "104931",
+    "label": "negative",
+    "board_url": "https://dreamjob.ru/employers/104931/vakansii",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/104931/negative/1.body.gz",
+        "url": "https://dreamjob.ru/employers/104931/vakansii?jbfrp%5Btext%5D=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "3e052767107839198947b6e70565a086477a3ca2c92ad6f4af5cc4c844e19bd3",
+        "captured_at": "2026-10-12T05:57:11.633461+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "105742",
+    "label": "positive",
+    "board_url": "https://dreamjob.ru/employers/105742/vakansii",
+    "query": "Оператор 1С",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/105742/positive/1.body.gz",
+        "url": "https://dreamjob.ru/employers/105742/vakansii?jbfrp%5Btext%5D=%D0%9E%D0%BF%D0%B5%D1%80%D0%B0%D1%82%D0%BE%D1%80+1%D0%A1",
+        "method": "GET",
+        "ids": [
+          "138348163"
+        ],
+        "sha256": "8e56ee3840329a4e5143bb74cfe94b3150789c122f85f3df118f4db28ad16fa4",
+        "captured_at": "2026-10-12T05:57:04.150538+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "105742",
+    "label": "negative",
+    "board_url": "https://dreamjob.ru/employers/105742/vakansii",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/105742/negative/1.body.gz",
+        "url": "https://dreamjob.ru/employers/105742/vakansii?jbfrp%5Btext%5D=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "885a4b0755df9cafec0fc6c820b57a1cd8663c543de7d2659c04c46b6153727c",
+        "captured_at": "2026-10-12T05:57:05.230646+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "110977",
+    "label": "positive",
+    "board_url": "https://dreamjob.ru/employers/110977/vakansii",
+    "query": "HR-бизнес-партнер/HR BP (девелопмент)",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/110977/positive/1.body.gz",
+        "url": "https://dreamjob.ru/employers/110977/vakansii?jbfrp%5Btext%5D=HR-%D0%B1%D0%B8%D0%B7%D0%BD%D0%B5%D1%81-%D0%BF%D0%B0%D1%80%D1%82%D0%BD%D0%B5%D1%80%2FHR+BP+%28%D0%B4%D0%B5%D0%B2%D0%B5%D0%BB%D0%BE%D0%BF%D0%BC%D0%B5%D0%BD%D1%82%29",
+        "method": "GET",
+        "ids": [
+          "136162864"
+        ],
+        "sha256": "4999c9328e2de6a871c11f19dd9f3d1a0b7392e960d482dbd7511a9d6a6eead2",
+        "captured_at": "2026-10-12T05:57:08.282805+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "110977",
+    "label": "negative",
+    "board_url": "https://dreamjob.ru/employers/110977/vakansii",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/110977/negative/1.body.gz",
+        "url": "https://dreamjob.ru/employers/110977/vakansii?jbfrp%5Btext%5D=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "983b63079a6978e257ff20190477de6150393fe33257d611d9178f154ab03b07",
+        "captured_at": "2026-10-12T05:57:09.602679+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "300120",
+    "label": "positive",
+    "board_url": "https://dreamjob.ru/employers/300120/vakansii",
+    "query": "Журналист-корреспондент",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/300120/positive/1.body.gz",
+        "url": "https://dreamjob.ru/employers/300120/vakansii?jbfrp%5Btext%5D=%D0%96%D1%83%D1%80%D0%BD%D0%B0%D0%BB%D0%B8%D1%81%D1%82-%D0%BA%D0%BE%D1%80%D1%80%D0%B5%D1%81%D0%BF%D0%BE%D0%BD%D0%B4%D0%B5%D0%BD%D1%82",
+        "method": "GET",
+        "ids": [
+          "137219930"
+        ],
+        "sha256": "2be69a49cc45adcfedbabc7ce7c2572dfe57cdd3bc568c952b225d4240b48acf",
+        "captured_at": "2026-10-12T05:57:06.231746+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "300120",
+    "label": "negative",
+    "board_url": "https://dreamjob.ru/employers/300120/vakansii",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/300120/negative/1.body.gz",
+        "url": "https://dreamjob.ru/employers/300120/vakansii?jbfrp%5Btext%5D=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "061b41c6ce759c54928b0e3f279ff536b303b562795b7b1e02ae200dbe28ba41",
+        "captured_at": "2026-10-12T05:57:07.314603+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "32100",
+    "label": "positive",
+    "board_url": "https://dreamjob.ru/employers/32100/vakansii",
+    "query": "Главный бухгалтер",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/32100/positive/1.body.gz",
+        "url": "https://dreamjob.ru/employers/32100/vakansii?jbfrp%5Btext%5D=%D0%93%D0%BB%D0%B0%D0%B2%D0%BD%D1%8B%D0%B9+%D0%B1%D1%83%D1%85%D0%B3%D0%B0%D0%BB%D1%82%D0%B5%D1%80",
+        "method": "GET",
+        "ids": [
+          "136731126",
+          "136733030",
+          "136885440",
+          "137383001",
+          "138009775",
+          "138311507",
+          "138349270"
+        ],
+        "sha256": "8b7883fd7c99805e324f4e37e335d4f3b9ba10d53f6690b1ddf84b7e23cb1081",
+        "captured_at": "2026-10-12T05:56:59.612078+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "dreamjob",
+    "company": "32100",
+    "label": "negative",
+    "board_url": "https://dreamjob.ru/employers/32100/vakansii",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "dreamjob/32100/negative/1.body.gz",
+        "url": "https://dreamjob.ru/employers/32100/vakansii?jbfrp%5Btext%5D=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "72a098cd1843bc1f13f532b016caf93c21da75ab09eadc87661df78b4c6a0a46",
+        "captured_at": "2026-10-12T05:57:02.887769+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "codekeeper",
+    "label": "positive",
+    "board_url": "https://codekeeper.applytojob.com/apply/jobs",
+    "query": "Client Success Specialist (LegalTech)",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/codekeeper/positive/1.body.gz",
+        "url": "https://codekeeper.applytojob.com/apply/jobs?q=Client+Success+Specialist+%28LegalTech%29",
+        "method": "GET",
+        "ids": [
+          "xsQQDUZ9Lz"
+        ],
+        "sha256": "1c871d1b1c03b67732bdc3cc23d4a0648120606bb9b55cef3da4740d53041f8f",
+        "captured_at": "2026-10-12T05:56:46.973856+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "codekeeper",
+    "label": "negative",
+    "board_url": "https://codekeeper.applytojob.com/apply/jobs",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/codekeeper/negative/1.body.gz",
+        "url": "https://codekeeper.applytojob.com/apply/jobs?q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "532948eaab89b8d8ebe72a0c2c30dc3e4ec3c943acb8b355fe57e129c5c88676",
+        "captured_at": "2026-10-12T05:56:47.408858+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "dezignconceptsllc",
+    "label": "positive",
+    "board_url": "https://dezignconceptsllc.applytojob.com/apply/jobs",
+    "query": "AWS Cloud Engineer",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/dezignconceptsllc/positive/1.body.gz",
+        "url": "https://dezignconceptsllc.applytojob.com/apply/jobs?q=AWS+Cloud+Engineer",
+        "method": "GET",
+        "ids": [
+          "fvWlLP6PTQ"
+        ],
+        "sha256": "58bd6006d3129b96925a71af773dcd54f6595760dfb2b49b796a3477ac156668",
+        "captured_at": "2026-10-12T05:56:43.885703+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "dezignconceptsllc",
+    "label": "negative",
+    "board_url": "https://dezignconceptsllc.applytojob.com/apply/jobs",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/dezignconceptsllc/negative/1.body.gz",
+        "url": "https://dezignconceptsllc.applytojob.com/apply/jobs?q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "78f97225294e536247341fb59072881758a71b3eb041c80443e4beef8445c0a9",
+        "captured_at": "2026-10-12T05:56:45.216877+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "oceanmd",
+    "label": "positive",
+    "board_url": "https://oceanmd.applytojob.com/apply/jobs",
+    "query": "Education Content Specialist",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/oceanmd/positive/1.body.gz",
+        "url": "https://oceanmd.applytojob.com/apply/jobs?q=Education+Content+Specialist",
+        "method": "GET",
+        "ids": [
+          "VskmsZ5VmL"
+        ],
+        "sha256": "a22b37fa8a016b81acb2b5ad0b5207cc4def558148a55b745470e40977f79561",
+        "captured_at": "2026-10-12T05:56:49.385903+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "oceanmd",
+    "label": "negative",
+    "board_url": "https://oceanmd.applytojob.com/apply/jobs",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/oceanmd/negative/1.body.gz",
+        "url": "https://oceanmd.applytojob.com/apply/jobs?q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "08c3b474c3d0c2afcbd4ec08f0b052e3e7c3d3aa6c514f0cecea4892314074bd",
+        "captured_at": "2026-10-12T05:56:50.743722+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "rda",
+    "label": "positive",
+    "board_url": "https://rda.applytojob.com/apply/jobs",
+    "query": "Project Manager, Optimization Services",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/rda/positive/1.body.gz",
+        "url": "https://rda.applytojob.com/apply/jobs?q=Project+Manager%2C+Optimization+Services",
+        "method": "GET",
+        "ids": [
+          "H6oSc82Erf"
+        ],
+        "sha256": "ee54fed9d80c3cd643ac866e459a303cf46f82be575df0a2278d0420228f3054",
+        "captured_at": "2026-10-12T05:56:56.522854+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "rda",
+    "label": "negative",
+    "board_url": "https://rda.applytojob.com/apply/jobs",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/rda/negative/1.body.gz",
+        "url": "https://rda.applytojob.com/apply/jobs?q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "98c27894e769c45a233e691d79ade8d7ecb9663214f22666cbb8bfd26445fc19",
+        "captured_at": "2026-10-12T05:56:57.818473+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "symend",
+    "label": "positive",
+    "board_url": "https://symend.applytojob.com/apply/jobs",
+    "query": "Intermediate / Senior Product Engineer",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/symend/positive/1.body.gz",
+        "url": "https://symend.applytojob.com/apply/jobs?q=Intermediate+%2F+Senior+Product+Engineer",
+        "method": "GET",
+        "ids": [
+          "Xgn0DsdwR1"
+        ],
+        "sha256": "1233be9c010a6bea74ffdd0eace3cff6298cbb0083d8a6e4213bfdda2bee1871",
+        "captured_at": "2026-10-12T05:56:52.457465+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jazzhr",
+    "company": "symend",
+    "label": "negative",
+    "board_url": "https://symend.applytojob.com/apply/jobs",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jazzhr/symend/negative/1.body.gz",
+        "url": "https://symend.applytojob.com/apply/jobs?q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "c24d0ddde3cdb28ecfd7abc48806296ca13f12aa6f1a728763a2b3b2472c828a",
+        "captured_at": "2026-10-12T05:56:54.745246+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "collate",
+    "label": "positive",
+    "board_url": "https://jobs.lever.co/collate",
+    "query": "",
+    "filters": {
+      "location": "San Francisco"
+    },
+    "pages": [
+      {
+        "file": "lever/collate/positive/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/collate?mode=json&location=San+Francisco",
+        "method": "GET",
+        "ids": [
+          "377f2cf3-6285-42c1-8130-dd3dd2c866cb",
+          "e2d6a632-127a-409d-818b-d465f95bda0a",
+          "1bc7e8de-ab81-47ba-9352-0f90ef7aabc1",
+          "05c01180-5559-401c-94e4-4287a29ee1fd",
+          "c100114a-e908-4184-9b43-13d89795401d",
+          "1894990b-03aa-40d3-a16e-89492ed568ec",
+          "ddb57f92-0391-43a6-bd90-10fc2abd23fb",
+          "bc4a840c-71f1-4190-8826-6b42d236e375",
+          "c32347d6-b99a-445f-951f-8c2b8c21edd6",
+          "accdd901-bb45-40ab-af3b-9e8ed775dfb8",
+          "086f1a83-f745-4d20-80f6-cabcab06973a",
+          "a54539d9-dbc9-4870-8a3f-c12a4731ca20",
+          "a4c47ea6-7a68-4928-9252-1c7d946a1865",
+          "968c8da8-1709-4630-8dd8-3a05f9fff6eb",
+          "964a774c-bfe0-4bed-8b63-68c57a2259d3",
+          "ae2f86d6-3317-410a-a3e7-df983d4523bd",
+          "6e60404a-4cd5-486d-ad73-eeb6d52d7a6a"
+        ],
+        "sha256": "ee323c1252b058265c1e099cfaaf897e953988814c633b5d3d9a0e9ee519fdb4",
+        "captured_at": "2026-10-12T06:09:42.324555+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "collate",
+    "label": "negative",
+    "board_url": "https://jobs.lever.co/collate",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "lever/collate/negative/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/collate?mode=json&location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "captured_at": "2026-10-12T06:09:46.288327+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "doxel",
+    "label": "positive",
+    "board_url": "https://jobs.lever.co/doxel",
+    "query": "",
+    "filters": {
+      "location": "Arlington, VA"
+    },
+    "pages": [
+      {
+        "file": "lever/doxel/positive/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/doxel?mode=json&location=Arlington%2C+VA",
+        "method": "GET",
+        "ids": [
+          "446e22bf-4f60-4382-b56e-6a86fa139cef"
+        ],
+        "sha256": "5520b7b16edb288c642a9059ff74fee3d784d0899d61b2c33ffa257e8efebb08",
+        "captured_at": "2026-10-12T06:09:46.541533+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "doxel",
+    "label": "negative",
+    "board_url": "https://jobs.lever.co/doxel",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "lever/doxel/negative/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/doxel?mode=json&location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "captured_at": "2026-10-12T06:09:46.810583+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "electric-twin",
+    "label": "positive",
+    "board_url": "https://jobs.lever.co/electric-twin",
+    "query": "",
+    "filters": {
+      "location": "London"
+    },
+    "pages": [
+      {
+        "file": "lever/electric-twin/positive/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/electric-twin?mode=json&location=London",
+        "method": "GET",
+        "ids": [
+          "4cbba750-ef64-4ee1-9570-ad6d8949212d",
+          "d6d49acb-f684-461e-b9cd-5aae4331c18d",
+          "326473f2-cac7-4dba-9e4d-54f4e7bcda77",
+          "830093d0-b5bf-4e97-ae4e-385a431ba095",
+          "be47f76c-0b82-4f22-bd9a-4d335ef51564"
+        ],
+        "sha256": "be7d6aa5abbe69f53df183ff89c801d276ffdaf9fb07f93b9c51dd035d657225",
+        "captured_at": "2026-10-12T06:09:50.792973+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "electric-twin",
+    "label": "negative",
+    "board_url": "https://jobs.lever.co/electric-twin",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "lever/electric-twin/negative/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/electric-twin?mode=json&location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "captured_at": "2026-10-12T06:09:53.458599+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "field-ai",
+    "label": "positive",
+    "board_url": "https://jobs.lever.co/field-ai",
+    "query": "",
+    "filters": {
+      "location": "Irvine, CA"
+    },
+    "pages": [
+      {
+        "file": "lever/field-ai/positive/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/field-ai?mode=json&location=Irvine%2C+CA",
+        "method": "GET",
+        "ids": [
+          "b600a2ab-cff1-4b8f-9940-4bd851c05e37",
+          "28935a89-7c6b-4caf-abe7-b83b8a9958e1",
+          "65561b5c-2348-4b88-9e73-ff9c6265dbf4",
+          "2d06b6c6-6369-423f-9f79-095d935b366e",
+          "f93989e6-a29d-4411-a79b-ce6c949ffdec",
+          "6b4eb49d-a515-404f-b12e-aeeb0d95ccfd",
+          "50714ca7-eb31-47f7-a6b0-a5060765e4ea",
+          "f41fb1ac-d266-4e2c-8879-2d88d6f890d4",
+          "459d3ad2-80c7-43c6-81da-10669a2950f4",
+          "9ad21207-951e-43f5-a63f-69f02f7c95c2",
+          "e6717cef-ac78-4e67-a8de-33e195490ac8",
+          "5aa0a3ef-b693-4404-829a-63d8b9dad776",
+          "7a0d12c7-957b-42f6-a9c9-9605fab6d2a4",
+          "bc5189c7-8be1-40d0-a67e-1ac5c05b2b29",
+          "e2234c3d-9884-4b4c-803a-6539d62bb106",
+          "efa2ab69-0465-4e13-b512-119d0f72b099",
+          "3ea0a2e6-b3e7-4887-b17d-f1cb16ea4d50",
+          "6fc39622-b8e9-4aab-804a-b5fc61549dc0",
+          "419de42d-f316-4177-a488-718be62b233f",
+          "0d9c37e2-47ae-45f9-8e5d-cc0eccd499f4",
+          "d2255c03-51f3-4efe-b27b-d8921e965153",
+          "d838dfa0-d9d6-4463-88c3-039dbb83475c",
+          "61d53082-301f-4a1a-9439-180d10d4ebc0",
+          "fe613d6b-3cad-48ae-9e5f-91a9d0ce8a96",
+          "0e394f4f-f8fe-4986-93eb-e9fb21bbbbbd",
+          "c6d6d504-d01a-4ba5-9b33-f3e857f630d4",
+          "7e41ac8f-4269-492b-9e1d-97b30a00c92b",
+          "bb127cde-930c-446f-908d-52e2c6f24cc9",
+          "8a6e52d6-b217-4de0-81bd-8a4ef73866a1",
+          "8adb79ad-400a-498c-a9fe-39fd2ed72c75",
+          "a0045ab4-a931-4012-b1fb-c29c364d20bc",
+          "1ecfe2fd-be70-4fb8-a7b8-afd12b36d44a",
+          "ad7999a2-3ce7-4231-935c-e14a8d2c5d96",
+          "1ff2ae13-b4a7-4800-a52e-d1c858924861",
+          "00be5e27-c434-4cde-b367-f1688aa7bd2b",
+          "669f149b-a7a9-4f6e-8080-79b8b7903c83",
+          "95c1d7a7-f2b4-45ca-9888-2196b14afa77",
+          "e45ef9c1-1a2a-4cb8-b345-0c23aeda962a",
+          "259708a4-dd2b-4c23-b300-f81fec383541",
+          "ab84f5f7-8c84-4a71-835f-752bffe48de1",
+          "80363431-4bee-4c82-b6e4-8b556c1a2fd4",
+          "73c30d65-3a05-4ba3-99b6-af2d2b13e85e",
+          "1f75d9aa-0411-4f29-805d-a62720cbdeb2",
+          "95ff2df3-4408-47f3-a2c5-295d8067bb30",
+          "9362f647-988e-4cf0-a8de-924dcbf0e5d0",
+          "9fe4ed83-5dc4-4d3c-8e16-edb59900c79e",
+          "ce04c5b3-17c3-49aa-b833-a6bebbf9d23f",
+          "b5f58151-9a46-441f-badf-2e91244bfd39",
+          "10973d35-6488-4584-8f74-0a7cb455c707",
+          "02d9f383-7b5f-49a2-bed1-15792c602afa",
+          "6af48066-670b-4a98-af5c-001ecc675998",
+          "57ebf22c-7a7d-48ba-ad41-4d0732bc7110",
+          "67623c6f-2bd1-4149-a880-44563a2326dd",
+          "714d5db6-9d94-46da-ba96-ff1b8ccc2e94",
+          "96fc7a54-5dbf-486e-a857-4346646c44e1",
+          "8a953c26-d093-4fa2-88ea-9a5e810b2ef3",
+          "ba73b59a-fb3c-4871-a90d-c2642a41e409",
+          "1915cec4-ea54-4a2a-b82c-48a19428b9d3",
+          "8f3af86b-ded0-4c8a-a657-b89e50256bdd",
+          "eff30cb0-3457-476c-8367-0dd436f36b0f",
+          "b8127d47-3af0-4a8d-abf2-8de5e660ae8f",
+          "67b9519e-b0a1-45f1-b85f-9dcff39c9851",
+          "62338ab8-c160-4656-93b3-15e153b09a1e",
+          "c3650d39-20eb-454e-97f8-4d38494e0fe6",
+          "09957713-086c-4c27-a170-f2821b8c55ce",
+          "a0856b2f-3674-49fa-8546-9b823df597f2",
+          "0c026e5f-99c5-419d-9458-1f2db08fcb8f",
+          "c0932811-6a6e-45b4-bced-4d0efe50d427",
+          "cce71d31-40a0-407f-b3b9-a586976b89b8",
+          "e3b7bac7-5410-44bb-964c-02815fbd0c97",
+          "36853fe1-8d4d-492c-b5ba-d7b19413b7bb",
+          "b6a02c7e-8726-47b7-b0b0-899644613c47",
+          "b5ebd445-3ec1-49b2-a506-8f0a52f5f4cd",
+          "ed898d0a-d6f7-4f59-b4db-91854ffa6b8e",
+          "9cb43da8-9724-450f-8031-ea50f0352e4f",
+          "07553f09-627e-4639-92c2-af5a25e6fe0e",
+          "e4504581-90cc-45a0-8084-f04f8145c75d",
+          "e78f6a36-f106-4064-90d5-1145409a6351",
+          "b25116fc-e172-4016-80ad-3b2ce10da08b",
+          "bc148b63-61e4-4afc-bd4b-5420d9b55d27",
+          "b79366eb-a2b8-4771-8f6d-5ee9d074756a",
+          "f8b38e05-ef2e-40bf-9f53-842c8955a135",
+          "f26ea8d7-81d6-45b2-9af6-28d67406815d",
+          "becff218-8524-4482-b675-3c656c6c46bc",
+          "335eb3a4-abdf-4df0-a79c-599d54fd3a4a"
+        ],
+        "sha256": "bd3195e803b11cddb815f2e66a4ee25769c8c26640734ceb63443a3d62a2c5ad",
+        "captured_at": "2026-10-12T06:09:53.726377+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "field-ai",
+    "label": "negative",
+    "board_url": "https://jobs.lever.co/field-ai",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "lever/field-ai/negative/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/field-ai?mode=json&location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "captured_at": "2026-10-12T06:09:55.900927+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "intenseye",
+    "label": "positive",
+    "board_url": "https://jobs.lever.co/intenseye",
+    "query": "",
+    "filters": {
+      "location": "New York, New York"
+    },
+    "pages": [
+      {
+        "file": "lever/intenseye/positive/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/intenseye?mode=json&location=New+York%2C+New+York",
+        "method": "GET",
+        "ids": [
+          "1f675582-34cc-469d-9e08-0ff733d3064b",
+          "a3c84917-492f-4f0f-9f49-59d5b231aa7d",
+          "24343ab2-9803-4804-a28f-7472f6148a17",
+          "c20f0c7b-ba58-4c65-8826-3959874d315e",
+          "10980644-209f-41b7-922b-2e392b93c44a"
+        ],
+        "sha256": "f3f46a24810b27e267c27c373c80fa430df6dea16428a8b6764a234d1b28c176",
+        "captured_at": "2026-10-12T06:09:47.627839+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "lever",
+    "company": "intenseye",
+    "label": "negative",
+    "board_url": "https://jobs.lever.co/intenseye",
+    "query": "",
+    "filters": {
+      "location": "zxqvnonexistent"
+    },
+    "pages": [
+      {
+        "file": "lever/intenseye/negative/1.body.gz",
+        "url": "https://api.lever.co/v0/postings/intenseye?mode=json&location=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "captured_at": "2026-10-12T06:09:50.499963+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Auto1",
+    "label": "positive",
+    "board_url": "https://careers.smartrecruiters.com/Auto1",
+    "query": "Mecánicos, Peritos y Pintores de Automoción (H/M) – Trabaja en Alemania",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Auto1/positive/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Auto1/postings?limit=100&q=Mec%C3%A1nicos%2C+Peritos+y+Pintores+de+Automoci%C3%B3n+%28H%2FM%29+%E2%80%93+Trabaja+en+Alemania",
+        "method": "GET",
+        "ids": [
+          "744000154753899",
+          "744000154718239",
+          "744000154717664",
+          "744000154716427",
+          "744000154702104",
+          "744000154699181",
+          "744000154702129",
+          "744000154690290",
+          "744000154695379",
+          "744000154682551",
+          "744000154682859",
+          "744000154675021",
+          "744000150086989"
+        ],
+        "sha256": "0f7fffc5ecc278f7c6e4ad11c21317130f130d73e7559e6124f578e9c004d09e",
+        "captured_at": "2026-10-12T05:56:43.313375+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Auto1",
+    "label": "negative",
+    "board_url": "https://careers.smartrecruiters.com/Auto1",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Auto1/negative/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Auto1/postings?limit=100&q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "dd343c33c470fed1e87299640e449a7c124a75f563e0d8052bb781ea88e74b46",
+        "captured_at": "2026-10-12T05:56:43.610540+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Dailymotion",
+    "label": "positive",
+    "board_url": "https://careers.smartrecruiters.com/Dailymotion",
+    "query": "Partner Success Manager, Apprenticeship (All Genders)",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Dailymotion/positive/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Dailymotion/postings?limit=100&q=Partner+Success+Manager%2C+Apprenticeship+%28All+Genders%29",
+        "method": "GET",
+        "ids": [
+          "744000069037168"
+        ],
+        "sha256": "6536dedb80bfb18a8e1204e2be9694a997edbb40d2f500b4606d4c9abec149d2",
+        "captured_at": "2026-10-12T05:56:41.676579+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Dailymotion",
+    "label": "negative",
+    "board_url": "https://careers.smartrecruiters.com/Dailymotion",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Dailymotion/negative/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Dailymotion/postings?limit=100&q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "dd343c33c470fed1e87299640e449a7c124a75f563e0d8052bb781ea88e74b46",
+        "captured_at": "2026-10-12T05:56:41.959243+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Experian",
+    "label": "positive",
+    "board_url": "https://careers.smartrecruiters.com/Experian",
+    "query": "Customer Success Manager, Digital Banking Solutions- Hybrid",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Experian/positive/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Experian/postings?limit=100&q=Customer+Success+Manager%2C+Digital+Banking+Solutions-+Hybrid",
+        "method": "GET",
+        "ids": [
+          "744000154923999",
+          "744000154913520",
+          "744000153685490",
+          "744000143737259"
+        ],
+        "sha256": "88efff23dc146c9f0a8023731f4a963767135855a9e8b2687d817f7cca341bdc",
+        "captured_at": "2026-10-12T05:56:42.748131+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Experian",
+    "label": "negative",
+    "board_url": "https://careers.smartrecruiters.com/Experian",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Experian/negative/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Experian/postings?limit=100&q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "dd343c33c470fed1e87299640e449a7c124a75f563e0d8052bb781ea88e74b46",
+        "captured_at": "2026-10-12T05:56:43.043452+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Nexthink",
+    "label": "positive",
+    "board_url": "https://careers.smartrecruiters.com/Nexthink",
+    "query": "Technical Premium Support Specialist",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Nexthink/positive/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Nexthink/postings?limit=100&q=Technical+Premium+Support+Specialist",
+        "method": "GET",
+        "ids": [
+          "744000154920649",
+          "744000152969815",
+          "744000140199800"
+        ],
+        "sha256": "3d592c6326eac89587ae2061e0eaf2cb46545ba37cd5c33518168d0e91c3d417",
+        "captured_at": "2026-10-12T05:56:41.056521+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Nexthink",
+    "label": "negative",
+    "board_url": "https://careers.smartrecruiters.com/Nexthink",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Nexthink/negative/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Nexthink/postings?limit=100&q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "dd343c33c470fed1e87299640e449a7c124a75f563e0d8052bb781ea88e74b46",
+        "captured_at": "2026-10-12T05:56:41.409592+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Ubisoft2",
+    "label": "positive",
+    "board_url": "https://careers.smartrecruiters.com/Ubisoft2",
+    "query": "Community",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Ubisoft2/positive/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Ubisoft2/postings?limit=100&q=Community",
+        "method": "GET",
+        "ids": [
+          "744000154736845",
+          "744000154735996",
+          "744000154717650",
+          "744000154714952",
+          "744000154638193",
+          "744000154420659",
+          "744000154404138",
+          "744000154376289",
+          "744000154360048",
+          "744000154359828",
+          "744000154202819",
+          "744000154202739",
+          "744000154132429",
+          "744000154039054",
+          "744000153509390",
+          "744000153262644",
+          "744000153263229",
+          "744000153206238",
+          "744000153201361",
+          "744000153134770",
+          "744000153130529",
+          "744000153107589",
+          "744000153104630",
+          "744000152933157",
+          "744000152909949",
+          "744000152873549",
+          "744000152722769",
+          "744000152719969",
+          "744000152350179",
+          "744000151825329",
+          "744000151773149",
+          "744000151772659",
+          "744000151693127",
+          "744000151683360",
+          "744000151667559",
+          "744000151590019",
+          "744000151061639",
+          "744000151049982",
+          "744000150951389",
+          "744000150941499",
+          "744000150639839",
+          "744000150454779",
+          "744000150333355",
+          "744000150318681",
+          "744000150320639",
+          "744000150164374",
+          "744000150161671",
+          "744000150156432",
+          "744000150150840",
+          "744000149897940",
+          "744000149880856",
+          "744000149830359",
+          "744000149808389",
+          "744000149807444",
+          "744000149621279",
+          "744000149520149",
+          "744000148459009",
+          "744000148330865",
+          "744000147409729",
+          "744000147273141",
+          "744000147037200",
+          "744000146502599",
+          "744000146459475",
+          "744000146448279",
+          "744000145800584",
+          "744000145802219",
+          "744000145552407",
+          "744000145531389",
+          "744000145416029",
+          "744000145305649",
+          "744000145073038",
+          "744000144787880",
+          "744000144520883",
+          "744000143805578",
+          "744000142874069",
+          "744000142572709",
+          "744000141452610",
+          "744000141293174",
+          "744000141168289",
+          "744000140486346",
+          "744000140063175",
+          "744000140062829",
+          "744000140062789",
+          "744000140062699",
+          "744000140061705",
+          "744000140062319",
+          "744000140061350",
+          "744000138725499",
+          "744000138725259",
+          "744000138725189",
+          "744000138724659",
+          "744000137723444",
+          "744000137385169",
+          "744000136462818",
+          "744000136457501",
+          "744000135281700",
+          "744000132836590",
+          "744000125414014",
+          "744000121716487",
+          "744000120685617"
+        ],
+        "sha256": "09d92ae8d565182306b2a5626bc23fe7b938963186b332a4b195ed1543e162ab",
+        "captured_at": "2026-10-12T05:58:27.454099+00:00"
+      },
+      {
+        "file": "smartrecruiters/Ubisoft2/positive/2.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Ubisoft2/postings?limit=100&q=Community&offset=100",
+        "method": "GET",
+        "ids": [
+          "744000120504404",
+          "744000119995888",
+          "744000112703367",
+          "744000112493097",
+          "744000112075664",
+          "744000110207267",
+          "744000109660915",
+          "744000109660515",
+          "744000107117815"
+        ],
+        "sha256": "719efbef370943cff87cd3cc90fa73cd74d75a206480261a4f4094363128e9d0",
+        "captured_at": "2026-10-12T06:03:05.324070+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "smartrecruiters",
+    "company": "Ubisoft2",
+    "label": "negative",
+    "board_url": "https://careers.smartrecruiters.com/Ubisoft2",
+    "query": "zxqvnonexistent",
+    "filters": {},
+    "pages": [
+      {
+        "file": "smartrecruiters/Ubisoft2/negative/1.body.gz",
+        "url": "https://api.smartrecruiters.com/v1/companies/Ubisoft2/postings?limit=100&q=zxqvnonexistent",
+        "method": "GET",
+        "ids": [],
+        "sha256": "dd343c33c470fed1e87299640e449a7c124a75f563e0d8052bb781ea88e74b46",
+        "captured_at": "2026-10-12T05:56:42.459204+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "liferay",
+    "label": "positive",
+    "board_url": "https://jobs.jobvite.com/liferay/",
+    "query": "Associate",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/liferay/positive/1.body.gz",
+        "url": "https://jobs.jobvite.com/liferay/search?q=Associate",
+        "method": "GET",
+        "ids": [
+          "ouaAAfwy",
+          "oBdOAfwW",
+          "oOVaAfwd",
+          "osMzAfw7",
+          "ouCNAfwd",
+          "oinBAfwA"
+        ],
+        "sha256": "5697657a133604950bce2ee51bde4880d72e1f0d669a41b5c0103bb02e93f435",
+        "captured_at": "2026-10-12T05:58:09.259967+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "liferay",
+    "label": "negative",
+    "board_url": "https://jobs.jobvite.com/liferay/",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/liferay/negative/1.body.gz",
+        "url": "https://jobs.jobvite.com/liferay/search?q=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "de19a5d3bd5c87611b6be9a44e7ec4dc1a2dc2d1f334ab933683f80c56ead024",
+        "captured_at": "2026-10-12T05:58:10.927559+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "usana",
+    "label": "positive",
+    "board_url": "https://jobs.jobvite.com/usana",
+    "query": "Assistant",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/usana/positive/1.body.gz",
+        "url": "https://jobs.jobvite.com/usana/search?q=Assistant",
+        "method": "GET",
+        "ids": [
+          "onCJAfw2"
+        ],
+        "sha256": "d492d49bd9704f3bdad31d1bd8119155941f0b789abed31c5293dab53d802db9",
+        "captured_at": "2026-10-12T05:58:09.272583+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "usana",
+    "label": "negative",
+    "board_url": "https://jobs.jobvite.com/usana",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/usana/negative/1.body.gz",
+        "url": "https://jobs.jobvite.com/usana/search?q=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "ba2f58650eab7550dc0e0f280c1f9d3a1dca510400777a693142f8f669d1e8c5",
+        "captured_at": "2026-10-12T05:58:11.367625+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "ability-beyond",
+    "label": "positive",
+    "board_url": "https://jobs.jobvite.com/abilitybeyondcareers",
+    "query": "Career",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/ability-beyond/positive/1.body.gz",
+        "url": "https://jobs.jobvite.com/abilitybeyondcareers/search?q=Career",
+        "method": "GET",
+        "ids": [
+          "omwTAfw5",
+          "ob4PAfwo",
+          "ovxTAfwf",
+          "oqxTAfwa",
+          "otxTAfwd",
+          "ooxTAfw8",
+          "orRSAfwu",
+          "oxOSAfwx",
+          "owRSAfwz",
+          "oJQVAfwO",
+          "oHOSAfwH",
+          "o5QVAfwa",
+          "ooRSAfwr",
+          "okQSAfwm",
+          "oCOSAfwC"
+        ],
+        "sha256": "8075cc651acb68523e354aab6d6d5fa28537a29786b47ce77d566a913d2f5b3c",
+        "captured_at": "2026-10-12T05:58:09.255822+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "ability-beyond",
+    "label": "negative",
+    "board_url": "https://jobs.jobvite.com/abilitybeyondcareers",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/ability-beyond/negative/1.body.gz",
+        "url": "https://jobs.jobvite.com/abilitybeyondcareers/search?q=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "a6da80b3bd960a6c2c982e2125918a081382328c59ccea9836bb5772d1d74b70",
+        "captured_at": "2026-10-12T05:58:10.962047+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "sidecar",
+    "label": "positive",
+    "board_url": "https://jobs.jobvite.com/sidecar/jobs",
+    "query": "Administrative",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/sidecar/positive/1.body.gz",
+        "url": "https://jobs.jobvite.com/sidecar/search?q=Administrative",
+        "method": "GET",
+        "ids": [
+          "or8q0fwJ"
+        ],
+        "sha256": "99e7329aec913869cfe250350d42b3a0149101fe28d8c73d3be383790cb2d406",
+        "captured_at": "2026-10-12T05:58:09.268367+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "sidecar",
+    "label": "negative",
+    "board_url": "https://jobs.jobvite.com/sidecar/jobs",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/sidecar/negative/1.body.gz",
+        "url": "https://jobs.jobvite.com/sidecar/search?q=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "291ed7f429c8cf53105066be9cac6a443e90c4824192010c9159c3ea505addf6",
+        "captured_at": "2026-10-12T05:58:11.328478+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "uplight",
+    "label": "positive",
+    "board_url": "https://jobs.jobvite.com/uplight/jobs",
+    "query": "Business",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/uplight/positive/1.body.gz",
+        "url": "https://jobs.jobvite.com/uplight/search?q=Business",
+        "method": "GET",
+        "ids": [
+          "o6UHAfw1",
+          "oPYIAfwP",
+          "oqgqAfwq",
+          "ow89Afw7",
+          "oJgNAfw6",
+          "or6GAfwx",
+          "oMAOAfwu",
+          "oaDlAfws",
+          "oTxMAfww",
+          "oWDeAfw7",
+          "oMcwAfwO",
+          "oqDQAfwd",
+          "oJCQAfwv"
+        ],
+        "sha256": "b9582905cdbf7219dc3960b4f186550663bc3abb73ca3fafd2b94286a5087426",
+        "captured_at": "2026-10-12T05:58:09.264164+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "jobvite",
+    "company": "uplight",
+    "label": "negative",
+    "board_url": "https://jobs.jobvite.com/uplight/jobs",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "jobvite/uplight/negative/1.body.gz",
+        "url": "https://jobs.jobvite.com/uplight/search?q=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "4560fd1b64072284f5c096da36d839cd7036f38daea2f3106c55e837d55337ea",
+        "captured_at": "2026-10-12T05:58:10.967123+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "starr",
+    "label": "positive",
+    "board_url": "https://careers-starr.icims.com/jobs/search",
+    "query": "Data",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/starr/positive/1.body.gz",
+        "url": "https://careers-starr.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=Data&pr=0",
+        "method": "GET",
+        "ids": [
+          "2475",
+          "2474",
+          "2458",
+          "2394",
+          "2377",
+          "2285",
+          "2270"
+        ],
+        "sha256": "bf21c0dc7c61fb1cec4fa51edaf61b4a1145f7f52a66172ff9a14133c52aa25c",
+        "captured_at": "2026-10-12T05:58:09.286376+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "starr",
+    "label": "negative",
+    "board_url": "https://careers-starr.icims.com/jobs/search",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/starr/negative/1.body.gz",
+        "url": "https://careers-starr.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=zzqnojobgeneralization20261012&pr=0",
+        "method": "GET",
+        "ids": [],
+        "sha256": "b25bb98a80e45b2fc2540fabd0973deceb3c1655070e50dbeec0a63287be6f8c",
+        "captured_at": "2026-10-12T05:58:12.406195+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "atlas-world-group",
+    "label": "positive",
+    "board_url": "https://careers-atlasworldgroupinc.icims.com/jobs/search",
+    "query": "Logistics",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/atlas-world-group/positive/1.body.gz",
+        "url": "https://careers-atlasworldgroupinc.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=Logistics&pr=0",
+        "method": "GET",
+        "ids": [
+          "1930",
+          "1928",
+          "1926",
+          "1893",
+          "1889",
+          "1888",
+          "1887",
+          "1883",
+          "1881"
+        ],
+        "sha256": "f1a3bd3c59764f21519906409c131f3893335d5b7d3351a57d13248672d8529a",
+        "captured_at": "2026-10-12T05:58:09.299256+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "atlas-world-group",
+    "label": "negative",
+    "board_url": "https://careers-atlasworldgroupinc.icims.com/jobs/search",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/atlas-world-group/negative/1.body.gz",
+        "url": "https://careers-atlasworldgroupinc.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=zzqnojobgeneralization20261012&pr=0",
+        "method": "GET",
+        "ids": [],
+        "sha256": "d56c376f055f097250b90b7876ce263b259000001534969de509989341d561da",
+        "captured_at": "2026-10-12T05:58:13.493514+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "apetito",
+    "label": "positive",
+    "board_url": "https://careers-apetito.icims.com/jobs/search",
+    "query": "Indirect",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/apetito/positive/1.body.gz",
+        "url": "https://careers-apetito.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=Indirect&pr=0",
+        "method": "GET",
+        "ids": [
+          "8588"
+        ],
+        "sha256": "3257df99b4eea411c4edcb10d7c4ef95bdb0712a3eaee28536679d0b0574043d",
+        "captured_at": "2026-10-12T05:58:09.295112+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "apetito",
+    "label": "negative",
+    "board_url": "https://careers-apetito.icims.com/jobs/search",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/apetito/negative/1.body.gz",
+        "url": "https://careers-apetito.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=zzqnojobgeneralization20261012&pr=0",
+        "method": "GET",
+        "ids": [],
+        "sha256": "dc2ad6df68b83d75d135e1dedd82669d0232880f6773ed6e383d24d977a157ed",
+        "captured_at": "2026-10-12T05:58:12.448723+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "kb-home",
+    "label": "positive",
+    "board_url": "https://careers-kbhome.icims.com/jobs/search",
+    "query": "Onsite",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/kb-home/positive/1.body.gz",
+        "url": "https://careers-kbhome.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=Onsite&pr=0",
+        "method": "GET",
+        "ids": [
+          "2014",
+          "2012",
+          "2001",
+          "1997",
+          "1984",
+          "1944",
+          "1935",
+          "1932",
+          "1931",
+          "1930",
+          "1929",
+          "1927",
+          "1918",
+          "1913",
+          "1908",
+          "1907",
+          "1906",
+          "1904",
+          "1893",
+          "1885",
+          "1870",
+          "1752"
+        ],
+        "sha256": "b93b658720bb3669bfe945b7403566fec728df1bb7ae8fcaca667374d6c279b0",
+        "captured_at": "2026-10-12T05:58:09.282109+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "kb-home",
+    "label": "negative",
+    "board_url": "https://careers-kbhome.icims.com/jobs/search",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/kb-home/negative/1.body.gz",
+        "url": "https://careers-kbhome.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=zzqnojobgeneralization20261012&pr=0",
+        "method": "GET",
+        "ids": [],
+        "sha256": "ab1fc98ec7097b27ee95630eb436965bb34ec6d30ba0ae9ff372c956584c3912",
+        "captured_at": "2026-10-12T05:58:12.439946+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "quest",
+    "label": "positive",
+    "board_url": "https://careers-quest.icims.com/jobs/search",
+    "query": "Software",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/quest/positive/1.body.gz",
+        "url": "https://careers-quest.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=Software&pr=0",
+        "method": "GET",
+        "ids": [
+          "13775",
+          "13759",
+          "13758",
+          "13751",
+          "13750",
+          "13742",
+          "13735",
+          "13710",
+          "13709",
+          "13708",
+          "13707",
+          "13706",
+          "13687",
+          "13682",
+          "13677",
+          "13673",
+          "13670",
+          "13661",
+          "13658",
+          "13657"
+        ],
+        "sha256": "170b6f39d4bc8d033c013b2b010ac17b05164761ba7cc6151879ca2b8f9efc72",
+        "captured_at": "2026-10-12T05:58:09.290779+00:00"
+      },
+      {
+        "file": "icims/quest/positive/2.body.gz",
+        "url": "https://careers-quest.icims.com/jobs/search?in_iframe=1&searchKeyword=Software&pr=1",
+        "method": "GET",
+        "ids": [
+          "13656",
+          "13635",
+          "13631",
+          "13628",
+          "13610",
+          "13600",
+          "13598",
+          "13595",
+          "13593",
+          "13580",
+          "13473",
+          "13447",
+          "12814"
+        ],
+        "sha256": "803eb1274aacb3405ee1401e474d2c21f65163a97375f26eac2e1a899a141b08",
+        "captured_at": "2026-10-12T05:58:12.583416+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "icims",
+    "company": "quest",
+    "label": "negative",
+    "board_url": "https://careers-quest.icims.com/jobs/search",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "icims/quest/negative/1.body.gz",
+        "url": "https://careers-quest.icims.com/jobs/search?in_iframe=1&ss=1&searchKeyword=zzqnojobgeneralization20261012&pr=0",
+        "method": "GET",
+        "ids": [],
+        "sha256": "a111699194228239d5a369c637f79edb6f586242874f3fc2ee298eafa449eade",
+        "captured_at": "2026-10-12T05:58:21.033756+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "root-platform",
+    "label": "positive",
+    "board_url": "https://root.teamtailor.com/jobs",
+    "query": "Product",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/root-platform/positive/1.body.gz",
+        "url": "https://root.teamtailor.com/jobs?query=Product",
+        "method": "GET",
+        "ids": [
+          "7840483",
+          "7902516",
+          "8403696",
+          "8002203",
+          "7874036"
+        ],
+        "sha256": "8aac07ea680c46edf9947e9c024467631ef7e700eb939309fefd7520760ff26f",
+        "captured_at": "2026-10-12T05:58:09.378686+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "root-platform",
+    "label": "negative",
+    "board_url": "https://root.teamtailor.com/jobs",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/root-platform/negative/1.body.gz",
+        "url": "https://root.teamtailor.com/jobs?query=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "9db0e18ced7b26b027c9249bf7ca64cf2355ecee828191d8bdbfea547adfd04e",
+        "captured_at": "2026-10-12T05:58:18.483661+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "global-partner",
+    "label": "positive",
+    "board_url": "https://globalpartner.teamtailor.com/jobs",
+    "query": "Technicien",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/global-partner/positive/1.body.gz",
+        "url": "https://globalpartner.teamtailor.com/jobs?query=Technicien",
+        "method": "GET",
+        "ids": [
+          "8321554"
+        ],
+        "sha256": "151dbcf70d30657846683d992792845104c706644c36c75d3f90adae44905c52",
+        "captured_at": "2026-10-12T05:58:09.353738+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "global-partner",
+    "label": "negative",
+    "board_url": "https://globalpartner.teamtailor.com/jobs",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/global-partner/negative/1.body.gz",
+        "url": "https://globalpartner.teamtailor.com/jobs?query=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "c1df4b31c4806bce83ed3948b6b51d2c19a988487df30b8dc3c10627118c3ed2",
+        "captured_at": "2026-10-12T05:58:16.351046+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "equip-jardin",
+    "label": "positive",
+    "board_url": "https://equipjardin.teamtailor.com/jobs",
+    "query": "Technicien",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/equip-jardin/positive/1.body.gz",
+        "url": "https://equipjardin.teamtailor.com/jobs?query=Technicien",
+        "method": "GET",
+        "ids": [
+          "5843045",
+          "8046501",
+          "8069971",
+          "8430403",
+          "8384527",
+          "8528006",
+          "7903444",
+          "8070453",
+          "8126876",
+          "8276448",
+          "8294114",
+          "8468028"
+        ],
+        "sha256": "beca3b13b20e706343e702ffff392061fe1d19d622cb7e6eb2ad3f3c27e93368",
+        "captured_at": "2026-10-12T05:58:09.357997+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "equip-jardin",
+    "label": "negative",
+    "board_url": "https://equipjardin.teamtailor.com/jobs",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/equip-jardin/negative/1.body.gz",
+        "url": "https://equipjardin.teamtailor.com/jobs?query=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "b793a58936e39e48e4830acfe5998dac15d6e842e202fc20a9ba95838f24f23f",
+        "captured_at": "2026-10-12T05:58:16.886917+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "huawei-research-center",
+    "label": "positive",
+    "board_url": "https://huaweiresearchcentergermanyaustria.teamtailor.com/jobs",
+    "query": "Engineer",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/huawei-research-center/positive/1.body.gz",
+        "url": "https://huaweiresearchcentergermanyaustria.teamtailor.com/jobs?query=Engineer",
+        "method": "GET",
+        "ids": [
+          "1732815",
+          "2403800",
+          "7674567",
+          "7679066",
+          "7725204",
+          "8025964",
+          "8060512",
+          "8101675",
+          "8115454",
+          "8168906",
+          "8173958",
+          "8182682",
+          "8183161",
+          "8186575",
+          "8190199",
+          "8228130",
+          "8376194",
+          "8429435",
+          "8450785",
+          "8473636"
+        ],
+        "sha256": "1303a5c3bd6ed544c24a34f33b83f1caae2095a2f32c1d8eaeead50e794356fe",
+        "captured_at": "2026-10-12T10:04:19.186336+00:00",
+        "reference": "Independent extraction of public job IDs from hrefs in same HTTP response; complete captured query pagination"
+      },
+      {
+        "file": "teamtailor/huawei-research-center/positive/2.body.gz",
+        "url": "https://huaweiresearchcentergermanyaustria.teamtailor.com/jobs/show_more?page=2&query=Engineer",
+        "method": "GET",
+        "ids": [
+          "5192875",
+          "6479730",
+          "6713231",
+          "7242911",
+          "7472694",
+          "7643035",
+          "7680299",
+          "7783869",
+          "7984124",
+          "8072425",
+          "8072510",
+          "8072568",
+          "8161963",
+          "8165826",
+          "8188088",
+          "8212278",
+          "8223067",
+          "8261416",
+          "8296834",
+          "8343055"
+        ],
+        "sha256": "4df35860dd1950a2bf051aa7ba1c548d5fa3efaac964b02e81ebbefe032424a7",
+        "captured_at": "2026-10-12T10:04:19.186336+00:00",
+        "reference": "Independent extraction of public job IDs from hrefs in same HTTP response; complete captured query pagination"
+      },
+      {
+        "file": "teamtailor/huawei-research-center/positive/3.body.gz",
+        "url": "https://huaweiresearchcentergermanyaustria.teamtailor.com/jobs/show_more?page=3&query=Engineer",
+        "method": "GET",
+        "ids": [
+          "3770803",
+          "5896774",
+          "7139021",
+          "7146374",
+          "7242911",
+          "7473233",
+          "7655799",
+          "7871752",
+          "8000171",
+          "8048991",
+          "8144870",
+          "8182682",
+          "8190199",
+          "8209786",
+          "8228130",
+          "8260714",
+          "8287587",
+          "8359788",
+          "8365027",
+          "8473636"
+        ],
+        "sha256": "c01b54bec1e77ec39060429f8b301ac2148535c5b6c78cd29fb5f3f050f85cd1",
+        "captured_at": "2026-10-12T10:04:19.186336+00:00",
+        "reference": "Independent extraction of public job IDs from hrefs in same HTTP response; complete captured query pagination"
+      },
+      {
+        "file": "teamtailor/huawei-research-center/positive/4.body.gz",
+        "url": "https://huaweiresearchcentergermanyaustria.teamtailor.com/jobs/show_more?page=4&query=Engineer",
+        "method": "GET",
+        "ids": [
+          "3436604",
+          "5684064",
+          "6345857",
+          "7146374",
+          "7473233",
+          "7871752",
+          "8000171",
+          "8048991",
+          "8149743",
+          "8187727",
+          "8187836",
+          "8187946",
+          "8209786",
+          "8221749",
+          "8223564",
+          "8230678",
+          "8230771",
+          "8260714",
+          "8359788",
+          "8365027"
+        ],
+        "sha256": "21040968747d2509a0884a6737d21b08ae83bd3c688eeff44249b3f2610376d4",
+        "captured_at": "2026-10-12T10:04:19.186336+00:00",
+        "reference": "Independent extraction of public job IDs from hrefs in same HTTP response; complete captured query pagination"
+      },
+      {
+        "file": "teamtailor/huawei-research-center/positive/5.body.gz",
+        "url": "https://huaweiresearchcentergermanyaustria.teamtailor.com/jobs/show_more?page=5&query=Engineer",
+        "method": "GET",
+        "ids": [
+          "6865097",
+          "7076092",
+          "8072276",
+          "8165826",
+          "8449714",
+          "8499537"
+        ],
+        "sha256": "c2b50d611758228e83afb41d2ac7d99f8695a2f03a96eaee50f22a74c9411b62",
+        "captured_at": "2026-10-12T10:04:19.186336+00:00",
+        "reference": "Independent extraction of public job IDs from hrefs in same HTTP response; complete captured query pagination"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "huawei-research-center",
+    "label": "negative",
+    "board_url": "https://huaweiresearchcentergermanyaustria.teamtailor.com/jobs",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/huawei-research-center/negative/1.body.gz",
+        "url": "https://huaweiresearchcentergermanyaustria.teamtailor.com/jobs?query=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "aa29a95039b4120529c64645709365bd040d4329b2fbd549f38717a9d1195264",
+        "captured_at": "2026-10-12T05:58:30.249028+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "toteme",
+    "label": "positive",
+    "board_url": "https://toteme.teamtailor.com/jobs",
+    "query": "Store",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/toteme/positive/1.body.gz",
+        "url": "https://toteme.teamtailor.com/jobs?query=Store",
+        "method": "GET",
+        "ids": [
+          "8428053",
+          "8354626",
+          "8350396",
+          "8393911",
+          "8401403",
+          "8186672",
+          "8113783",
+          "7362246",
+          "8268121",
+          "8302772",
+          "8146874",
+          "8450267",
+          "8450325",
+          "8493476",
+          "8494054",
+          "8235340",
+          "8235390",
+          "8467342",
+          "8235492",
+          "8235301"
+        ],
+        "sha256": "94da52bb5aa173b45e8eeb1291dd6bc74cd9dff24a936b376a547ee91d213e19",
+        "captured_at": "2026-10-12T05:58:09.365973+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "teamtailor",
+    "company": "toteme",
+    "label": "negative",
+    "board_url": "https://toteme.teamtailor.com/jobs",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "teamtailor/toteme/negative/1.body.gz",
+        "url": "https://toteme.teamtailor.com/jobs?query=zzqnojobgeneralization20261012",
+        "method": "GET",
+        "ids": [],
+        "sha256": "cd34e20abf5c0807a7a2e3119d49f670cd18348948a09212ecb3596f05a1cdab",
+        "captured_at": "2026-10-12T05:58:17.092315+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "atmio",
+    "label": "positive",
+    "board_url": "https://apply.workable.com/atmio/",
+    "query": "Production",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/atmio/positive/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/atmio/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "Production"
+        },
+        "ids": [
+          "FCA611E837",
+          "8D0D8FDE9E"
+        ],
+        "sha256": "7d3f66d6c4753eaafa27be4f860bc56c218a80df986023f8256ad9c218a6134e",
+        "captured_at": "2026-10-12T10:07:56.867072+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "atmio",
+    "label": "negative",
+    "board_url": "https://apply.workable.com/atmio/",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/atmio/negative/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/atmio/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "zzqnojobgeneralization20261012"
+        },
+        "ids": [],
+        "sha256": "8bdb9043955fc773a47310959e7fb5be4fc49444394d1aaa114b343bd10534b2",
+        "captured_at": "2026-10-12T10:07:57.151437+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "entuitive",
+    "label": "positive",
+    "board_url": "https://apply.workable.com/entuitive/",
+    "query": "Proposal",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/entuitive/positive/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/entuitive/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "Proposal"
+        },
+        "ids": [
+          "AD16E51E24",
+          "0E8AFDB446"
+        ],
+        "sha256": "747bd88c88e03e7c26d7d6f999d98b86c7ef693099a915496022379fe4865e9b",
+        "captured_at": "2026-10-12T10:07:58.179277+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "entuitive",
+    "label": "negative",
+    "board_url": "https://apply.workable.com/entuitive/",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/entuitive/negative/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/entuitive/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "zzqnojobgeneralization20261012"
+        },
+        "ids": [],
+        "sha256": "8bdb9043955fc773a47310959e7fb5be4fc49444394d1aaa114b343bd10534b2",
+        "captured_at": "2026-10-12T10:07:58.516994+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "curology",
+    "label": "positive",
+    "board_url": "https://apply.workable.com/curology/",
+    "query": "Manager",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/curology/positive/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/curology/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "Manager"
+        },
+        "ids": [
+          "A6A2CA85FE"
+        ],
+        "sha256": "83d027e07f944f18faad15201955eee2ad4f1350fa4462769e419e54a54ad7ba",
+        "captured_at": "2026-10-12T10:07:57.450447+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "curology",
+    "label": "negative",
+    "board_url": "https://apply.workable.com/curology/",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/curology/negative/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/curology/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "zzqnojobgeneralization20261012"
+        },
+        "ids": [],
+        "sha256": "8bdb9043955fc773a47310959e7fb5be4fc49444394d1aaa114b343bd10534b2",
+        "captured_at": "2026-10-12T10:07:57.804703+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "ouai",
+    "label": "positive",
+    "board_url": "https://apply.workable.com/theouai/",
+    "query": "Marketing",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/ouai/positive/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "Marketing"
+        },
+        "ids": [
+          "9C0BB5A237",
+          "B5F46617B9",
+          "193E2E7479",
+          "B7004598A0"
+        ],
+        "sha256": "3299333d135f1a7d5bec7afb8b4559d9061224df48c444f97c9e9da201c9ac54",
+        "captured_at": "2026-10-12T10:07:51.731118+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "ouai",
+    "label": "negative",
+    "board_url": "https://apply.workable.com/theouai/",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/ouai/negative/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "zzqnojobgeneralization20261012"
+        },
+        "ids": [],
+        "sha256": "8bdb9043955fc773a47310959e7fb5be4fc49444394d1aaa114b343bd10534b2",
+        "captured_at": "2026-10-12T10:07:52.100367+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "stadium",
+    "label": "positive",
+    "board_url": "https://apply.workable.com/bystadium/",
+    "query": "Integration",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/stadium/positive/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/bystadium/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "Integration"
+        },
+        "ids": [
+          "0CFA4B08FF",
+          "953DB64872",
+          "66EB717E58",
+          "B78BF9EF9A",
+          "F8025415AA"
+        ],
+        "sha256": "50b1b2ae309e09c952a10cf00f4e6a50b70887f67e621f843276ee8a34beb9e4",
+        "captured_at": "2026-10-12T10:08:34.697525+00:00"
+      }
+    ]
+  },
+  {
+    "platform": "workable",
+    "company": "stadium",
+    "label": "negative",
+    "board_url": "https://apply.workable.com/bystadium/",
+    "query": "zzqnojobgeneralization20261012",
+    "filters": {},
+    "pages": [
+      {
+        "file": "workable/stadium/negative/1.body.gz",
+        "url": "https://apply.workable.com/api/v3/accounts/bystadium/jobs",
+        "method": "POST",
+        "json_body": {
+          "query": "zzqnojobgeneralization20261012"
+        },
+        "ids": [],
+        "sha256": "8bdb9043955fc773a47310959e7fb5be4fc49444394d1aaa114b343bd10534b2",
+        "captured_at": "2026-10-12T10:08:34.993296+00:00"
+      }
+    ]
+  }
+]

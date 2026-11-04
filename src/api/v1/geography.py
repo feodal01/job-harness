@@ -4,6 +4,7 @@ from fastapi import APIRouter, Query
 
 from src.api.openapi import error_responses
 from src.dependencies import GeographyDep
+from src.geography.catalog import DEFAULT_LOCALE
 from src.schemas.geography import CityResponse, CountryResponse
 
 router = APIRouter(prefix="/geography", tags=["geography"])
@@ -13,11 +14,11 @@ router = APIRouter(prefix="/geography", tags=["geography"])
     "/countries",
     response_model=list[CountryResponse],
     response_model_exclude_unset=True,
-    responses=error_responses(),
+    responses=error_responses(422),
 )
-async def countries(service: GeographyDep) -> list[CountryResponse]:
+def countries(service: GeographyDep, locale: str = DEFAULT_LOCALE) -> list[CountryResponse]:
     """Общий справочник стран для фильтров брифа."""
-    return [CountryResponse.model_validate(item) for item in service.countries()]
+    return [CountryResponse.model_validate(item) for item in service.countries(locale)]
 
 
 @router.get(
@@ -26,10 +27,11 @@ async def countries(service: GeographyDep) -> list[CountryResponse]:
     response_model_exclude_unset=True,
     responses=error_responses(422),
 )
-async def cities(
+def cities(
     service: GeographyDep,
     country: Annotated[str, Query(min_length=2, max_length=2)],
-    text: Annotated[str, Query(min_length=2, max_length=100)],
+    text: Annotated[str, Query(min_length=1, max_length=100)],
+    locale: str = DEFAULT_LOCALE,
 ) -> list[CityResponse]:
     """До 20 городов указанной страны из локального справочника."""
-    return [CityResponse.model_validate(item) for item in service.cities(country, text)]
+    return [CityResponse.model_validate(item) for item in service.cities(country, text, locale)]

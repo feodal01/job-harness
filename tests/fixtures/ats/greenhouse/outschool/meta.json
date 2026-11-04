@@ -1,0 +1,7 @@
+{
+  "source_id": "career:outschool",
+  "captured_url": "https://boards-api.greenhouse.io/v1/boards/outschool/jobs?content=true",
+  "captured_at": "2026-06-27",
+  "fixture_kind": "success_non_empty",
+  "notes": "Real Greenhouse board JSON containing all five live Outschool postings at capture time, including compensation sections."
+}

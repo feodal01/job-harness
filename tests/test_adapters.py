@@ -6,6 +6,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from geo_support import confirmed, with_geography
 
 from src.app import create_app
 from src.core.config import Settings
@@ -23,7 +24,7 @@ def app_for(tmp_path, handler):
             database_path=tmp_path / "test.sqlite",
             sources={"hh_ru": {"interval_seconds": 0}, "getmatch": {"interval_seconds": 0, "page_size": 10}},
         ),
-        transport=httpx.MockTransport(handler),
+        transport=httpx.MockTransport(with_geography(handler)),
     )
 
 
@@ -69,7 +70,12 @@ async def test_feed_only_component_streams_summaries_without_optional_requests(t
         engine.sources["getmatch"] = replace(engine.sources["getmatch"], vacancy_details=None)
 
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
-            brief = (await c.post("/api/v1/briefs", json={"name": "Getmatch", "queries": ["QA Auto"]})).json()
+            brief = (
+                await c.post(
+                    "/api/v1/briefs",
+                    json={"name": "Getmatch", "queries": ["QA Auto"], "filters": confirmed()},
+                )
+            ).json()
             response = await c.post(
                 "/api/v1/runs",
                 json={
@@ -98,7 +104,7 @@ async def test_feed_only_component_streams_summaries_without_optional_requests(t
             assert final["limit_reached"] is True
             assert len(rows) == len({v["id"] for v in rows}) == 12
             assert final["metrics"]["pages"] == 2
-            assert final["metrics"]["preparation_requests"] == 0
+            assert final["metrics"]["preparation_requests"] == 1  # Getmatch vacancy form check
             assert final["metrics"]["details_ok"] == 0
             assert final["metrics"]["descriptions_ready"] == 0
             assert final["metrics"]["first_description_ms"] is None
@@ -122,7 +128,7 @@ async def test_getmatch_collects_feed_once_with_or_without_brief_queries(tmp_pat
         engine = app.state.engine
         engine.sources["getmatch"] = replace(engine.sources["getmatch"], vacancy_details=None)
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
-            data = {"name": "Whole feed"}
+            data = {"name": "Whole feed", "filters": confirmed()}
             if queries is not None:
                 data["queries"] = queries
             created = await c.post("/api/v1/briefs", json=data)
@@ -164,7 +170,9 @@ async def test_getmatch_skips_company_profiles_it_does_not_implement(tmp_path):
         app.state.engine.sources["getmatch"] = replace(
             app.state.engine.sources["getmatch"], vacancy_details=None
         )
-        brief = app.state.database.briefs.save_brief(BriefInput(name="Unsupported", queries=["QA"]))
+        brief = app.state.briefs_service.create(
+            BriefInput(name="Unsupported", queries=["QA"], filters=confirmed())
+        )
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
             response = await c.post(
                 "/api/v1/runs",

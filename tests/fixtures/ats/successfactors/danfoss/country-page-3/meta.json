@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-10-12T09:55:34.824Z",
+  "url": "https://jobs.danfoss.com/search/?q=Engineer&searchResultView=LIST&markerViewed=&carouselIndex=&facetFilters=%7B%22jobLocationCountry%22%3A%5B%22Denmark%22%5D%7D&pageNumber=2",
+  "request": {
+    "url": "https://jobs.danfoss.com/services/recruiting/v1/jobs",
+    "method": "POST",
+    "json_body": {
+      "locale": "en_GB",
+      "pageNumber": 2,
+      "sortBy": "",
+      "keywords": "Engineer",
+      "location": "",
+      "facetFilters": {
+        "jobLocationCountry": [
+          "Denmark"
+        ]
+      },
+      "brand": "",
+      "skills": [],
+      "categoryId": 0,
+      "alertId": "",
+      "rcmCandidateId": ""
+    }
+  },
+  "status": 200,
+  "capture_method": "public_browser_country_checkbox_and_pagination",
+  "reference_ids": [
+    "50713",
+    "50312",
+    "51796",
+    "51658",
+    "51939",
+    "50195",
+    "50671",
+    "51659",
+    "52051",
+    "51937"
+  ],
+  "reference_total": 44
+}

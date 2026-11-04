@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-12T09:57:15.270767+00:00",
+  "request": {
+    "url": "https://job-boards.greenhouse.io/atwellgroup?keyword=zzqnojob20261012&_data=routes%2F%24url_token",
+    "query": "zzqnojob20261012",
+    "stage": "listing",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://job-boards.greenhouse.io/atwellgroup?keyword=zzqnojob20261012&_data=routes%2F%24url_token",
+  "response_sha256": "83a58e0d2b368b7538016cd2fe371a462c9e5dd698bdd00f162cd0fffa84ad27",
+  "response_file": "negative-1.json"
+}

@@ -2,7 +2,11 @@ import pytest
 
 from src.models.filters import SearchFilters
 from src.models.vacancy import Vacancy
-from src.selection.filtering import evaluate
+from tests.filter_support import evaluate
+
+# Brief places are cities confirmed in the editor (GeoNames ID), as BriefService stores them.
+TOMSK = {"country": "RU", "city": "Tomsk", "geoname_id": 1489425}
+MOSCOW = {"country": "RU", "city": "Moscow", "geoname_id": 524901}
 
 
 def vacancy(**values):
@@ -66,7 +70,7 @@ def test_geography_weakens_with_freer_format(mode, country, city, expected):
             work_formats=[mode] if mode else [],
             locations=[{"country": country, "city": city, "format": mode}],
         ),
-        SearchFilters(locations=[{"country": "RU", "city": "Томск"}]),
+        SearchFilters(locations=[TOMSK]),
     )
     assert result.status == expected
     if mode is None:
@@ -76,7 +80,7 @@ def test_geography_weakens_with_freer_format(mode, country, city, expected):
 def test_remote_uses_publication_country_when_no_format_on_location():
     result = evaluate(
         vacancy(work_formats=["remote_country"], locations=[{"country": "RU", "city": "Москва"}]),
-        SearchFilters(locations=[{"country": "RU", "city": "Томск"}]),
+        SearchFilters(locations=[TOMSK]),
     )
     assert check(result, "locations").status == "accepted"
 
@@ -104,9 +108,7 @@ def test_format_and_geography_must_pass_on_same_alternative():
             {"country": "KZ", "format": "remote_country"},
         ]
     )
-    result = evaluate(
-        v, SearchFilters(minimum_work_format="remote_country", locations=[{"country": "RU", "city": "Томск"}])
-    )
+    result = evaluate(v, SearchFilters(minimum_work_format="remote_country", locations=[TOMSK]))
     assert result.status == "maybe"
     assert check(result, "locations").status == "accepted"
     assert check(result, "minimum_work_format").status == "rejected"
@@ -116,9 +118,7 @@ def test_unknown_geography_does_not_prove_freer_alternative():
     v = vacancy(
         locations=[{"country": "RU", "city": "Томск", "format": "office"}, {"format": "remote_country"}]
     )
-    result = evaluate(
-        v, SearchFilters(minimum_work_format="remote_country", locations=[{"country": "RU", "city": "Томск"}])
-    )
+    result = evaluate(v, SearchFilters(minimum_work_format="remote_country", locations=[TOMSK]))
     assert result.status == "accepted"
     assert check(result, "minimum_work_format").status == "unknown"
 
@@ -130,7 +130,7 @@ def test_worldwide_respects_explicit_country_exclusions_and_alternative_places()
             {"country": "RU", "format": "remote_country", "excluded": True},
         ]
     )
-    assert evaluate(v, SearchFilters(locations=[{"country": "RU", "city": "Томск"}])).status == "rejected"
+    assert evaluate(v, SearchFilters(locations=[TOMSK])).status == "rejected"
     assert evaluate(v, SearchFilters(locations=[{"country": "RU"}, {"country": "KZ"}])).status == "accepted"
 
 
@@ -142,7 +142,7 @@ def test_worldwide_city_exclusion_does_not_exclude_whole_country():
         ]
     )
     assert evaluate(v, SearchFilters(locations=[{"country": "RU"}])).status == "accepted"
-    assert evaluate(v, SearchFilters(locations=[{"country": "RU", "city": "Москва"}])).status == "rejected"
+    assert evaluate(v, SearchFilters(locations=[MOSCOW])).status == "rejected"
 
 
 def test_unsupported_fields_are_explicit_and_never_reject():

@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-10-12T10:07:51.731118+00:00",
+  "request": {
+    "url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+    "query": "Marketing",
+    "stage": "listing",
+    "location": null,
+    "method": "POST",
+    "json_body": {
+      "query": "Marketing"
+    },
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+  "response_sha256": "3299333d135f1a7d5bec7afb8b4559d9061224df48c444f97c9e9da201c9ac54",
+  "response_file": "1.json"
+}

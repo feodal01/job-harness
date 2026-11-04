@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-10-12T10:07:52.100367+00:00",
+  "request": {
+    "url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+    "query": "zzqnojobgeneralization20261012",
+    "stage": "listing",
+    "location": null,
+    "method": "POST",
+    "json_body": {
+      "query": "zzqnojobgeneralization20261012"
+    },
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+  "response_sha256": "8bdb9043955fc773a47310959e7fb5be4fc49444394d1aaa114b343bd10534b2",
+  "response_file": "1.json"
+}

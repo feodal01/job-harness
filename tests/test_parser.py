@@ -121,7 +121,9 @@ def test_hh_normalizes_formats_and_minimum_experience():
     ],
 )
 def test_hh_worldwide_requires_explicit_work_permission(description, expected):
-    from src.parsers.normalization import normalize_stored_vacancy
+    from src.enrichment.registry import default_enrichment
+
+    enrich = default_enrichment().enrich
 
     original = Vacancy(
         id="1",
@@ -131,10 +133,10 @@ def test_hh_worldwide_requires_explicit_work_permission(description, expected):
         work_formats=["remote_country"],
         source_data={"area": {"countryIsoCode": "RU", "name": "Москва"}},
     )
-    result = normalize_stored_vacancy(original, "hh_ru")
+    result = enrich(original, "hh_ru")
     assert result.work_formats == [expected]
     assert result.locations[0].format == expected
     assert original.work_formats == ["remote_country"]
     if expected == "remote_worldwide":
         assert any(p.country == "DE" and p.excluded for p in result.locations)
-    assert normalize_stored_vacancy(result, "hh_ru") == result
+    assert enrich(result, "hh_ru") == result

@@ -60,10 +60,29 @@ async def run(args):
     async with connection(plugin, data, cache, port, args.cold) as client:
         names = [tool.name for tool in (await client.list_tools()).tools]
         report["tools"] = names
+        assert {"authorize", "list_companies", "get_company_filters"} <= set(names)
         assert (await call(client, "get_service_status"))["status"] == "stopped"
         assert not (data / "service.json").exists(), "MCP initialization must not start the service"
         status = await call(client, "start_service")
         report["url"] = status["url"]
+        sources = (await call(client, "list_sources"))["sources"]
+        report["source_defaults"] = {source["id"]: source["default_limits"] for source in sources}
+        for limits in report["source_defaults"].values():
+            assert limits["max_items_per_query"] > 0 and limits["max_pages_per_query"] > 0
+        auth = await call(client, "authorize")
+        assert auth == {"authenticated": False, "user": None, "login_url": status["url"] + "/auth"}
+        catalog = await client.call_tool("list_companies", {})
+        assert catalog.isError and "401" in str(catalog.content) and "/auth" in str(catalog.content)
+        report["catalog_requires_login"] = True
+        filters = await client.call_tool("get_company_filters", {})
+        assert filters.isError and "401" in str(filters.content)
+        countries = (await call(client, "list_countries"))["countries"]
+        assert len(countries) == 249 and {"code": "DE", "name": "Germany"} in countries
+        cities = (await call(client, "find_cities", {"country": "RU", "text": "Москва"}))["cities"]
+        city = cities[0]
+        assert city["geoname_id"] == 524901 and city["ascii_name"] == "Moscow"
+        report["geography"] = {"countries": len(countries), "selected": city}
+        report["company_filters_require_login"] = True
         created = await call(
             client,
             "create_brief",
@@ -72,11 +91,41 @@ async def run(args):
                     "name": "Проверка плагина · Python",
                     "text": "Python-разработчик",
                     "queries": ["Python"],
+                    "filters": {
+                        "locations": [
+                            {
+                                "country": city["country"],
+                                "geoname_id": city["geoname_id"],
+                                "city_display_name": city["name"],
+                                "minimum_work_format": "hybrid",
+                                "relocation_support": True,
+                            }
+                        ]
+                    },
                 }
             },
         )
         brief_id = created["brief"]["id"]
+        saved_place = created["brief"]["filters"]["locations"][0]
+        assert saved_place["city"] == "Moscow" and saved_place["city_display_name"] == "Москва"
+        assert saved_place["country_name_en"] == "Russia" and saved_place["geoname_id"] == 524901
+        assert saved_place["minimum_work_format"] == "hybrid" and saved_place["relocation_support"] is True
         report["brief_id"] = brief_id
+        country_brief = await call(
+            client,
+            "create_brief",
+            {
+                "brief": {
+                    "name": "Проверка всей страны",
+                    "filters": {"locations": [{"country": "RU", "scope": "country"}]},
+                }
+            },
+        )
+        country_id = country_brief["brief"]["id"]
+        country_place = country_brief["brief"]["filters"]["locations"][0]
+        assert country_place["scope"] == "country" and country_place["country_name_en"] == "Russia"
+        assert country_place.get("geoname_id") is None and country_place.get("city") is None
+        report["country_scope"] = country_place
         if args.live:
             started = await call(
                 client,
@@ -113,6 +162,9 @@ async def run(args):
         assert restarted["instance_id"] != status["instance_id"]
         briefs = (await call(client, "list_briefs"))["briefs"]
         assert any(b["id"] == brief_id for b in briefs)
+        reread = next(b for b in briefs if b["id"] == brief_id)
+        assert reread["filters"]["locations"] == [saved_place]
+        assert next(b for b in briefs if b["id"] == country_id)["filters"]["locations"] == [country_place]
         if args.live:
             after = (await call(client, "get_results", {"run_id": run_id}))["results"]
             assert after == results
@@ -121,7 +173,11 @@ async def run(args):
     async with httpx.AsyncClient(trust_env=False) as http:
         assert (await http.get(f"{report['url']}/api/v1/health")).status_code == 200
         html = await http.get(report["url"])
-        assert "stopService" in html.text
+        assert "stopService" in html.text and "authLink" in html.text
+        login = await http.get(report["url"] + "/auth")
+        script = await http.get(report["url"] + "/assets/auth.js")
+        assert login.status_code == 200 and "authProviders" in login.text
+        assert script.status_code == 200 and "/api/v1/auth" in script.text
     report["survives_mcp_disconnect"] = True
     if not args.keep_running:
         async with connection(plugin, data, cache, port, False) as client:

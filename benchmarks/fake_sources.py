@@ -24,6 +24,8 @@ LATENCY = {
     ("api.hh.ru", "geography"): 0.2,
     ("getmatch.ru", "listing"): 0.76,
     ("getmatch.ru", "detail"): 0.51,
+    # Not measured: the vacancy form page is fetched once per process for the geography check.
+    ("getmatch.ru", "geography"): 0.51,
 }
 HH_PAGE_SIZE = 50  # Live fixture success.html: 50 vacancies per page.
 HH_PAGES = 5  # Pages available for every phrase and area.
@@ -63,6 +65,7 @@ class FakeSources:
         self.gm_promos = [o for o in offers if o.get("offer_type") == "one_day_offer_v3"]
         self.gm_detail = (FIXTURES / "getmatch" / "detail-34499.html").read_text()
         self.gm_promo_detail = (FIXTURES / "getmatch" / "detail-36107.html").read_text()
+        self.gm_form = (FIXTURES / "getmatch" / "vacancies_form.html").read_text()
 
     def transport(self) -> httpx.MockTransport:
         return httpx.MockTransport(self.handle)
@@ -84,6 +87,8 @@ class FakeSources:
             stage, body = "company", self.hh_employer
         elif host == "getmatch.ru" and path == "/api/offers":
             stage, body = "listing", self._gm_listing(params)
+        elif host == "getmatch.ru" and path == "/vacancies":
+            stage, body = "geography", self.gm_form
         elif host == "getmatch.ru" and path.startswith("/vacancies/"):
             stage, body = "detail", self._gm_detail(path)
         else:

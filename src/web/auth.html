@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Вход · Поиск работы</title>
+  <link rel="stylesheet" href="/assets/app.css?v=20261011-auth">
+  <script defer src="/assets/auth.js?v=20261011-auth"></script>
+</head>
+<body>
+  <header class="app-header">
+    <a href="/" class="brand">Поиск работы <span>Брифы и отклики</span></a>
+    <a href="/" class="secondary nav-link">Вернуться к поиску</a>
+  </header>
+  <main class="auth-main">
+    <section class="auth-card" aria-labelledby="authTitle">
+      <p class="eyebrow">АККАУНТ</p>
+      <h1 id="authTitle">Вход в Поиск работы</h1>
+      <p id="authDescription" class="muted">Войдите, чтобы пользоваться общим каталогом компаний.</p>
+      <p id="authNotice" class="notice" role="status" hidden></p>
+      <div id="authAlert" class="auth-alert" role="alert" hidden></div>
+      <div id="authProviders" class="auth-providers" aria-live="polite">
+        <p class="muted">Проверяем вход…</p>
+      </div>
+      <div id="authAccount" hidden>
+        <p id="accountName" class="account-name"></p>
+        <p class="muted">Можно вернуться к ассистенту или продолжить работу в приложении.</p>
+        <div class="actions auth-actions">
+          <a href="/" class="button">К поиску работы</a>
+          <button id="signOut" class="secondary" hidden>Выйти</button>
+        </div>
+      </div>
+      <button id="authRetry" class="secondary" hidden>Повторить</button>
+      <button id="authReset" class="secondary" hidden>Сбросить вход</button>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-10-12T10:08:34.697525+00:00",
+  "request": {
+    "url": "https://apply.workable.com/api/v3/accounts/bystadium/jobs",
+    "query": "Integration",
+    "stage": "listing",
+    "location": null,
+    "method": "POST",
+    "json_body": {
+      "query": "Integration"
+    },
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://apply.workable.com/api/v3/accounts/bystadium/jobs",
+  "response_sha256": "50b1b2ae309e09c952a10cf00f4e6a50b70887f67e621f843276ee8a34beb9e4",
+  "response_file": "1.json"
+}

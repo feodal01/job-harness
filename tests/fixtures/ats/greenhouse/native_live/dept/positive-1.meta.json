@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-12T09:57:15.929242+00:00",
+  "request": {
+    "url": "https://job-boards.greenhouse.io/dept?keyword=Consultant&_data=routes%2F%24url_token",
+    "query": "Consultant",
+    "stage": "listing",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://job-boards.greenhouse.io/dept?keyword=Consultant&_data=routes%2F%24url_token",
+  "response_sha256": "9b4e24eb61c59a8aefa86366560f97a712953c0bc091fceb81547de6ed49b7cc",
+  "response_file": "positive-1.json"
+}

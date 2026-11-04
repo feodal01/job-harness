@@ -7,6 +7,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from geo_support import confirmed
 
 from src.runtime.config import RuntimeSettings
 from src.runtime.manager import ServiceError, ServiceManager
@@ -28,7 +29,9 @@ async def test_concurrent_start_single_process_and_persistent_restart(runtime: R
         a, b = await asyncio.gather(one.start(), two.start())
         assert a.instance_id == b.instance_id
         first_pid = json.loads(runtime.state_path.read_text())["pid"]
-        created = await one.request("POST", "/api/v1/briefs", body={"name": "Persist", "queries": ["python"]})
+        created = await one.request(
+            "POST", "/api/v1/briefs", body={"name": "Persist", "queries": ["python"], "filters": confirmed()}
+        )
         assert created["id"]
         stopped = await two.stop()
         assert stopped.status == "stopped"

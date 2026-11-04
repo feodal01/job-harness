@@ -7,4 +7,4 @@ def application_version() -> str:
     try:
         return version("hh-search-prototype")
     except PackageNotFoundError:
-        return "0.4.0"
+        return "0.9.2"

@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-12T09:57:14.750927+00:00",
+  "request": {
+    "url": "https://job-boards.greenhouse.io/atwellgroup?keyword=Engineer&_data=routes%2F%24url_token&page=2",
+    "query": "Engineer",
+    "stage": "listing",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://job-boards.greenhouse.io/atwellgroup?keyword=Engineer&_data=routes%2F%24url_token&page=2",
+  "response_sha256": "b15f544197f0131b936b02199709476368db2dd5d3c4bc43771ce7987af19563",
+  "response_file": "positive-2.json"
+}

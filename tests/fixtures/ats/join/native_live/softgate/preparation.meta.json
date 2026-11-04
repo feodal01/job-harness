@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-12T09:57:22.119016+00:00",
+  "request": {
+    "url": "https://join.com/companies/softgate",
+    "query": "",
+    "stage": "preparation",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://join.com/companies/softgate",
+  "response_sha256": "f7a4cb90b4baa91f84c54940a1891c14815b13a0ebbbce3be3ac33faba1f1ab7",
+  "response_file": "preparation.html"
+}

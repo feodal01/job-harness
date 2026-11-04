@@ -1,0 +1,82 @@
+{
+  "board": {
+    "timestamp": "2026-10-12T06:01:49.425917+00:00",
+    "request": {
+      "url": "https://join.com/companies/join",
+      "query": "",
+      "stage": "listing",
+      "location": null,
+      "method": "GET",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://join.com/companies/join",
+    "file": "board.html",
+    "response_sha256": "1e06e5a2c99a8bf923929bb50b7a7b4b0e69b7eb102a9f328f805a64eae78def",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  },
+  "positive": {
+    "timestamp": "2026-10-12T06:04:18.560825+00:00",
+    "request": {
+      "url": "https://join.com/candidate-api/graphql",
+      "query": "Engineering",
+      "stage": "listing",
+      "location": null,
+      "method": "POST",
+      "json_body": {
+        "query": "query PublicJobsList($input: PublicJobsQueryInput!) { publicJobs(input: $input) { items { id idParam title category { id name } } pageInfo { page pageCount pageSize rowCount } } }",
+        "variables": {
+          "input": {
+            "companyId": 54,
+            "paginationPage": {
+              "page": 1,
+              "pageSize": 50
+            },
+            "filters": {
+              "categoryIds": [
+                372
+              ]
+            }
+          }
+        }
+      }
+    },
+    "status": 200,
+    "final_url": "https://join.com/candidate-api/graphql",
+    "file": "positive.json",
+    "response_sha256": "e03c8d97994dd6d93e2c62e54269b478757783ee29efbabbf3ece98be4330948",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  },
+  "negative": {
+    "timestamp": "2026-10-12T06:04:19.406530+00:00",
+    "request": {
+      "url": "https://join.com/candidate-api/graphql",
+      "query": "Distribution Marketing",
+      "stage": "listing",
+      "location": null,
+      "method": "POST",
+      "json_body": {
+        "query": "query PublicJobsList($input: PublicJobsQueryInput!) { publicJobs(input: $input) { items { id idParam title category { id name } } pageInfo { page pageCount pageSize rowCount } } }",
+        "variables": {
+          "input": {
+            "companyId": 54,
+            "paginationPage": {
+              "page": 1,
+              "pageSize": 50
+            },
+            "filters": {
+              "categoryIds": [
+                263
+              ]
+            }
+          }
+        }
+      }
+    },
+    "status": 200,
+    "final_url": "https://join.com/candidate-api/graphql",
+    "file": "negative.json",
+    "response_sha256": "0e9ac8fbf34e02ca3bbfb836cbd316334258a66160e3d891f87b7e3199c9ba79",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  }
+}

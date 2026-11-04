@@ -1,0 +1,28 @@
+{
+  "positive": {
+    "timestamp": "2026-10-12T06:06:59.985351+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/inthepocket?keyword=AI+Transformation+Expert&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/inthepocket?keyword=AI+Transformation+Expert&_data=routes%2F%24url_token",
+    "file": "positive.json",
+    "response_sha256": "031b6af158996f4b2f66aa791f14fac4b24f9662c28e693f94082a41a311f4ee",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  },
+  "negative": {
+    "timestamp": "2026-10-12T06:07:00.229315+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/inthepocket?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/inthepocket?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+    "file": "negative.json",
+    "response_sha256": "c4aab419b4f1f06e972caf1e7f64fa7902a5e123289f7daa3481999eb5f9b469",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  }
+}

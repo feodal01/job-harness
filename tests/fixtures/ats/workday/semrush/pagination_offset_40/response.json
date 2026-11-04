@@ -1,0 +1,356 @@
+{
+  "total": 47,
+  "jobPostings": [
+    {
+      "title": "Commercial Account Executive, Southern Europe (Central Sales team)",
+      "externalPath": "/job/Spain/Commercial-Account-Executive--Southern-Europe_JR100500",
+      "timeType": "Full time",
+      "locationsText": "2 Locations",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": [
+        "JR100500"
+      ]
+    },
+    {
+      "title": "Commercial Account Executive, Central Europe",
+      "externalPath": "/job/United-Kingdom/Commercial-Account-Executive--Central-Europe_JR100504",
+      "timeType": "Full time",
+      "locationsText": "4 Locations",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": [
+        "JR100504"
+      ]
+    },
+    {
+      "title": "Commercial Solutions Engineer",
+      "externalPath": "/job/United-States---Boston/Commercial-Solutions-Engineer_JR100513",
+      "timeType": "Full time",
+      "locationsText": "4 Locations",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": [
+        "JR100513"
+      ]
+    },
+    {
+      "title": "Commercial Account Executive, US & Canada (North America Sales Team)",
+      "externalPath": "/job/United-States---Dallas/SMB-Account-Executive--US---Canada--North-America-SMB-Sales-Team-_JR100238",
+      "timeType": "Full time",
+      "locationsText": "2 Locations",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": [
+        "JR100238"
+      ]
+    },
+    {
+      "title": "Enterprise Account Executive (DACH) (German Speaker)",
+      "externalPath": "/job/United-Kingdom/Enterprise-Account-Executive--DACH---German-Speaker-_JR100390-1",
+      "timeType": "Full time",
+      "locationsText": "4 Locations",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": [
+        "JR100390"
+      ]
+    },
+    {
+      "title": "Enterprise Solution Engineer - Indian market (International Solutions Engineer Team)",
+      "externalPath": "/job/Singapore/Enterprise-Solution-Engineer---APAC--International-Solutions-Engineer-Team-_JR100337",
+      "timeType": "Full time",
+      "locationsText": "3 Locations",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": [
+        "JR100337"
+      ]
+    },
+    {
+      "title": "Join Our Talent Pool",
+      "externalPath": "/job/Join-Our-Talent-Pool_JR100199",
+      "timeType": "Full time",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": [
+        "JR100199"
+      ]
+    }
+  ],
+  "facets": [
+    {
+      "facetParameter": "jobFamilyGroup",
+      "descriptor": "Job Category",
+      "values": [
+        {
+          "descriptor": "Analytics",
+          "id": "d0af68b7c12d1000b18d0317a0e90000",
+          "count": 4
+        },
+        {
+          "descriptor": "Customer Success & Support",
+          "id": "d0af68b7c12d1000b17f473670ca0000",
+          "count": 10
+        },
+        {
+          "descriptor": "GTM Operations & Enablement",
+          "id": "d0af68b7c12d1000b1863c9b797a0000",
+          "count": 5
+        },
+        {
+          "descriptor": "Human Resources",
+          "id": "fecdfa6af9801000b553b8b770f80001",
+          "count": 1
+        },
+        {
+          "descriptor": "Marketing",
+          "id": "fecdfa6af9801000b553bb1e1e680001",
+          "count": 2
+        },
+        {
+          "descriptor": "Product Management",
+          "id": "d0af68b7c12d1000b13237823d260000",
+          "count": 1
+        },
+        {
+          "descriptor": "Sales",
+          "id": "fecdfa6af9801000b553ba8492bc0002",
+          "count": 16
+        },
+        {
+          "descriptor": "Software Development",
+          "id": "d0af68b7c12d1000b139406d051c0000",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "facetParameter": "workerSubType",
+      "descriptor": "Job Type",
+      "values": [
+        {
+          "descriptor": "Agency Contractor",
+          "id": "d9e750e2a3a41001e099187394720000",
+          "count": 2
+        },
+        {
+          "descriptor": "Employment at will",
+          "id": "fecdfa6af9801000a640e52a5b4d0001",
+          "count": 15
+        },
+        {
+          "descriptor": "Fixed Term (Fixed Term)",
+          "id": "fecdfa6af9801000a640e3f63c970000",
+          "count": 2
+        },
+        {
+          "descriptor": "Indefinite",
+          "id": "fecdfa6af9801000a640e4905f810001",
+          "count": 28
+        }
+      ]
+    },
+    {
+      "facetParameter": "timeType",
+      "descriptor": "Full/Part-time",
+      "values": [
+        {
+          "descriptor": "Full time",
+          "id": "098c536f8cca1002d7743b7d76750000",
+          "count": 47
+        }
+      ]
+    },
+    {
+      "facetParameter": "locationMainGroup",
+      "values": [
+        {
+          "facetParameter": "locations",
+          "descriptor": "Locations",
+          "values": [
+            {
+              "descriptor": "Australia",
+              "id": "0612ae2a05271000a5a25166e1cf0000",
+              "count": 1
+            },
+            {
+              "descriptor": "Barcelona",
+              "id": "d0af68b7c12d1001a5456b62b09a0000",
+              "count": 5
+            },
+            {
+              "descriptor": "Belgrade",
+              "id": "612bfdef7fcd10010179b4f0e6a40000",
+              "count": 3
+            },
+            {
+              "descriptor": "Bengaluru",
+              "id": "f1549c425630100199e7d53bc8120000",
+              "count": 1
+            },
+            {
+              "descriptor": "Berlin",
+              "id": "d0af68b7c12d1001a51d366e2e630000",
+              "count": 2
+            },
+            {
+              "descriptor": "Canada",
+              "id": "fecdfa6af9801000adfe5ce718340000",
+              "count": 1
+            },
+            {
+              "descriptor": "Cyprus",
+              "id": "fecdfa6af9801000adfe551873e40000",
+              "count": 5
+            },
+            {
+              "descriptor": "Czech Republic",
+              "id": "fecdfa6af9801000adfe4d4a313d0000",
+              "count": 9
+            },
+            {
+              "descriptor": "Delhi",
+              "id": "1f320cabbfbe10019a9edf1a995d0000",
+              "count": 1
+            },
+            {
+              "descriptor": "Dubai",
+              "id": "dba8ccde0a1f1000b749af4586a20000",
+              "count": 1
+            },
+            {
+              "descriptor": "Germany",
+              "id": "fecdfa6af9801000adfe504a6a480000",
+              "count": 3
+            },
+            {
+              "descriptor": "India",
+              "id": "dba8ccde0a1f1000ffab701586340000",
+              "count": 1
+            },
+            {
+              "descriptor": "Ireland",
+              "id": "4080646681931000c1eb9601ff3b0000",
+              "count": 7
+            },
+            {
+              "descriptor": "Limassol",
+              "id": "ae97df954c7810010195c3b180e70000",
+              "count": 2
+            },
+            {
+              "descriptor": "London",
+              "id": "2d407f3a6d0410018dd84ac2f8be0000",
+              "count": 6
+            },
+            {
+              "descriptor": "Madrid",
+              "id": "1f320cabbfbe1001dfaf5dc1f22f0000",
+              "count": 1
+            },
+            {
+              "descriptor": "Munich",
+              "id": "09663ddb5f971000edd85df5a1b20000",
+              "count": 1
+            },
+            {
+              "descriptor": "Netherlands",
+              "id": "fecdfa6af9801000adfe5a7ffb8a0000",
+              "count": 1
+            },
+            {
+              "descriptor": "Poland",
+              "id": "fecdfa6af9801000adfe52b187fc0000",
+              "count": 5
+            },
+            {
+              "descriptor": "Remote",
+              "id": "fecdfa6af9801000adfe577f23590000",
+              "count": 2
+            },
+            {
+              "descriptor": "São Paulo",
+              "id": "3761088617601000f9e1eb3e110c0000",
+              "count": 1
+            },
+            {
+              "descriptor": "Serbia",
+              "id": "fecdfa6af9801000adfe4ae3935e0000",
+              "count": 4
+            },
+            {
+              "descriptor": "Singapore",
+              "id": "dba8ccde0a1f1000ffb924e2004b0000",
+              "count": 3
+            },
+            {
+              "descriptor": "Spain",
+              "id": "fecdfa6af9801000adfe5f4e02e10000",
+              "count": 12
+            },
+            {
+              "descriptor": "United Kingdom",
+              "id": "cbfbf0edec6d1001572f43568f600000",
+              "count": 14
+            },
+            {
+              "descriptor": "United States",
+              "id": "fecdfa6af9801000adfe44e217c90000",
+              "count": 6
+            },
+            {
+              "descriptor": "United States - Austin",
+              "id": "d1dc91b8dffc100168eb8422c98c0000",
+              "count": 6
+            },
+            {
+              "descriptor": "United States - Boston",
+              "id": "d1dc91b8dffc100168bc15b127570000",
+              "count": 8
+            },
+            {
+              "descriptor": "United States - California",
+              "id": "eb7283f718ac1001b98e6186697d0000",
+              "count": 1
+            },
+            {
+              "descriptor": "United States - Colorado",
+              "id": "eb7283f718ac1001b98e695515a30000",
+              "count": 1
+            },
+            {
+              "descriptor": "United States - Dallas",
+              "id": "d1dc91b8dffc100168db2bb76f6d0000",
+              "count": 6
+            },
+            {
+              "descriptor": "United States - Illinois",
+              "id": "eb7283f718ac1001b98ec4031c910000",
+              "count": 1
+            },
+            {
+              "descriptor": "United States - Maryland",
+              "id": "eb7283f718ac1001b98f1b157abc0000",
+              "count": 1
+            },
+            {
+              "descriptor": "United States - Minnesota",
+              "id": "eb7283f718ac1001b98f0a4793390000",
+              "count": 1
+            },
+            {
+              "descriptor": "United States - New York",
+              "id": "eb7283f718ac1001b98f2ab072a40000",
+              "count": 1
+            },
+            {
+              "descriptor": "United States - Texas",
+              "id": "eb7283f718ac1001b98ea26334760000",
+              "count": 1
+            },
+            {
+              "descriptor": "United States - Washington D.C.",
+              "id": "eb7283f718ac1001b98f12af43d00000",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "userAuthenticated": false
+}

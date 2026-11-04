@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-12T09:57:16.950621+00:00",
+  "request": {
+    "url": "https://job-boards.greenhouse.io/dept?keyword=zzqnojob20261012&_data=routes%2F%24url_token",
+    "query": "zzqnojob20261012",
+    "stage": "listing",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://job-boards.greenhouse.io/dept?keyword=zzqnojob20261012&_data=routes%2F%24url_token",
+  "response_sha256": "63b6753466633d441b78af6b65dbb8f605b8c2e689ad5871e0d8f15c37201e52",
+  "response_file": "negative-1.json"
+}

@@ -1,0 +1,165 @@
+{
+  "jobSearchResult": [
+    {
+      "response": {
+        "jobLocationShort": [
+          "Copenhagen, DNK    ",
+          "Hamburg, DEU    ",
+          "Nordborg, DNK    ",
+          "Prague, CZE    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Global-Demand-Planner",
+        "unifiedStandardStart": "08/10/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Supply Chain and Operations"
+        ],
+        "unifiedStandardTitle": "Global Demand Planner",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "52053",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Prague, CZE    ",
+            "key": "50.0755381,14.4378005"
+          },
+          {
+            "value": "Hamburg, DEU    ",
+            "key": "53.5488282,9.9871703"
+          },
+          {
+            "value": "Nordborg, DNK    ",
+            "key": "55.055721,9.751009"
+          },
+          {
+            "value": "Copenhagen, DNK    ",
+            "key": "55.6760968,12.5683371"
+          }
+        ],
+        "urlTitle": "Global-Demand-Planner"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Kolding, DNK    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Specialist%2C-Strategic-Procurement-&amp;-Quality-IXA",
+        "unifiedStandardStart": "17/09/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Procurement & Purchasing"
+        ],
+        "unifiedStandardTitle": "Specialist, Strategic Procurement & Quality - IXA",
+        "filter3": [
+          "Associate"
+        ],
+        "id": "51662",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Kolding, DNK    ",
+            "key": "55.495973,9.4730519"
+          }
+        ],
+        "urlTitle": "Specialist%2C-Strategic-Procurement-&amp;-Quality-IXA"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Haiyan, CHN    ",
+          "Hamburg, DEU    ",
+          "Kamnik, SVN    ",
+          "Kolding, DNK    ",
+          "Nordborg, DNK    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Pricing-Manager",
+        "unifiedStandardStart": "31/08/2026",
+        "currency": [
+          "EUR"
+        ],
+        "filter2": [
+          "Marketing & Communication"
+        ],
+        "unifiedStandardTitle": "Pricing Manager",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "51163",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Hamburg, DEU    ",
+            "key": "53.5488282,9.9871703"
+          },
+          {
+            "value": "Kamnik, SVN    ",
+            "key": "46.2221964,14.6072968"
+          },
+          {
+            "value": "Haiyan, CHN    ",
+            "key": "30.5255299,120.94579"
+          },
+          {
+            "value": "Nordborg, DNK    ",
+            "key": "55.055721,9.751009"
+          },
+          {
+            "value": "Kolding, DNK    ",
+            "key": "55.495973,9.4730519"
+          }
+        ],
+        "urlTitle": "Pricing-Manager"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Nordborg, DNK    ",
+          "Reynosa, MEX    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Supply-Chain-Specialist",
+        "unifiedStandardStart": "09/10/2026",
+        "currency": [
+          "DKK"
+        ],
+        "filter2": [
+          "Supply Chain and Operations"
+        ],
+        "unifiedStandardTitle": "Supply Chain Specialist",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "52092",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Reynosa, MEX    ",
+            "key": "26.0915309,-98.2777687"
+          },
+          {
+            "value": "Nordborg, DNK    ",
+            "key": "55.055721,9.751009"
+          }
+        ],
+        "urlTitle": "Supply-Chain-Specialist"
+      }
+    }
+  ],
+  "totalJobs": 44
+}

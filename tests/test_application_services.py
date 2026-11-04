@@ -1,7 +1,10 @@
 import httpx
+from geo_support import confirmed
 
 from src.app import create_app
 from src.core.config import Settings
+from src.enrichment.registry import default_enrichment
+from src.geography.catalog import default_catalog
 from src.models.brief import BriefInput
 from src.models.vacancy import Vacancy
 
@@ -10,7 +13,7 @@ async def test_brief_update_rolls_back_conditions_and_pool_when_reevaluation_fai
     app = create_app(Settings(database_path=tmp_path / "test.sqlite"))
     async with app.router.lifespan_context(app):
         store = app.state.database
-        original = BriefInput(name="QA", queries=["QA"])
+        original = BriefInput(name="QA", queries=["QA"], filters=confirmed())
         brief = store.briefs.save_brief(original)
         run = store.runs.create_run(brief["id"], {}, {})
         for key in ["1", "2"]:
@@ -34,7 +37,8 @@ async def test_brief_update_rolls_back_conditions_and_pool_when_reevaluation_fai
             transport=httpx.ASGITransport(app, raise_app_exceptions=False), base_url="http://localhost"
         ) as client:
             response = await client.put(
-                f"/api/v1/briefs/{brief['id']}", json={"name": "Changed", "queries": ["Sales"]}
+                f"/api/v1/briefs/{brief['id']}",
+                json={"name": "Changed", "queries": ["Sales"], "filters": confirmed()},
             )
             assert response.status_code == 500
         assert store.briefs.brief(brief["id"])["name"] == "QA"
@@ -65,9 +69,11 @@ def test_brief_service_works_without_http_and_commits_pool_update(tmp_path):
 
     store = Database(tmp_path / "direct.sqlite")
     try:
-        briefs = BriefService(store.briefs, store.vacancies, store.transaction, {})
+        briefs = BriefService(
+            store.briefs, store.vacancies, store.transaction, {}, default_catalog(), default_enrichment()
+        )
         vacancies = VacancyService(store.vacancies)
-        brief = briefs.create(BriefInput(name="Original", queries=["QA"]))
+        brief = briefs.create(BriefInput(name="Original", queries=["QA"], filters=confirmed()))
         run = store.runs.create_run(brief["id"], {}, {})
         store.vacancies.save_vacancy(
             run["id"],
@@ -77,7 +83,8 @@ def test_brief_service_works_without_http_and_commits_pool_update(tmp_path):
             selection={"status": "accepted", "checks": []},
         )
         briefs.update(
-            brief["id"], BriefInput(name="Changed", queries=["QA"], filters={"excluded_text": ["QA"]})
+            brief["id"],
+            BriefInput(name="Changed", queries=["QA"], filters=confirmed({"excluded_text": ["QA"]})),
         )
         assert briefs.list_briefs()[0]["name"] == "Changed"
         assert vacancies.get(brief["id"], "hh_ru:1")["selection"]["status"] == "rejected"

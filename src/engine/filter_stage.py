@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from src.geography.catalog import GeographyCatalog
 from src.models.filters import FilterResult, SearchFilters
 from src.models.vacancy import Vacancy
 from src.selection.filtering import evaluate
@@ -15,14 +16,20 @@ class Decision:
 
 class FilterStage:
     def __init__(
-        self, filters: SearchFilters, queries: tuple[str, ...] = (), unsupported: frozenset[str] = frozenset()
+        self,
+        filters: SearchFilters,
+        queries: tuple[str, ...] = (),
+        unsupported: frozenset[str] = frozenset(),
+        *,
+        catalog: GeographyCatalog,
     ) -> None:
-        self.filters, self.queries, self.unsupported = filters, queries, unsupported
+        self.filters, self.queries, self.unsupported, self.catalog = filters, queries, unsupported, catalog
 
     def evaluate(self, vacancy: Vacancy) -> FilterResult:
         return evaluate(
             vacancy,
             self.filters,
+            catalog=self.catalog,
             complete=bool(vacancy.description),
             queries=self.queries,
             unsupported=self.unsupported,

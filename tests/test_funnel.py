@@ -1,5 +1,6 @@
 import httpx
 import pytest
+from geo_support import confirmed
 
 from src.db import Database
 from src.models.brief import BriefInput
@@ -43,7 +44,7 @@ async def test_funnel_counts_stages_search_and_persistence(tmp_path):
             assert (await client.patch(f"{path}/hh_ru:3", json={"status": "invalid"})).status_code == 422
             # Restore for the restart assertion.
             await client.patch(f"{path}/hh_ru:3", json={"status": "applied", "note": "Note 3"})
-            await client.put(f"/api/v1/briefs/{b['id']}", json={"name": "AI edited"})
+            await client.put(f"/api/v1/briefs/{b['id']}", json={"name": "AI edited", "filters": confirmed()})
             assert (await client.get(f"{path}/hh_ru:3")).json()["user_status"] == "applied"
 
 
@@ -54,7 +55,9 @@ async def test_saved_search_options_do_not_start_search(tmp_path):
             "limits": {"getmatch": {"max_items_per_query": 20}},
             "company_profiles": False,
         }
-        b = (await client.post("/api/v1/briefs", json={"name": "AI", "search": search})).json()
+        b = (
+            await client.post("/api/v1/briefs", json={"name": "AI", "search": search, "filters": confirmed()})
+        ).json()
         assert b["search"]["sources"] == ["getmatch"]
         assert (await client.get("/api/v1/runs")).json() == []
         loaded = (await client.get("/api/v1/briefs")).json()[0]
@@ -127,7 +130,9 @@ async def test_edit_brief_with_historical_unregistered_source(tmp_path):
     )
     store.close()
     async with client_for(tmp_path, lambda r: pytest.fail("Local reevaluation only")) as client:
-        response = await client.put(f"/api/v1/briefs/{b['id']}", json={"name": "Edited", "queries": ["QA"]})
+        response = await client.put(
+            f"/api/v1/briefs/{b['id']}", json={"name": "Edited", "queries": ["QA"], "filters": confirmed()}
+        )
         assert response.status_code == 200
         item = (await client.get(f"/api/v1/briefs/{b['id']}/vacancies/retired_source:one")).json()
         assert item["selection"]["status"] == "accepted"

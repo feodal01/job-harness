@@ -23,3 +23,4 @@ detail-34499.html: https://getmatch.ru/vacancies/34499-starshii-razrabotchik-ins
 
 - `detail-36107.html`: https://getmatch.ru/vacancies/36107-alfa-risk-day
 - `detail-36316.html`: https://getmatch.ru/vacancies/36316-komanda-razrabotki-c-c-sberlinux-pangolin-db
+- `vacancies_form.html`: location filter block of https://getmatch.ru/vacancies, 2026-11-02 (zone values for the form check).

@@ -1,0 +1,15 @@
+{
+  "source_id": "career:3commas",
+  "captured_url": "https://api.ashbyhq.com/posting-api/job-board/3commas",
+  "capture_date": "2026-06-27",
+  "capture_method": "curl -L against the public Ashby posting API endpoint with the job-harness-v2 HTTP user-agent",
+  "fixture_kind": "success_non_empty",
+  "redactions": [
+    "None. The fixture preserves the complete public Ashby posting API response captured from the source."
+  ],
+  "notes": [
+    "The API exposes listed jobs with title, department, team, employment type, workplace type, primary and secondary locations, publishedAt, jobUrl, applyUrl, and descriptionHtml.",
+    "Current jobs set shouldDisplayCompensationOnJobBoard and compensationTierSummary to null, so salary criteria remain unsupported for this source."
+  ],
+  "golden_reviewed_by": "codex_direct_fixture_review"
+}

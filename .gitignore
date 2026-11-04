@@ -13,5 +13,8 @@ dist/
 !.env.example
 *.sqlite
 *.sqlite-*
+**/auth/session.json
 *.log
 /reports/
+!src/geography/data/cities.sqlite
+/docs/experiments/

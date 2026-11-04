@@ -7,10 +7,10 @@ from typing import Any
 from src.engine.filter_stage import FilterStage
 from src.engine.models import Clock, SourceMetrics, SourceState
 from src.engine.ports import RecordingStorage
+from src.enrichment.registry import Enrichment
 from src.models.brief import BriefInput
 from src.models.filters import FilterResult
 from src.models.vacancy import Vacancy
-from src.parsers.normalization import normalize_stored_vacancy
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +25,11 @@ class SourceRecorder:
         clock: Clock,
         on_progress: Callable[[], None],
         *,
+        enrichment: Enrichment,
         unsupported: frozenset[str] = frozenset(),
     ) -> None:
         self.store, self.run_id, self.brief_id, self.source = store, run_id, brief_id, source
+        self.enrichment = enrichment
         self.clock = clock
         self.state = SourceState()
         self._on_progress = on_progress
@@ -74,10 +76,10 @@ class SourceRecorder:
         brief = BriefInput.model_validate({k: v for k, v in current.items() if k in BriefInput.model_fields})
         key = f"{self.source}:{vacancy.id}"
         stored = self.store.vacancies.pool_item(self.brief_id, key)
-        canonical = normalize_stored_vacancy(Vacancy.model_validate(stored), self.source)
-        pool_selection = FilterStage(brief.filters, tuple(brief.queries), self.unsupported).evaluate(
-            canonical
-        )
+        canonical = self.enrichment.enrich(Vacancy.model_validate(stored), self.source)
+        pool_selection = FilterStage(
+            brief.filters, tuple(brief.queries), self.unsupported, catalog=self.enrichment.catalog
+        ).evaluate(canonical)
         self.store.vacancies.set_pool_selection(self.brief_id, key, pool_selection.model_dump(mode="json"))
         self.event(
             "filters.evaluated",

@@ -1,0 +1,10 @@
+{
+  "capture_method": "live_http_get_minimized",
+  "captured_at": "2026-07-01",
+  "captured_url": "https://dreamjob.ru/employers/6225686/vakansii",
+  "content_type": "text/html; charset=UTF-8",
+  "final_url": "https://dreamjob.ru/employers/6225686/vakansii",
+  "notes": "Real DreamJob employer vacancy list; unrelated scripts/styles removed and vacancy card blocks preserved verbatim.",
+  "original_bytes": 4495894,
+  "source_id": "career:sbk-parus"
+}

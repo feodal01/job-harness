@@ -8,9 +8,12 @@ from mcp.server.fastmcp.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from src.geography.catalog import DEFAULT_LOCALE
 from src.models.brief import BriefInput
 from src.models.run import RunInput
 from src.runtime.manager import ServiceError, ServiceManager
+from src.schemas.auth import AuthStatus
+from src.schemas.companies import CompanyFilterField, CompanyFiltersPage, CompanyLinksPage
 from src.schemas.service import ServiceStatus
 from src.schemas.vacancies import PoolStatusInput, PoolView, SelectionView
 
@@ -41,6 +44,9 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
             "Не выключайте сервис без просьбы пользователя. Перед cancel_active=true получите "
             "подтверждение отмены активных поисков. Сайты работодателей сохраняются, "
             "но поиск контактов и обход карьерных лент не выполняются."
+            " Для входа в общий каталог вызовите authorize без параметров и передайте login_url пользователю."
+            " Пользователь выбирает способ входа в браузере; после входа вызывайте list_companies."
+            " Доступные категории и тексты специализаций узнавайте через get_company_filters."
         ),
         log_level="WARNING",
     )
@@ -68,20 +74,120 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
         """Подключённые источники и возможности фильтрации. Не проверяет доступность сайтов в сети."""
         return {"sources": await request("GET", "/api/v1/sources")}
 
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
+    async def authorize() -> AuthStatus:
+        """Вернуть login_url или authenticated=true. Покажите ссылку пользователю; опрос статуса не нужен."""
+        return AuthStatus.model_validate(await request("POST", "/api/v1/auth/authorize"))
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
+    async def get_company_filters(
+        field: Annotated[
+            CompanyFilterField,
+            Field(description="category — отрасли; specialization — тексты специализации компаний."),
+        ] = "category",
+        category: Annotated[
+            str | None,
+            Field(
+                min_length=1,
+                max_length=200,
+                description="Ограничить подсказки точной категорией из справочника.",
+            ),
+        ] = None,
+        query: Annotated[
+            str | None,
+            Field(
+                min_length=1,
+                max_length=200,
+                description="Часть значения без учёта регистра, например CRM или облач.",
+            ),
+        ] = None,
+        page: Page = 1,
+        page_size: PageSize = 50,
+    ) -> CompanyFiltersPage:
+        """Актуальные значения фильтров из Supabase, с числом ссылок для каждого значения.
+
+        Без параметров — категории. Для специализаций задайте field="specialization"
+        и сузьте category или query; это свободные описания, используйте найденные ключевые слова
+        в list_companies(specialization=...). Группировка, поиск и пагинация выполняются в БД.
+        Требуется вход. Не выгружайте весь каталог для подбора фильтров.
+        """
+        params: dict[str, str | int] = {"field": field, "page": page, "page_size": page_size}
+        if category is not None:
+            params["category"] = category
+        if query is not None:
+            params["query"] = query
+        return CompanyFiltersPage.model_validate(
+            await request("GET", "/api/v1/companies/filters", params=params)
+        )
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
+    async def list_companies(
+        name: Annotated[
+            str | None,
+            Field(min_length=1, max_length=200, description="Часть названия компании без учёта регистра."),
+        ] = None,
+        category: Annotated[
+            str | None,
+            Field(
+                min_length=1,
+                max_length=200,
+                description="Точное значение отрасли из get_company_filters(), например Финтех.",
+            ),
+        ] = None,
+        specialization: Annotated[
+            str | None,
+            Field(
+                min_length=1,
+                max_length=200,
+                description=(
+                    "Ключевые слова о продукте компании, например CRM или OCR; поиск по части текста. "
+                    "Подсказки: get_company_filters(field='specialization', category=...)."
+                ),
+            ),
+        ] = None,
+        page: Page = 1,
+        page_size: PageSize = 20,
+    ) -> CompanyLinksPage:
+        """Ссылки на компании. Фильтрация и пагинация выполняются в Supabase; условия объединяются через И.
+
+        Доступные категории и специализации узнавайте через get_company_filters.
+        Возвращается только запрошенная страница подходящих ссылок. Требуется вход.
+        """
+        params = {
+            "page": page,
+            "page_size": page_size,
+            **{
+                key: value
+                for key, value in {
+                    "name": name,
+                    "category": category,
+                    "specialization": specialization,
+                }.items()
+                if value is not None
+            },
+        }
+        return CompanyLinksPage.model_validate(await request("GET", "/api/v1/companies", params=params))
+
     @mcp.tool(annotations=READ)
-    async def list_countries() -> dict[str, Any]:
+    async def list_countries(locale: str = DEFAULT_LOCALE) -> dict[str, Any]:
         """Независимый локальный справочник стран для условий брифа."""
-        return {"countries": await request("GET", "/api/v1/geography/countries")}
+        return {"countries": await request("GET", "/api/v1/geography/countries", params={"locale": locale})}
 
     @mcp.tool(annotations=READ)
     async def find_cities(
         country: Annotated[str, Field(min_length=2, max_length=2)],
-        text: Annotated[str, Field(min_length=2, max_length=100)],
+        text: Annotated[str, Field(min_length=1, max_length=100)],
+        locale: str = DEFAULT_LOCALE,
     ) -> dict[str, Any]:
-        """Найти город в локальном справочнике страны перед сохранением географических условий."""
+        """Найти город на любом доступном языке. Для брифа скопируйте geoname_id и name в city_display_name.
+
+        Нужны 1–5 мест. Для всей страны задайте scope=country без полей города.
+        Для города сервер сохранит city в ASCII; country_name_en всегда английское.
+        locale меняет подписи стран; по умолчанию en. Опечатки автоматически не исправляются.
+        """
         return {
             "cities": await request(
-                "GET", "/api/v1/geography/cities", params={"country": country, "text": text}
+                "GET", "/api/v1/geography/cities", params={"country": country, "text": text, "locale": locale}
             )
         }
 
@@ -92,7 +198,12 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
 
     @mcp.tool(annotations=WRITE)
     async def create_brief(brief: BriefInput) -> dict[str, Any]:
-        """Сохранить согласованный бриф. text — исходное описание; queries и filters — условия движка."""
+        """Сохранить согласованный бриф. text — исходное описание; queries и filters — условия движка.
+
+        Для каждого места в locations задайте свои minimum_work_format и relocation_support.
+        Города — альтернативы; формат и помощь с переездом проверяются вместе с выбранным местом.
+        Всего 1–5 мест: город с GeoNames ID или вся страна (scope=country, без полей города).
+        """
         return {"brief": await request("POST", "/api/v1/briefs", body=brief.model_dump(mode="json"))}
 
     @mcp.tool(annotations=WRITE)

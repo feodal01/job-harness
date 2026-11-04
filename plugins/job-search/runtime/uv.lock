@@ -188,8 +188,8 @@ wheels = [
 
 [[package]]
 name = "hh-search-prototype"
-version = "0.4.0"
-source = { path = "hh_search_prototype-0.4.0-py3-none-any.whl" }
+version = "0.9.2"
+source = { path = "hh_search_prototype-0.9.2-py3-none-any.whl" }
 dependencies = [
     { name = "alembic" },
     { name = "beautifulsoup4" },
@@ -202,7 +202,7 @@ dependencies = [
     { name = "uvicorn" },
 ]
 wheels = [
-    { filename = "hh_search_prototype-0.4.0-py3-none-any.whl", hash = "sha256:c4683b7d1fe1d0620073f7a64fd6196770d53fcb4459e97b22c893c67e4f1804" },
+    { filename = "hh_search_prototype-0.9.2-py3-none-any.whl", hash = "sha256:f06e6e9faa3a8d90996f9f625b9beaa9cc230d32ee9985ce2286069d97c57a16" },
 ]
 
 [package.metadata]
@@ -266,14 +266,14 @@ wheels = [
 
 [[package]]
 name = "job-search-plugin-runtime"
-version = "0.4.0"
+version = "0.9.2"
 source = { virtual = "." }
 dependencies = [
     { name = "hh-search-prototype" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "hh-search-prototype", path = "hh_search_prototype-0.4.0-py3-none-any.whl" }]
+requires-dist = [{ name = "hh-search-prototype", path = "hh_search_prototype-0.9.2-py3-none-any.whl" }]
 
 [[package]]
 name = "jsonschema"

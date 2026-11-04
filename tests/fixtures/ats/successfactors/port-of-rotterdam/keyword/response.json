@@ -1,0 +1,37 @@
+{
+  "jobSearchResult": [
+    {
+      "response": {
+        "unifiedStandardEnd": "28-10-2026",
+        "supportedLocales": [
+          "nl_NL"
+        ],
+        "unifiedUrlTitle": "Cyber-Security-Operations-Engineer",
+        "unifiedStandardStart": "30-09-2026",
+        "currency": [
+          "EUR"
+        ],
+        "unifiedStandardTitle": "Cyber Security Operations Engineer",
+        "id": "399",
+        "urlTitle": "Cyber-Security-Operations-Engineer"
+      }
+    },
+    {
+      "response": {
+        "unifiedStandardEnd": "25-10-2026",
+        "supportedLocales": [
+          "nl_NL"
+        ],
+        "unifiedUrlTitle": "Product-Owner-Digitale-Werkplek",
+        "unifiedStandardStart": "30-09-2026",
+        "currency": [
+          "EUR"
+        ],
+        "unifiedStandardTitle": "Product Owner Digitale Werkplek",
+        "id": "395",
+        "urlTitle": "Product-Owner-Digitale-Werkplek"
+      }
+    }
+  ],
+  "totalJobs": 2
+}

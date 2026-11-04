@@ -1,0 +1,71 @@
+{
+  "company": "Three Saints Bay",
+  "form_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/jobSearch?org=GATEWAYVENT&cws=55",
+  "captured_at": "2026-10-12T05:58:09.237290+00:00",
+  "responses": {
+    "positive": {
+      "request": {
+        "method": "POST",
+        "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?org=GATEWAYVENT&cws=55",
+        "form_body": {
+          "act": "search",
+          "org": "GATEWAYVENT",
+          "cws": "55",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "3",
+          "keywords": "1st Class Naval Electrician (3408)"
+        }
+      },
+      "captured_at": "2026-10-12T06:04:18.615539+00:00",
+      "ids": [
+        "3408",
+        "6249",
+        "5714",
+        "5953",
+        "6132",
+        "6217",
+        "6174",
+        "6222",
+        "6049",
+        "4319"
+      ],
+      "total": 409
+    },
+    "negative": {
+      "request": {
+        "method": "POST",
+        "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?org=GATEWAYVENT&cws=55",
+        "form_body": {
+          "act": "search",
+          "org": "GATEWAYVENT",
+          "cws": "55",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "3",
+          "keywords": "zzqnojobgeneralization20261012"
+        }
+      },
+      "captured_at": "2026-10-12T06:04:20.764927+00:00",
+      "ids": [],
+      "total": 0
+    },
+    "narrow": {
+      "request": {
+        "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?org=GATEWAYVENT&cws=55",
+        "method": "POST",
+        "form_body": {
+          "act": "search",
+          "org": "GATEWAYVENT",
+          "cws": "55",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "3",
+          "keywords": "3408"
+        }
+      },
+      "captured_at": "2026-10-12T06:05:48.823182+00:00",
+      "ids": [
+        "3408"
+      ],
+      "total": 1
+    }
+  }
+}

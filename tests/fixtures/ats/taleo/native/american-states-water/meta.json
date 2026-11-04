@@ -1,0 +1,73 @@
+{
+  "company": "American States Water",
+  "form_url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/jobSearch?cws=52&org=ASWC",
+  "captured_at": "2026-10-12T05:58:09.242202+00:00",
+  "responses": {
+    "positive": {
+      "request": {
+        "method": "POST",
+        "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?org=ASWC&cws=52",
+        "form_body": {
+          "act": "search",
+          "org": "ASWC",
+          "cws": "52",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "0",
+          "keywords": "Administrative Support Associate I (11NC.26)"
+        }
+      },
+      "captured_at": "2026-10-12T06:04:18.625135+00:00",
+      "ids": [
+        "2612",
+        "2523",
+        "2504",
+        "2574",
+        "2609",
+        "2611",
+        "2534",
+        "2507",
+        "2602",
+        "2500"
+      ],
+      "total": 20
+    },
+    "negative": {
+      "request": {
+        "method": "POST",
+        "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?org=ASWC&cws=52",
+        "form_body": {
+          "act": "search",
+          "org": "ASWC",
+          "cws": "52",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "0",
+          "keywords": "zzqnojobgeneralization20261012"
+        }
+      },
+      "captured_at": "2026-10-12T06:04:25.566965+00:00",
+      "ids": [],
+      "total": 0
+    },
+    "narrow": {
+      "request": {
+        "url": "https://phg.tbe.taleo.net/phg01/ats/careers/v2/searchResults?org=ASWC&cws=52",
+        "method": "POST",
+        "form_body": {
+          "act": "search",
+          "org": "ASWC",
+          "cws": "52",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "0",
+          "keywords": "Administrative"
+        }
+      },
+      "captured_at": "2026-10-12T06:08:29.056988+00:00",
+      "ids": [
+        "2612",
+        "2509",
+        "2531"
+      ],
+      "total": 3
+    }
+  }
+}

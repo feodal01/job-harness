@@ -1,0 +1,14 @@
+{
+  "capture_method": "live_http_post",
+  "captured_at": "2026-10-11T18:15:29.499699+00:00",
+  "captured_url": "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs",
+  "request_method": "POST",
+  "request_json": {
+    "appliedFacets": {},
+    "limit": 20,
+    "offset": 0,
+    "searchText": ""
+  },
+  "content_type": "application/json",
+  "status_code": 200
+}

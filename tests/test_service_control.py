@@ -3,6 +3,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from geo_support import confirmed
 
 from src.app import create_app
 from src.core.config import Settings
@@ -83,7 +84,9 @@ async def test_confirmed_shutdown_persists_cancelled_run(tmp_path: Path) -> None
     settings = Settings(database_path=tmp_path / "db.sqlite")
     app = create_app(settings, transport=httpx.MockTransport(stalled_source), shutdown=lambda: None)
     async with app.router.lifespan_context(app):
-        brief = app.state.briefs_service.create(BriefInput(name="Stop test", queries=["Python"]))
+        brief = app.state.briefs_service.create(
+            BriefInput(name="Stop test", queries=["Python"], filters=confirmed())
+        )
         run = app.state.runs_service.start(RunInput(brief_id=brief["id"], sources=["hh_ru"]))
         await asyncio.wait_for(entered.wait(), 5)
         app.state.lifecycle_service.prepare_stop(True)

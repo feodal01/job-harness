@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-02",
+  "captured_url": "https://api.smartrecruiters.com/v1/companies/SmartRecruiters/postings?limit=100",
+  "content_type": "application/json",
+  "final_url": "https://api.smartrecruiters.com/v1/companies/SmartRecruiters/postings?limit=100",
+  "notes": "Real public SmartRecruiters postings API JSON captured for career:smartrecruiters.",
+  "source_id": "career:smartrecruiters"
+}

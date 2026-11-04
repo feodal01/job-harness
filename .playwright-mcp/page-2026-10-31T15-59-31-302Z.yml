@@ -1,0 +1,21 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Поиск работы Брифы и отклики" [ref=e3] [cursor=pointer]:
+      - /url: "#/briefs"
+      - text: Поиск работы
+      - generic [ref=e4]: Брифы и отклики
+    - generic [ref=e5]:
+      - link "Мои брифы" [ref=e6] [cursor=pointer]:
+        - /url: "#/briefs"
+      - link "Войти" [ref=e7] [cursor=pointer]:
+        - /url: /auth
+  - main [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - paragraph [ref=e12]: ПОИСК РАБОТЫ
+          - heading "Мои брифы" [level=1] [ref=e13]
+          - paragraph [ref=e14]: Условия поиска, найденные вакансии и отклики — для каждого направления.
+        - link "+ Новый бриф" [ref=e15] [cursor=pointer]:
+          - /url: "#/briefs/new"
+      - generic [ref=e16]: Загружаем брифы…

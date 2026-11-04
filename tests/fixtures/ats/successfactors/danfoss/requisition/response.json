@@ -1,0 +1,35 @@
+{
+  "jobSearchResult": [
+    {
+      "response": {
+        "jobLocationShort": [
+          "Reynosa, MEX    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer%2C-Quality-Engineering",
+        "unifiedStandardStart": "23/09/2026",
+        "currency": [
+          "MXN"
+        ],
+        "filter2": [
+          "Quality and Environment, Health and Safety (EHS)"
+        ],
+        "unifiedStandardTitle": "Engineer, Quality Engineering",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "51763",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Reynosa, MEX    ",
+            "key": "26.0915309,-98.2777687"
+          }
+        ],
+        "urlTitle": "Engineer%2C-Quality-Engineering"
+      }
+    }
+  ],
+  "totalJobs": 1
+}

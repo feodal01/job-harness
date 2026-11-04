@@ -3,6 +3,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import httpx
+from geo_support import confirmed, with_geography
 
 from src.app import create_app
 from src.core.config import Settings
@@ -17,7 +18,7 @@ async def test_hh_requires_query_before_starting_run(tmp_path):
     )
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
-            brief = await c.post("/api/v1/briefs", json={"name": "Empty queries"})
+            brief = await c.post("/api/v1/briefs", json={"name": "Empty queries", "filters": confirmed()})
             assert brief.status_code == 201
             response = await c.post(
                 "/api/v1/runs", json={"brief_id": brief.json()["id"], "sources": ["hh_ru"]}
@@ -37,7 +38,7 @@ async def test_catalog_distinguishes_native_parameters_from_extracted_fields(tmp
 
     app = create_app(
         Settings(database_path=tmp_path / "test.sqlite", sources={"hh_ru": {"interval_seconds": 0}}),
-        transport=httpx.MockTransport(handler),
+        transport=httpx.MockTransport(with_geography(handler)),
     )
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
@@ -50,7 +51,11 @@ async def test_catalog_distinguishes_native_parameters_from_extracted_fields(tmp
             assert "search" in capabilities["fields"]["salary"]
             assert capabilities["fields"]["description"] == ["vacancy_details"]
             assert "company_profile" in capabilities["actions"]
-            brief = (await c.post("/api/v1/briefs", json={"name": "Mapping", "queries": ["C++ QA"]})).json()
+            brief = (
+                await c.post(
+                    "/api/v1/briefs", json={"name": "Mapping", "queries": ["C++ QA"], "filters": confirmed()}
+                )
+            ).json()
             response = await c.post(
                 "/api/v1/runs",
                 json={"brief_id": brief["id"], "sources": ["hh_ru"], "company_profiles": False},
@@ -58,16 +63,17 @@ async def test_catalog_distinguishes_native_parameters_from_extracted_fields(tmp
             assert response.status_code == 202
             run_id = response.json()["id"]
             await asyncio.gather(*app.state.engine.tasks.values())
-            assert calls[0].url.params["text"] == "C++ QA"
-            assert "area" not in calls[0].url.params
+            listings = [r for r in calls if r.url.path == "/search/vacancy"]
+            assert listings[0].url.params["text"] == "C++ QA"
+            assert "area" in listings[0].url.params
             assert (await c.get(f"/api/v1/runs/{run_id}")).json()["status"] == "complete"
             events = (await c.get(f"/api/v1/runs/{run_id}/events")).json()
             mappings = [e["data"] for e in events if e["event"] == "search.request"]
-            assert len(mappings) == 1
+            assert len(mappings) == 3
             mapping = mappings[0]
             assert mapping["parameters"]["query"] == "C++ QA"
-            assert mapping["parameters"]["filters"]["locations"] == []
-            assert mapping["url"] == str(calls[0].url)
+            assert mapping["parameters"]["filters"]["locations"][0]["city"] == "Moscow"
+            assert mapping["url"] == str(listings[0].url)
 
 
 async def test_unsupported_operation_is_skipped_and_recorded_not_rejected(tmp_path):
@@ -80,12 +86,14 @@ async def test_unsupported_operation_is_skipped_and_recorded_not_rejected(tmp_pa
 
     app = create_app(
         Settings(database_path=tmp_path / "test.sqlite", sources={"hh_ru": {"interval_seconds": 0}}),
-        transport=httpx.MockTransport(handler),
+        transport=httpx.MockTransport(with_geography(handler)),
     )
     async with app.router.lifespan_context(app):
         source = app.state.engine.sources["hh_ru"]
         app.state.engine.sources[source.id] = replace(source, company_profile=None)
-        brief = app.state.database.briefs.save_brief(BriefInput(name="Unsupported", queries=["QA"]))
+        brief = app.state.briefs_service.create(
+            BriefInput(name="Unsupported", queries=["QA"], filters=confirmed())
+        )
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
             response = await c.post(
                 "/api/v1/runs", json={"brief_id": brief["id"], "sources": ["hh_ru"], "company_profiles": True}
@@ -114,15 +122,16 @@ def test_each_claimed_local_filter_has_both_outcomes_from_parsed_facts():
     import html
     import json
 
+    from src.enrichment.registry import default_enrichment
     from src.models.filters import SearchFilters
     from src.models.vacancy import Vacancy
     from src.parsers.aggregators.getmatch.parser import GetmatchSearch, GetmatchVacancyDetails
     from src.parsers.aggregators.hh.parser import HHVacancyDetails
     from src.parsers.registry import build_sources
-    from src.selection.filtering import evaluate
+    from tests.filter_support import evaluate
 
     conditions = {
-        "locations": [{"country": "RU", "city": "Москва"}],
+        "locations": [{"country": "RU", "city": "Moscow", "geoname_id": 524901}],
         "minimum_work_format": "hybrid",
         "employment": ["full_time"],
         "experience_years": 2,
@@ -176,10 +185,18 @@ def test_each_claimed_local_filter_has_both_outcomes_from_parsed_facts():
                     "salary_description": "₽/мес",
                     "location_requirements": [
                         {
+                            "location_id": "moscow" if matches else "tomsk",
                             "country": "Россия",
                             "city": "Москва" if matches else "Томск",
                             "format": "hybrid" if matches else "office",
-                        }
+                        },
+                        # Getmatch relocation is structured: one more record of the same place.
+                        {
+                            "location_id": "moscow" if matches else "tomsk",
+                            "country": "Россия",
+                            "city": "Москва" if matches else "Томск",
+                            "format": "relocation_company" if matches else "relocation_candidate",
+                        },
                     ],
                 }
                 search = GetmatchSearch(10)
@@ -188,6 +205,8 @@ def test_each_claimed_local_filter_has_both_outcomes_from_parsed_facts():
                 detail = '<link rel="canonical" href="https://getmatch.ru/vacancies/1-qa">'
                 detail += '<section class="b-vacancy-description">' + text + "</section>"
                 vacancy = GetmatchVacancyDetails().parse(detail, vacancy)
+            # The engine enriches what parsers return; local checks read the enriched facts.
+            vacancy = default_enrichment().enrich(vacancy, source_id)
             for name, value in conditions.items():
                 result = evaluate(
                     vacancy,

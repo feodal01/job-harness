@@ -1,0 +1,1 @@
+"""recruitee public board parser."""

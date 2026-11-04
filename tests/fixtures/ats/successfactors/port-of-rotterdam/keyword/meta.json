@@ -1,0 +1,31 @@
+{
+  "capture_method": "public_browser_network",
+  "captured_at": "2026-10-12T06:06:47.389Z",
+  "captured_url": "https://werkenbij.portofrotterdam.com/services/recruiting/v1/jobs",
+  "board_url": "https://werkenbij.portofrotterdam.com/search/",
+  "query": "Engineer",
+  "request_body": {
+    "locale": "nl_NL",
+    "pageNumber": 0,
+    "sortBy": "",
+    "keywords": "Engineer",
+    "location": "",
+    "facetFilters": {},
+    "brand": "",
+    "skills": [],
+    "categoryId": 0,
+    "alertId": "",
+    "rcmCandidateId": ""
+  },
+  "status": 200,
+  "reference_ids": [
+    "399",
+    "395"
+  ],
+  "reference_total": 2,
+  "independent_job_urls": [
+    "https://werkenbij.portofrotterdam.com/job/Cyber-Security-Operations-Engineer/399-nl_NL",
+    "https://werkenbij.portofrotterdam.com/job/Product-Owner-Digitale-Werkplek/395-nl_NL"
+  ],
+  "provenance": "/tmp/ats-generalization-review-20261012/browser-evidence/sf-port-ui.json"
+}

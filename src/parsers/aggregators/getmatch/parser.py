@@ -3,37 +3,47 @@
 import json
 import re
 from dataclasses import replace
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time
 from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
-from src.models.brief import BriefInput
 from src.models.company import Company
+from src.models.filters import OFFICE_FORMATS, REMOTE_FORMATS, SearchPlace, WorkFormat, accepted_formats
 from src.models.vacancy import Vacancy
-from src.parsers.aggregators.getmatch.geography import GetmatchGeography
+from src.parsers.aggregators.getmatch.enrichment.formats import FORMATS
+from src.parsers.aggregators.getmatch.geography import REMOTE, GetmatchGeography
 from src.parsers.aggregators.getmatch.settings import GetmatchSettings
 from src.parsers.blocking import classify_common
 from src.parsers.interfaces import (
+    Combined,
+    Draft,
     Fetch,
+    NativeParams,
     ParameterMode,
     ParseError,
-    Search,
+    PreparationStatus,
+    Prepared,
     SearchPage,
-    SearchPlan,
     SearchRequest,
     SourceAdapter,
+    StagedSearch,
     VacancyDetails,
     filter_parameters,
 )
 from src.parsers.models import Location
-from src.parsers.normalization import FORMATS, getmatch_locations, normalize_stored_vacancy
 from src.parsers.rich_text import parse_rich_text
 
 BASE = "https://getmatch.ru"
 
 
-class GetmatchSearch(Search):
+class GetmatchSearch(StagedSearch):
+    notes = (
+        "Каждое место — отдельная лента Getmatch; удалёнка Getmatch не ограничена географией.",
+        "Зоны «другие города России» и «другие страны» шире выбранного места; "
+        "конкретные места и форматы проверяются локально.",
+        "Помощь с релокацией проверяется по описанию и не включает автоматически l=relocate.",
+    )
     query_notes = (
         "Обход общей ленты Getmatch без выбора специализации. "
         "Поисковые фразы не ограничивают ленту; общие фильтры проверяются по данным вакансий. "
@@ -51,11 +61,14 @@ class GetmatchSearch(Search):
             "work_formats",
             "summary",
             "skills",
+            # Structured relocation of each place (`relocation_company`), set by the Getmatch normalizer.
+            "locations.relocation_support",
         }
     )
 
-    def __init__(self, page_size: int) -> None:
+    def __init__(self, page_size: int, geography: GetmatchGeography | None = None) -> None:
         self.page_size = page_size
+        self.geography = geography or GetmatchGeography()
 
     @property
     def parameters(self) -> dict[str, ParameterMode]:
@@ -63,72 +76,78 @@ class GetmatchSearch(Search):
             self.fields | GetmatchVacancyDetails.fields, {"query": "ignored", "locations": "native"}
         )
 
-    async def prepare(self, brief: BriefInput, fetch: Fetch, *, second_chance: bool = False) -> SearchPlan:
-        filters = brief.filters
-        minimum = None if second_chance else filters.minimum_work_format
-        physical = minimum not in {"remote_country", "remote_worldwide"}
-        regions: set[str] = set()
-        if physical:
-            if not filters.locations:
-                regions.update(["moscow", "saints_p", "regions_ru", "relocate"])
-            for place in filters.locations:
-                city = (place.city or "").casefold()
-                if place.country != "RU":
-                    regions.add("relocate")
-                elif not city:
-                    regions.update(["moscow", "saints_p", "regions_ru"])
-                elif city in {"москва", "moscow"}:
-                    regions.add("moscow")
-                elif city in {"санкт-петербург", "saint petersburg", "saint-petersburg"}:
-                    regions.add("saints_p")
-                else:
-                    regions.add("regions_ru")
-        regions.add("remote")
-        choices = GetmatchGeography().options
-        location = (
-            None
-            if len(regions) == len(choices)
-            else Location(source="getmatch", options=[p for p in choices if p.id in regions])
-        )
-        application = filter_parameters(self.fields | GetmatchVacancyDetails.fields, {"query": "ignored"})
-        if filters.locations and location:
-            application["locations"] = "native"
-        if minimum in {"remote_country", "remote_worldwide"}:
-            application["minimum_work_format"] = "native"
-        request = self.build("", location)
-        if filters.published_after and not second_chance:
-            # Cover the whole first calendar day; exact date stays local.
-            elapsed = (
-                datetime.now(UTC) - datetime.combine(filters.published_after, time(), UTC)
-            ).total_seconds()
-            days = elapsed / 86400
-            period = next((f"{n}d" for n in (1, 3, 7, 30) if n >= days), "all")
-            params = parse_qs(urlsplit(request.url).query)
-            params["pa"] = [period]
-            request = replace(request, url=BASE + "/api/offers?" + urlencode(params, doseq=True))
-            if period != "all":
-                application["published_after"] = "native"
-        return SearchPlan(
-            (request,),
-            application,
-            (
-                "Категории Getmatch дают широкую выдачу; конкретные места и форматы проверяются локально.",
-                "Помощь с релокацией проверяется по описанию и не включает автоматически l=relocate.",
-            ),
-        )
+    def _application(self) -> dict[str, ParameterMode]:
+        return filter_parameters(self.fields | GetmatchVacancyDetails.fields, {"query": "ignored"})
+
+    def _prepare_query(self, query: str) -> Prepared:
+        return Prepared("query", "ignored", reason="Getmatch обходится общей лентой без поиска по тексту")
+
+    async def _prepare_geography(self, fetch: Fetch, place: SearchPlace) -> Prepared:
+        return await self.geography.zone(fetch, place)
+
+    def _prepare_work_format(self, minimum: WorkFormat | None) -> Prepared:
+        accepted = accepted_formats(minimum)
+        if not OFFICE_FORMATS & set(accepted):
+            # Only the remote zone is sent, and it holds no office or hybrid jobs.
+            status: PreparationStatus = "exact"
+            reason: str | None = None
+            if minimum == "remote_worldwide":
+                status, reason = "broader", "Зона remote включает удалёнку с ограничением страны"
+            return Prepared("minimum_work_format", "native", status, accepted=accepted, reason=reason)
+        if minimum == "hybrid":
+            reason = "Getmatch не отделяет офис от гибрида: одна зона"
+            return Prepared("minimum_work_format", "local", "broader", accepted=accepted, reason=reason)
+        return Prepared("minimum_work_format", "local", accepted=accepted)
+
+    def _prepare_published(self, published_after: date) -> Prepared:
+        # Cover the whole first calendar day; the exact date stays local.
+        days = (datetime.now(UTC) - datetime.combine(published_after, time(), UTC)).total_seconds() / 86400
+        period = next((f"{n}d" for n in (1, 3, 7, 30) if n >= days), "all")
+        mode: ParameterMode = "native" if period != "all" else "local"
+        return Prepared("published_after", mode, params={"pa": (period,)})
+
+    def _combine(self, draft: Draft) -> Combined:
+        """The only step that couples geography and format: Getmatch zones carry both."""
+        work_format = draft.get("minimum_work_format")
+        accepted = set(work_format.accepted) if work_format else set()
+        geography = draft.get("locations")
+        zones: list[str] = []
+        notes: list[Prepared] = []
+        if OFFICE_FORMATS & accepted and geography is not None:
+            zones.extend(geography.params["l"])
+        if REMOTE_FORMATS & accepted:
+            zones.append(REMOTE)
+            if geography is not None:
+                reason = "Getmatch не ограничивает географию удалённой работы"
+                notes.append(Prepared("locations", "local", "broader", {"l": (REMOTE,)}, reason=reason))
+        if geography is None and OFFICE_FORMATS & accepted:
+            zones = []  # Historical brief without places: the whole feed.
+        published = draft.get("published_after")
+        params: NativeParams = {"pa": published.params["pa"] if published else ("all",)}
+        if zones:
+            params["l"] = tuple(p.id for p in self.geography.options if p.id in zones)
+        return Combined((params,), tuple(notes))
+
+    def _request(self, query: str, params: NativeParams) -> SearchRequest:
+        zones = params.get("l", ())
+        options = [p for p in self.geography.options if p.id in zones]
+        location = Location(source="getmatch", options=options) if options else None
+        return self._offers(query, location, period=params["pa"][0])
 
     def build(self, query: str, location: Location | None = None) -> SearchRequest:
         if location is not None and (location.country is not None or not location.options):
             raise ValueError("Getmatch requires native region options")
         return self._offers(query, location)
 
-    def _offers(self, query: str, location: Location | None, offset: int = 0) -> SearchRequest:
+    def _offers(
+        self, query: str, location: Location | None, offset: int = 0, period: str = "all"
+    ) -> SearchRequest:
         params = {
             "sa": "any",
             "p": "1",
             "offset": str(offset),
             "limit": str(self.page_size),
-            "pa": "all",
+            "pa": period,
         }
         pairs = list(params.items())
         if location:
@@ -186,7 +205,6 @@ def _vacancy(item: dict) -> Vacancy:
         ),
         None,
     )
-    places = getmatch_locations(item)
     vacancy = Vacancy(
         id=str(item["id"]),
         title=item["position"],
@@ -207,7 +225,6 @@ def _vacancy(item: dict) -> Vacancy:
             "gross": taxes == "gross" if taxes in {"net", "gross"} else None,
         },
         salary_hidden=bool(item.get("salary_hidden")),
-        locations=places,
         published_at=item.get("published_at"),
         work_formats=list(
             dict.fromkeys(
@@ -229,7 +246,7 @@ def _vacancy(item: dict) -> Vacancy:
             if k in item
         },
     )
-    return normalize_stored_vacancy(vacancy, "getmatch")
+    return vacancy
 
 
 class GetmatchVacancyDetails(VacancyDetails):
@@ -262,6 +279,7 @@ class GetmatchVacancyDetails(VacancyDetails):
 
 
 def create_adapter(settings: GetmatchSettings) -> SourceAdapter:
+    geography = GetmatchGeography(settings.geography_cache_seconds)
     return SourceAdapter(
         id="getmatch",
         name="Getmatch",
@@ -269,8 +287,8 @@ def create_adapter(settings: GetmatchSettings) -> SourceAdapter:
         resource="getmatch.ru",
         allowed_hosts=("getmatch.ru",),
         settings=settings,
-        search=GetmatchSearch(settings.page_size),
+        search=GetmatchSearch(settings.page_size, geography),
         vacancy_details=GetmatchVacancyDetails(),
-        geography=GetmatchGeography(),
+        geography=geography,
         classify=classify_common,
     )

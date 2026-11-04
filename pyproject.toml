@@ -1,6 +1,6 @@
 [project]
 name = "hh-search-prototype"
-version = "0.4.0"
+version = "0.9.2"
 description = "Local job search: FastAPI, one SQLite database, common filters and source adapters"
 requires-python = ">=3.12"
 dependencies = [

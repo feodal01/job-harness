@@ -1,0 +1,10 @@
+{
+  "capture_method": "live_http_get_minimized",
+  "captured_at": "2026-07-01",
+  "captured_url": "https://dreamjob.ru/employers/121279/vakansii/134717087",
+  "content_type": "text/html; charset=UTF-8",
+  "final_url": "https://dreamjob.ru/employers/121279/vakansii/134717087",
+  "notes": "Real DreamJob vacancy detail page; unrelated scripts/styles removed and JSON-LD scripts preserved verbatim.",
+  "original_bytes": 83092,
+  "source_id": "career:nii-spetsvuzavtomatika"
+}

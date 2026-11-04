@@ -1,0 +1,9 @@
+{
+  "capture_method": "live_http_get",
+  "captured_at": "2026-07-02",
+  "captured_url": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings?limit=100",
+  "content_type": "application/json",
+  "final_url": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings?limit=100",
+  "notes": "Real public SmartRecruiters postings API JSON captured for career:bosch.",
+  "source_id": "career:bosch"
+}

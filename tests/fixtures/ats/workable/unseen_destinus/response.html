@@ -1,0 +1,62 @@
+# Destinus — Open Positions
+
+> This company has 121 open positions. Use the search endpoint to filter results.
+
+## How to Search
+
+Send a **GET** request to `https://apply.workable.com/destinusgroup/jobs.md` with query string parameters:
+
+```
+https://apply.workable.com/destinusgroup/jobs.md?query=backend+engineer&department=Engineering&location[0][country]=Greece&location[0][region]=Attica&location[0][city]=Athens&workplace=remote&worktype=full
+```
+
+All parameters are optional. Combine multiple filters to narrow results.
+`query` is free text search across job titles and descriptions.
+For `department`, `workplace`, and `worktype`, repeat the parameter to pass multiple values (e.g. `department=Engineering&department=Sales`).
+For departments, use the exact name from the list below — you can use a parent department (e.g. `Engineering`) or a sub-department (e.g. `QA`).
+For `location`, use bracketed indices with optional keys (`location[0][country]=Greece&location[0][city]=Athens`). Omit any keys you are unsure about (e.g. use just `location[0][country]=Greece` to match all cities). Add another location with `location[1][...]`.
+
+## Departments
+
+- R&D & Engineering (47 roles)
+- Manufacturing Quality (1 role)
+- HR (5 roles)
+- Legal (2 roles)
+- Program Management (2 roles)
+- Machine Learning & Software Engineering (4 roles)
+- Production & Manufacturing (18 roles)
+  - Production (7 roles)
+- Logistics & Warehouse (3 roles)
+- IT & Business Application (4 roles)
+- Business Development & Sales (11 roles)
+- Procurement, Supply Chain & Planning (4 roles)
+- Finance (5 roles)
+- Field Operations (5 roles)
+- Safety & Security (2 roles)
+- Administration & Office Management (5 roles)
+
+## Locations
+
+- Netherlands: Born | Limburg, Born | Limburg, Swalmen | Overijssel, Hengelo | South Holland, Katwijk aan Zee | South Holland, The Hague | South Holland, Valkenburg
+- Switzerland: Lucerne, Lucerne | Vaud, Lausanne | Vaud, Payerne | Zurich, Zürich
+- Spain: Community of Madrid, Madrid
+- United Arab Emirates: Abu Dhabi, Abu Dhabi | Dubai, Dubai
+- Bulgaria: Sofia City Province, Sofia
+- Germany: Bavaria, Munich
+- Poland: Masovian Voivodeship, Warsaw
+- Lithuania
+- Romania
+
+## Workplace Types
+
+- hybrid
+- on_site
+- remote
+
+## Work Types
+
+- full, temporary
+
+
+---
+Powered by [Workable](https://www.workable.com)

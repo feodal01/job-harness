@@ -1,0 +1,28 @@
+{
+  "positive": {
+    "timestamp": "2026-10-12T06:06:57.740916+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/dept?keyword=AI+Consultant&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/dept?keyword=AI+Consultant&_data=routes%2F%24url_token",
+    "file": "positive.json",
+    "response_sha256": "d67c9d16a2a5c288625d45e0aa3d84544b2e18f2a7a137de4920d13e157e795d",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  },
+  "negative": {
+    "timestamp": "2026-10-12T06:06:58.299234+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/dept?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/dept?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+    "file": "negative.json",
+    "response_sha256": "6bbc906db87c7ac6a5e007aeab2a83334587dbf8c3535642a72854a0415223e1",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "source_id": "career:ahrefs",
+  "captured_url": "https://boards-api.greenhouse.io/v1/boards/ahrefsjobs/jobs?content=true",
+  "captured_at": "2026-07-01",
+  "fixture_kind": "success_non_empty",
+  "notes": "Real greenhouse public career board capture for Ahrefs."
+}

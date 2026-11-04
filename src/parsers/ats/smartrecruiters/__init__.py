@@ -1,0 +1,1 @@
+"""smartrecruiters public board parser."""

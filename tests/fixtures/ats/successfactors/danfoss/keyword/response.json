@@ -1,0 +1,310 @@
+{
+  "jobSearchResult": [
+    {
+      "response": {
+        "jobLocationShort": [
+          "Pune, IND    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer%2C-Product-Engineering",
+        "unifiedStandardStart": "04/09/2026",
+        "currency": [
+          "INR"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Engineer, Product Engineering",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "50522",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Pune, IND    ",
+            "key": "18.5246091,73.8786239"
+          }
+        ],
+        "urlTitle": "Engineer%2C-Product-Engineering"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Pune, IND    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer",
+        "unifiedStandardStart": "22/09/2026",
+        "currency": [
+          "INR"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Engineer",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "51699",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Pune, IND    ",
+            "key": "18.5246091,73.8786239"
+          }
+        ],
+        "urlTitle": "Engineer"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Pune, IND    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer",
+        "unifiedStandardStart": "12/08/2026",
+        "currency": [
+          "INR"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Engineer",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "48639",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Pune, IND    ",
+            "key": "18.5246091,73.8786239"
+          }
+        ],
+        "urlTitle": "Engineer"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Utica, NY, USA    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer%2C-Product-Engineering",
+        "unifiedStandardStart": "03/09/2026",
+        "currency": [
+          "EUR"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Engineer, Product Engineering",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "50575",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Utica, NY, USA    ",
+            "key": "43.10109491,-75.23558059"
+          }
+        ],
+        "urlTitle": "Engineer%2C-Product-Engineering"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Utica, NY, USA    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer%2C-Product-Engineering",
+        "unifiedStandardStart": "03/09/2026",
+        "currency": [
+          "EUR"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Engineer, Product Engineering",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "50577",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Utica, NY, USA    ",
+            "key": "43.10109491,-75.23558059"
+          }
+        ],
+        "urlTitle": "Engineer%2C-Product-Engineering"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Pune, IND    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer",
+        "unifiedStandardStart": "14/07/2026",
+        "currency": [
+          "INR"
+        ],
+        "filter2": [
+          "Quality and Environment, Health and Safety (EHS)"
+        ],
+        "unifiedStandardTitle": "Engineer",
+        "filter3": [
+          "Associate"
+        ],
+        "id": "50523",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Pune, IND    ",
+            "key": "18.5246091,73.8786239"
+          }
+        ],
+        "urlTitle": "Engineer"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Reynosa, MEX    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer%2C-Quality-Engineering",
+        "unifiedStandardStart": "23/09/2026",
+        "currency": [
+          "MXN"
+        ],
+        "filter2": [
+          "Quality and Environment, Health and Safety (EHS)"
+        ],
+        "unifiedStandardTitle": "Engineer, Quality Engineering",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "51763",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Reynosa, MEX    ",
+            "key": "26.0915309,-98.2777687"
+          }
+        ],
+        "urlTitle": "Engineer%2C-Quality-Engineering"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Wuqing, CHN    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer%2C-Design-Engineering",
+        "unifiedStandardStart": "23/09/2026",
+        "currency": [
+          "CNY"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Engineer, Design Engineering",
+        "filter3": [
+          "Associate"
+        ],
+        "id": "51355",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Wuqing, CHN    ",
+            "key": "39.3840799,117.0443"
+          }
+        ],
+        "urlTitle": "Engineer%2C-Design-Engineering"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Cleveland, OH, USA    ",
+          "Cleveland, OH, USA    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Engineer%2C-Product",
+        "unifiedStandardStart": "10/09/2026",
+        "currency": [
+          "USD"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Engineer, Product",
+        "filter3": [
+          "Mid-Senior level"
+        ],
+        "id": "51543",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Cleveland, OH, USA    ",
+            "key": "41.49932,-81.6943605"
+          },
+          {
+            "value": "Cleveland, OH, USA    ",
+            "key": "41.49932,-81.6943605"
+          }
+        ],
+        "urlTitle": "Engineer%2C-Product"
+      }
+    },
+    {
+      "response": {
+        "jobLocationShort": [
+          "Ljubljana, SVN    "
+        ],
+        "supportedLocales": [
+          "en_GB"
+        ],
+        "unifiedUrlTitle": "Mechanical-Engineer",
+        "unifiedStandardStart": "20/08/2026",
+        "currency": [
+          "EUR"
+        ],
+        "filter2": [
+          "R&D, Technology and Engineering"
+        ],
+        "unifiedStandardTitle": "Mechanical Engineer",
+        "filter3": [
+          "Associate"
+        ],
+        "id": "51162",
+        "jobLocationShortWithCoordinates": [
+          {
+            "value": "Ljubljana, SVN    ",
+            "key": "46.0569465,14.5057515"
+          }
+        ],
+        "urlTitle": "Mechanical-Engineer"
+      }
+    }
+  ],
+  "totalJobs": 429
+}

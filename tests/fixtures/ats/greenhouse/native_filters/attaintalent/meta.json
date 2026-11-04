@@ -1,0 +1,28 @@
+{
+  "positive": {
+    "timestamp": "2026-10-12T06:06:57.286090+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/attaintalent?keyword=Associate+Director%2C+Business+Intelligence&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/attaintalent?keyword=Associate+Director%2C+Business+Intelligence&_data=routes%2F%24url_token",
+    "file": "positive.json",
+    "response_sha256": "d873ae314ab060dae9f66e3a1b8704ccd8d991b9977f2e79955db601f14cd9b8",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  },
+  "negative": {
+    "timestamp": "2026-10-12T06:06:57.529891+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/attaintalent?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/attaintalent?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+    "file": "negative.json",
+    "response_sha256": "44e160a0c5a43db51d572117d8bc08f7227244aed5df28b4ee9793f49bda044b",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  }
+}

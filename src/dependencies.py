@@ -2,7 +2,9 @@ from typing import Annotated, cast
 
 from fastapi import Depends, Request
 
+from src.services.auth import AuthService
 from src.services.briefs import BriefService
+from src.services.companies import CompanyCatalog
 from src.services.geography import GeographyService
 from src.services.lifecycle import LifecycleService
 from src.services.runs import RunService
@@ -48,3 +50,15 @@ async def get_lifecycle(request: Request) -> LifecycleService:
 
 
 LifecycleDep = Annotated[LifecycleService, Depends(get_lifecycle)]
+
+
+async def get_auth(request: Request) -> AuthService:
+    return cast(AuthService, request.app.state.auth_service)
+
+
+async def get_company_catalog(request: Request) -> CompanyCatalog:
+    return cast(CompanyCatalog, request.app.state.company_catalog)
+
+
+AuthDep = Annotated[AuthService, Depends(get_auth)]
+CompanyCatalogDep = Annotated[CompanyCatalog, Depends(get_company_catalog)]

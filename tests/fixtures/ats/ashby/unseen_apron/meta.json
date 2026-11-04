@@ -1,0 +1,37 @@
+{
+  "fixture_kind": "unseen_employer_live_listing",
+  "company": "Apron",
+  "input_board_url": "https://jobs.ashbyhq.com/apron",
+  "captured_url": "https://api.ashbyhq.com/posting-api/job-board/apron",
+  "capture_method": "single public HTTP GET, redirects disabled, timeout 20 seconds",
+  "request": {
+    "method": "GET",
+    "url": "https://api.ashbyhq.com/posting-api/job-board/apron",
+    "headers": {
+      "User-Agent": "hh-search-prototype-parser-check/0.5.1",
+      "Accept-Encoding": "identity"
+    }
+  },
+  "started_at": "2026-10-12T05:26:27.238049+00:00",
+  "parser_frozen_at": "2026-10-12T05:26:27.170315+00:00",
+  "parser_sha256_before_capture": "972c2c794c3ba0af6c162c3c196a27372712ed9b034c49d0fe5bd2b5aea17082",
+  "donor_membership": "Employer name and native board key absent from donor ATS source configuration literals",
+  "candidate_provenance": "reports/ats-migration-2026-10-11/catalog-mapping.json; input only, no runtime import",
+  "scope": "One listing request, no details or pagination requests. Saved response tests do not establish universal live support.",
+  "completed_at": "2026-10-12T05:26:27.626562+00:00",
+  "http_status": 200,
+  "final_url": "https://api.ashbyhq.com/posting-api/job-board/apron",
+  "content_type": "application/json; charset=utf-8",
+  "content_encoding": null,
+  "response_sha256": "86a8af5591d4c5621ab02734ed6c28863aa45e302816651c1687c347d1f61f0c",
+  "response_bytes": 9643,
+  "unchanged_parser_result": {
+    "outcome": "success",
+    "vacancy_count": 1,
+    "total": 1,
+    "next_request_count": 0
+  },
+  "parser_sha256_after_capture": "972c2c794c3ba0af6c162c3c196a27372712ed9b034c49d0fe5bd2b5aea17082",
+  "donor_source_sha256": "445e94938079934b501c8579f342b1cee1004aa71fed0be2092e0615d5451cf2",
+  "manual_review": "Reviewed the sole job ID/title, London/United Kingdom postal address, Hybrid enum, FullTime enum, publication timestamp and HTML description against the saved response."
+}

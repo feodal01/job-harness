@@ -1,0 +1,14 @@
+{
+  "captured_at": "2026-10-12T09:58:50.264474+00:00",
+  "request": {
+    "url": "https://join.com/companies/softgate/16783479-senior-softwareentwickler-projektleiter-embedded-robotik-m-w-d",
+    "query": "",
+    "stage": "listing",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "response_sha256": "4712151b30f357eae16eb27b16de9df3ca7e21873229d9f741add915c7502869"
+}

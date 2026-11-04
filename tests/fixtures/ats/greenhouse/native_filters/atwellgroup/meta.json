@@ -1,0 +1,28 @@
+{
+  "positive": {
+    "timestamp": "2026-10-12T06:07:00.824712+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/atwellgroup?keyword=Assistant+Crew+Chief&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/atwellgroup?keyword=Assistant+Crew+Chief&_data=routes%2F%24url_token",
+    "file": "positive.json",
+    "response_sha256": "f5ff57d69f219c324190c29affe4c23f31801097c16af4bb6c1f361b85007d49",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  },
+  "negative": {
+    "timestamp": "2026-10-12T06:07:01.568820+00:00",
+    "request": {
+      "method": "GET",
+      "url": "https://job-boards.greenhouse.io/atwellgroup?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+      "json_body": null
+    },
+    "status": 200,
+    "final_url": "https://job-boards.greenhouse.io/atwellgroup?keyword=zxqvnonexistent&_data=routes%2F%24url_token",
+    "file": "negative.json",
+    "response_sha256": "70bf9435d5703dbffb9b630cb03b8996f311bd685912dcc315d7fa27acfdd3b9",
+    "origin": "ATS generalization review 2026-10-12, public provider response"
+  }
+}

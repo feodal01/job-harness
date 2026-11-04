@@ -1,10 +1,15 @@
 <!doctype html>
 <html lang="ru">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Поиск работы · Мои брифы</title><link rel="stylesheet" href="/assets/app.css?v=20261008-service">
-<script defer src="/assets/app.js?v=20261008-service"></script></head>
+<title>Поиск работы · Мои брифы</title><link rel="stylesheet" href="/assets/app.css?v=20261026-city-click-fix">
+<link rel="stylesheet" href="/assets/brief-form.css?v=20261026-city-click-fix">
+<script defer src="/assets/token-editor.js?v=20261026-city-click-fix"></script>
+<script defer src="/assets/location-editor.js?v=20261031-city-retry-fix"></script>
+<script defer src="/assets/app.js?v=20261026-city-click-fix"></script>
+<script defer src="/assets/auth.js?v=20261011-auth"></script></head>
 <body>
-<header class="app-header"><a href="#/briefs" class="brand">Поиск работы <span>Брифы и отклики</span></a><div class="actions"><a href="#/briefs" class="secondary nav-link">Мои брифы</a><button id="stopService" class="secondary" hidden>Остановить сервис</button></div></header>
+<header class="app-header"><a href="#/briefs" class="brand">Поиск работы <span>Брифы и отклики</span></a><div class="actions"><a href="#/briefs" class="secondary nav-link">Мои брифы</a><span id="accountName" class="account-label" hidden></span><a id="authLink" href="/auth" class="button">Войти</a><button id="signOut" class="secondary" hidden>Выйти</button><button id="stopService" class="secondary" hidden>Остановить сервис</button></div></header>
+<div id="authAlert" class="auth-alert header-auth-alert" role="alert" hidden></div>
 <section id="serviceStopped" class="service-stopped" role="status" hidden>
   <h2 id="serviceStoppedTitle">Сервис остановлен</h2>
   <p>Брифы и результаты сохранены. Чтобы продолжить, попросите ассистента запустить сервис поиска вакансий.</p>
@@ -34,99 +39,92 @@
 </section>
 <section id="settingsView" class="settings" hidden>
   <button id="settingsBack" class="text-button">← К вакансиям</button>
-  <p class="eyebrow">УСЛОВИЯ ПОИСКА</p><h1 id="settingsTitle">Новый бриф</h1>
-  <p class="muted">Повторите поиск по сохранённым запросам или добавьте новые. Найденные вакансии пополнят этот бриф; этапы и заметки сохранятся.</p>
+  <h1 id="settingsTitle">Новый бриф</h1>
+  <p class="muted settings-intro">Настройте поиск и условия отбора вакансий.</p>
   <p id="settingsSearchState" class="notice" role="status" hidden></p>
   <small id="briefNotice" role="status"></small>
-      <form id="searchForm">
-        <label for="name">Название</label
-        ><input
-          id="name"
-          required
-          maxlength="200"
-          placeholder="Например, поиск продуктового аналитика"
-        />
-        <label for="queries">Поисковые запросы · каждый с новой строки</label
-        ><textarea
-          id="queries"
-          required
-          rows="3"
-          placeholder="Введите запросы к выбранному источнику"
-        ></textarea>
-        <small>До 10 запросов. Каждый запуск проверяет источники заново с первых страниц в пределах заданных лимитов. Уже найденные вакансии не дублируются.</small>
+      <form id="searchForm" novalidate>
+        <section class="form-section" aria-labelledby="nameTitle">
+          <h2 id="nameTitle"><label for="name">Название брифа</label></h2>
+          <input id="name" required maxlength="200" placeholder="Например, поиск продуктового аналитика">
+        </section>
+        <section class="form-section" aria-labelledby="queriesTitle">
+          <h2 id="queriesTitle"><label for="queries">Поисковые запросы</label></h2>
+          <div id="queriesEditor" class="token-editor"><input id="queries" placeholder="Например, QA Engineer" aria-describedby="queriesHelp"></div>
+          <small id="queriesHelp">До 10 поисковых запросов. Добавляйте по Enter или кнопкой «Добавить».</small>
+        </section>
+        <section class="form-section" aria-labelledby="sourcesTitle">
+          <h2 id="sourcesTitle">Источники</h2>
+          <fieldset id="sourcesBox" class="source-options">
+            <legend class="visually-hidden">Источники</legend>
+            <div id="sources"></div>
+            <div id="unsupportedConditions" role="status" hidden></div>
+          </fieldset>
+        </section>
+        <section class="form-section location-section" aria-labelledby="locationsTitle">
+          <div class="location-section-heading"><h2 id="locationsTitle">Места и формат работы</h2>
+            <span id="locationCount" class="location-count" role="status" aria-live="polite">0 из 5 мест поиска</span></div>
+          <p class="section-description">Достаточно совпадения с одним из блоков.</p>
+          <div id="locationGroups"></div>
+          <button id="addLocationGroup" type="button" class="secondary">Добавить локацию</button>
+          <button id="countryRetry" type="button" class="secondary" hidden>Повторить загрузку географии</button>
+        </section>
+        <section class="form-section" aria-labelledby="conditionsTitle">
+          <h2 id="conditionsTitle">Условия вакансии</h2>
+          <div class="salary-fields">
+            <div class="form-field"><label for="salaryMin">Зарплата от</label>
+              <input id="salaryMin" type="number" min="0.01" step="any" aria-describedby="salaryHelp"></div>
+            <div class="form-field"><label for="currency">Валюта</label><select id="currency">
+              <option>RUB</option><option>USD</option><option>EUR</option><option>KZT</option><option>BYN</option>
+              <option>AMD</option><option>GEL</option><option>UZS</option><option>GBP</option><option>AED</option>
+            </select></div>
+            <div class="form-field"><label for="salaryPeriod">За период</label><select id="salaryPeriod">
+              <option value="month">Месяц</option><option value="year">Год</option><option value="hour">Час</option>
+            </select></div>
+          </div>
+          <small id="salaryHelp">Без пересчёта валют и налогов. Вакансии без зарплаты остаются.</small>
+          <div class="short-fields">
+            <div class="form-field"><label for="experience">Опыт, лет</label><input id="experience" type="number" min="0" max="80" step="0.5"></div>
+            <div class="form-field"><label for="publishedAfter">Опубликовано не раньше</label><input id="publishedAfter" type="date"></div>
+          </div>
+          <fieldset class="employment-options"><legend>Занятость</legend><div id="employment"></div></fieldset>
+        </section>
+        <section class="form-section" aria-labelledby="exclusionsTitle">
+          <h2 id="exclusionsTitle">Исключения</h2>
+          <div class="form-field">
+            <label for="excludedCompanies">Компании</label>
+            <div id="excludedCompaniesEditor" class="token-editor"><input id="excludedCompanies" placeholder="Название компании" aria-describedby="excludedCompaniesHelp"></div>
+            <small id="excludedCompaniesHelp">Точное название компании без учёта регистра.</small>
+          </div>
+          <div class="form-field">
+            <label for="excludedText">Слова и фразы</label>
+            <div id="excludedTextEditor" class="token-editor"><input id="excludedText" placeholder="Слово или фраза" aria-describedby="excludedTextHelp"></div>
+            <small id="excludedTextHelp">Исключаются из названия и описания вакансии.</small>
+          </div>
+        </section>
+        <section class="form-section" aria-labelledby="searchOptionsTitle">
+          <h2 id="searchOptionsTitle">Параметры поиска</h2>
+          <div class="form-field">
+            <label class="check-label"><input id="secondChance" type="checkbox" aria-describedby="secondChanceHelp"> Второй шанс</label>
+            <small id="secondChanceHelp">Показывать частичные совпадения в «Может быть подходит».</small>
+          </div>
+          <label class="check-label"><input id="profiles" type="checkbox" checked> Загружать профили работодателей</label>
+          <details class="search-volume">
+            <summary>Лимиты сбора</summary>
+            <div class="limit-fields">
+              <div class="form-field"><label for="limit">Вакансий, до</label><input id="limit" type="number" min="1" max="5000" placeholder="По настройкам"></div>
+              <div class="form-field"><label for="pages">Страниц, до</label><input id="pages" type="number" min="1" max="50" placeholder="По настройкам"></div>
+            </div>
+          </details>
+        </section>
+        <section class="form-section brief-notes" aria-labelledby="briefNotesTitle">
+          <h2 id="briefNotesTitle">Заметки</h2>
+          <label class="visually-hidden" for="briefText">Заметки к брифу</label>
+          <textarea id="briefText" rows="3" maxlength="10000" placeholder="Контекст для вас и агента"></textarea>
+        </section>
         <div class="actions search-actions">
-          <button id="start" type="submit" disabled>Сохранить и искать</button><button id="saveBrief" class="secondary" type="submit">Только сохранить</button><button id="settingsCancel" class="text-button" type="button">Отмена</button>
+          <button id="start" type="submit">Сохранить и искать</button><button id="saveBrief" class="secondary" type="submit">Только сохранить</button><button id="settingsCancel" class="text-button" type="button">Отмена</button>
         </div>
-        <section id="searchConditions" aria-labelledby="searchConditionsTitle">
-          <h2 id="searchConditionsTitle">Источники, фильтры и остальные условия</h2>
-        <label for="briefText">Заметки к брифу</label
-        ><textarea
-          id="briefText"
-          rows="2"
-          placeholder="Контекст для вас и агента"
-        ></textarea>
-        <fieldset id="sourcesBox" style="margin:18px 0;border:1px solid #dce0d8">
-          <legend>Источники</legend>
-          <div id="sources"></div>
-          <small id="sourceStatus" role="status"></small>
-          <div id="unsupportedConditions" role="status" hidden></div>
-        </fieldset>
-        <div id="countryCityFields">
-        <label for="country">Страна работы</label><select id="country" disabled></select>
-        <label for="city">Город работы</label>
-        <input id="city" autocomplete="off" maxlength="100" disabled placeholder="Начните вводить название"
-          aria-describedby="cityStatus" aria-controls="cityOptions" aria-expanded="false" />
-        <small id="cityStatus" role="status">Без города — поиск по всей выбранной стране.</small>
-        <div id="cityOptions" aria-label="Подсказки городов" hidden
-          style="max-height: 220px; overflow-y: auto; margin-top: 8px"></div>
-        <button id="cityRetry" type="button" class="secondary" hidden>Повторить поиск города</button>
-        </div>
-        <button type="button" id="addLocation" class="secondary">Добавить место работы</button>
-        <div id="selectedLocations" aria-live="polite"></div>
-        <small>Места — жёсткое условие. Можно добавить несколько. Для удалёнки по стране город не ограничивает поиск; удалёнка по миру подходит, если ваша страна явно не исключена.</small>
-        <label for="minimumWorkFormat">Не менее свободный формат, чем…</label>
-        <select id="minimumWorkFormat">
-          <option value="">Любой</option><option value="office">Офис</option><option value="hybrid">Гибрид</option>
-          <option value="remote_country">Удалёнка по стране</option><option value="remote_worldwide">Удалёнка по миру</option>
-        </select>
-        <small>Более свободный формат тоже подходит: например, при выборе гибрида подходит и удалёнка.</small>
-        <label><input id="relocation" type="checkbox"> Нужна помощь с релокацией</label>
-        <small>Работодатель оплачивает или помогает организовать переезд. Само наличие офиса за рубежом этого не подтверждает.</small>
-        <section id="moreFilters" aria-labelledby="moreFiltersTitle">
-          <h2 id="moreFiltersTitle">Зарплата, опыт и другие условия</h2>
-          <label for="salaryMin">Минимальная зарплата</label>
-          <input id="salaryMin" type="number" min="0.01" step="any" placeholder="Без ограничения">
-          <div class="row"><div><label for="currency">Валюта</label><select id="currency">
-            <option>RUB</option><option>USD</option><option>EUR</option><option>KZT</option><option>BYN</option>
-            <option>AMD</option><option>GEL</option><option>UZS</option><option>GBP</option><option>AED</option>
-          </select></div><div><label for="salaryPeriod">За период</label><select id="salaryPeriod">
-            <option value="month">Месяц</option><option value="year">Год</option><option value="hour">Час</option>
-          </select></div></div>
-          <small>Достаточно, чтобы верхняя граница вилки допускала эту сумму. Вакансии без зарплаты остаются подходящими. Валюты, периоды и налоги не пересчитываются.</small>
-          <label for="experience">Ваш опыт, лет</label><input id="experience" type="number" min="0" max="80" step="0.5" placeholder="Не учитывать">
-          <fieldset><legend>Занятость</legend><div id="employment"></div></fieldset>
-          <label for="publishedAfter">Опубликовано не раньше</label><input id="publishedAfter" type="date">
-          <label for="excludedCompanies">Исключить компании · по одной на строку</label><textarea id="excludedCompanies" rows="2"></textarea>
-          <label for="excludedText">Исключить текст · по одной фразе на строку</label><textarea id="excludedText" rows="2"></textarea>
-        </section>
-        <label><input id="secondChance" type="checkbox" aria-describedby="secondChanceHelp"> Второй шанс</label>
-        <small id="secondChanceHelp">Расширяет поиск: формат, опыт, занятость и другие мягкие условия проверяются после получения вакансий. Несовпадения попадают в «Может быть подходит». Поиск может потребовать больше запросов. По умолчанию выключен; режим фиксируется на весь запуск.</small>
-        <button id="countryRetry" type="button" class="secondary" hidden>Повторить загрузку географии</button>
-        <div class="row" style="margin-top: 18px">
-          <div>
-            <label for="limit">Новых вакансий на фразу, до</label
-            ><input id="limit" type="number" min="1" max="5000" placeholder="По настройкам" />
-          </div>
-          <div>
-            <label for="pages">Страниц на запрос</label
-            ><input id="pages" type="number" min="1" max="50" placeholder="По настройкам" />
-          </div>
-        </div>
-        <label
-          ><input id="profiles" type="checkbox" checked /> Загружать профили
-          работодателей</label
-        >
-        </section>
       </form>
 
 </section>

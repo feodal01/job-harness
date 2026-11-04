@@ -1,0 +1,47 @@
+{
+  "capture_method": "public_browser_network",
+  "captured_at": "2026-10-12T06:07:07.940Z",
+  "captured_url": "https://jobs.danfoss.com/services/recruiting/v1/jobs",
+  "board_url": "https://jobs.danfoss.com/search/",
+  "query": "Engineer",
+  "request_body": {
+    "locale": "en_GB",
+    "pageNumber": 0,
+    "sortBy": "",
+    "keywords": "Engineer",
+    "location": "",
+    "facetFilters": {},
+    "brand": "",
+    "skills": [],
+    "categoryId": 0,
+    "alertId": "",
+    "rcmCandidateId": ""
+  },
+  "status": 200,
+  "reference_ids": [
+    "50522",
+    "51699",
+    "48639",
+    "50575",
+    "50577",
+    "50523",
+    "51763",
+    "51355",
+    "51543",
+    "51162"
+  ],
+  "reference_total": 429,
+  "independent_job_urls": [
+    "https://jobs.danfoss.com/job/Engineer%2C-Product-Engineering/50522-en_GB",
+    "https://jobs.danfoss.com/job/Engineer/51699-en_GB",
+    "https://jobs.danfoss.com/job/Engineer/48639-en_GB",
+    "https://jobs.danfoss.com/job/Engineer%2C-Product-Engineering/50575-en_GB",
+    "https://jobs.danfoss.com/job/Engineer%2C-Product-Engineering/50577-en_GB",
+    "https://jobs.danfoss.com/job/Engineer/50523-en_GB",
+    "https://jobs.danfoss.com/job/Engineer%2C-Quality-Engineering/51763-en_GB",
+    "https://jobs.danfoss.com/job/Engineer%2C-Design-Engineering/51355-en_GB",
+    "https://jobs.danfoss.com/job/Engineer%2C-Product/51543-en_GB",
+    "https://jobs.danfoss.com/job/Mechanical-Engineer/51162-en_GB"
+  ],
+  "provenance": "/tmp/ats-generalization-review-20261012/browser-evidence/sf-danfoss-ui.json"
+}

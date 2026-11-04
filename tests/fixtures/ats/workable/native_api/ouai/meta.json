@@ -1,0 +1,46 @@
+{
+  "positive": {
+    "timestamp": "2026-10-12T06:04:21.185341+00:00",
+    "request": {
+      "url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+      "query": "Marketing",
+      "stage": "listing",
+      "location": null,
+      "method": "POST",
+      "json_body": {
+        "query": "Marketing",
+        "location": [],
+        "department": [],
+        "worktype": [],
+        "remote": []
+      }
+    },
+    "status": 200,
+    "final_url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+    "response_sha256": "3299333d135f1a7d5bec7afb8b4559d9061224df48c444f97c9e9da201c9ac54",
+    "response_file": "positive.json",
+    "origin": "ATS generalization review 2026-10-12 public API capture"
+  },
+  "negative": {
+    "timestamp": "2026-10-12T05:58:29.415245+00:00",
+    "request": {
+      "url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+      "query": "zzqnojobgeneralization20261012",
+      "stage": "listing",
+      "location": null,
+      "method": "POST",
+      "json_body": {
+        "query": "zzqnojobgeneralization20261012",
+        "location": [],
+        "department": [],
+        "worktype": [],
+        "remote": []
+      }
+    },
+    "status": 200,
+    "final_url": "https://apply.workable.com/api/v3/accounts/theouai/jobs",
+    "response_sha256": "8bdb9043955fc773a47310959e7fb5be4fc49444394d1aaa114b343bd10534b2",
+    "response_file": "negative.json",
+    "origin": "ATS generalization review 2026-10-12 public API capture"
+  }
+}

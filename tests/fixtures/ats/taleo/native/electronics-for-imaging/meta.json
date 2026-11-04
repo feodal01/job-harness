@@ -1,0 +1,71 @@
+{
+  "company": "Electronics For Imaging",
+  "form_url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/jobSearch?cws=44&org=EFI",
+  "captured_at": "2026-10-12T05:58:09.251223+00:00",
+  "responses": {
+    "positive": {
+      "request": {
+        "method": "POST",
+        "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?org=EFI&cws=44",
+        "form_body": {
+          "act": "search",
+          "org": "EFI",
+          "cws": "44",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "0",
+          "keywords": "Customer Onboarding Manager"
+        }
+      },
+      "captured_at": "2026-10-12T06:04:18.649317+00:00",
+      "ids": [
+        "9024",
+        "9004",
+        "8981",
+        "9021",
+        "8985",
+        "9001",
+        "9057",
+        "8990",
+        "9022",
+        "9028"
+      ],
+      "total": 16
+    },
+    "negative": {
+      "request": {
+        "method": "POST",
+        "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?org=EFI&cws=44",
+        "form_body": {
+          "act": "search",
+          "org": "EFI",
+          "cws": "44",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "0",
+          "keywords": "zzqnojobgeneralization20261012"
+        }
+      },
+      "captured_at": "2026-10-12T06:04:26.264709+00:00",
+      "ids": [],
+      "total": 0
+    },
+    "narrow": {
+      "request": {
+        "url": "https://phe.tbe.taleo.net/phe03/ats/careers/v2/searchResults?org=EFI&cws=44",
+        "method": "POST",
+        "form_body": {
+          "act": "search",
+          "org": "EFI",
+          "cws": "44",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "0",
+          "keywords": "Onboarding"
+        }
+      },
+      "captured_at": "2026-10-12T06:05:53.858925+00:00",
+      "ids": [
+        "9024"
+      ],
+      "total": 1
+    }
+  }
+}

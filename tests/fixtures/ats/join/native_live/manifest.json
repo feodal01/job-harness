@@ -1,0 +1,44 @@
+[
+  {
+    "provider": "join",
+    "company": "join",
+    "label": "positive",
+    "value": "372",
+    "pages": 1,
+    "unique_ids": [
+      "16817388"
+    ],
+    "total": 1
+  },
+  {
+    "provider": "join",
+    "company": "join",
+    "label": "negative",
+    "value": "263",
+    "pages": 1,
+    "unique_ids": [],
+    "total": 0
+  },
+  {
+    "provider": "join",
+    "company": "softgate",
+    "label": "positive",
+    "value": "351",
+    "pages": 1,
+    "unique_ids": [
+      "16783479",
+      "16802872",
+      "16757906"
+    ],
+    "total": 3
+  },
+  {
+    "provider": "join",
+    "company": "softgate",
+    "label": "negative",
+    "value": "263",
+    "pages": 1,
+    "unique_ids": [],
+    "total": 0
+  }
+]

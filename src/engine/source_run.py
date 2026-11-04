@@ -4,6 +4,7 @@ import asyncio
 import logging
 import time
 from collections.abc import Callable
+from dataclasses import replace
 from typing import Any, TypeVar
 from urllib.parse import parse_qs, urlsplit
 
@@ -16,6 +17,7 @@ from src.engine.models import BLOCKING_KINDS, HINTS, RunSpec, SourceMetrics
 from src.engine.recorder import SourceRecorder
 from src.engine.reuse import KnownData
 from src.engine.tasks import TaskRegistry
+from src.enrichment.registry import Enrichment
 from src.models.company import Company
 from src.models.vacancy import Vacancy
 from src.network.client import FetchError, Network
@@ -35,13 +37,16 @@ class SourceRun:
         recorder: SourceRecorder,
         known: KnownData,
         registry: TaskRegistry,
+        enrichment: Enrichment,
     ) -> None:
         self.adapter, self.network, self.spec, self.recorder = adapter, network, spec, recorder
+        self.enrichment = enrichment
         self.known, self.registry = known, registry
         self.filters = FilterStage(
             spec.filters,
             tuple(spec.brief.queries),
             frozenset(k for k, mode in adapter.search.parameters.items() if mode == "none"),
+            catalog=enrichment.catalog,
         )
         self.limits = spec.limits[adapter.id]
         self.profiles = spec.company_profiles[adapter.id]
@@ -122,7 +127,17 @@ class SourceRun:
             second_chance=self.spec.second_chance,
             notes=plan.notes,
             filters=self.spec.filters.model_dump(mode="json"),
+            places=[place.to_json() for place in plan.places],
         )
+        for place in plan.places:
+            # An unprepared place is a failed branch, never an empty result; other places continue.
+            for condition in place.conditions:
+                if condition.status == "error":
+                    self.recorder.failed(
+                        "listing",
+                        ValueError(condition.reason or "place preparation failed"),
+                        condition.origin or "",
+                    )
         if self.adapter.search.parameters.get("query") == "ignored":
             self.recorder.event(
                 "search.query_skipped",
@@ -151,17 +166,21 @@ class SourceRun:
     ) -> None:
         url, query, metrics = step.request.url, step.phrase.query, self.metrics
         if walker.repeated(step):
-            self.recorder.failed("listing", ValueError("Pagination repeated a request URL"), url)
+            self.recorder.failed("listing", ValueError("Pagination repeated a request"), url)
             return
         self._log_request(step.request)
         page_number = step.page + 1
         try:
-            page = await self._fetch_parse(url, step.request.stage, self.adapter.search.parse, step.request)
+            page = await self._fetch_parse(
+                url, step.request.stage, self.adapter.search.parse, step.request, request=step.request
+            )
         except FETCH_ERRORS as exc:
             self.recorder.failed("listing", exc, url)
             self._block(exc)
             self.recorder.publish()
             return
+        # Facts in the brief vocabulary: parsers stay pure, the engine enriches what they return.
+        page = replace(page, vacancies=[self._enrich(v) for v in page.vacancies])
         if step.request.stage == "listing":
             metrics.pages += 1
             metrics.source_total = page.total
@@ -272,10 +291,14 @@ class SourceRun:
             self.recorder.failed("detail", exc, url)
             self._block(exc)
             return vacancy, "error", str(exc), False
+        card = self._enrich(card)
         self.metrics.details_ok += 1
         if self.metrics.first_detail_ms is None:
             self.metrics.first_detail_ms = self.recorder.clock.ms()
         return card, "ready", None, True
+
+    def _enrich(self, vacancy: Vacancy) -> Vacancy:
+        return self.enrichment.enrich(vacancy, self.adapter.id)
 
     def _wants_profile(self, vacancy: Vacancy) -> bool:
         component = self.adapter.company_profile
@@ -317,9 +340,15 @@ class SourceRun:
         finally:
             self.recorder.publish()
 
-    async def _fetch_parse(self, url: str, stage: str, parser: Callable[..., T], *args: Any) -> T:
+    async def _fetch_parse(
+        self, url: str, stage: str, parser: Callable[..., T], *args: Any, request: SearchRequest | None = None
+    ) -> T:
         run_id = self.spec.run_id
-        body = await self.network.get(run_id, url, stage)
+        body = (
+            await self.network.fetch(run_id, request)
+            if request is not None
+            else await self.network.get(run_id, url, stage)
+        )
         started = time.monotonic()
         try:
             result = await asyncio.to_thread(parser, body, *args)

@@ -1,0 +1,25 @@
+{
+  "capture_method": "public_browser_network",
+  "captured_at": "2026-10-12T06:06:48.698Z",
+  "captured_url": "https://werkenbij.portofrotterdam.com/services/recruiting/v1/jobs",
+  "board_url": "https://werkenbij.portofrotterdam.com/search/",
+  "query": "zzzz_no_such_role_43a991",
+  "request_body": {
+    "locale": "nl_NL",
+    "pageNumber": 0,
+    "sortBy": "",
+    "keywords": "zzzz_no_such_role_43a991",
+    "location": "",
+    "facetFilters": {},
+    "brand": "",
+    "skills": [],
+    "categoryId": 0,
+    "alertId": "",
+    "rcmCandidateId": ""
+  },
+  "status": 200,
+  "reference_ids": [],
+  "reference_total": 0,
+  "independent_job_urls": [],
+  "provenance": "/tmp/ats-generalization-review-20261012/browser-evidence/sf-port-ui.json"
+}

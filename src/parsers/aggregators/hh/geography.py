@@ -8,8 +8,8 @@ from collections.abc import Callable
 from typing import Any, Literal
 from urllib.parse import urlencode
 
-from src.geography.directory import uniquely_identifies_city
-from src.geography.names import normalize, region_matches, split_city
+from src.geography.catalog import GeographyCatalog
+from src.geography.names import split_city
 from src.models.filters import SearchPlace
 from src.network.client import FetchError
 from src.parsers.interfaces import CountryCityGeography, Fetch
@@ -82,35 +82,21 @@ class HHGeography(CountryCityGeography):
         return await self._load(fetch, "/suggests/area_leaves", {"area_id": country_id, "text": text}, parse)
 
 
-def matches_place(native: Place, wanted: SearchPlace) -> bool:
-    """Translate common labels to HH labels; ambiguous results must still fail in prepare."""
-    if not wanted.city:
-        return False
-    name, qualifier = split_city(native.name)
-    # Existing briefs may contain the complete HH label, including its qualifier.
-    if normalize(wanted.city) not in {normalize(native.name), normalize(name)}:
-        return False
-    if not wanted.region:
-        return True
-    regions = [*native.path, *([qualifier] if qualifier else [])]
-    return any(region_matches(wanted.region, r) for r in regions)
+def matches_place(native: Place, wanted: SearchPlace, catalog: GeographyCatalog) -> bool:
+    """Does an HH city suggestion denote the brief's confirmed city (GeoNames ID)?"""
+    if wanted.geoname_id is None:
+        return False  # Only cities confirmed in the brief editor are translated.
+    return catalog.matches(wanted.geoname_id, native.name, tuple(native.path)) is True
 
 
-def resolve_city(choices: list[Place], wanted: SearchPlace) -> Place:
-    matches = [c for c in choices if matches_place(c, wanted)]
-    # Both directories must agree that the city name is unique. This handles
-    # different admin hierarchies/spellings without choosing between homonyms.
-    same_name = [
-        c for c in choices if wanted.city and normalize(split_city(c.name)[0]) == normalize(wanted.city)
-    ]
-    if (
-        not matches
-        and len(same_name) == 1
-        and normalize(same_name[0].name) == normalize(wanted.city or "")
-        and wanted.city
-        and uniquely_identifies_city(wanted.country, wanted.city, wanted.region)
-    ):
-        matches = same_name
+def resolve_city(choices: list[Place], wanted: SearchPlace, catalog: GeographyCatalog) -> Place:
+    matches = [c for c in choices if matches_place(c, wanted, catalog)]
+    if not matches and wanted.geoname_id is not None:
+        # HH may spell the region differently from GeoNames. Accept the only HH suggestion whose
+        # city name alone denotes exactly this GeoNames city in its country; never pick a homonym.
+        same = [c for c in choices if catalog.matches(wanted.geoname_id, split_city(c.name)[0]) is True]
+        if len(same) == 1:
+            matches = same
     if len(matches) != 1:
         raise ValueError(
             f"HH: не удалось однозначно сопоставить город {wanted.city}, "

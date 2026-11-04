@@ -1,0 +1,35 @@
+{
+  "company": "Institute for Defense Analyses",
+  "form_url": "https://phh.tbe.taleo.net/phh01/ats/careers/v2/jobSearch?org=INSTITUTEDA&cws=39",
+  "captured_at": "2026-10-12T05:58:09.246869+00:00",
+  "responses": {
+    "positive": {
+      "request": {
+        "method": "POST",
+        "url": "https://phh.tbe.taleo.net/phh01/ats/careers/v2/searchResults?org=INSTITUTEDA&cws=39",
+        "form_body": {
+          "act": "search",
+          "org": "INSTITUTEDA",
+          "cws": "39",
+          "WebPage": "JSRCH_V2",
+          "WebVersion": "3",
+          "location": "35"
+        }
+      },
+      "captured_at": "2026-10-12T06:04:18.633912+00:00",
+      "ids": [
+        "3744",
+        "3750",
+        "3798",
+        "3780",
+        "3795",
+        "3796",
+        "3789",
+        "3801",
+        "3773",
+        "3752"
+      ],
+      "total": 28
+    }
+  }
+}

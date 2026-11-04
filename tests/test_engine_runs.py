@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
+from geo_support import confirmed, scheduling_sources, with_geography
 
 from src.app import create_app
 from src.core.config import Settings
@@ -94,8 +95,9 @@ async def service(tmp_path, fake):
             "getmatch": {"interval_seconds": 0, "max_attempts": 1, "page_size": 10},
         },
     )
-    app = create_app(settings, transport=httpx.MockTransport(fake))
+    app = create_app(settings, transport=httpx.MockTransport(with_geography(fake)))
     async with app.router.lifespan_context(app):
+        scheduling_sources(app)
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app), base_url="http://localhost"
         ) as client:
@@ -103,7 +105,7 @@ async def service(tmp_path, fake):
 
 
 async def brief(client, queries, filters=None, name="Бриф"):
-    body = {"name": name, "queries": queries, "filters": filters or {}}
+    body = {"name": name, "queries": queries, "filters": confirmed(filters)}
     response = await client.post("/api/v1/briefs", json=body)
     assert response.status_code == 201, response.text
     return response.json()
@@ -213,7 +215,7 @@ async def test_pool_keeps_user_status_and_recomputes_decisions_without_network(t
         assert len(pool["1"]["origins"]) == 2  # Found again by the second run.
 
         calls = len(fake.calls)
-        changed = {"name": "Бриф", "queries": ["QA"], "filters": {"excluded_text": ["QA 2"]}}
+        changed = {"name": "Бриф", "queries": ["QA"], "filters": confirmed({"excluded_text": ["QA 2"]})}
         assert (await client.put(f"/api/v1/briefs/{b['id']}", json=changed)).status_code == 200
         pool = {
             v["id"]: v
@@ -370,7 +372,7 @@ async def test_active_run_preserves_current_brief_selection_after_edit(tmp_path)
             )
             updated = await client.put(
                 f"/api/v1/briefs/{b['id']}",
-                json={"name": b["name"], "queries": ["QA"], "filters": {"excluded_text": ["QA"]}},
+                json={"name": b["name"], "queries": ["QA"], "filters": confirmed({"excluded_text": ["QA"]})},
             )
             assert updated.status_code == 200
             assert (
@@ -396,8 +398,14 @@ def test_recorder_uses_cached_card_facts_for_current_pool_conditions(tmp_path):
         b = store.briefs.save_brief(old)
         run = store.runs.create_run(b["id"], {}, {"hh_ru": {}})
         card = Vacancy(id="1", title="QA", url="https://hh.ru/vacancy/1", description="Forbidden employer")
-        recorder = SourceRecorder(store, run["id"], b["id"], "hh_ru", Clock(), lambda: None)
-        decision = FilterStage(old.filters, tuple(old.queries)).evaluate(card)
+        from src.enrichment.registry import default_enrichment
+
+        recorder = SourceRecorder(
+            store, run["id"], b["id"], "hh_ru", Clock(), lambda: None, enrichment=default_enrichment()
+        )
+        decision = FilterStage(
+            old.filters, tuple(old.queries), catalog=default_enrichment().catalog
+        ).evaluate(card)
         recorder.save(card, decision, "ready", detail_fetched=True)
         store.briefs.save_brief(
             old.model_copy(update={"filters": SearchFilters(excluded_text=["Forbidden"])}), b["id"]

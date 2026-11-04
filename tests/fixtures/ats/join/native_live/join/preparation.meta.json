@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-12T09:57:19.822805+00:00",
+  "request": {
+    "url": "https://join.com/companies/join",
+    "query": "",
+    "stage": "preparation",
+    "location": null,
+    "method": "GET",
+    "json_body": null,
+    "form_body": null
+  },
+  "http_status": 200,
+  "final_url": "https://join.com/companies/join",
+  "response_sha256": "a4c195ae7477302428d680b15a5f7d62e296610681a436011e74740978e75598",
+  "response_file": "preparation.html"
+}
