@@ -202,29 +202,90 @@ async function loadOverviews(signal) {
   briefs = data;
 }
 function countLink(b, folder, count) {
-  const a = el("a", count || 0, "count-link"); a.href = briefPath(b.id,folder);
+  const a = el("a", count || 0, "count-link" + (count ? "" : " zero")); a.href = briefPath(b.id,folder);
   a.setAttribute("aria-label", `${folderNames[folder]}: ${count || 0}, ${b.name}`); return a;
 }
+const runStatusPills = {
+  queued:["queued","○","В очереди"], running:["running","","Идёт поиск"], complete:["ok","✓","Завершён"],
+  partial:["warn","!","Частичный результат"], failed:["error","✕","Ошибка"], interrupted:["error","✕","Прерван"],
+  cancelled:["stopped","■","Остановлен"], blocked:["stopped","■","Заблокирован"], skipped:["skipped","–","Пропущен"], never:["skipped","–","Поиск не запускали"],
+};
+function runPill(status) {
+  const [cls, icon, text] = runStatusPills[status] || ["stopped","",statusNames[status] || status];
+  const pill = el("span", undefined, "run-pill " + cls);
+  pill.append(icon ? Object.assign(el("span", icon), {ariaHidden:"true"}) : Object.assign(el("span", undefined, "pulse"), {ariaHidden:"true"}), text);
+  return pill;
+}
+function whenText(seconds) {
+  const date = new Date(seconds * 1000), now = new Date();
+  const options = {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"};
+  if (date.getFullYear() !== now.getFullYear()) options.year = "numeric";
+  return date.toLocaleString("ru", options);
+}
+async function launchSearch(b, button) {
+  button.disabled = true;
+  try {
+    await api("/api/v1/runs", "POST", {brief_id:b.id, ...searchOptionsForBrief(b)});
+    await loadOverviews(); renderedHome = null; renderHome(); notify(`Поиск «${b.name}» запущен`);
+  } catch (e) { error(e.message); button.disabled = false; }
+}
+function lastRunCell(b) {
+  const cell = el("td"), box = el("div", undefined, "last-run"), r = b.last_run;
+  if (!r) {
+    box.append(runPill("never"));
+  } else {
+    box.append(runPill(r.status), el("small", ["queued","running"].includes(r.status) ? "с " + whenText(r.created_at) : whenText(r.created_at)));
+  }
+  if (!r || ["partial","failed","interrupted"].includes(r.status)) {
+    const button = el("button", r ? "Запустить поиск снова" : "Запустить поиск", "text-button");
+    button.type = "button"; button.onclick = () => launchSearch(b, button);
+    if (!b.queries.length) { button.disabled = true; button.title = "Сначала добавьте поисковые запросы"; }
+    box.append(button);
+  }
+  cell.append(box); return cell;
+}
+$("briefSearch").addEventListener("input", () => renderHome());
 function renderHome() {
-  const signature = JSON.stringify(briefs);
+  const query = ($("briefSearch").value || "").trim().toLowerCase();
+  const signature = JSON.stringify([briefs, query]);
   if (signature === renderedHome) return;
   renderedHome = signature;
-  const host = $("briefTable"); host.replaceChildren();
+  const host = $("briefTable"); host.replaceChildren(); host.removeAttribute("aria-busy");
+  $("briefTools").hidden = briefs.length < 2; $("briefLegend").hidden = !briefs.length;
+  host.classList.toggle("table-wrap", briefs.length > 0);
   if (!briefs.length) {
-    const empty = el("div", undefined, "empty"); empty.append(el("strong", "Начните с первого брифа"),el("p", "Задайте условия поиска, затем разбирайте найденные вакансии по этапам."));
-    const a = el("a", "Создать бриф", "button"); a.href = "#/briefs/new"; empty.append(a); host.append(empty); return;
+    const first = el("section", undefined, "first-brief"); first.setAttribute("aria-labelledby", "firstTitle");
+    const h = el("h2", "Начните с первого брифа"); h.id = "firstTitle";
+    const steps = el("ol", undefined, "first-steps");
+    for (const [n, title, text] of [["1","Условия","Запросы, страна и город, формат, зарплата, исключения"],["2","Поиск","Все подходящие источники сразу; повторный поиск добавит только новые вакансии"],["3","Разбор","Отклик, собеседование, оффер или «неинтересна» — в один клик"]]) {
+      const li = el("li"); li.append(Object.assign(el("b", n), {ariaHidden:"true"}), el("strong", title), el("span", text)); steps.append(li);
+    }
+    const a = el("a", "+ Новый бриф", "button"); a.href = "#/briefs/new";
+    first.append(h, el("p", "Задайте условия поиска, затем разбирайте найденные вакансии по этапам. Для каждого направления — свой бриф: например, отдельно «QA в Москве» и «QA удалённо».", "muted"), steps, a);
+    host.append(first); return;
   }
-  const table = el("table"), head = el("thead"), row = el("tr");
-  for (const name of ["Бриф","Всего","Неразобранные","Отклики","Собеседования","Офферы","Последний поиск"]) row.append(el("th",name));
-  head.append(row); table.append(head); const body = el("tbody");
-  for (const b of briefs) {
-    const tr = el("tr"), title = el("td"), a = el("a",b.name); a.href = briefPath(b.id);
-    title.append(a,el("small", b.queries.join(" · ") || "Поиск по условиям брифа")); tr.append(title);
-    for (const folder of ["all","open","applied","interview","offer"]) {const td = el("td"); td.append(countLink(b,folder,b.funnel[folder]));tr.append(td);}
-    const last = el("td");
-    if (b.last_run) last.append(el("span",new Date(b.last_run.created_at*1000).toLocaleDateString("ru")),el("small",statusNames[b.last_run.status] || b.last_run.status));
-    else last.append(el("small","Ещё не запускали"));
-    tr.append(last); body.append(tr);
+  const shown = briefs.filter(b => !query || b.name.toLowerCase().includes(query) || b.queries.some(q => q.toLowerCase().includes(query)));
+  if (!shown.length) {
+    const empty = el("div", undefined, "empty"); empty.append(el("strong", "Ничего не найдено"), el("p", "Измените запрос или очистите поле поиска."));
+    host.append(empty); return;
+  }
+  const table = el("table"), caption = el("caption", "Брифы и вакансии по этапам", "sr"), head = el("thead"), row = el("tr");
+  const columns = [["Бриф"],["Неразобранные","num"],["Отклик","num"],["Собеседование","num"],["Оффер","num"],["Закрыто","num","Отказ и неинтересные"],["Всего","num"],["Последний поиск"]];
+  for (const [name, cls, title] of columns) { const th = el("th", name, cls); th.scope = "col"; if (title) th.title = title; row.append(th); }
+  head.append(row); table.append(caption, head); const body = el("tbody");
+  for (const b of shown) {
+    const f = b.funnel, tr = el("tr"), title = el("td"), a = el("a", b.name); a.href = briefPath(b.id);
+    title.append(a, el("small", b.queries.join(" · ") || "Запросов пока нет")); tr.append(title);
+    const cells = [["open", f.open], ["applied", f.applied], ["interview", f.interview], ["offer", f.offer]];
+    for (const [folder, count] of cells) {
+      const td = el("td", undefined, "num"), link = countLink(b, folder, count);
+      if (folder === "open" && f.new) link.classList.add("hot");
+      td.append(link); tr.append(td);
+    }
+    const closed = (f.rejected || 0) + (f.dismissed || 0);
+    const closedCell = el("td", undefined, "num"); closedCell.append(el("span", closed, "count-link" + (closed ? "" : " zero"))); tr.append(closedCell);
+    const all = el("td", undefined, "num"); all.append(countLink(b, "all", f.all)); tr.append(all);
+    tr.append(lastRunCell(b)); body.append(tr);
   }
   table.append(body); host.append(table);
 }
@@ -718,39 +779,81 @@ async function refresh() {
 }
 function showServiceStopped(title="Сервис остановлен") {
   servicePaused=true;clearTimeout(pollTimer);refreshController?.abort();readerController?.abort();
-  locationEditor.abort();clearTimeout(searchTimer);
+  locationEditor.abort();clearTimeout(searchTimer);closePopups();
   if($("vacancyDialog").open)$("vacancyDialog").close();
+  if($("stopServiceDialog").open)$("stopServiceDialog").close();
   $("mainContent").inert=true;$("serviceStopped").hidden=false;
-  $("serviceStoppedTitle").textContent=title;$("stopService").hidden=true;error("");
+  $("serviceStoppedTitle").textContent=title;$("checkService").disabled=title!=="Сервис остановлен" && title!=="Нет связи с сервисом";
+  $("serviceIndicatorText").textContent=title==="Сервис останавливается…"?"Сервис останавливается":"Сервис не работает";
+  $("serviceDot").className="svc-dot stopping";error("");
+}
+function activeRunBriefs(state){
+  return briefs.filter(b=>b.last_run && state.active_runs.includes(b.last_run.id)).map(b=>b.name);
 }
 async function checkServiceStatus() {
   const status=await api("/api/v1/service");
   $("stopService").hidden=!status.managed;
+  const n=status.active_runs.length;
+  $("serviceActiveRuns").textContent=n?`Идут поиски: ${n}.`:"Активных поисков нет.";
   if(status.status==="stopping")showServiceStopped("Сервис останавливается…");
   return status;
 }
+/* Header popovers: one open at a time, Esc and outside click close it. */
+function closePopups(except){
+  for(const button of document.querySelectorAll(".app-header [aria-controls]")){
+    if(button===except)continue;
+    button.setAttribute("aria-expanded","false");$(button.getAttribute("aria-controls")).hidden=true;
+  }
+}
+for(const button of document.querySelectorAll(".app-header [aria-controls]")){
+  button.addEventListener("click",()=>{
+    const open=button.getAttribute("aria-expanded")!=="true";closePopups(button);
+    button.setAttribute("aria-expanded",String(open));$(button.getAttribute("aria-controls")).hidden=!open;
+  });
+}
+document.addEventListener("click",event=>{if(!event.target.closest(".pop-anchor"))closePopups();});
+document.addEventListener("keydown",event=>{
+  if(event.key!=="Escape")return;
+  const open=document.querySelector('.app-header [aria-expanded="true"]');
+  if(open){closePopups();open.focus();}
+});
+function confirmStop(state){
+  const dialog=$("stopServiceDialog"),names=activeRunBriefs(state),n=state.active_runs.length;
+  $("stopServiceRuns").textContent=n?`Сейчас идут поиски: ${n}. Они будут отменены.`:"Активных поисков нет.";
+  $("stopServiceBriefs").replaceChildren(...names.map(name=>el("li",name)));
+  $("stopServiceBriefs").hidden=!names.length;
+  $("stopServiceConfirm").textContent=n?"Отменить поиски и остановить":"Остановить";
+  return new Promise(resolve=>{
+    const done=value=>{dialog.close();resolve(value);};
+    $("stopServiceConfirm").onclick=()=>done(true);
+    $("stopServiceCancel").onclick=()=>done(false);
+    dialog.oncancel=()=>resolve(false);
+    dialog.showModal();$("stopServiceCancel").focus();
+  });
+}
 $("stopService").onclick=async()=>{
-  const button=$("stopService");button.disabled=true;
+  const button=$("stopService");button.disabled=true;closePopups();
   try {
     let state=await checkServiceStatus();
-    let cancelActive=false;
+    if(!await confirmStop(state))return;
+    let cancelActive=state.active_runs.length>0;
     while(true){
-      if(state.active_runs.length && !cancelActive){
-        cancelActive=confirm(`Сейчас идут поиски: ${state.active_runs.length}. Отменить их и остановить сервис? Найденные результаты сохранятся.`);
-        if(!cancelActive)return;
-      }
       const response=await fetch("/api/v1/service/stop",{
         method:"POST",headers:{"Content-Type":"application/json","X-Job-Search-Instance":state.instance_id},
         body:JSON.stringify({cancel_active:cancelActive}),
       });
       const result=await response.json();
-      if(response.status===409 && !cancelActive){state=await checkServiceStatus();if(state.active_runs.length)continue;}
+      if(response.status===409 && !cancelActive){
+        state=await checkServiceStatus();
+        if(!await confirmStop(state))return;
+        cancelActive=true;continue;
+      }
       if(!response.ok)throw Error(result.detail || "Не удалось остановить сервис");
       showServiceStopped("Сервис останавливается…");
       for(let i=0;i<50;i++){
         await new Promise(resolve=>setTimeout(resolve,300));
         try {await api("/api/v1/service");}
-        catch {$("serviceStoppedTitle").textContent="Сервис остановлен";return;}
+        catch {showServiceStopped("Сервис остановлен");return;}
       }
       $("serviceCheckResult").textContent="Остановка ещё не завершена. Проверьте состояние через ассистента.";
       return;

@@ -45,7 +45,8 @@
     find("accountName").hidden = !status.authenticated;
     find("signOut").hidden = !status.authenticated;
     if (!isLoginPage) {
-      find("authLink").textContent = status.authenticated ? "Аккаунт" : "Войти";
+      find("accountButton").hidden = !status.authenticated;
+      find("authLink").hidden = status.authenticated;
       find("authLink").href = status.login_url || "/auth";
       return;
     }

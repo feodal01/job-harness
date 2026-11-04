@@ -14,7 +14,7 @@
 .settings .source-options,.settings .employment-options{border:0;border-radius:0;padding:0;margin:0}
 .settings #sources,.settings #employment{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center}
 .settings #sources label,.settings #employment label,.settings .check-label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:400;margin:0}
-.settings input[type=checkbox]{margin:0;accent-color:var(--green);flex-shrink:0}
+.settings input[type=checkbox]{margin:0;accent-color:var(--accent);flex-shrink:0}
 .settings .employment-options legend{font-size:12px;font-weight:550;margin:0 0 8px;padding:0}
 .settings .salary-fields{display:grid;grid-template-columns:minmax(150px,210px) 100px 135px;gap:12px;max-width:100%}
 .settings .salary-fields .form-field,.settings .short-fields .form-field,.settings .limit-fields .form-field{margin:0}
@@ -47,13 +47,13 @@
 .settings .location-toggle:hover{background:#f0f4ee}
 .settings .location-city{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:3px 5px 3px 9px;border-radius:4px;background:#edf3ee;font-size:12px}
 .settings .location-city span{overflow-wrap:anywhere}
-.settings .location-city button{font-size:17px;line-height:1.2;padding:0 3px;border:0;background:transparent;color:var(--green)}
+.settings .location-city button{font-size:17px;line-height:1.2;padding:0 3px;border:0;background:transparent;color:var(--accent)}
 .settings .location-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:10;background:white;border:1px solid #cbd5c8;border-radius:7px;box-shadow:0 6px 18px #142b1d18;padding:4px}
 .settings .location-suggestions{max-height:230px;overflow:auto;scroll-padding-top:42px}
 .settings .location-suggestions button{display:block;width:100%;text-align:left;border:0;border-radius:4px;background:white;color:var(--ink);font-size:12px;padding:10px}
 .settings .location-suggestions button:hover,.settings .location-suggestions button:focus-visible{background:#edf3ee}
 .settings .location-suggestions .country-choice{position:sticky;top:0;z-index:1;font-weight:600;border-radius:0;border-bottom:1px solid var(--line)}
-.settings .location-suggestions [aria-selected=true]{color:var(--green);background:#edf3ee}
+.settings .location-suggestions [aria-selected=true]{color:var(--accent);background:#edf3ee}
 .settings .location-dropdown small{margin:8px 6px}
 .settings .location-dropdown>.secondary{font-size:12px;margin:4px}
 .settings .field-label{position:relative;display:flex;align-items:center;gap:6px;min-height:18px;margin-bottom:6px}
@@ -72,7 +72,7 @@
 .settings .token-list{display:contents}
 .settings .token{display:inline-flex;align-items:center;gap:6px;max-width:100%;border-radius:4px;padding:3px 5px 3px 9px;background:#edf3ee;font-size:12px}
 .settings .token>span{overflow-wrap:anywhere}
-.settings .token button{background:transparent;color:var(--green);font-size:17px;padding:0 3px;line-height:1.2}
+.settings .token button{background:transparent;color:var(--accent);font-size:17px;padding:0 3px;line-height:1.2}
 .settings .token-error{flex-basis:100%;color:#b42318}
 #searchForm [aria-invalid="true"],#searchForm .token-editor:has(input[aria-invalid="true"]),#searchForm .location-city-control:has(input[aria-invalid="true"]){border:1px solid #c33232;box-shadow:0 0 0 1px #c33232}
 #searchForm .field-error{display:block;color:#b42318;font-size:12px;margin:6px 0 10px}
