@@ -78,6 +78,7 @@ class VacancyStore(Protocol):
         status: str = "all",
         q: str = "",
         sort: str = "first_seen",
+        source: str = "",
     ) -> dict[str, Any]: ...
 
     def pool_adjacent(
@@ -91,6 +92,7 @@ class VacancyStore(Protocol):
         q: str = "",
         sort: str = "first_seen",
         anchor_time: float | None = None,
+        source: str = "",
     ) -> dict[str, Any]: ...
 
     def pool_item(self, brief_id: str, vacancy_key: str) -> dict[str, Any]: ...

@@ -64,10 +64,11 @@ async def list_pool(
     status: PoolView = "all",
     q: Annotated[str, Query(max_length=200)] = "",
     sort: Literal["first_seen", "newest", "updated"] = "first_seen",
+    source: Annotated[str, Query(max_length=100)] = "",
 ) -> PoolVacancyPage:
     """Страница общего списка вакансий брифа с отбором и пользовательскими статусами."""
     return PoolVacancyPage.model_validate(
-        service.list_vacancies(brief_id, page, page_size, selection, status, q, sort)
+        service.list_vacancies(brief_id, page, page_size, selection, status, q, sort, source)
     )
 
 
@@ -88,10 +89,13 @@ async def adjacent_pool_item(
     q: Annotated[str, Query(max_length=200)] = "",
     sort: Literal["first_seen", "newest", "updated"] = "first_seen",
     anchor_time: Annotated[float | None, Query(ge=0, allow_inf_nan=False)] = None,
+    source: Annotated[str, Query(max_length=100)] = "",
 ) -> VacancyNavigation:
     """Соседняя вакансия и её страница с учётом текущих фильтров и порядка."""
     return VacancyNavigation.model_validate(
-        service.adjacent(brief_id, vacancy_key, direction, page_size, selection, status, q, sort, anchor_time)
+        service.adjacent(
+            brief_id, vacancy_key, direction, page_size, selection, status, q, sort, anchor_time, source
+        )
     )
 
 

@@ -12,11 +12,8 @@ let readerItems = [], readerIndex = -1, readerDrafts = new Map(), pageInfo = nul
   readerPage = 1, readerTotal = 0, readerTransition = false,
   readerController = null, readerChangedPage = false, readerEnds = new Set();
 const pageSize = 50;
-const userStatusNames = {new:"Неразобранная", viewed:"Неразобранная · просмотрена", dismissed:"Неинтересна", applied:"Отправлен отклик", interview:"Собеседование", rejected:"Отказ", offer:"Оффер"};
-const folderNames = {all:"Все вакансии", open:"Неразобранные", dismissed:"Неинтересна", applied:"Отправлен отклик", interview:"Собеседование", rejected:"Отказ", offer:"Оффер"};
 const typeNames = {aggregator:"агрегатор",career_site:"карьерный сайт",ats:"ATS",telegram:"Telegram"};
 const statusNames = {blocked:"Заблокирован",skipped:"Пропущен",queued:"В очереди",running:"Идёт поиск",complete:"Завершён",partial:"Частичный результат",failed:"Ошибка",cancelled:"Остановлен",interrupted:"Прерван"};
-const selectionNames = {accepted:"Подходит",maybe:"Может быть подходит",rejected:"Скрыто"};
 const conditionNames = {query:"Профиль вакансии",profile:"Профиль вакансии",locations:"Места работы",minimum_work_format:"Формат работы",employment:"Занятость",experience_years:"Опыт",salary:"Зарплата",published_after:"Дата публикации",relocation_support:"Помощь с релокацией",excluded_companies:"Исключённые компании",excluded_text:"Исключённые фразы"};
 const checkStatusNames = {accepted:"Подходит",rejected:"Не подходит",unknown:"Не проверено"};
     function el(tag, text, cls) {
@@ -170,12 +167,16 @@ const checkStatusNames = {accepted:"Подходит",rejected:"Не подхо�
         label.append(box, document.createTextNode(" " + source.name + " · " + (typeNames[source.type] || source.type) + blocked));
         $("sources").append(label);
       }
+      $("sourceOptions").replaceChildren(...sources.map(source => Object.assign(el("option"), {value:source.name, label:typeNames[source.type] || source.type})));
+      $("sourceFilter").placeholder = `Все источники · ${sources.length}`;
       updateSource();
       await loadGeography();
     }
-function notify(message) {
-  clearTimeout(toastTimer); $("toast").textContent = message; $("toast").hidden = false;
-  toastTimer = setTimeout(() => { $("toast").hidden = true; }, 3500);
+function notify(message, undo) {
+  clearTimeout(toastTimer); $("toastText").textContent = message; $("toast").hidden = false;
+  $("toastUndo").hidden = !undo;
+  $("toastUndo").onclick = undo ? () => { $("toast").hidden = true; undo(); } : null;
+  toastTimer = setTimeout(() => { $("toast").hidden = true; }, undo ? 8000 : 3500);
 }
 const currentBrief = () => briefs.find(b => b.id === route.briefId);
 const briefPath = (id, folder = "open") => `#/brief/${encodeURIComponent(id)}/folder/${folder}`;
@@ -189,12 +190,14 @@ function parseRoute() {
   if (parts[2] === "history") return {view:"history", briefId, run:params.get("run")};
   return {view:"workspace", briefId, folder:folderNames[parts[3]] ? parts[3] : "open",
     page:Math.max(1, Number.parseInt(params.get("page"),10) || 1), q:(params.get("q") || "").slice(0,200),
-    selection:["all","candidates","accepted","maybe"].includes(params.get("selection")) ? params.get("selection") : "candidates",
-    sort:["first_seen","newest","updated"].includes(params.get("sort")) ? params.get("sort") : "first_seen"};
+    selection:["all","candidates","accepted","maybe","rejected"].includes(params.get("selection")) ? params.get("selection") : "candidates",
+    sort:["first_seen","newest","updated"].includes(params.get("sort")) ? params.get("sort") : "newest",
+    source:(params.get("source") || "").slice(0,100)};
 }
 function pageUrl(updates = {}) {
   const state = {...route, ...updates};
   const params = new URLSearchParams({page:state.page, q:state.q, selection:state.selection, sort:state.sort});
+  if (state.source) params.set("source", state.source);
   return briefPath(state.briefId, state.folder) + "?" + params;
 }
 async function loadOverviews(signal) {
@@ -290,37 +293,89 @@ function renderHome() {
   table.append(body); host.append(table);
 }
 function renderFolders(b) {
-  const hidden = $("hiddenVacancies"); hidden.replaceChildren(); hidden.hidden = !b.hidden_count;
-  if (b.hidden_count) {
-    const a = el("a", "Все, включая скрытые"); a.href = pageUrl({folder:"all",page:1,q:"",selection:"all"});
-    hidden.append(document.createTextNode(`Скрыто по жёстким условиям: ${b.hidden_count.toLocaleString("ru")}. `), a);
-  }
-  const signature = JSON.stringify([b.id,b.funnel,b.hidden_count,route.folder]);
+  const signature = JSON.stringify([b.id,b.funnel,route.folder]);
   if (renderedFolders === signature) return;
   renderedFolders = signature; $("folders").replaceChildren();
   for (const [key,name] of Object.entries(folderNames)) {
     const a = el("a",undefined,route.folder === key ? "active" : "");
     a.href = briefPath(b.id,key); a.dataset.folder = key;
     if (route.folder === key) a.setAttribute("aria-current","page");
-    a.append(el("span",name),el("span",b.funnel[key] || 0)); $("folders").append(a);
+    const count = el("span", (b.funnel[key] || 0).toLocaleString("ru"));
+    if (key === "open" && b.funnel.new) {
+      const fresh = el("b", "+" + b.funnel.new.toLocaleString("ru"), "fresh-count");
+      count.append(" · ", fresh, el("span", " " + plural(b.funnel.new, "новая", "новые", "новых"), "sr"));
+    }
+    a.append(el("span",name),count); $("folders").append(a);
   }
   $("folderTitle").textContent = folderNames[route.folder];
 }
+const activeRun = b => !!b.last_run && ["queued","running"].includes(b.last_run.status);
+function historyHref(b, run) { return `#/brief/${encodeURIComponent(b.id)}/history` + (run ? `?run=${encodeURIComponent(run)}` : ""); }
+function showHidden(event) { event.preventDefault(); location.hash = pageUrl({page:1, selection:"rejected"}); }
 function showSearchState(b) {
-  const r = b.last_run, active = r && ["queued","running"].includes(r.status);
-  $("searchState").textContent = !r ? "Поиск ещё не запускали. Откройте «Поиск и условия», задайте запросы и запустите поиск."
-    : active ? "Поиск идёт · новые вакансии появляются в «Неразобранных»"
-    : `Последний поиск: ${statusNames[r.status]?.toLowerCase() || r.status} · ${new Date(r.created_at*1000).toLocaleString("ru")} `;
-  if (r && ["partial","failed","interrupted"].includes(r.status)) {
-    const a = el("a","Подробнее");a.href=`#/brief/${b.id}/history?run=${r.id}`;$("searchState").append(a);
+  const r = b.last_run, active = activeRun(b), banner = $("searchState");
+  $("runSearch").disabled = active || !b.queries.length;
+  $("runSearch").textContent = active ? "Поиск идёт…" : "Запустить поиск";
+  $("runSearch").title = b.queries.length ? "" : "Сначала добавьте поисковые запросы в условиях";
+  $("runBanner").hidden = !active;
+  banner.hidden = active;
+  if (active) { $("runHistoryLink").href = historyHref(b, r.id); showRunProgress(r); return; }
+  closeStopSearch();
+  banner.replaceChildren(); banner.className = "banner";
+  if (!r) {
+    banner.classList.add("idle");
+    banner.append(el("span", "Поиск ещё не запускали. Нажмите «Запустить поиск» — найденные вакансии появятся в «Неразобранных»."));
+  } else {
+    const tone = {partial:"warn", failed:"error", interrupted:"error", cancelled:"idle"}[r.status];
+    if (tone) banner.classList.add(tone);
+    const title = {complete:"Поиск завершён", partial:"Поиск завершён частично", failed:"Поиск завершился ошибкой",
+      interrupted:"Поиск прерван", cancelled:"Поиск остановлен"}[r.status] || statusNames[r.status] || r.status;
+    banner.append(el("b", `${title} ${fullDate(r.created_at)}`));
+    if (["partial","failed","interrupted"].includes(r.status)) {
+      const again = el("button", "Запустить поиск снова", "text-button"); again.type = "button";
+      again.onclick = () => startSearch(b, again); banner.append(again);
+    }
   }
-  $("stopSearch").hidden = !active;
-
+  if (b.hidden_count) {
+    banner.append(el("span", `Скрыто по обязательным условиям: ${b.hidden_count.toLocaleString("ru")}.`));
+    if (route.selection !== "rejected") {
+      const show = el("a", "Показать скрытые"); show.href = pageUrl({page:1, selection:"rejected"}); show.onclick = showHidden; banner.append(show);
+    }
+  }
+  if (r) { const history = el("a", "История поиска", "push"); history.href = historyHref(b, r.id); banner.append(history); }
+}
+let runProgressRequest = 0;
+async function showRunProgress(summary) {
+  const request = ++runProgressRequest;
+  try {
+    const run = await api(`/api/v1/runs/${encodeURIComponent(summary.id)}`);
+    if (request !== runProgressRequest) return;
+    const states = Object.values(run.sources || {}), total = states.length;
+    const count = (...statuses) => states.filter(state => statuses.includes(state.status)).length;
+    const done = count("complete","partial","skipped","blocked","cancelled"), failed = count("failed","interrupted");
+    const parts = [[`${done} из ${total}`, ` ${plural(total, "источника", "источников", "источников")} готовы`]];
+    if (count("running")) parts.push([count("running"), " идут"]);
+    if (count("queued")) parts.push([count("queued"), " в очереди"]);
+    if (failed) parts.push([failed, " с ошибкой", "err"]);
+    const host = $("runProgress"); host.replaceChildren();
+    if (!total) { host.append(el("span", "Готовим источники…")); }
+    for (const [number, text, cls] of parts) { const span = el("span", undefined, cls); span.append(el("b", String(number)), text); host.append(span); }
+    host.append(el("span", `Запущен ${fullDate(run.created_at)}`));
+  } catch { /* the banner keeps the last known progress */ }
+}
+function closeStopSearch() { $("stopSearch").setAttribute("aria-expanded","false"); $("stopSearchPopover").hidden = true; }
+async function startSearch(b, button) {
+  button.disabled = true;
+  try {
+    await api("/api/v1/runs", "POST", {brief_id:b.id, ...searchOptionsForBrief(b)});
+    notify(`Поиск «${b.name}» запущен`);
+    await refresh().catch(handleRefreshError);
+  } catch (e) { error(e.message); button.disabled = false; }
 }
 function navigate() {
   const next = parseRoute(), previous = route;
   route = next; viewVersion++; requestVersion++; refreshController?.abort(); clearTimeout(searchTimer);
-  error(""); closeVacancy();
+  error(""); closeVacancy(); closePopups();
   for (const id of ["home","workspace","settings","history"]) $(id+"View").hidden = id !== route.view;
   if (route.briefId && !currentBrief()) {
     error("Бриф не найден. Вернитесь к списку брифов.");
@@ -333,14 +388,15 @@ function navigate() {
   if (route.view === "settings") fillSettings(b);
   if (route.view === "workspace") {
     $("briefTitle").textContent = b.name;
-    $("briefSummary").textContent = b.queries.join(" · ") || "Поиск по условиям брифа";
+    renderBriefSummary(b);
     $("vacancySearch").value = route.q; $("selectionView").value = route.selection; $("sortView").value = route.sort;
+    $("sourceFilter").value = sources.find(s => s.id === route.source)?.name || route.source;
     renderFolders(b); showSearchState(b);
-    // Keep card nodes for page-only navigation until the replacement has arrived.
+    // Keep row nodes for page-only navigation until the replacement has arrived.
     if (previous.briefId !== route.briefId || previous.folder !== route.folder || previous.view !== route.view) {
       $("results").replaceChildren(el("div","Загружаем вакансии…","empty"));
       renderedCards = null; renderedPagination = null;
-      $("pagination").hidden = true; $("paginationBottom").hidden = true;
+      $("pagination").hidden = true;
     }
   }
   if (route.view === "history") $("historyTitle").textContent = "История · " + b.name;
@@ -353,33 +409,85 @@ function salaryText(v) {
   if (!s.from && !s.to) return "";
   return [s.from ? "от " + Number(s.from).toLocaleString("ru") : "", s.to ? "до " + Number(s.to).toLocaleString("ru") : "", s.currencyCode || "", s.gross === false ? "на руки" : s.gross === true ? "до налогов" : ""].filter(Boolean).join(" ");
 }
+function renderBriefSummary(b) {
+  const summary = $("briefSummary"); summary.replaceChildren();
+  if (b.queries.length) summary.append(`Запросы: ${b.queries.join(" · ")}`);
+  const chosen = b.search?.sources || [];
+  const sourceText = !chosen.length || chosen.length === sources.length ? `все, ${sources.length}` : chosen.map(id => sourceName(id)).join(", ");
+  summary.append(`${b.queries.length ? " · " : ""}Источники: ${sourceText}`);
+}
+const sourceName = id => sources.find(s => s.id === id)?.name || id;
+function placeText(v) {
+  const place = v.locations?.find(l => !l.excluded && (l.city || l.country));
+  const city = place?.city || place?.country || v.location || "";
+  const format = v.locations?.find(l => l.format)?.format || v.work_formats?.[0];
+  return {city, format:workFormatNames[format] || ""};
+}
+const openStatuses = ["new","viewed"];
+function stagePill(status) { return el("span", userStatusNames[status] || status, "pill stage-" + status); }
+async function quickStage(v, status, buttons) {
+  for (const button of buttons) button.disabled = true;
+  const briefId = route.briefId, previous = v.user_status;
+  const save = next => api(`/api/v1/briefs/${briefId}/vacancies/${encodeURIComponent(v.key)}`, "PATCH", {status:next, note:v.note || ""});
+  try {
+    await save(status);
+    notify(`«${v.title}» → ${userStatusNames[status]}`, async () => {
+      try { await save(previous); notify(`Этап «${v.title}» возвращён`); }
+      catch (e) { error("Не удалось отменить: " + e.message); }
+      refresh().catch(handleRefreshError);
+    });
+    await refresh().catch(handleRefreshError);
+  } catch (e) { error("Не удалось сохранить этап: " + e.message); for (const button of buttons) button.disabled = false; }
+}
+function vacancyRow(v) {
+  const row = el("div", undefined, "r" + (v.user_status === "new" ? " fresh" : "")); row.setAttribute("role","row"); row.dataset.id = v.key;
+  const cell = (cls = "") => { const c = el("div", undefined, "cell " + cls); c.setAttribute("role","cell"); row.append(c); return c; };
+  const company = v.company?.name || "Компания не указана";
+  const main = cell(), title = el("button", v.title, "vac-btn"); title.type = "button"; title.onclick = () => openVacancy(v.key);
+  const meta = el("div", undefined, "r-meta"); meta.append(el("span", company));
+  const match = selectionLabel(v.selection); if (match) meta.append(el("span", match.text, "pill " + match.cls));
+  if (v.user_status === "new") meta.append(el("span", "Новая", "pill new"));
+  main.append(title, meta);
+  const place = placeText(v), where = cell();
+  where.append(el("div", place.city || "Не указано", place.city ? "" : "muted")); if (place.format) where.append(el("div", place.format, "t2"));
+  const salary = salaryLine(v.salary);
+  cell().append(el("span", salary || "Не указана", salary ? "has-salary" : "no-salary"));
+  const origin = cell(); origin.append(el("div", sourceName(v.source)), el("div", shortDate(v.first_seen), "t2"));
+  cell().append(stagePill(v.user_status));
+  const quick = cell("end");
+  if (openStatuses.includes(v.user_status)) {
+    const box = el("span", undefined, "qb"), yes = el("button", "Откликнулся"), no = el("button", "Неинтересна");
+    yes.type = no.type = "button";
+    yes.setAttribute("aria-label", `Откликнулся: ${v.title}, ${company}`); no.setAttribute("aria-label", `Неинтересна: ${v.title}, ${company}`);
+    yes.onclick = () => quickStage(v, "applied", [yes, no]); no.onclick = () => quickStage(v, "dismissed", [yes, no]);
+    box.append(yes, no); quick.append(box);
+  } else {
+    quick.append(el("span", "—", "muted"), el("span", "этап уже выбран", "sr"));
+  }
+  return row;
+}
 function showCards(items) {
-  const signature = JSON.stringify([route.briefId,route.folder,route.page,route.q,route.selection,route.sort,items]);
+  const signature = JSON.stringify([route.briefId,route.folder,route.page,route.q,route.selection,route.sort,route.source,items]);
   if (renderedCards === signature) return;
-  const cards = [...$("results").querySelectorAll("article")];
-  const anchor = cards.find(c => c.getBoundingClientRect().bottom>0 && c.getBoundingClientRect().top<innerHeight);
+  const rows = [...$("results").querySelectorAll(".r[data-id]")];
+  const anchor = rows.find(c => c.getBoundingClientRect().bottom>0 && c.getBoundingClientRect().top<innerHeight);
   const anchorTop = anchor?.getBoundingClientRect().top;
+  const focusedId = document.activeElement?.closest?.(".r[data-id]")?.dataset.id;
   renderedCards = signature; pageItems = items; $("results").replaceChildren();
   if (!items.length) {
+    const filtered = route.q || route.source || route.selection !== "candidates";
     const empty = el("div",undefined,"empty");
-    empty.append(el("strong",route.q || route.selection !== "candidates" ? "Ничего не найдено" : "В этой папке пока нет вакансий"));
-    empty.append(el("p",route.q || route.selection !== "candidates" ? "Измените поисковый запрос или фильтр соответствия." : route.folder === "open" ? "Новые находки появятся здесь после поиска." : "Откройте вакансию и выберите нужный этап."));
+    empty.append(el("strong", filtered ? "Ничего не найдено" : "В этой папке пока нет вакансий"));
+    empty.append(el("p", filtered ? "Измените поиск, источник или фильтр соответствия." : route.folder === "open" ? "Новые находки появятся здесь после поиска." : "Откройте вакансию и выберите этап."));
     $("results").append(empty); return;
   }
-  for (const v of items) {
-    const card = el("article",undefined,"card");card.dataset.id=v.key;
-    card.onclick=e=>{if(!e.target.closest("a,button,input,select,textarea")&&!window.getSelection()?.toString())openVacancy(v.key);};
-    const top = el("div",undefined,"card-top"), title = el("button",v.title,"vacancy-link");title.onclick=()=>openVacancy(v.key);
-    top.append(title,el("span",userStatusNames[v.user_status],"badge "+v.user_status));card.append(top);
-    card.append(el("div",[v.company?.name,v.location].filter(Boolean).join(" · ") || "Компания и регион не указаны","meta"));
-    appendCompanySite(card, v.company);
-    if (salaryText(v)) card.append(el("div",salaryText(v),"salary"));
-    if (v.summary || v.description) card.append(el("p",(v.summary || v.description).replace(/\s+/g," ").slice(0,280),"snippet"));
-    const footer=el("div",undefined,"card-footer");
-    footer.append(el("span",[selectionNames[v.selection?.status],sources.find(s=>s.id===v.source)?.name || v.source].filter(Boolean).join(" · ")));
-    const open=el("button","Открыть вакансию","secondary");open.onclick=()=>openVacancy(v.key);footer.prepend(open);card.append(footer);$("results").append(card);
+  const head = el("div", undefined, "r h"); head.setAttribute("role","row");
+  for (const [text, cls] of [["Вакансия"],["Место"],["Зарплата"],["Источник, дата"],["Этап"],["Быстрый этап","end"]]) {
+    const h = el("span", text, cls); h.setAttribute("role","columnheader"); head.append(h);
   }
-  if(anchor){const updated=[...$("results").querySelectorAll("article")].find(c=>c.dataset.id===anchor.dataset.id);if(updated)window.scrollBy(0,updated.getBoundingClientRect().top-anchorTop);}
+  $("results").append(head, ...items.map(vacancyRow));
+  if (focusedId) $("results").querySelector(`.r[data-id="${CSS.escape(focusedId)}"] .vac-btn`)?.focus({preventScroll:true});
+  if(anchor){const updated=[...$("results").querySelectorAll(".r[data-id]")].find(c=>c.dataset.id===anchor.dataset.id);if(updated)window.scrollBy(0,updated.getBoundingClientRect().top-anchorTop);}
 }
 function showPagination(data) {
   pageInfo={page:data.page,pages:data.pages,total:data.total};
@@ -387,10 +495,10 @@ function showPagination(data) {
     readerTotal=data.total;readerEnds.clear();
     if(!$("vacancyStage")?.disabled)updateReaderNavigation();
   }
-  const signature=JSON.stringify([route.briefId,route.folder,route.q,route.selection,route.sort,data.total,data.page,data.pages]);
+  const signature=JSON.stringify([route.briefId,route.folder,route.q,route.selection,route.sort,route.source,data.total,data.page,data.pages]);
   $("folderCount").textContent = `Вакансий: ${data.total.toLocaleString("ru")}`;
-  for(const id of ["pagination","paginationBottom"]){
-    const nav=$(id); nav.hidden=false;if(renderedPagination===signature)continue;nav.replaceChildren();
+  for(const id of ["pagination"]){
+    const nav=$(id); nav.hidden=data.pages<=1&&!data.total;if(renderedPagination===signature)continue;nav.replaceChildren();
     const prev=el("button","← Назад","secondary"), next=el("button","Далее →","secondary");
     prev.disabled=data.page<=1;next.disabled=data.page>=data.pages;
     prev.onclick=()=>{location.hash=pageUrl({page:data.page-1});};next.onclick=()=>{location.hash=pageUrl({page:data.page+1});};
@@ -409,7 +517,7 @@ function closeVacancy() {
   const selectedKey=selectedVacancy?.key;
   if($("vacancyDialog").open)$("vacancyDialog").close();
   if(readerChangedPage && route.view==="workspace"){
-    [...$("results").querySelectorAll("article")].find(c=>c.dataset.id===selectedKey)?.scrollIntoView({block:"center"});
+    [...$("results").querySelectorAll(".r[data-id]")].find(c=>c.dataset.id===selectedKey)?.scrollIntoView({block:"center"});
   }
   selectedVacancy=null;readerItems=[];readerIndex=-1;readerDrafts.clear();readerChangedPage=false;readerEnds.clear();
 }
@@ -455,7 +563,7 @@ async function adjacentVacancy(direction) {
   const feedback=$("vacancyFooter").querySelector(".action-feedback");
   if(feedback)feedback.textContent="";
   try{
-    const params=new URLSearchParams({direction:direction>0?"next":"previous",page_size:pageSize,status:route.folder,selection:route.selection,q:route.q,sort:route.sort});
+    const params=new URLSearchParams({direction:direction>0?"next":"previous",page_size:pageSize,status:route.folder,selection:route.selection,q:route.q,sort:route.sort,source:route.source});
     params.set("anchor_time",readerItems[readerIndex].time);
     const result=await api(`/api/v1/briefs/${route.briefId}/vacancies/${encodeURIComponent(readerItems[readerIndex].key)}/adjacent?${params}`,"GET",undefined,readerController.signal);
     if(!valid())return;
@@ -720,7 +828,21 @@ function backToBrief(){location.hash=route.briefId?briefPath(route.briefId):"#/b
 $("settingsBack").onclick=backToBrief;$("settingsCancel").onclick=backToBrief;$("historyBack").onclick=backToBrief;
 $("openSearch").onclick=()=>{location.hash=`#/brief/${route.briefId}/settings`;};
 $("openHistory").onclick=()=>{location.hash=`#/brief/${route.briefId}/history`;};
-$("stopSearch").onclick=async()=>{const b=currentBrief();$("stopSearch").disabled=true;try{await api(`/api/v1/runs/${b.last_run.id}/cancel`,"POST");await refresh().catch(handleRefreshError);}catch(e){error(e.message);}finally{$("stopSearch").disabled=false;}};
+$("runSearch").onclick=()=>{const b=currentBrief();if(b)startSearch(b,$("runSearch"));};
+$("stopSearchCancel").onclick=()=>{closeStopSearch();$("stopSearch").focus();};
+$("stopSearchConfirm").onclick=async()=>{
+  const b=currentBrief(),button=$("stopSearchConfirm");button.disabled=true;
+  try{await api(`/api/v1/runs/${b.last_run.id}/cancel`,"POST");closeStopSearch();notify("Поиск остановлен. Найденные вакансии остались в брифе.");await refresh().catch(handleRefreshError);}
+  catch(e){error(e.message);}finally{button.disabled=false;}
+};
+function applySourceFilter(){
+  const text=$("sourceFilter").value.trim(),match=sources.find(s=>s.name.toLowerCase()===text.toLowerCase()||s.id===text);
+  const source=text?match?.id:"";
+  if(source===undefined)return;
+  if(source!==route.source)location.hash=pageUrl({page:1,source});
+}
+$("sourceFilter").addEventListener("change",applySourceFilter);
+$("sourceFilter").addEventListener("input",()=>{if(!$("sourceFilter").value)applySourceFilter();else if(sources.some(s=>s.name===$("sourceFilter").value))applySourceFilter();});
 $("selectionView").onchange=()=>{location.hash=pageUrl({page:1,selection:$("selectionView").value});};
 $("sortView").onchange=()=>{location.hash=pageUrl({page:1,sort:$("sortView").value});};
 $("vacancySearch").oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{location.hash=pageUrl({page:1,q:$("vacancySearch").value.trim()});},300);};
@@ -755,7 +877,7 @@ async function refresh() {
   const b=currentBrief();if(route.view==="settings"){updateStart();return;}if(!b)return;
   if(route.view==="workspace"){
     renderFolders(b);showSearchState(b);
-    const params=new URLSearchParams({page:route.page,page_size:pageSize,status:route.folder,selection:route.selection,q:route.q,sort:route.sort});
+    const params=new URLSearchParams({page:route.page,page_size:pageSize,status:route.folder,selection:route.selection,q:route.q,sort:route.sort,source:route.source});
     $("results").setAttribute("aria-busy","true");
     const data=await api(`/api/v1/briefs/${b.id}/vacancies?${params}`,"GET",undefined,signal);if(!valid())return;
     const previousPage=$("pagination").dataset.page;
@@ -800,12 +922,12 @@ async function checkServiceStatus() {
 }
 /* Header popovers: one open at a time, Esc and outside click close it. */
 function closePopups(except){
-  for(const button of document.querySelectorAll(".app-header [aria-controls]")){
+  for(const button of document.querySelectorAll(".pop-anchor > [aria-controls]")){
     if(button===except)continue;
     button.setAttribute("aria-expanded","false");$(button.getAttribute("aria-controls")).hidden=true;
   }
 }
-for(const button of document.querySelectorAll(".app-header [aria-controls]")){
+for(const button of document.querySelectorAll(".pop-anchor > [aria-controls]")){
   button.addEventListener("click",()=>{
     const open=button.getAttribute("aria-expanded")!=="true";closePopups(button);
     button.setAttribute("aria-expanded",String(open));$(button.getAttribute("aria-controls")).hidden=!open;
@@ -814,7 +936,7 @@ for(const button of document.querySelectorAll(".app-header [aria-controls]")){
 document.addEventListener("click",event=>{if(!event.target.closest(".pop-anchor"))closePopups();});
 document.addEventListener("keydown",event=>{
   if(event.key!=="Escape")return;
-  const open=document.querySelector('.app-header [aria-expanded="true"]');
+  const open=document.querySelector('.pop-anchor > [aria-expanded="true"]');
   if(open){closePopups();open.focus();}
 });
 function confirmStop(state){

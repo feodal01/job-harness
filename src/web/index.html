@@ -2,11 +2,12 @@
 <html lang="ru">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Поиск работы · Мои брифы</title><link rel="stylesheet" href="/assets/tokens.css?v=20261104-rebuild">
-<link rel="stylesheet" href="/assets/app.css?v=20261105-login">
+<link rel="stylesheet" href="/assets/app.css?v=20261105-funnel">
 <link rel="stylesheet" href="/assets/brief-form.css?v=20261104-rebuild">
 <script defer src="/assets/token-editor.js?v=20261104-rebuild"></script>
 <script defer src="/assets/location-editor.js?v=20261104-rebuild"></script>
-<script defer src="/assets/app.js?v=20261104-rebuild"></script>
+<script defer src="/assets/vocabulary.js?v=20261105-funnel"></script>
+<script defer src="/assets/app.js?v=20261105-funnel"></script>
 <script defer src="/assets/auth.js?v=20261105-login"></script></head>
 <body>
 <header class="app-header"><a href="#/briefs" class="brand">Поиск работы</a><nav class="actions" aria-label="Основная навигация"><a id="navBriefs" href="#/briefs" class="nav-link" aria-current="page">Мои брифы</a><div class="pop-anchor"><button id="serviceIndicator" type="button" class="svc" aria-haspopup="dialog" aria-expanded="false" aria-controls="servicePopover"><span id="serviceDot" class="svc-dot" aria-hidden="true"></span><span id="serviceIndicatorText">Сервис работает</span></button><div id="servicePopover" class="popover" role="dialog" aria-label="Сервис поиска" hidden><p><b id="servicePopoverTitle">Сервис поиска работает</b></p><p id="serviceActiveRuns" class="muted">Активных поисков нет.</p><button id="stopService" type="button" class="secondary" hidden>Остановить сервис…</button></div></div><div class="pop-anchor"><button id="accountButton" type="button" class="secondary acct" aria-haspopup="menu" aria-expanded="false" aria-controls="accountMenu" hidden><span id="accountName"></span><span aria-hidden="true">▾</span></button><div id="accountMenu" class="menu" role="menu" aria-label="Аккаунт" hidden><button id="signOut" type="button" role="menuitem">Выйти</button></div></div></nav></header>
@@ -20,7 +21,7 @@
   <p id="serviceCheckResult" class="muted" role="status"></p>
 </section>
 <main id="mainContent">
-<div id="error" role="alert" hidden></div><div id="toast" role="status" hidden></div>
+<div id="error" role="alert" hidden></div><div id="toast" class="toast" role="status" hidden><span id="toastText"></span><button id="toastUndo" type="button" hidden>Отменить</button></div>
 <section id="homeView" aria-labelledby="homeTitle">
   <div class="page-heading"><div><h1 id="homeTitle">Мои брифы</h1><p class="muted">Условия поиска, найденные вакансии и отклики — для каждого направления.</p></div><a class="button" href="#/briefs/new">+ Новый бриф</a></div>
   <div id="briefTools" class="brief-tools" hidden><div class="search-field"><label for="briefSearch">Найти бриф</label><input id="briefSearch" type="search" maxlength="200" placeholder="Название или запрос"></div></div>
@@ -29,17 +30,17 @@
 </section>
 <section id="workspaceView" hidden>
   <a href="#/briefs" class="back">← Все брифы</a>
-  <div class="page-heading"><div><h1 id="briefTitle"></h1><p id="briefSummary" class="muted"></p></div><div class="actions"><button id="openSearch">Поиск и условия</button><button id="openHistory" class="secondary">История поиска</button></div></div>
-  <div class="search-state"><span id="searchState"></span><button id="stopSearch" class="secondary" hidden>Остановить поиск</button></div>
+  <div class="page-heading"><div><h1 id="briefTitle"></h1><p id="briefSummary" class="muted"></p></div><div class="actions"><button id="runSearch" type="button">Запустить поиск</button><button id="openSearch" type="button" class="secondary">Условия</button><button id="openHistory" type="button" class="secondary">История поиска</button></div></div>
+  <div id="searchState" class="banner" role="status" hidden></div>
+  <div id="runBanner" class="run-banner" role="status" hidden><span class="pulse" aria-hidden="true"></span><div class="run-banner-text"><b>Поиск идёт · новые вакансии появляются в «Неразобранных» с меткой «Новая»</b><div id="runProgress" class="run-src"></div><div class="ibar" aria-hidden="true"><i></i></div></div><a id="runHistoryLink" href="#">История поиска</a><span class="pop-anchor stop-anchor"><button id="stopSearch" type="button" class="secondary" aria-haspopup="dialog" aria-expanded="false" aria-controls="stopSearchPopover">Остановить поиск…</button><div id="stopSearchPopover" class="popover stop-pop" role="dialog" aria-labelledby="stopSearchTitle" hidden><p><b id="stopSearchTitle">Остановить поиск?</b></p><p class="muted">Найденные вакансии останутся в брифе. Источники в очереди будут пропущены, запуск получит статус «Остановлен».</p><div class="actions"><button id="stopSearchConfirm" type="button" class="danger-button">Остановить поиск</button><button id="stopSearchCancel" type="button" class="secondary">Продолжить поиск</button></div></div></span></div>
   <div class="workspace"><nav id="folders" aria-label="Папки воронки"></nav>
-  <section class="vacancies"><div class="list-heading"><h2 id="folderTitle"></h2><span id="folderCount" class="muted"></span></div>
+  <section class="vacancies" aria-labelledby="folderTitle"><div class="list-heading"><h2 id="folderTitle"></h2><span id="folderCount" class="muted"></span></div>
   <div class="list-filters"><div class="search-field"><label for="vacancySearch">Поиск в папке</label><input id="vacancySearch" type="search" maxlength="200" placeholder="Название или компания"></div>
-  <div><label for="selectionView">Соответствие брифу</label><select id="selectionView"><option value="candidates">Подходит и может быть подходит</option><option value="accepted">Подходит</option><option value="maybe">Может быть подходит</option><option value="all">Все, включая скрытые</option></select></div>
-  <div><label for="sortView">Порядок</label><select id="sortView"><option value="first_seen">Сначала найденные раньше</option><option value="newest">Сначала новые</option><option value="updated">Последние изменения этапа</option></select></div></div>
-  <p id="hiddenVacancies" class="muted hidden-vacancies" hidden></p>
+  <div><label for="selectionView">Соответствие брифу</label><select id="selectionView"><option value="candidates">Подходит и может быть подходит</option><option value="accepted">Подходит</option><option value="maybe">Может быть подходит</option><option value="rejected">Скрытые</option><option value="all">Все, включая скрытые</option></select></div>
+  <div class="combo"><label for="sourceFilter">Источник</label><input id="sourceFilter" type="search" list="sourceOptions" autocomplete="off" placeholder="Все источники"><span class="caret" aria-hidden="true">▾</span><datalist id="sourceOptions"></datalist></div>
+  <div><label for="sortView">Порядок</label><select id="sortView"><option value="newest">Сначала новые</option><option value="first_seen">Сначала найденные раньше</option><option value="updated">Последние изменения этапа</option></select></div></div>
+  <div class="tw0"><div id="results" class="tb" role="table" aria-labelledby="folderTitle"></div></div>
   <nav id="pagination" class="pagination" aria-label="Страницы вакансий" hidden></nav>
-  <div id="results" class="cards"></div>
-  <nav id="paginationBottom" class="pagination" aria-label="Страницы вакансий внизу" hidden></nav>
   </section></div>
 </section>
 <section id="settingsView" class="settings" hidden>

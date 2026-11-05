@@ -136,3 +136,19 @@ async def test_edit_brief_with_historical_unregistered_source(tmp_path):
         assert response.status_code == 200
         item = (await client.get(f"/api/v1/briefs/{b['id']}/vacancies/retired_source:one")).json()
         assert item["selection"]["status"] == "accepted"
+
+
+async def test_funnel_filters_by_source_and_navigation_keeps_the_filter(tmp_path):
+    store = Database(tmp_path / "test.sqlite")
+    b = store.briefs.save_brief(BriefInput(name="Sources"))
+    r = store.runs.create_run(b["id"], {}, {})
+    for n, source in enumerate(["hh_ru", "getmatch", "hh_ru", "getmatch"]):
+        store.vacancies.save_vacancy(r["id"], b["id"], Vacancy(id=str(n), title="QA", url="u"), source=source)
+    store.close()
+    async with client_for(tmp_path, lambda r: httpx.Response(200)) as client:
+        base = f"/api/v1/briefs/{b['id']}/vacancies"
+        page = (await client.get(base, params={"source": "getmatch"})).json()
+        assert [v["key"] for v in page["items"]] == ["getmatch:1", "getmatch:3"] and page["total"] == 2
+        assert (await client.get(base)).json()["total"] == 4
+        step = (await client.get(f"{base}/getmatch:1/adjacent", params={"source": "getmatch"})).json()
+        assert step["key"] == "getmatch:3" and step["page"]["total"] == 2
