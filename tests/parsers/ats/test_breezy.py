@@ -81,7 +81,7 @@ def test_source_salary_preserved_without_fabricating_currency_and_country():
     assert first.locations[0].country is None
     assert first.work_formats == []
     assert first.employment == ["full_time"]
-    assert first.salary == {}
+    assert first.salary == []
 
 
 def test_explicit_empty_state_and_malformed_card():

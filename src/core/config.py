@@ -13,6 +13,7 @@ from src.auth.settings import AuthSettings
 from src.parsers.aggregators.getmatch.settings import GetmatchSettings
 from src.parsers.aggregators.hh.settings import HHSettings
 from src.runtime.config import RuntimeSettings
+from src.selection.salary.settings import SalaryRange
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SETTINGS = Path(__file__).resolve().parents[1] / "settings.toml"
@@ -40,6 +41,8 @@ class Settings(BaseSettings):
     second_chance: bool = False
     run_timeout_seconds: float = Field(default=900, gt=0)
     max_active_runs: int = Field(default=3, ge=1, le=10)
+    # Tails of open salary records, k₁ and k₂ (docs/brief-parameters/salary-minimum-check.md).
+    salary_range: SalaryRange = Field(default_factory=SalaryRange)
 
     @classmethod
     def settings_customise_sources(

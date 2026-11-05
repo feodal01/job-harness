@@ -10,6 +10,7 @@ from src.enrichment.registry import Enrichment
 from src.geography.catalog import GeographyCatalog
 from src.models.brief import BriefInput
 from src.parsers.interfaces import SourceAdapter
+from src.selection.salary.settings import SalaryRange
 
 
 class BriefService:
@@ -21,11 +22,13 @@ class BriefService:
         sources: dict[str, SourceAdapter],
         geography: GeographyCatalog,
         enrichment: Enrichment,
+        salary_range: SalaryRange,
     ) -> None:
         self.briefs, self.vacancies, self.transaction = briefs, vacancies, transaction
         self.sources = sources
         # The application's single geography catalog and the enrichment built on it.
         self.geography, self.enrichment = geography, enrichment
+        self.salary_range = salary_range
 
     def normalize(self, brief: BriefInput) -> BriefInput:
         places = brief.filters.locations
@@ -83,6 +86,12 @@ class BriefService:
         with self.transaction():
             saved = self.briefs.save_brief(brief, brief_id)
             reevaluate_pool(
-                self.vacancies, brief_id, brief.filters, tuple(brief.queries), self.sources, self.enrichment
+                self.vacancies,
+                brief_id,
+                brief.filters,
+                tuple(brief.queries),
+                self.sources,
+                self.enrichment,
+                self.salary_range,
             )
         return saved

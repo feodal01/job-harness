@@ -8,6 +8,7 @@ of the same `location_id` in the same vacancy (`_join`, §11).
 
 from collections import defaultdict
 
+from src.enrichment.contract import FactUpdate
 from src.enrichment.staged import PlaceGeography, RawPlace, StagedEnricher
 from src.geography.catalog import GeographyCatalog
 from src.models.filters import VacancyPlace, WorkFormat
@@ -15,17 +16,26 @@ from src.models.vacancy import Vacancy
 from src.parsers.aggregators.getmatch.enrichment.formats import FORMATS, place_format
 from src.parsers.aggregators.getmatch.enrichment.geography import place_geography
 from src.parsers.aggregators.getmatch.enrichment.relocation import RELOCATION, place_relocation
+from src.parsers.aggregators.getmatch.enrichment.salary import salary_records
 
 KNOWN_CODES = frozenset(FORMATS) | frozenset(RELOCATION)
 
 
 class GetmatchEnricher(StagedEnricher):
     id = "getmatch"
-    version = "3"
+    version = "4"
+    facts = frozenset({"locations", "work_formats", "salary"})
     _places_field = "location_requirements"
 
     def __init__(self, catalog: GeographyCatalog) -> None:
         self.catalog = catalog
+
+    def enrich(self, vacancy: Vacancy) -> list[FactUpdate]:
+        updates = super().enrich(vacancy)
+        records = salary_records(vacancy.source_data, self.id, self.version)
+        if records is not None:
+            updates.append(FactUpdate("salary", records, field="salary_*"))
+        return updates
 
     def _raw_places(self, vacancy: Vacancy) -> list[RawPlace]:
         records = vacancy.source_data.get("location_requirements")

@@ -4,6 +4,7 @@ import re
 from urllib.parse import urlsplit
 
 from src.models.company import Company
+from src.models.salary import legacy_salary  # Transitional until the ATS stages.
 from src.models.vacancy import Vacancy
 from src.parsers.ats.common import (
     BoardSearch,
@@ -95,7 +96,7 @@ class RecruiteeSearch(BoardSearch):
                     published_at=published,
                     description=rich.text,
                     description_html=rich.html,
-                    salary=salary,
+                    salary=legacy_salary(salary, hidden=False),
                     source_data=job,
                 )
             )

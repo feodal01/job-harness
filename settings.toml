@@ -6,6 +6,13 @@ log_backup_count = 5
 run_timeout_seconds = 900
 max_active_runs = 3
 
+# k₁ and k₂ of the salary check: of the ranges in the corpus, 75% have top ≥ exact·bottom and 25% ≥ possible·bottom.
+# Recompute: uv run python scripts/salary_coefficients.py (prints the values; save them here by hand).
+[salary_range]
+exact = 1.26
+possible = 1.79
+measured_on = 2026-11-04
+
 [sources.hh_ru]
 max_items_per_query = 50
 max_pages_per_query = 2

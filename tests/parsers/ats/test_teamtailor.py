@@ -41,7 +41,7 @@ def test_real_native_and_custom_boards(company, count, title, location, formats,
     assert first.location == location
     assert first.work_formats == formats
     assert first.locations == []  # Labels are not structured eligibility or countries.
-    assert first.salary == {} and first.employment == []
+    assert first.salary == [] and first.employment == []
     assert len({v.id for v in page.vacancies}) == count
     assert all(urlsplit(v.url).hostname == adapter.resource for v in page.vacancies)
 

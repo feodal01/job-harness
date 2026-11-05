@@ -191,20 +191,6 @@ def _vacancy(item: dict) -> Vacancy:
     profile = urljoin(BASE, company["url"]) if company.get("url") else None
     locations = item.get("location_items") or []
     rich = parse_rich_text(item.get("offer_description") or "", base_url=urljoin(BASE, item["url"]))
-    taxes = item.get("salary_taxes")
-    salary_text = item.get("salary_description") or ""
-    period = next(
-        (
-            value
-            for pattern, value in [
-                (r"/[^а-яa-z]*мес|per month|/month", "month"),
-                (r"/[^а-яa-z]*год|per year|/year", "year"),
-                (r"/[^а-яa-z]*час|per hour|/hour", "hour"),
-            ]
-            if re.search(pattern, salary_text, re.I)
-        ),
-        None,
-    )
     vacancy = Vacancy(
         id=str(item["id"]),
         title=item["position"],
@@ -217,14 +203,6 @@ def _vacancy(item: dict) -> Vacancy:
         if company
         else None,
         location=", ".join(v["label"] for v in locations if v.get("label")) or None,
-        salary={
-            "from": item.get("salary_display_from"),
-            "to": item.get("salary_display_to"),
-            "currencyCode": item.get("salary_currency"),
-            "period": period,
-            "gross": taxes == "gross" if taxes in {"net", "gross"} else None,
-        },
-        salary_hidden=bool(item.get("salary_hidden")),
         published_at=item.get("published_at"),
         work_formats=list(
             dict.fromkeys(
@@ -239,8 +217,15 @@ def _vacancy(item: dict) -> Vacancy:
             for k in (
                 "location_requirements",
                 "location_items",
-                "salary_description",
+                # Salary is a fact of the Getmatch normalizer (getmatch/enrichment/salary.py).
+                "salary_display_from",
+                "salary_display_to",
+                "salary_currency",
                 "salary_taxes",
+                "salary_hidden",
+                "salary_is_total",
+                "salary_by_our_version",
+                "salary_description",
                 "offer_type",
             )
             if k in item

@@ -31,7 +31,8 @@ def test_listing_real_response_preserves_employer_and_pagination():
     assert first.company.name == "MANGO FZCO"
     assert first.company.site_url == "https://windi.com"
     assert first.company.profile_url == "https://hh.ru/employer/5174681"
-    assert first.salary["to"] == 250000
+    assert first.source_data["compensation"]["to"] == 250000  # HH's value; the record is a fact.
+    assert enrich(first, "hh_ru").salary[0].to == 250000
     assert first.location == "Москва"
 
 
@@ -80,7 +81,8 @@ def test_current_live_detail_extracts_nested_vacancy_full():
     assert detail.company.name == "Банк ПСБ, Бизнес и инфраструктура"
     assert detail.company.site_url == "http://job.psbank.ru"
     assert detail.location == "Москва"
-    assert detail.salary == {"noCompensation": True, "period": None}
+    assert detail.source_data["compensation"] == {"noCompensation": True}
+    assert [r.state for r in enrich(detail, "hh_ru").salary] == ["not_specified"]
     assert detail.experience == "between3And6"
     assert enrich(detail, "hh_ru").work_formats == ["office", "hybrid"]
 

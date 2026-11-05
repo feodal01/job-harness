@@ -81,21 +81,8 @@ def _website(value: object) -> str | None:
 
 
 def _normalize(vacancy: Vacancy, data: dict) -> None:
-    # Places and work formats are facts of the HH normalizer (hh/enrichment/), read from `area`
-    # and `workFormats` in source_data; the parser keeps HH's own values there.
-    raw = vacancy.salary
-    salary = {**raw}
-    if salary.get("currencyCode") == "RUR":
-        salary["currencyCode"] = "RUB"
-    mode = raw.get("mode")
-    salary["period"] = (
-        {"MONTH": "month", "YEAR": "year", "HOUR": "hour"}.get(mode) if isinstance(mode, str) else None
-    )
-    # Retain an already normalized period when details contain no replacement salary.
-    if mode is None and raw.get("period") in {"month", "year", "hour"}:
-        salary["period"] = raw["period"]
-    vacancy.salary = salary
-    vacancy.salary_hidden = "noCompensation" in raw
+    # Places, work formats and salary are facts of the HH normalizer (hh/enrichment/), read from `area`,
+    # `workFormats` and `compensation` in source_data; the parser keeps HH's own values there.
     minimums = {"noExperience": 0, "between1And3": 1, "between3And6": 3, "moreThan6": 6}
     vacancy.min_experience = minimums.get(vacancy.experience or "")
     vacancy.min_experience_exclusive = vacancy.experience == "moreThan6"
@@ -261,7 +248,6 @@ class HHSearch(Search):
                     url=f"https://hh.ru/vacancy/{item['vacancyId']}",
                     company=company,
                     location=_object(item.get("area")).get("name"),
-                    salary=_object(item.get("compensation")),
                     published_at=_object(item.get("publicationTime")).get("$"),
                     experience=item.get("workExperience"),
                     work_formats=work_formats,
@@ -332,7 +318,10 @@ class HHVacancyDetails(VacancyDetails):
         )
         detail.experience = view.get("workExperience") or detail.experience
         detail.work_formats = _strings(view.get("workFormats")) or detail.work_formats
-        detail.salary = _object(view.get("compensation")) or detail.salary
+        # The listing's salary stays a record of its own: the card does not overwrite it.
+        listed = detail.source_data.get("compensation")
+        if isinstance(listed, dict) and "compensation" in view:
+            detail.source_data["listing"] = {"compensation": listed}
         detail.location = _object(view.get("area")).get("name") or detail.location
         detail.published_at = view.get("publicationTimeIso") or detail.published_at
         employer = _object(view.get("company"))
