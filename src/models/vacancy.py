@@ -3,7 +3,7 @@ from typing import Annotated
 from pydantic import BaseModel, Field, JsonValue
 
 from src.models.company import Company
-from src.models.facts import FACT, Evidence, Fact, IsFact
+from src.models.facts import FACT, Conflict, Evidence, Fact, IsFact
 from src.models.filters import Employment, Grade, WorkLocation
 
 
@@ -34,6 +34,7 @@ class Vacancy(BaseModel):
     # Derived by the enrichment chain from the fields above; recomputed on every enrichment.
     evidence: dict[str, list[Evidence]] = Field(default_factory=dict)
     facts: dict[str, Fact] = Field(default_factory=dict)
+    conflicts: list[Conflict] = Field(default_factory=list)
 
 
 def fact_fields() -> frozenset[str]:

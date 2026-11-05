@@ -7,11 +7,12 @@ from datetime import timedelta
 from urllib.parse import parse_qs, urlencode, urlsplit
 
 from bs4 import BeautifulSoup
+from pydantic import JsonValue
 
 from src.geography.catalog import GeographyCatalog, default_catalog
 from src.models.brief import BriefInput
 from src.models.company import Company
-from src.models.filters import REMOTE_FORMATS, Employment, WorkFormat, WorkLocation, accepted_formats
+from src.models.filters import REMOTE_FORMATS, Employment, WorkFormat, accepted_formats
 from src.models.vacancy import Vacancy
 from src.parsers.aggregators.hh.geography import HHGeography, resolve_city
 from src.parsers.aggregators.hh.settings import HHSettings
@@ -32,7 +33,6 @@ from src.parsers.interfaces import (
     filter_parameters,
 )
 from src.parsers.models import Location
-from src.parsers.normalization import FORMATS
 from src.parsers.rich_text import parse_rich_text
 
 # A minimum that excludes office-only jobs: HH can then pass it as work_format.
@@ -80,13 +80,9 @@ def _website(value: object) -> str | None:
     return None
 
 
-def _normalize(
-    vacancy: Vacancy, data: dict, location: Location | None = None, catalog: GeographyCatalog | None = None
-) -> None:
-    formats = FORMATS
-    vacancy.work_formats = [
-        formats.get(f, f) for f in vacancy.work_formats if f in formats or f in formats.values()
-    ]
+def _normalize(vacancy: Vacancy, data: dict) -> None:
+    # Places and work formats are facts of the HH normalizer (hh/enrichment/), read from `area`
+    # and `workFormats` in source_data; the parser keeps HH's own values there.
     raw = vacancy.salary
     salary = {**raw}
     if salary.get("currencyCode") == "RUR":
@@ -113,13 +109,6 @@ def _normalize(
     employment = data.get("employmentForm")
     if isinstance(employment, str) and employment in employments:
         vacancy.employment = [employments[employment]]
-    area = _object(data.get("area"))
-    country = area.get("countryIsoCode")
-    if not country and location and location.country and catalog is not None:
-        # The searched HH country: its HH name resolved through CLDR, not a hand table.
-        country = catalog.country(location.country.name).value
-    if country:
-        vacancy.locations = [WorkLocation(country=country, city=area.get("name"))]
 
 
 class HHSearch(Search):
@@ -277,9 +266,13 @@ class HHSearch(Search):
                     experience=item.get("workExperience"),
                     work_formats=work_formats,
                     source_data={
-                        k: item[k]
-                        for k in ("area", "address", "compensation", "workExperience", "employmentForm")
-                        if k in item
+                        **{
+                            k: item[k]
+                            for k in ("area", "address", "compensation", "workExperience", "employmentForm")
+                            if k in item
+                        },
+                        # The card's shape: a list of HH work format codes.
+                        "workFormats": list[JsonValue](work_formats),
                     },
                 )
             )
@@ -298,7 +291,7 @@ class HHSearch(Search):
             url = "https://hh.ru/search/vacancy?" + urlencode(params, doseq=True)
             following = (SearchRequest(url, request.query, location=request.location),)
         for vacancy in vacancies:
-            _normalize(vacancy, vacancy.source_data, request.location, self.catalog)
+            _normalize(vacancy, vacancy.source_data)
         return SearchPage(vacancies, result["totalResults"], following)
 
 

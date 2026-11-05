@@ -172,6 +172,9 @@ class FilterCheck(StrictModel):
     reason: str
     kind: Literal["hard", "soft"] = "soft"
     supported: bool = True
+    # Disagreements of the vacancy's facts behind this check (Vacancy.conflicts); the status follows
+    # the structured fact, the conflict is shown to the user.
+    conflicts: list[str] = Field(default_factory=list)
 
 
 class FilterResult(StrictModel):

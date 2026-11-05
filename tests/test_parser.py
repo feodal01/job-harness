@@ -3,11 +3,13 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
+from src.enrichment.registry import default_enrichment
 from src.models.company import Company
 from src.models.vacancy import Vacancy
 from src.parsers.aggregators.hh import parser as hh
 
 FIXTURES = Path(__file__).parent / "fixtures"
+enrich = default_enrichment().enrich
 
 
 def listing(body):
@@ -45,7 +47,8 @@ def test_detail_retains_full_description_and_source_fields():
     detail = hh.HHVacancyDetails().parse(body("detail_structured"), vacancy)
     assert detail.description
     assert "Pytest" in detail.skills
-    assert detail.work_formats == ["remote_country"]
+    # The parser keeps HH codes; the HH normalizer translates them (§12).
+    assert enrich(detail, "hh_ru").work_formats == ["remote_country"]
     assert detail.experience == "between1And3"
 
 
@@ -79,7 +82,7 @@ def test_current_live_detail_extracts_nested_vacancy_full():
     assert detail.location == "Москва"
     assert detail.salary == {"noCompensation": True, "period": None}
     assert detail.experience == "between3And6"
-    assert detail.work_formats == ["office", "hybrid"]
+    assert enrich(detail, "hh_ru").work_formats == ["office", "hybrid"]
 
 
 def test_detail_from_another_vacancy_is_rejected():
@@ -106,7 +109,7 @@ def test_hh_normalizes_formats_and_minimum_experience():
         '<template id="HH-Lux-InitialState">' + html.escape(json.dumps({"vacancyView": view})) + "</template>"
     )
     v = HHVacancyDetails().parse(body, Vacancy(id="1", title="QA", url="https://hh.ru/vacancy/1"))
-    assert v.work_formats == ["office", "remote_country"]
+    assert enrich(v, "hh_ru").work_formats == ["office", "remote_country"]
     assert v.employment == ["full_time"]
     assert v.min_experience == 3
 

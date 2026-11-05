@@ -24,6 +24,20 @@ class Evidence(BaseModel):
     applied: bool = True
 
 
+class Conflict(BaseModel):
+    """Facts of one vacancy from different methods that disagree (e.g. the source's structure and the text).
+
+    The decision follows the stronger method; the conflict is kept so it can be shown to the user.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    fact: str
+    # Indexes of the vacancy's places (for fact "locations") that disagree.
+    places: list[int]
+    message: str
+    evidence: list[Evidence]
+
+
 class Fact(BaseModel):
     """A fact outside the Vacancy fields, declared by an enricher in the fact registry."""
 
