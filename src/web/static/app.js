@@ -189,7 +189,7 @@ function notify(message, undo, actionLabel = "Отменить") {
   clearTimeout(toastTimer); $("toastText").textContent = message; $("toast").hidden = false;
   $("toastUndo").hidden = !undo; $("toastUndo").textContent = actionLabel;
   $("toastUndo").onclick = undo ? () => { $("toast").hidden = true; undo(); } : null;
-  toastTimer = setTimeout(() => { $("toast").hidden = true; }, undo ? 8000 : 3500);
+  toastTimer = setTimeout(() => { $("toast").hidden = true; }, undo ? 10000 : 3500);
 }
 const currentBrief = () => briefs.find(b => b.id === route.briefId);
 const briefPath = (id, folder = "open") => `#/brief/${encodeURIComponent(id)}/folder/${folder}`;
@@ -215,7 +215,7 @@ function pageUrl(updates = {}) {
 }
 async function loadOverviews(signal) {
   const data = await api("/api/v1/briefs", "GET", undefined, signal);
-  briefs = data;
+  setBriefs(data);
 }
 function countLink(b, folder, count) {
   const a = el("a", count || 0, "count-link" + (count ? "" : " zero")); a.href = briefPath(b.id,folder);
@@ -286,7 +286,7 @@ function renderHome() {
     host.append(empty); return;
   }
   const table = el("table"), caption = el("caption", "Брифы и вакансии по этапам", "sr"), head = el("thead"), row = el("tr");
-  const columns = [["Бриф"],["Неразобранные","num"],["Отклик","num"],["Собеседование","num"],["Оффер","num"],["Закрыто","num","Отказ и неинтересные"],["Всего","num"],["Последний поиск"]];
+  const columns = [["Бриф"],["Неразобранные","num"],["Отклик","num"],["Собеседование","num"],["Оффер","num"],["Закрыто","num","Отказ и неинтересные"],["Всего","num"],["Последний поиск"],["Действия","menu-col"]];
   for (const [name, cls, title] of columns) { const th = el("th", name, cls); th.scope = "col"; if (title) th.title = title; row.append(th); }
   head.append(row); table.append(caption, head); const body = el("tbody");
   for (const b of shown) {
@@ -301,10 +301,177 @@ function renderHome() {
     const closed = (f.rejected || 0) + (f.dismissed || 0);
     const closedCell = el("td", undefined, "num"); closedCell.append(el("span", closed, "count-link" + (closed ? "" : " zero"))); tr.append(closedCell);
     const all = el("td", undefined, "num"); all.append(countLink(b, "all", f.all)); tr.append(all);
-    tr.append(lastRunCell(b)); body.append(tr);
+    tr.append(lastRunCell(b), briefMenuCell(b)); body.append(tr);
   }
   table.append(body); host.append(table);
 }
+function briefPayload(b, changes = {}) {
+  return {name:b.name, text:b.text || "", queries:b.queries, filters:b.filters, search:b.search ?? null, ...changes};
+}
+function briefMenuCell(b) {
+  const cell = el("td", undefined, "menu-col"), anchor = el("div", undefined, "pop-anchor");
+  const id = "briefMenu-" + b.id, button = el("button", "⋯", "secondary icon-button");
+  button.type = "button"; button.setAttribute("aria-label", `Действия с брифом «${b.name}»`);
+  button.setAttribute("aria-haspopup", "menu"); button.setAttribute("aria-expanded", "false"); button.setAttribute("aria-controls", id);
+  const menu = el("div", undefined, "menu fixed-menu"); menu.id = id; menu.setAttribute("role", "menu"); menu.hidden = true;
+  const item = (text, action) => { const x = el("button", text); x.type = "button"; x.setAttribute("role", "menuitem"); x.onclick = () => { closePopups(); action(); }; return x; };
+  menu.append(item("Переименовать", () => renameBrief(b)), item("Дублировать", () => duplicateBrief(b)));
+  anchor.append(button, menu); cell.append(anchor); return cell;
+}
+async function renameBrief(b) {
+  const answer = await ask({title:"Переименовать бриф", input:{label:"Название брифа", value:b.name, required:"Назовите бриф, чтобы отличать его от других."},
+    buttons:[{label:"Сохранить", value:"save", submit:true}, {label:"Отмена", value:null, cls:"secondary"}]});
+  if (answer.value !== "save" || answer.text === b.name) return;
+  try {
+    await api(`/api/v1/briefs/${encodeURIComponent(b.id)}`, "PUT", briefPayload(b, {name:answer.text}));
+    await loadOverviews(); renderedHome = null; renderHome(); notify(`Бриф переименован: «${answer.text}»`);
+  } catch (e) { error("Не удалось переименовать: " + e.message); }
+}
+async function duplicateBrief(b) {
+  try {
+    const copy = await api("/api/v1/briefs", "POST", briefPayload(b, {name:`${b.name} (копия)`.slice(0, 200)}));
+    await loadOverviews(); renderedHome = null; renderHome();
+    notify(`Создана копия «${copy.name}» — с теми же условиями, без вакансий`, () => { location.hash = `#/brief/${encodeURIComponent(copy.id)}/settings`; }, "Открыть условия");
+  } catch (e) { error("Не удалось создать копию: " + e.message); }
+}
+/** A modal question with buttons (and optionally one text field); resolves with the chosen button's value. */
+function ask({title, text = "", buttons, input}) {
+  const dialog = $("askDialog");
+  $("askTitle").textContent = title; $("askText").textContent = text; $("askText").hidden = !text;
+  $("askField").hidden = !input; $("askError").hidden = true;
+  if (input) { $("askLabel").textContent = input.label; $("askInput").value = input.value || ""; $("askInput").removeAttribute("aria-invalid"); }
+  return new Promise(resolve => {
+    const done = value => { dialog.close(); resolve(input ? {value, text:$("askInput").value.trim()} : value); };
+    const nodes = buttons.map(spec => {
+      const button = el("button", spec.label, spec.cls || ""); button.type = "button";
+      button.onclick = () => {
+        if (input && spec.submit && !$("askInput").value.trim()) {
+          $("askError").textContent = input.required; $("askError").hidden = false;
+          $("askInput").setAttribute("aria-invalid", "true"); $("askInput").focus(); return;
+        }
+        done(spec.value);
+      };
+      return button;
+    });
+    $("askButtons").replaceChildren(...nodes);
+    $("askInput").onkeydown = event => { if (event.key === "Enter") { event.preventDefault(); nodes.find((n, i) => buttons[i].submit)?.click(); } };
+    dialog.oncancel = event => { event.preventDefault(); done(null); };
+    dialog.showModal();
+    (input ? $("askInput") : nodes[0]).focus();
+  });
+}
+let pendingLeave = null;
+const formFieldNames = ["название","запросы","заметки","места","занятость","опыт","зарплата","валюта зарплаты","период зарплаты","дата публикации","исключённые компании","исключённые слова","источники","частичные совпадения","описание компаний","лимит вакансий","лимит страниц"];
+function formChanges() {
+  const before = JSON.parse(formSnapshot), now = JSON.parse(formState()), parts = [];
+  now.forEach((value, i) => {
+    if (JSON.stringify(value) === JSON.stringify(before[i])) return;
+    if (i === 1) {
+      const added = value.filter(q => !before[i].includes(q)), removed = before[i].filter(q => !value.includes(q));
+      if (added.length) parts.push(`${plural(added.length,"добавлен запрос","добавлены запросы","добавлены запросы")} ${added.map(q => `«${q}»`).join(", ")}`);
+      if (removed.length) parts.push(`${plural(removed.length,"убран запрос","убраны запросы","убраны запросы")} ${removed.map(q => `«${q}»`).join(", ")}`);
+    } else if (i === 6) parts.push(value ? `зарплата от ${money(value)} ${currencySigns[now[7]] || now[7]}` : "зарплата убрана");
+    else if (i === 0) parts.push(`название «${value}»`);
+    else parts.push(formFieldNames[i]);
+  });
+  return parts.join("; ");
+}
+async function askToLeave(target) {
+  const answer = await ask({title:"Сохранить изменения в условиях?", text:"Изменено: " + formChanges() + ".",
+    buttons:[{label:"Сохранить", value:"save"}, {label:"Не сохранять", value:"drop", cls:"secondary"}, {label:"Остаться", value:null, cls:"text-button"}]});
+  if (answer === "drop") { formSnapshot = formState(); location.hash = target; }
+  else if (answer === "save") { pendingLeave = target; $("searchForm").requestSubmit($("saveBrief")); }
+}
+/* «(12) Поиск работы»: the tab shows how many new vacancies wait across all briefs. */
+let baseTitle = document.title;
+function applyTitle() {
+  const fresh = briefs.reduce((n, b) => n + (b.funnel?.new || 0), 0);
+  document.title = (fresh ? `(${fresh}) ` : "") + baseTitle;
+}
+/* A search that ends while the user is elsewhere is announced wherever they are. */
+function setBriefs(list) {
+  const before = new Map(briefs.map(b => [b.id, b]));
+  briefs = list;
+  for (const b of list) {
+    const old = before.get(b.id)?.last_run, run = b.last_run;
+    if (!old || !run || old.id !== run.id || !["queued","running"].includes(old.status) || ["queued","running"].includes(run.status)) continue;
+    const fresh = b.funnel?.new || 0;
+    if (run.status === "complete")
+      notify(`Поиск «${b.name}» завершён: ${fresh} ${plural(fresh,"новая вакансия","новые вакансии","новых вакансий")}`, () => { location.hash = briefPath(b.id); }, "Открыть");
+    else if (run.status === "partial")
+      notify(`Поиск «${b.name}»: частичный результат`, () => { location.hash = historyHref(b, run.id); }, "История поиска");
+    else if (run.status !== "cancelled")
+      notify(`Поиск «${b.name}» завершился ошибкой`, () => { location.hash = historyHref(b, run.id); }, "История поиска");
+  }
+  applyTitle();
+}
+/* Bulk triage: checkboxes in rows, one undo for the whole action. */
+const selectedKeys = new Set();
+function updateBulkBar() {
+  const n = selectedKeys.size; $("bulkBar").hidden = !n;
+  $("bulkCount").textContent = `Выбрано ${n}`;
+}
+async function bulkStage(status) {
+  const items = pageItems.filter(v => selectedKeys.has(v.key)), briefId = route.briefId;
+  if (!items.length) return;
+  const save = (v, next) => api(`/api/v1/briefs/${briefId}/vacancies/${encodeURIComponent(v.key)}`, "PATCH", {status:next, note:v.note || ""});
+  for (const b of ["bulkDismiss","bulkApplied"]) $(b).disabled = true;
+  try {
+    await Promise.all(items.map(v => save(v, status)));
+    selectedKeys.clear(); updateBulkBar();
+    const target = {applied:"Отклик", dismissed:"Неинтересные"}[status];
+    notify(`${items.length} ${plural(items.length,"вакансия","вакансии","вакансий")} → ${target}`, async () => {
+      try { await Promise.all(items.map(v => save(v, v.user_status))); notify("Этапы возвращены"); }
+      catch (e) { error("Не удалось отменить: " + e.message); }
+      refresh().catch(handleRefreshError);
+    });
+  } catch (e) { error("Не удалось изменить этап у части вакансий: " + e.message); }
+  finally { for (const b of ["bulkDismiss","bulkApplied"]) $(b).disabled = false; refresh().catch(handleRefreshError); }
+}
+$("bulkDismiss").onclick = () => bulkStage("dismissed");
+$("bulkApplied").onclick = () => bulkStage("applied");
+$("bulkClear").onclick = () => { selectedKeys.clear(); renderedCards = null; showCards(pageItems); };
+/* Keys for triage; «?» shows the list, a one-time hint introduces it. */
+function showKeysHintOnce() {
+  try { if (localStorage.getItem("job-search:keys-hint")) return; localStorage.setItem("job-search:keys-hint", "1"); } catch { return; }
+  setTimeout(() => notify("Разбирать быстрее можно с клавиатуры: J/K, 1–6, X.", () => $("keysDialog").showModal(), "Все клавиши"), 600);
+}
+$("keysHelp").onclick = () => $("keysDialog").showModal();
+$("keysClose").onclick = () => $("keysDialog").close();
+document.addEventListener("keydown", event => {
+  if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+  if (event.target.closest?.("input, textarea, select, [contenteditable]")) return;
+  const key = event.key.toLowerCase(), code = event.code;
+  const letter = {KeyJ:"j", KeyK:"k", KeyX:"x", KeyN:"n", KeyZ:"z"}[code] || key;
+  if (event.key === "?") { event.preventDefault(); if (!document.querySelector("dialog[open]")) $("keysDialog").showModal(); return; }
+  const undo = () => { if (!$("toast").hidden && !$("toastUndo").hidden) $("toastUndo").click(); else if (!$("stageLine").hidden) $("stageLine").querySelector(".undo")?.click(); };
+  if ($("vacancyDialog").open) {
+    if (/^[1-6]$/.test(event.key)) { event.preventDefault(); $("vacancyStages").children[Number(event.key) - 1]?.click(); }
+    else if (letter === "j") { event.preventDefault(); if (!$("nextVacancy").disabled) $("nextVacancy").click(); }
+    else if (letter === "k") { event.preventDefault(); if (!$("previousVacancy").disabled) $("previousVacancy").click(); }
+    else if (letter === "n") { event.preventDefault(); $("vacancyNote")?.focus(); }
+    else if (letter === "z") { event.preventDefault(); undo(); }
+    return;
+  }
+  if (route.view !== "workspace" || document.querySelector("dialog[open]")) return;
+  const rows = [...$("results").querySelectorAll(".r[data-id]")];
+  if (!rows.length) return;
+  const current = document.activeElement?.closest?.(".r[data-id]");
+  const index = rows.indexOf(current), v = current && pageItems.find(x => x.key === current.dataset.id);
+  if (letter === "j" || letter === "k") {
+    event.preventDefault();
+    const next = rows[index < 0 ? 0 : Math.min(rows.length - 1, Math.max(0, index + (letter === "j" ? 1 : -1)))];
+    next.querySelector(".vac-btn").focus(); next.scrollIntoView({block:"nearest"});
+  } else if (/^[1-6]$/.test(event.key) && v) {
+    event.preventDefault();
+    const status = readerStages[Number(event.key) - 1];
+    if ((v.user_status === "viewed" ? "new" : v.user_status) !== status) quickStage(v, status, []);
+  } else if (letter === "x" && current) {
+    event.preventDefault(); current.querySelector(".pick input")?.click();
+  } else if (letter === "n" && v) {
+    event.preventDefault(); openVacancy(v.key).then(() => $("vacancyNote")?.focus());
+  } else if (letter === "z") { event.preventDefault(); undo(); }
+});
 function renderFolders(b) {
   const signature = JSON.stringify([b.id,b.funnel,route.folder]);
   if (renderedFolders === signature) return;
@@ -387,9 +554,10 @@ async function startSearch(b, button) {
 }
 let shownHash = location.hash;
 function navigate() {
-  if (formDirty() && !submitting && parseRoute().view !== "settings"
-      && !confirm("Уйти без сохранения? Изменения в условиях брифа пропадут.")) {
+  if (formDirty() && !submitting && parseRoute().view !== "settings") {
+    const target = location.hash;
     history.replaceState(null, "", shownHash);
+    askToLeave(target);
     return;
   }
   shownHash = location.hash;
@@ -403,7 +571,9 @@ function navigate() {
     return;
   }
   const b = currentBrief();
-  document.title = b ? `${b.name} · Поиск работы` : route.view === "settings" ? "Новый бриф · Поиск работы" : "Мои брифы · Поиск работы";
+  baseTitle = b ? `${b.name} · Поиск работы` : route.view === "settings" ? "Новый бриф · Поиск работы" : "Мои брифы · Поиск работы";
+  applyTitle();
+  if (previous.briefId !== route.briefId || previous.folder !== route.folder || previous.view !== route.view) { selectedKeys.clear(); updateBulkBar(); }
   if (route.view === "home") renderHome();
   if (route.view === "settings") fillSettings(b);
   if (route.view === "workspace") {
@@ -463,11 +633,19 @@ function vacancyRow(v) {
   const row = el("div", undefined, "r" + (v.user_status === "new" ? " fresh" : "")); row.setAttribute("role","row"); row.dataset.id = v.key;
   const cell = (cls = "") => { const c = el("div", undefined, "cell " + cls); c.setAttribute("role","cell"); row.append(c); return c; };
   const company = v.company?.name || "Компания не указана";
+  const pick = cell("pick"), box = el("input"); box.type = "checkbox"; box.checked = selectedKeys.has(v.key);
+  box.setAttribute("aria-label", `Выбрать: ${v.title}, ${company}`);
+  box.onchange = () => { if (box.checked) selectedKeys.add(v.key); else selectedKeys.delete(v.key); row.classList.toggle("picked", box.checked); updateBulkBar(); };
+  row.classList.toggle("picked", box.checked); pick.append(box);
   const main = cell(), title = el("button", v.title, "vac-btn"); title.type = "button"; title.onclick = () => openVacancy(v.key);
   const meta = el("div", undefined, "r-meta"); meta.append(el("span", company));
   const match = selectionLabel(v.selection); if (match) meta.append(el("span", match.text, "pill " + match.cls));
   if (v.user_status === "new") meta.append(el("span", "Новая", "pill new"));
   main.append(title, meta);
+  if (v.selection?.status === "rejected") {
+    const reason = v.selection.checks?.find(c => c.status === "rejected" && c.kind === "hard")?.reason || v.selection.checks?.find(c => c.status === "rejected")?.reason;
+    if (reason) main.append(el("div", "Почему скрыта: " + reason, "hide-why"));
+  }
   const place = placeText(v), where = cell();
   where.append(el("div", place.city || "Не указано", place.city ? "" : "muted")); if (place.format) where.append(el("div", place.format, "t2"));
   const salary = salaryLine(v.salary);
@@ -487,13 +665,16 @@ function vacancyRow(v) {
   return row;
 }
 function showCards(items) {
-  const signature = JSON.stringify([route.briefId,route.folder,route.page,route.q,route.selection,route.sort,route.source,items]);
+  const signature = JSON.stringify([route.briefId,route.folder,route.page,route.q,route.selection,route.sort,route.source,items,[...selectedKeys]]);
   if (renderedCards === signature) return;
   const rows = [...$("results").querySelectorAll(".r[data-id]")];
   const anchor = rows.find(c => c.getBoundingClientRect().bottom>0 && c.getBoundingClientRect().top<innerHeight);
   const anchorTop = anchor?.getBoundingClientRect().top;
   const focusedId = document.activeElement?.closest?.(".r[data-id]")?.dataset.id;
   renderedCards = signature; pageItems = items; $("results").replaceChildren();
+  for (const key of [...selectedKeys]) if (!items.some(v => v.key === key)) selectedKeys.delete(key);
+  updateBulkBar();
+  if (items.length) showKeysHintOnce();
   if (!items.length) {
     const filtered = route.q || route.source || route.selection !== "candidates";
     const empty = el("div",undefined,"empty");
@@ -502,6 +683,11 @@ function showCards(items) {
     $("results").append(empty); return;
   }
   const head = el("div", undefined, "r h"); head.setAttribute("role","row");
+  const all = el("span", undefined, "pick"), allBox = el("input"); all.setAttribute("role","columnheader");
+  allBox.type = "checkbox"; allBox.id = "pickAll"; allBox.setAttribute("aria-label", "Выбрать все на странице");
+  allBox.checked = items.every(v => selectedKeys.has(v.key));
+  allBox.onchange = () => { for (const v of items) allBox.checked ? selectedKeys.add(v.key) : selectedKeys.delete(v.key); renderedCards = null; showCards(items); updateBulkBar(); $("pickAll")?.focus(); };
+  all.append(allBox); head.append(all);
   for (const [text, cls] of [["Вакансия"],["Место"],["Зарплата"],["Источник, дата"],["Этап"],["Быстрый этап","end"]]) {
     const h = el("span", text, cls); h.setAttribute("role","columnheader"); head.append(h);
   }
@@ -988,7 +1174,7 @@ $("searchForm").addEventListener("change", updateFormFeedback);
 $("searchForm").onsubmit=async e=>{
   e.preventDefault();if(submitting)return;
   validationAttempted = true;
-  if (!validateSearchForm(true)) return;
+  if (!validateSearchForm(true)) { pendingLeave = null; return; }
   for (const editor of tokenEditors) editor.commit();
   const launch=e.submitter?.id==="start",id=route.briefId;submitting=true;updateStart();error("");
   try{
@@ -1006,7 +1192,9 @@ $("searchForm").onsubmit=async e=>{
         notify("Бриф сохранён, но поиск не запустился: "+e.message,()=>startSearch(saved,$("runSearch")),"Запустить поиск");
       }
     }else notify(id?"Изменения сохранены.":"Бриф сохранён без поиска.");
-    location.hash=briefPath(b.id);
+    // «Сохранить без поиска» returns where the form was opened from: the brief, or «Мои брифы» for a new one.
+    const leaveTo=pendingLeave;pendingLeave=null;
+    location.hash=leaveTo||(launch||id?briefPath(b.id):"#/briefs");
   }catch(e){error(e.message);}finally{submitting=false;updateStart();}
 };
 function backToBrief(){location.hash=route.briefId?briefPath(route.briefId):"#/briefs";}
@@ -1188,7 +1376,7 @@ async function refresh() {
   const version=viewVersion, request=++requestVersion;
   refreshController?.abort();const controller=new AbortController();refreshController=controller;
   const signal=controller.signal,valid=()=>version===viewVersion&&request===requestVersion;
-  const updated=await api("/api/v1/briefs","GET",undefined,signal);if(!valid())return;briefs=updated;
+  const updated=await api("/api/v1/briefs","GET",undefined,signal);if(!valid())return;setBriefs(updated);
   if(route.view==="home"){renderHome();return;}
   const b=currentBrief();if(route.view==="settings"){updateStart();return;}if(!b)return;
   if(route.view==="workspace"){
@@ -1243,12 +1431,19 @@ function closePopups(except){
     button.setAttribute("aria-expanded","false");$(button.getAttribute("aria-controls")).hidden=true;
   }
 }
-for(const button of document.querySelectorAll(".pop-anchor > [aria-controls]")){
-  button.addEventListener("click",()=>{
-    const open=button.getAttribute("aria-expanded")!=="true";closePopups(button);
-    button.setAttribute("aria-expanded",String(open));$(button.getAttribute("aria-controls")).hidden=!open;
-  });
-}
+// Delegated, so popovers in re-rendered rows (the brief menu) work too.
+document.addEventListener("click",event=>{
+  const button=event.target.closest(".pop-anchor > [aria-controls]");if(!button)return;
+  const open=button.getAttribute("aria-expanded")!=="true";closePopups(button);
+  const pop=$(button.getAttribute("aria-controls"));button.setAttribute("aria-expanded",String(open));pop.hidden=!open;
+  if(open&&pop.classList.contains("fixed-menu")){
+    // Table rows clip absolute menus, so the row menu is placed against the viewport.
+    const rect=button.getBoundingClientRect();
+    pop.style.top=`${rect.bottom+4}px`;pop.style.left=`${Math.max(8,rect.right-pop.offsetWidth)}px`;
+    pop.querySelector("button")?.focus();
+  }
+});
+window.addEventListener("scroll",()=>{if(document.querySelector('.fixed-menu:not([hidden])'))closePopups();},{passive:true});
 document.addEventListener("click",event=>{if(!event.target.closest(".pop-anchor"))closePopups();});
 document.addEventListener("keydown",event=>{
   if(event.key!=="Escape")return;

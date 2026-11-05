@@ -24,8 +24,8 @@ main{max-width:1440px;margin:auto;padding:28px 36px 60px}h1{font-size:30px;font-
 .workspace{display:grid;grid-template-columns:220px minmax(0,1fr);gap:30px;align-items:start}.workspace>*{min-width:0}#folders{position:sticky;top:20px;display:grid;gap:2px}#folders a{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:var(--target);padding:0 14px;border-radius:var(--radius);color:var(--ink)}#folders a:hover{background:var(--surface-2);text-decoration:none}#folders a.active{background:var(--soft);color:var(--soft-ink);box-shadow:inset 0 0 0 1px var(--soft-line);font-weight:600}#folders a span:last-child{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}#folders a .fresh-count{color:var(--accent);font-weight:700}.list-heading{display:flex;gap:12px;align-items:baseline;margin-bottom:14px}.list-filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}.list-filters>div{flex:1;min-width:180px}.list-filters .search-field{flex:1.3}.list-filters label{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--muted)}.list-filters input,.list-filters select{min-height:var(--target);border-color:var(--line-strong);border-radius:var(--radius)}
 label{display:block;margin:16px 0 6px;font-size:13px}input,textarea,select{width:100%;border:1px solid #cbd5c8;border-radius:7px;background:white;padding:9px 11px;min-width:0}input[type=checkbox]{width:auto}textarea{resize:vertical}fieldset{border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:18px 0;min-width:0}legend{font-size:13px}.row{display:flex;gap:12px}.row>*{flex:1;min-width:0}
 /* Воронка (8б, 8ж): таблица вакансий */
-.tw0{border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);overflow-x:auto}.tb{min-width:900px}
-.tb .r{display:grid;grid-template-columns:minmax(200px,2.2fr) minmax(110px,1fr) 160px 104px 124px 214px;gap:10px;align-items:center;padding:8px 14px;min-height:64px;border-bottom:1px solid var(--line)}
+.tw0{border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);overflow-x:auto}.tb{min-width:940px}
+.tb .r{display:grid;grid-template-columns:28px minmax(200px,2.2fr) minmax(110px,1fr) 160px 104px 124px 214px;gap:10px;align-items:center;padding:8px 14px;min-height:64px;border-bottom:1px solid var(--line)}
 .tb .r:last-child{border-bottom:0}.tb .r:not(.h):hover{background:var(--bg)}
 .tb .r.h{min-height:40px;padding:0 14px;background:var(--surface-2);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .tb .r.fresh{box-shadow:inset 3px 0 0 var(--marker)}
@@ -265,3 +265,24 @@ details.d pre{margin:0 0 16px;max-height:260px;overflow:auto;background:var(--in
 .tech-label{font-weight:600;margin:0 0 6px;font-size:13px}
 @media(max-width:900px){.stats4{grid-template-columns:repeat(2,minmax(0,1fr))}.tech{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:650px){.history-layout{grid-template-columns:minmax(0,1fr)}.history{max-height:230px;overflow:auto}.srow{grid-template-columns:minmax(0,1fr) auto}.srow>.muted:last-child{grid-column:1/-1}.conds{grid-template-columns:minmax(0,1fr)}.tech{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Сценарии (8п): выбор строк, массовый разбор, меню брифа, клавиши */
+.tb .pick{display:flex;align-items:center;justify-content:center}
+.tb .pick input{width:20px;height:20px;margin:0;accent-color:var(--accent);cursor:pointer}
+.tb .r.picked{background:var(--soft)}.tb .r:not(.h):focus-within{background:var(--soft)}
+.hide-why{margin-top:3px;font-size:13px;color:var(--danger-ink);white-space:normal}
+.bulk-bar{position:sticky;top:8px;z-index:6;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 10px;padding:8px 10px 8px 16px;border-radius:var(--radius-lg);background:var(--ink);color:#fff;box-shadow:0 8px 24px rgba(15,23,42,.2)}
+.bulk-bar[hidden]{display:none}.bulk-bar b{font-weight:600;margin-right:4px}
+.bulk-bar .secondary{background:transparent;color:#fff;border-color:var(--line-strong)}.bulk-bar .secondary:hover:not(:disabled){background:#1e293b}
+.bulk-bar .text-button{color:#99f6e4;margin-left:auto}
+.keys-link{margin-left:auto;font-size:13px}
+kbd{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border:1px solid #cbd5e1;border-bottom-width:2px;border-radius:5px;background:var(--surface);color:var(--ink);font:600 12px/1 var(--font)}
+.keys{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 18px;align-items:center;margin:14px 0 20px;font-size:14px}.keys dt{white-space:nowrap}.keys dd{margin:0}
+th.menu-col{font-size:0}td.menu-col{width:56px;text-align:right}
+.icon-button{width:var(--target);padding:0;font-size:18px;line-height:1}
+.fixed-menu{position:fixed;right:auto;top:auto;min-width:200px}
+.ask-dialog h2{margin:0 0 6px}.ask-dialog p{margin:0 0 14px}.ask-dialog .actions{margin-top:18px}
+.ask-dialog input{min-height:var(--target);border-color:var(--line-strong);border-radius:var(--radius)}
+.ask-dialog label{margin:0 0 6px;font-size:13px;font-weight:600}
+@media(max-width:650px){.bulk-bar .text-button{margin-left:0}}.menu{white-space:normal;text-align:left}.menu button{display:flex}
