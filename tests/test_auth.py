@@ -111,7 +111,11 @@ async def setup(tmp_path):
 
 async def start_login(client, provider="github"):
     page = await client.get("/auth")
-    assert page.status_code == 200
+    if page.status_code == 303:
+        # Already signed in: the page sends the browser to the app, so the flow cookie is set by hand.
+        client.cookies.set(client._transport.app.state.auth_service.cookie_name, "b" * 43)
+    else:
+        assert page.status_code == 200
     response = await client.post("/api/v1/auth/start", json={"provider": provider}, headers=ACTION)
     assert response.status_code == 200, response.text
     return parse_qs(urlsplit(response.json()["url"]).query)
@@ -424,3 +428,27 @@ async def test_page_protects_login_cookie_and_canonical_origin(setup):
 def test_secret_or_legacy_keys_cannot_be_shipped():
     with pytest.raises(ValueError, match="publishable"):
         Settings(auth={"publishable_key": "sb_secret_not_allowed"})
+
+
+async def test_web_app_is_closed_behind_the_login_screen(setup):
+    client, _, remote = setup
+    closed = await client.get("/")
+    assert closed.status_code == 303 and closed.headers["location"] == ORIGIN + "/auth"
+    assert (await client.get("/auth")).status_code == 200
+    await login(client)
+    app = await client.get("/")
+    assert app.status_code == 200 and "/assets/app.js" in app.text
+    signed_in = await client.get("/auth")
+    assert signed_in.status_code == 303 and signed_in.headers["location"] == ORIGIN + "/"
+    await client.post("/api/v1/auth/logout", json={}, headers=ACTION)
+    assert (await client.get("/")).headers["location"] == ORIGIN + "/auth"
+
+
+async def test_failed_session_check_keeps_the_app_closed(setup):
+    client, service, remote = setup
+    await login(client)
+    service._session.expires_at = 0
+    remote.refresh_status = 500
+    closed = await client.get("/")
+    assert closed.status_code == 303 and closed.headers["location"] == ORIGIN + "/auth"
+    assert (await client.get("/auth")).status_code == 200

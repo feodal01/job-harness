@@ -71,17 +71,57 @@ dialog[open]{display:flex;flex-direction:column}
 .app-header{height:auto;min-height:76px;gap:16px;padding-top:12px;padding-bottom:12px}
 .app-header>.actions{justify-content:flex-end}
 .account-label{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:13px}
-.auth-main{max-width:540px;padding-top:70px}
-.auth-card{padding:32px;background:white;border:1px solid var(--line);border-radius:14px}
-.auth-card h1{font-size:27px}
-.auth-providers{display:grid;gap:12px;margin-top:28px}
-.auth-providers button{width:100%;padding:13px 18px;text-align:center}
-.auth-alert{padding:12px 15px;margin:18px 0;border:1px solid #ecd0c5;border-radius:8px;background:#f9e9e3;color:#883e28;overflow-wrap:anywhere}
-.header-auth-alert{max-width:1370px;margin:16px 36px 0}
-.account-name{font-size:19px;font-weight:600;overflow-wrap:anywhere;margin:24px 0 12px}
-.auth-actions{margin-top:24px}
-#authRetry{margin-top:12px}
-@media(max-width:650px){.app-header{min-height:66px}.app-header>.actions{justify-content:flex-start}.app-header .account-label{max-width:140px}.auth-main{padding-top:32px}.auth-card{padding:24px}.header-auth-alert{margin:12px 16px 0}}
+@media(max-width:650px){.app-header{min-height:66px}.app-header>.actions{justify-content:flex-start}}
+
+/* Вход (8·0): стартовый экран, без него приложение не открывается */
+.login-page{min-height:100vh;display:flex;flex-direction:column}
+.login-top{display:flex;align-items:center;min-height:var(--target);padding:20px 36px}
+.login-main{flex:1;max-width:1216px;width:100%;margin:0 auto;padding:24px 36px 56px;display:flex;flex-wrap:wrap;gap:56px;align-items:center}
+.pitch{flex:999 1 560px;min-width:0}
+.pitch h1{font:600 46px/1.12 var(--font);letter-spacing:-1.4px;margin:0 0 18px;max-width:15ch}
+.pitch h1 mark{background:linear-gradient(transparent 58%,var(--marker) 58%);color:inherit;padding:0 2px}
+.lead{font-size:17px;line-height:1.6;color:var(--muted);max-width:52ch;margin:0}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:28px 0 0;padding:0;list-style:none}
+.steps li{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px 16px}
+.steps b{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--soft-ink);font-size:13px;margin-bottom:8px}
+.steps strong{display:block;font-weight:600;font-size:15px}
+.steps span{font-size:13px;color:var(--muted)}
+.login-preview{margin-top:24px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,.08)}
+.pv-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.pv-head b{color:var(--ink);font-weight:600}.pv-count{margin-left:auto}
+.pv-row{display:grid;grid-template-columns:minmax(0,2fr) 150px 170px 120px;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid var(--line);font-size:14px}
+.pv-head+.pv-row{border-top:0}.pv-salary{font-weight:600}
+.pv-row .t1{font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-row .t2{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.login-preview .pill{display:inline-flex;align-items:center;min-height:24px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;width:fit-content}
+.login-preview .pill.ok{background:var(--soft);color:var(--soft-ink)}
+.login-preview .pill.maybe{background:var(--warn-bg);color:var(--warn-ink)}
+.login-preview .pill.new{background:var(--marker);color:var(--ink);font-weight:700}
+.login-preview .pill.viewed{background:var(--line);color:#334155}
+.login-preview .pill.applied{background:var(--info-bg);color:var(--info-ink)}
+.signin{flex:1 1 360px;max-width:420px}
+.signin-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-xl);padding:32px 30px;box-shadow:0 20px 50px rgba(15,23,42,.08)}
+.signin-card h2{font-size:24px;margin:0 0 6px}
+.signin-card>.muted{margin:0}
+.login-error{margin:18px 0 0;padding:12px 14px;border-radius:var(--radius);background:var(--danger-bg);color:var(--danger-ink);font-size:14px;overflow-wrap:anywhere}
+.prov{display:grid;gap:8px;margin-top:20px}
+.prov>.muted{margin:0}
+.pbtn{width:100%;justify-content:flex-start;gap:12px;background:var(--surface);color:var(--ink);border:1px solid #cbd5e1;font-weight:500;min-height:48px;padding:0 14px}
+.pbtn:hover:not(:disabled){border-color:var(--line-strong);background:var(--bg)}
+.pbtn.main{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+.pbtn.main:hover:not(:disabled){background:#1e293b;border-color:#1e293b}
+.pbtn .tag{margin-left:auto;font-size:12px;font-weight:500;padding:2px 8px;border-radius:999px;background:var(--marker);color:var(--ink)}
+.mono{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:var(--line);color:var(--ink);font-size:11px;font-weight:700;flex-shrink:0}
+.more{margin-top:6px}
+.more summary{display:flex;align-items:center;min-height:var(--target);cursor:pointer;color:var(--accent);font-weight:600;font-size:14px}
+.more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.more-grid .pbtn{min-height:var(--target);font-size:13px}
+.login-retry{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.login-retry:not(:has(button:not([hidden]))){display:none}
+.facts{display:grid;gap:10px;margin:22px 0 0;padding:18px 0 0;border-top:1px solid var(--line);list-style:none;font-size:14px}
+.facts li{display:flex;gap:10px;align-items:flex-start}.facts svg{color:var(--accent);flex-shrink:0;margin-top:2px}
+.login-foot{padding:16px 36px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+@media(max-width:900px){.pitch h1{font-size:34px}.steps{grid-template-columns:1fr}.login-preview{display:none}.signin{max-width:none}}
+@media(max-width:650px){.login-top,.login-foot{padding-left:16px;padding-right:16px}.login-main{padding:8px 16px 40px;gap:32px}.pitch h1{font-size:28px}.signin{order:-1}.signin-card{padding:24px 20px}}
 
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 

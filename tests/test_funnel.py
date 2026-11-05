@@ -90,7 +90,7 @@ async def test_frontend_assets_and_search_sorting(tmp_path):
         assert page["items"][1]["note"] == "Saved"
         updated = (await client.get(f"/api/v1/briefs/{b['id']}/vacancies", params={"sort": "updated"})).json()
         assert updated["items"][0]["id"] == "0"
-        assert "/assets/app.js" in (await client.get("/")).text
+        assert (await client.get("/")).status_code == 303  # closed behind the login screen
         assert (await client.get("/assets/app.js")).status_code == 200
         assert (await client.get("/assets/app.css")).status_code == 200
 
