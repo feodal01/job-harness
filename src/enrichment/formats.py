@@ -1,20 +1,23 @@
-"""Shared step for every source: work formats in the common vocabulary.
+"""Shared step for every source: keep only work formats of the brief's vocabulary.
 
-Moved unchanged from normalize_stored_vacancy (stage 2); FORMATS goes away with the old fields.
+Source codes (HH `ON_SITE`, ATS `onsite`…) are translated by each source's own step; this one drops
+anything else. "remote" is the one stored legacy value: the old name of remote_country, as in
+VacancyPlace.legacy_remote.
 """
 
 from src.enrichment.contract import FactUpdate
 from src.models.facts import EnrichMethod
+from src.models.filters import WORK_FORMATS
 from src.models.vacancy import Vacancy
-from src.parsers.normalization import FORMATS
 
 
 class CanonicalFormats:
     id = "formats.canonical"
-    version = "1"
+    version = "2"
     method: EnrichMethod = "structured"
     facts = frozenset({"work_formats"})
 
     def enrich(self, vacancy: Vacancy) -> list[FactUpdate]:
-        formats = list(dict.fromkeys(FORMATS[f] for f in vacancy.work_formats if f in FORMATS))
+        named = ("remote_country" if f == "remote" else f for f in vacancy.work_formats)
+        formats = list(dict.fromkeys(f for f in named if f in WORK_FORMATS))
         return [FactUpdate("work_formats", formats, field="work_formats")]

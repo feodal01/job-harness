@@ -51,8 +51,11 @@ class Enrichment:
     def enrich(self, vacancy: Vacancy, source: str) -> Vacancy:
         """An enriched copy; facts and evidence are recomputed from scratch each time."""
         from src.enrichment.chain import run
+        from src.enrichment.consistency import find_conflicts
 
-        return run(vacancy, self.enrichers_for(source))
+        result = run(vacancy, self.enrichers_for(source))
+        result.conflicts = find_conflicts(result, self.catalog)
+        return result
 
 
 @cache

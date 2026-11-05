@@ -31,6 +31,7 @@ class Verdict:
     value: bool | None
     reason: str
     kind: Literal["hard", "soft"] = "soft"
+    conflicts: tuple[str, ...] = ()  # Disagreeing facts behind the value (Vacancy.conflicts).
 
 
 @dataclass(frozen=True)

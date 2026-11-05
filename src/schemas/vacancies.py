@@ -24,6 +24,7 @@ class SelectionCheck(BaseModel):
     reason: str
     kind: Literal["hard", "soft"] = "soft"
     supported: bool = True
+    conflicts: list[str] = Field(default_factory=list)
 
 
 class VacancySelection(BaseModel):

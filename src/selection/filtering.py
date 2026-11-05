@@ -29,6 +29,7 @@ def _report(verdict: Verdict, unsupported: frozenset[str]) -> FilterCheck:
         reason=verdict.reason if supported else UNSUPPORTED,
         kind=verdict.kind,
         supported=supported,
+        conflicts=list(verdict.conflicts),
     )
 
 

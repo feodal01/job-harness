@@ -104,22 +104,35 @@ def _summarize(options: list[Option]) -> Summary:
     return Summary(geography, fmt, relocation, best, explains)
 
 
-def _verdicts(summary: Summary, has_places: bool) -> list[Verdict]:
+def _conflicts(vacancy: Vacancy, place: VacancyPlace) -> tuple[str, ...]:
+    """Conflicts the deciding place takes part in; the decision itself follows the structure."""
+    index = next((i for i, p in enumerate(vacancy.locations) if p is place), None)
+    return tuple(c.message for c in vacancy.conflicts if c.fact == "locations" and index in c.places)
+
+
+def _verdicts(vacancy: Vacancy, summary: Summary, has_places: bool) -> list[Verdict]:
     verdicts = []
     if has_places:
         where, basis = label(summary.explains.place), summary.explains.geography.basis
         reason = f"Место вакансии {where}: {basis}" if basis else where
-        verdicts.append(Verdict("locations", summary.geography, reason, kind="hard"))
+        conflicts = _conflicts(vacancy, summary.explains.place)
+        verdicts.append(Verdict("locations", summary.geography, reason, kind="hard", conflicts=conflicts))
+    best_conflicts = _conflicts(vacancy, summary.best.place)
     if summary.best.minimum:
-        verdicts.append(Verdict("minimum_work_format", summary.format_ok, FORMAT_REASON))
+        verdicts.append(
+            Verdict("minimum_work_format", summary.format_ok, FORMAT_REASON, conflicts=best_conflicts)
+        )
     if summary.best.requires_relocation:
         reason = relocation_reason(summary.relocation_ok, label(summary.best.place))
-        verdicts.append(Verdict("relocation_support", summary.relocation_ok, reason))
+        verdicts.append(
+            Verdict("relocation_support", summary.relocation_ok, reason, conflicts=best_conflicts)
+        )
     return verdicts
 
 
 def run(vacancy: Vacancy, context: Context) -> list[Verdict]:
-    return _verdicts(_summarize(_options(vacancy, context)), bool(context.filters.locations))
+    summary = _summarize(_options(vacancy, context))
+    return _verdicts(vacancy, summary, bool(context.filters.locations))
 
 
 CHECK = Check(

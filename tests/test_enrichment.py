@@ -94,7 +94,8 @@ def test_enrichers_are_found_by_source_id_without_enabled_adapters():
 
 def test_enrichment_is_idempotent_and_recomputes_evidence():
     stored = vacancy(
-        work_formats=["REMOTE"], source_data={"area": {"countryIsoCode": "RU", "name": "Казань"}}
+        work_formats=["REMOTE"],
+        source_data={"area": {"countryIsoCode": "RU", "name": "Казань"}, "workFormats": ["REMOTE"]},
     )
     enrich = registry.default_enrichment().enrich
     once = enrich(stored, "hh_ru")
