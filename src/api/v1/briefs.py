@@ -1,11 +1,11 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Query
 
 from src.api.openapi import error_responses
 from src.dependencies import BriefDep, VacancyDep
 from src.models.brief import BriefInput
-from src.schemas.briefs import BriefOverview, BriefResponse
+from src.schemas.briefs import BriefDeleted, BriefOverview, BriefResponse
 from src.schemas.vacancies import (
     PoolStatusInput,
     PoolVacancy,
@@ -49,11 +49,10 @@ async def update_brief(brief_id: str, brief: BriefInput, service: BriefDep) -> B
     return BriefResponse.model_validate(service.update(brief_id, brief))
 
 
-@router.delete("/{brief_id}", status_code=204, responses=error_responses(403, 404, 409))
-async def delete_brief(brief_id: str, service: BriefDep) -> Response:
+@router.delete("/{brief_id}", response_model=BriefDeleted, responses=error_responses(403, 404, 409))
+async def delete_brief(brief_id: str, service: BriefDep) -> BriefDeleted:
     """Удалить бриф вместе с историей поиска, воронкой, этапами и заметками. Нельзя, пока идёт поиск."""
-    service.delete(brief_id)
-    return Response(status_code=204)
+    return BriefDeleted(id=brief_id, removed_vacancies=service.delete(brief_id))
 
 
 @router.get(

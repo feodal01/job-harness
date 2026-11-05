@@ -17,6 +17,11 @@ class BriefResponse(BaseModel):
     filters_migration_notice: str | None = None
 
 
+class BriefDeleted(BaseModel):
+    id: str
+    removed_vacancies: int
+
+
 class BriefOverview(BriefResponse):
     funnel: dict[str, int]
     hidden_count: int

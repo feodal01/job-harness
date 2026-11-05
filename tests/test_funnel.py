@@ -167,7 +167,8 @@ async def test_delete_brief_removes_its_runs_funnel_and_notes_only(tmp_path):
         store.vacancies.set_pool_status(brief["id"], "hh_ru:1", "applied", "Note")
     store.close()
     async with client_for(tmp_path, lambda r: httpx.Response(200)) as client:
-        assert (await client.delete(f"/api/v1/briefs/{gone['id']}")).status_code == 204
+        deleted = await client.delete(f"/api/v1/briefs/{gone['id']}")
+        assert deleted.status_code == 200 and deleted.json() == {"id": gone["id"], "removed_vacancies": 1}
         assert [b["id"] for b in (await client.get("/api/v1/briefs")).json()] == [kept["id"]]
         assert (await client.get(f"/api/v1/runs?brief_id={gone['id']}")).json() == []
         assert (await client.get(f"/api/v1/briefs/{gone['id']}/vacancies")).status_code == 404
