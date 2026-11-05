@@ -77,7 +77,7 @@ def test_location_markers_and_date():
     assert first.published_at == "2026-06-22"
     assert page.vacancies[9].work_formats == ["hybrid"]
     assert first.description is None
-    assert first.salary == {}
+    assert first.salary == []
 
 
 def test_remote_scope_and_canonical_board_url():

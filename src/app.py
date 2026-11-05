@@ -83,7 +83,13 @@ def create_app(
             app.state.database = database
             app.state.engine = engine
             app.state.briefs_service = BriefService(
-                database.briefs, database.vacancies, database.transaction, sources, geography, enrichment
+                database.briefs,
+                database.vacancies,
+                database.transaction,
+                sources,
+                geography,
+                enrichment,
+                settings.salary_range,
             )
             app.state.vacancies_service = VacancyService(database.vacancies)
             app.state.runs_service = RunService(

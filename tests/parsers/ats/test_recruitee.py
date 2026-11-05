@@ -74,7 +74,7 @@ def test_structured_location_list_requirements_and_timestamp():
     assert first.published_at == "2026-01-13T11:54:47Z"
     assert "<h2>Requirements</h2>" in first.description_html
     assert "<li>" in first.description_html
-    assert first.salary == {}
+    assert first.salary == []
 
 
 def test_hybrid_countries_and_custom_public_job_url_preserved():
@@ -95,7 +95,10 @@ def test_empty_and_salary_keys_match_normalized_filter_contract():
     payload = json.loads(body)
     payload["offers"][0]["salary"] = {"min": 100000, "max": 120000, "currency": "USD", "period": "yearly"}
     first = source.search.parse(json.dumps(payload), source.search.build("")).vacancies[0]
-    assert first.salary == {"from": 100000, "to": 120000, "currencyCode": "USD", "period": "year"}
+    # The platform's values, kept as the record's original until the Recruitee stage.
+    [record] = first.salary
+    assert record.original == {"from": 100000, "to": 120000, "currencyCode": "USD", "period": "year"}
+    assert (record.from_, record.to, record.currency, record.unit) == (100000, 120000, "USD", "year")
 
 
 async def test_two_tenant_hosts_construct_engine_without_network(tmp_path):

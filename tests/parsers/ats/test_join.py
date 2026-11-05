@@ -39,7 +39,7 @@ def test_captured_join_list_and_detail_preserve_explicit_remote_scope() -> None:
     assert result.description and "Why Join Sidestream?" in result.description
     assert result.description_html and "<ul>" in result.description_html
     assert "&lt;p&gt;" not in result.description_html
-    assert result.salary == {}
+    assert result.salary == []
     assert result.locations[0].worldwide is False
 
 

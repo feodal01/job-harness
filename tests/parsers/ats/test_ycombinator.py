@@ -47,7 +47,7 @@ def test_real_boards(company, count, uid, title, location):
         assert not second.work_formats
     else:
         assert first.locations == []
-        assert first.salary == {}  # An unqualified $ range does not establish currency/period.
+        assert first.salary == []  # An unqualified $ range does not establish currency/period.
 
 
 def test_company_label_does_not_control_facts():

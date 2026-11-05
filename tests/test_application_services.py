@@ -7,6 +7,7 @@ from src.enrichment.registry import default_enrichment
 from src.geography.catalog import default_catalog
 from src.models.brief import BriefInput
 from src.models.vacancy import Vacancy
+from src.selection.salary.settings import SalaryRange
 
 
 async def test_brief_update_rolls_back_conditions_and_pool_when_reevaluation_fails(tmp_path, monkeypatch):
@@ -70,7 +71,13 @@ def test_brief_service_works_without_http_and_commits_pool_update(tmp_path):
     store = Database(tmp_path / "direct.sqlite")
     try:
         briefs = BriefService(
-            store.briefs, store.vacancies, store.transaction, {}, default_catalog(), default_enrichment()
+            store.briefs,
+            store.vacancies,
+            store.transaction,
+            {},
+            default_catalog(),
+            default_enrichment(),
+            SalaryRange(),
         )
         vacancies = VacancyService(store.vacancies)
         brief = briefs.create(BriefInput(name="Original", queries=["QA"], filters=confirmed()))

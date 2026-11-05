@@ -22,6 +22,7 @@ from src.models.company import Company
 from src.models.vacancy import Vacancy
 from src.network.client import FetchError, Network
 from src.parsers.interfaces import SearchPage, SearchPlan, SearchRequest, SourceAdapter
+from src.selection.salary.settings import SalaryRange
 
 logger = logging.getLogger(__name__)
 FETCH_ERRORS = (FetchError, ValueError, httpx.HTTPError)
@@ -38,6 +39,7 @@ class SourceRun:
         known: KnownData,
         registry: TaskRegistry,
         enrichment: Enrichment,
+        salary_range: SalaryRange,
     ) -> None:
         self.adapter, self.network, self.spec, self.recorder = adapter, network, spec, recorder
         self.enrichment = enrichment
@@ -47,6 +49,7 @@ class SourceRun:
             tuple(spec.brief.queries),
             frozenset(k for k, mode in adapter.search.parameters.items() if mode == "none"),
             catalog=enrichment.catalog,
+            salary_range=salary_range,
         )
         self.limits = spec.limits[adapter.id]
         self.profiles = spec.company_profiles[adapter.id]

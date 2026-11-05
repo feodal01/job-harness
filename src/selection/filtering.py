@@ -11,6 +11,7 @@ from src.geography.catalog import GeographyCatalog
 from src.models.filters import FILTER_NAMES, FilterCheck, FilterResult, SearchFilters, Status
 from src.models.vacancy import Vacancy
 from src.selection.checks import CHECKS, FILTER_FIELDS, Context, Verdict
+from src.selection.salary.settings import SalaryRange
 
 # Report order: the profile, then the brief's conditions in their declared order.
 ORDER = {name: i for i, name in enumerate(("profile", *FILTER_NAMES))}
@@ -38,11 +39,12 @@ def evaluate(
     filters: SearchFilters,
     *,
     catalog: GeographyCatalog,
+    salary_range: SalaryRange,
     complete: bool = False,
     queries: Sequence[str] = (),
     unsupported: frozenset[str] = frozenset(),
 ) -> FilterResult:
-    context = Context(filters, catalog, complete, tuple(queries), unsupported)
+    context = Context(filters, catalog, complete, tuple(queries), unsupported, salary_range)
     verdicts = sorted(
         (v for check in CHECKS for v in check.run(vacancy, context)), key=lambda v: ORDER[v.field]
     )

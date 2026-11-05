@@ -6,6 +6,7 @@ from src.geography.catalog import GeographyCatalog
 from src.models.filters import FilterResult, SearchFilters
 from src.models.vacancy import Vacancy
 from src.selection.filtering import evaluate
+from src.selection.salary.settings import SalaryRange
 
 
 @dataclass(frozen=True)
@@ -22,14 +23,17 @@ class FilterStage:
         unsupported: frozenset[str] = frozenset(),
         *,
         catalog: GeographyCatalog,
+        salary_range: SalaryRange,
     ) -> None:
         self.filters, self.queries, self.unsupported, self.catalog = filters, queries, unsupported, catalog
+        self.salary_range = salary_range
 
     def evaluate(self, vacancy: Vacancy) -> FilterResult:
         return evaluate(
             vacancy,
             self.filters,
             catalog=self.catalog,
+            salary_range=self.salary_range,
             complete=bool(vacancy.description),
             queries=self.queries,
             unsupported=self.unsupported,

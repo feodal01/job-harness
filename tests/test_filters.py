@@ -51,18 +51,18 @@ def test_invalid_or_removed_filters_are_rejected(values):
 @pytest.mark.parametrize(
     ("salary", "status"),
     [
-        ({}, "accepted"),
+        # The former single-dict cases under the spec of 05.11.2026 (tests/test_salary_assessment.py has all).
+        ({}, "accepted"),  # Not stated: passes.
         ({"from": 200, "to": 350}, "accepted"),
-        ({"from": 200}, "rejected"),
-        ({"from": 250}, "accepted"),
+        ({"from": 200}, "accepted"),  # «от 200» is exact up to k₁·200 = 250.
         ({"to": 240}, "rejected"),
         ({"to": 250}, "accepted"),
-        ({"to": 350, "currencyCode": "USD"}, "unknown"),
-        ({"to": 350, "period": "year"}, "unknown"),
-        ({"to": 350, "gross": True}, "accepted"),
+        ({"to": 350, "currencyCode": "USD"}, "unknown"),  # Another currency: not comparable.
+        ({"to": 350, "period": "year"}, "rejected"),  # 350 a year is about 29 a month.
+        ({"to": 350, "gross": True}, "accepted"),  # Taxes are not compared.
     ],
 )
-def test_salary_compares_available_bound_without_currency_period_or_tax_conversion(salary, status):
+def test_salary_minimum_against_a_stored_salary(salary, status):
     f = SearchFilters(salary={"minimum": 250, "currency": "RUB", "period": "month"})
     actual = {"currencyCode": "RUB", "period": "month", **salary}
     result = evaluate(vacancy(salary=actual), f)

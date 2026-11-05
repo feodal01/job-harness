@@ -18,6 +18,7 @@ from src.parsers.aggregators.hh.enrichment import text
 from src.parsers.aggregators.hh.enrichment.areas import HHAreas, default_areas
 from src.parsers.aggregators.hh.enrichment.formats import place_format
 from src.parsers.aggregators.hh.enrichment.geography import area_id, place_geography
+from src.parsers.aggregators.hh.enrichment.salary import salary_records
 
 
 @dataclass(frozen=True)
@@ -33,7 +34,8 @@ class Record:
 
 class HHEnricher(StagedEnricher):
     id = "hh_ru"
-    version = "4"
+    version = "5"
+    facts = frozenset({"locations", "work_formats", "salary"})
     _places_field = "area"
 
     def __init__(self, catalog: GeographyCatalog, areas: HHAreas | None = None) -> None:
@@ -47,6 +49,9 @@ class HHEnricher(StagedEnricher):
             formats = [f for f in (place_format(c) for c in _codes(vacancy)) if f]
             if formats:
                 updates.append(FactUpdate("work_formats", list(dict.fromkeys(formats)), field="workFormats"))
+        records = salary_records(vacancy.source_data, self.id, self.version)
+        if records is not None:
+            updates.append(FactUpdate("salary", records, field="compensation"))
         return updates
 
     def _raw_places(self, vacancy: Vacancy) -> list[RawPlace]:

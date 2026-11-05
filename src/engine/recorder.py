@@ -11,6 +11,7 @@ from src.enrichment.registry import Enrichment
 from src.models.brief import BriefInput
 from src.models.filters import FilterResult
 from src.models.vacancy import Vacancy
+from src.selection.salary.settings import SalaryRange
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +27,11 @@ class SourceRecorder:
         on_progress: Callable[[], None],
         *,
         enrichment: Enrichment,
+        salary_range: SalaryRange,
         unsupported: frozenset[str] = frozenset(),
     ) -> None:
         self.store, self.run_id, self.brief_id, self.source = store, run_id, brief_id, source
-        self.enrichment = enrichment
+        self.enrichment, self.salary_range = enrichment, salary_range
         self.clock = clock
         self.state = SourceState()
         self._on_progress = on_progress
@@ -78,7 +80,11 @@ class SourceRecorder:
         stored = self.store.vacancies.pool_item(self.brief_id, key)
         canonical = self.enrichment.enrich(Vacancy.model_validate(stored), self.source)
         pool_selection = FilterStage(
-            brief.filters, tuple(brief.queries), self.unsupported, catalog=self.enrichment.catalog
+            brief.filters,
+            tuple(brief.queries),
+            self.unsupported,
+            catalog=self.enrichment.catalog,
+            salary_range=self.salary_range,
         ).evaluate(canonical)
         self.store.vacancies.set_pool_selection(self.brief_id, key, pool_selection.model_dump(mode="json"))
         self.event(

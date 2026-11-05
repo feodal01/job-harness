@@ -5,6 +5,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
+from src.models.salary import legacy_salary  # Transitional until the ATS stages.
 from src.models.vacancy import Vacancy
 from src.parsers.ats.common import text
 from src.parsers.ats.normalization import employment, locations
@@ -85,11 +86,14 @@ def enrich(vacancy: Vacancy, posting: dict[str, Any]) -> Vacancy:
         minimum = quantity.get("minValue", quantity.get("value"))
         maximum = quantity.get("maxValue", quantity.get("value"))
         if currency and any(type(v) in {int, float} for v in (minimum, maximum)):
-            result.salary = {
-                "from": minimum if type(minimum) in {int, float} else None,
-                "to": maximum if type(maximum) in {int, float} else None,
-                "currencyCode": currency,
-                "period": period,
-            }
+            result.salary = legacy_salary(
+                {
+                    "from": minimum if type(minimum) in {int, float} else None,
+                    "to": maximum if type(maximum) in {int, float} else None,
+                    "currencyCode": currency,
+                    "period": period,
+                },
+                hidden=False,
+            )
     result.source_data = {**result.source_data, "jobposting": posting}
     return result

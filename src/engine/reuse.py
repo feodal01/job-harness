@@ -17,8 +17,7 @@ class KnownData:
             # A text-only record cannot reproduce the source's headings and lists.
             # Fetch it normally on discovery; do not invent markup from flattened text.
             return None
-        fields = {k: v for k, v in data.items() if k in Vacancy.model_fields}
-        return self.enrichment.enrich(Vacancy.model_validate(fields), source)
+        return self.enrichment.enrich(Vacancy.from_stored(data), source)
 
     @staticmethod
     def company_key(source: str, profile_url: str) -> str:

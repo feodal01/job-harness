@@ -11,7 +11,7 @@ import pytest
 
 from src.models.filters import SearchFilters
 from src.models.vacancy import Vacancy
-from tests.filter_support import evaluate
+from tests.filter_support import TEST_RANGE, evaluate
 
 MOSCOW, KHIMKI, KAZAN, BERLIN = 524901, 550280, 551487, 2950159
 CITIES = {
@@ -329,7 +329,12 @@ def test_the_passed_catalog_is_the_one_used():
             return frozenset({"AM"}) if code == "150" else super().group_countries(code)
 
     filters = SearchFilters(locations=[country("AM")])
-    result = bare(vacancy({**EUROPE, "format": "remote_country"}), filters, catalog=Armenia150())
+    result = bare(
+        vacancy({**EUROPE, "format": "remote_country"}),
+        filters,
+        catalog=Armenia150(),
+        salary_range=TEST_RANGE,
+    )
     assert check(result, "locations").status == "accepted"
 
 
@@ -344,5 +349,7 @@ def test_brief_city_region_is_read_from_the_reference_once(monkeypatch):
 
     filters = SearchFilters(locations=[city("Химки")])
     for _ in range(3):
-        bare(vacancy({**MOSCOW_OBLAST, "format": "office"}), filters, catalog=catalog)
+        bare(
+            vacancy({**MOSCOW_OBLAST, "format": "office"}), filters, catalog=catalog, salary_range=TEST_RANGE
+        )
     assert calls == [KHIMKI]

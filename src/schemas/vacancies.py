@@ -1,11 +1,12 @@
 """HTTP-представления вакансий, включая неизменённые исторические результаты."""
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
 from src.models.company import Company
 from src.models.filters import Employment, Grade, Status
+from src.models.salary import STANDARD_PERIODS
 
 SelectionView = Literal["all", "candidates", "accepted", "maybe", "rejected"]
 PoolView = Literal["all", "open", "new", "viewed", "dismissed", "applied", "interview", "rejected", "offer"]
@@ -72,6 +73,28 @@ class VacancyResponse(BaseModel):
     source: str | None = None
     selection: VacancySelection | None = None
     origins: list[VacancyOrigin] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def former_salary_shape(cls, data: Any) -> Any:
+        """TRANSITIONAL (plan §13, decision 3; stage N+1): the response keeps the former salary shape —
+        a dict of the first record with an amount, and `salary_hidden` — while vacancies hold records."""
+        if not isinstance(data, dict) or not isinstance(data.get("salary"), list):
+            return data
+        records = [r for r in data["salary"] if isinstance(r, dict)]
+        shown = next((r for r in records if r.get("from") is not None or r.get("to") is not None), None)
+        salary: dict[str, Any] = {}
+        if shown:
+            unit = shown.get("unit")
+            salary = {
+                "from": shown.get("from"),
+                "to": shown.get("to"),
+                "currencyCode": shown.get("currency"),
+                "period": unit if unit in STANDARD_PERIODS else None,
+                "gross": shown.get("gross"),
+            }
+        hidden = any(r.get("state") == "hidden" for r in records)
+        return {**data, "salary": salary, "salary_hidden": hidden}
 
 
 class PoolVacancy(VacancyResponse):

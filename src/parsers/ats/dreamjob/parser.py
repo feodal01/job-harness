@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup, Tag
 from pydantic import JsonValue
 
 from src.models.company import Company
+from src.models.salary import legacy_salary  # Transitional until the ATS stages.
 from src.models.vacancy import Vacancy
 from src.parsers.ats.common import BoardSearch, adapter, filtered_next_url, host, required_text
 from src.parsers.ats.jsonld import enrich, job_postings
@@ -125,7 +126,7 @@ class DreamjobSearch(BoardSearch):
                     }.get(experience or ""),
                     min_experience_exclusive=experience == "Более 6 лет",
                     work_formats=["remote_country"] if remote else [],
-                    salary=_salary(salary_text),
+                    salary=legacy_salary(_salary(salary_text), hidden=False),
                     summary=rich.text,
                     summary_html=rich.html,
                     source_data={

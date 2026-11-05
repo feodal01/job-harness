@@ -73,13 +73,17 @@ def test_captured_offer_retains_text_company_salary_tax_and_pagination():
     assert first.company.name == "БЮРО 1440"
     assert first.company.profile_url == "https://getmatch.ru/companies/43QY9OQV-biuro-1440"
     assert first.company.site_url is None
-    assert first.salary == {
-        "from": 300000,
-        "to": 350000,
-        "currencyCode": "RUB",
-        "gross": True,
-        "period": "month",
-    }
+    # Getmatch's values stay in source_data; the record is a fact of the Getmatch normalizer.
+    from src.enrichment.registry import default_enrichment
+
+    [record] = default_enrichment().enrich(first, "getmatch").salary
+    assert (record.from_, record.to, record.currency, record.gross, record.unit) == (
+        300000,
+        350000,
+        "RUB",
+        True,
+        "month",
+    )
     assert first.work_formats == ["remote_country"] and first.location == "Россия"
     assert first.skills[0] == "Java"
     assert first.description is None
@@ -109,7 +113,9 @@ def test_getmatch_full_text_comes_from_detail_and_retains_feed_summary():
     assert "ДМС со стоматологией" in result.description
     assert "Пользовательское соглашение" not in result.description
     assert result.summary == listing.summary
-    assert result.salary == listing.salary
+    assert {k: v for k, v in result.source_data.items() if k.startswith("salary_")} == {
+        k: v for k, v in listing.source_data.items() if k.startswith("salary_")
+    }
     wrong = listing.model_copy(update={"id": "wrong"})
     with pytest.raises(ValueError, match="identity"):
         source.vacancy_details.parse((FIXTURES / "detail-34499.html").read_text(), wrong)
@@ -154,7 +160,7 @@ def test_getmatch_normalizes_geography_and_salary_without_using_employer_address
     search, (request,) = offers_request()
     # The engine enriches parsed vacancies (parsers stay pure).
     v = default_enrichment().enrich(search.parse(response("feed_page1"), request).vacancies[2], "getmatch")
-    assert v.salary["period"] == "month"
+    assert [r.unit for r in v.salary] == ["month"]
     assert [(p.country, p.city, p.format) for p in v.locations] == [
         ("RU", "Москва", "hybrid"),
         ("RU", None, "remote_country"),

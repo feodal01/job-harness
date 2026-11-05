@@ -11,6 +11,7 @@ from typing import Literal
 from src.geography.catalog import GeographyCatalog
 from src.models.filters import FilterName, SearchFilters
 from src.models.vacancy import Vacancy
+from src.selection.salary.settings import SalaryRange
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class Context:
     queries: tuple[str, ...]
     # Conditions the source cannot check: their verdicts are reported as unknown.
     unsupported: frozenset[str]
+    salary_range: SalaryRange
 
 
 @dataclass(frozen=True)

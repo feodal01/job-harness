@@ -18,6 +18,7 @@ from src.engine.recorder import SourceRecorder
 from src.models.brief import BriefInput
 from src.models.filters import SearchFilters
 from src.models.vacancy import Vacancy
+from src.selection.salary.settings import SalaryRange
 
 FIXTURES = Path(__file__).parent / "fixtures"
 GETMATCH_OFFER = json.loads((FIXTURES / "getmatch/feed_page1.json").read_text())["offers"][2]
@@ -401,10 +402,20 @@ def test_recorder_uses_cached_card_facts_for_current_pool_conditions(tmp_path):
         from src.enrichment.registry import default_enrichment
 
         recorder = SourceRecorder(
-            store, run["id"], b["id"], "hh_ru", Clock(), lambda: None, enrichment=default_enrichment()
+            store,
+            run["id"],
+            b["id"],
+            "hh_ru",
+            Clock(),
+            lambda: None,
+            enrichment=default_enrichment(),
+            salary_range=SalaryRange(),
         )
         decision = FilterStage(
-            old.filters, tuple(old.queries), catalog=default_enrichment().catalog
+            old.filters,
+            tuple(old.queries),
+            catalog=default_enrichment().catalog,
+            salary_range=SalaryRange(),
         ).evaluate(card)
         recorder.save(card, decision, "ready", detail_fetched=True)
         store.briefs.save_brief(

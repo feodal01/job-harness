@@ -301,8 +301,7 @@ class VacancyRepository:
     @staticmethod
     def _complete_vacancy(data: dict[str, Any]) -> dict[str, Any]:
         """Corpus rows omit empty fields; the pool returns the full vacancy shape like run results."""
-        fields = {k: v for k, v in data.items() if k in Vacancy.model_fields}
-        return {**Vacancy.model_validate(fields).model_dump(), "source": data.get("source")}
+        return {**Vacancy.from_stored(data).model_dump(), "source": data.get("source")}
 
     def set_pool_status(self, brief_id: str, vacancy_key: str, status: str, note: str) -> None:
         with self._connection.transaction():

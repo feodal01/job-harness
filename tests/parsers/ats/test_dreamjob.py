@@ -30,10 +30,11 @@ def test_captured_dreamjob_boards(company, count, title, city, minimum, maximum,
     assert first.id == first.source_data["id"]
     assert first.title == title and first.location == city
     assert first.locations[0].city == city and first.locations[0].country is None
-    assert first.salary.get("from") == minimum and first.salary.get("to") == maximum
+    record = first.salary[0] if first.salary else None
+    assert (record.from_ if record else None, record.to if record else None) == (minimum, maximum)
     if minimum is not None:
-        assert first.salary["currencyCode"] == "RUB"
-        assert first.salary["period"] is None
+        assert record is not None and record.currency == "RUB"
+        assert record.unit is None  # Dreamjob states no period: the record is not comparable.
     assert first.published_at is None  # Captured relative date is not today's date.
     assert first.source_data["published_text"] in {"сегодня", "вчера"}
     assert first.summary and first.summary_html

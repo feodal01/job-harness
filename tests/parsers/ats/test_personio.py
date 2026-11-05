@@ -26,7 +26,7 @@ def test_captured_personio_list_and_detail() -> None:
     assert first.employment == ["full_time"]
     assert first.work_formats == ["remote_country"]
     assert first.locations == []
-    assert first.salary == {}
+    assert first.salary == []
     vacancy = next(v for v in page.vacancies if v.source_data["id"] == "2628973")
     assert adapter.vacancy_details is not None
     assert adapter.vacancy_details.url(vacancy) == vacancy.url

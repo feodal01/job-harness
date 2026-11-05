@@ -32,7 +32,7 @@ def test_captured_jobvite_boards_and_category_page(company, case, count, title, 
     assert first.id == first.source_data["id"]
     assert first.title == title and first.location == location
     assert first.company.name == company
-    assert first.salary == {} and first.locations == []
+    assert first.salary == [] and first.locations == []
     if company == "progress":
         assert first.work_formats == ["hybrid"]
         assert first.url == "https://jobs.jobvite.com/progress/job/ohwmAfwt"

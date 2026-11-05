@@ -175,6 +175,7 @@ class SearchEngine:
                 clock,
                 publish,
                 enrichment=self.enrichment,
+                salary_range=self.settings.salary_range,
                 unsupported=frozenset(
                     key for key, mode in self.sources[source].search.parameters.items() if mode == "none"
                 ),
@@ -205,6 +206,7 @@ class SearchEngine:
                             self.known,
                             self.registry,
                             self.enrichment,
+                            self.settings.salary_range,
                         )
                         group.create_task(runner.run())
             status, error = outcome(recorders)
