@@ -419,7 +419,7 @@ function navigate() {
       $("pagination").hidden = true;
     }
   }
-  if (route.view === "history") $("historyTitle").textContent = "История · " + b.name;
+  if (route.view === "history") { $("historyTitle").textContent = "История поиска · " + b.name; $("historyBack").href = briefPath(b.id); }
   if (previous.view !== route.view || previous.briefId !== route.briefId) window.scrollTo(0,0);
   refresh().catch(handleRefreshError);
 }
@@ -1010,7 +1010,6 @@ $("searchForm").onsubmit=async e=>{
   }catch(e){error(e.message);}finally{submitting=false;updateStart();}
 };
 function backToBrief(){location.hash=route.briefId?briefPath(route.briefId):"#/briefs";}
-$("historyBack").onclick=backToBrief;
 $("openSearch").onclick=()=>{location.hash=`#/brief/${route.briefId}/settings`;};
 $("openHistory").onclick=()=>{location.hash=`#/brief/${route.briefId}/history`;};
 $("runSearch").onclick=()=>{const b=currentBrief();if(b)startSearch(b,$("runSearch"));};
@@ -1031,26 +1030,158 @@ $("sourceFilter").addEventListener("input",()=>{if(!$("sourceFilter").value)appl
 $("selectionView").onchange=()=>{location.hash=pageUrl({page:1,selection:$("selectionView").value});};
 $("sortView").onchange=()=>{location.hash=pageUrl({page:1,sort:$("sortView").value});};
 $("vacancySearch").oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{location.hash=pageUrl({page:1,q:$("vacancySearch").value.trim()});},300);};
-let historySignature=null;
+let historySignature=null, historySourceQuery="", historySourceStatus="", historySourcePage=1, historyStopOpen=false;
+const sourceDone=["complete","partial","skipped","blocked","cancelled"], sourceFailed=["failed","interrupted"];
+const sourceTypePlural={aggregator:"Агрегаторы",career_site:"Сайты компаний",ats:"Сайты компаний",telegram:"Telegram-каналы"};
+function runWhen(seconds,withYear){
+  const options={day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"};
+  if(withYear)options.year="numeric";
+  return new Date(seconds*1000).toLocaleString("ru",options).replace(" г.","").replace(" в ",", ");
+}
+function sourceRow(id,state){
+  const row=el("div",undefined,"srow"),source=sources.find(s=>s.id===id);
+  const found=state.metrics?.unique_seen;
+  const note=state.error||state.blocked_reason||state.hint||(found!=null&&sourceDone.includes(state.status)?`${found} ${plural(found,"вакансия","вакансии","вакансий")}`:"");
+  const type=typeNames[source?.type]||source?.type||"";
+  row.append(el("b",source?.name||id),el("span",type.charAt(0).toUpperCase()+type.slice(1),"muted"),runPill(state.status),el("span",note,"muted"));
+  return row;
+}
 function renderHistory(runs, r) {
-  const nav=$("history"),signature=JSON.stringify(runs.map(r=>[r.id,r.status]));
-  if(nav.dataset.signature!==signature+historyRun){
-    nav.replaceChildren();nav.dataset.signature=signature+historyRun;
-    for(const run of runs){const a=el("a",new Date(run.created_at*1000).toLocaleString("ru"),run.id===historyRun?"active":"");a.href=`#/brief/${route.briefId}/history?run=${run.id}`;a.append(el("small",statusNames[run.status]));nav.append(a);}
+  const nav=$("history"),signature=JSON.stringify(runs.map(x=>[x.id,x.status]))+historyRun;
+  if(nav.dataset.signature!==signature){
+    nav.replaceChildren();nav.dataset.signature=signature;
+    for(const run of runs){
+      const a=el("a");a.href=`#/brief/${encodeURIComponent(route.briefId)}/history?run=${encodeURIComponent(run.id)}`;
+      if(run.id===historyRun)a.setAttribute("aria-current","true");
+      const pill=runPill(run.status);pill.prepend(el("span","Статус: ","sr"));
+      a.append(el("span",runWhen(run.created_at)),pill);nav.append(a);
+    }
   }
-  if(!r){$("runDetails").replaceChildren(el("div","Поисков ещё не было. Запустите поиск из вакансий брифа.","empty"));return;}
-  if(historySignature===JSON.stringify(r))return;historySignature=JSON.stringify(r);
-  const details=$("runDetails"),wasOpen=details.querySelector('#eventDetails')?.open || false;details.replaceChildren();
-  details.append(el("h2",statusNames[r.status] || r.status));
-  if(typeof r.request?.second_chance==="boolean")details.append(el("p",`Второй шанс: ${r.request.second_chance?"включён":"выключен"}`,"muted"));
-  if(r.error)details.append(el("p",r.error,"notice"));
-  if(r.limit_reached)details.append(el("p","Достигнут заданный лимит поиска.","muted"));
-  const stats=el("div",undefined,"stats"),m=r.metrics;
-  for(const [name,value] of [["Найдено вакансий",m.unique_seen||0],["Подходит",m.accepted||0],["Может быть подходит",m.maybe||0],["Скрыто",m.rejected||0],["Полных описаний",m.descriptions_ready||0],["Страниц источников",m.pages||0],["Карточек из базы",m.details_reused||0],["Время поиска, с",((m.elapsed_ms||0)/1000).toFixed(1)],["Ошибок",(m.detail_errors||0)+(m.company_errors||0)+(m.listing_errors||0)]]){const d=el("div",undefined,"stat");d.append(el("strong",value),el("small",name));stats.append(d);}details.append(stats);
-  for(const [id,state] of Object.entries(r.sources || {}))details.append(el("p",[sources.find(s=>s.id===id)?.name || id,statusNames[state.status] || state.status,state.hint || state.error].filter(Boolean).join(" · "),"muted"));
-  const snapshot=el("details",undefined,"run-snapshot");snapshot.append(el("summary","Условия этого запуска"),el("pre",JSON.stringify(r.request,null,2)));details.append(snapshot);
-  const log=el("details");log.id="eventDetails";log.open=wasOpen;const pre=el("pre");pre.id="log";log.append(el("summary","Технические события"),pre);details.append(log);
-  log.querySelector("summary").onclick=()=>{if(!log.open)setTimeout(()=>refresh().catch(handleRefreshError),0);};
+  if(!r){$("runDetails").replaceChildren(el("div","Поиск ещё не запускали. Запустите его со страницы брифа.","empty"));return;}
+  const sig=JSON.stringify([r,historySourceQuery,historySourceStatus,historySourcePage,historyStopOpen,sources.length]);
+  if(historySignature===sig)return;historySignature=sig;
+  const b=currentBrief(),details=$("runDetails"),opened=new Set([...details.querySelectorAll("details[data-key]")].filter(d=>d.open).map(d=>d.dataset.key));
+  const focusedId=document.activeElement?.id;
+  details.replaceChildren();
+  const active=["queued","running"].includes(r.status), m=r.metrics||{};
+  const head=el("div",undefined,"hist-head"),title=el("h2",`${runWhen(r.created_at,true)} — ${(runStatusPills[r.status]||[,,statusNames[r.status]])[2]}`);title.id="runTitle";
+  head.append(title,runPill(r.status));
+  if(active){
+    const stop=el("button","Остановить поиск…","secondary");stop.type="button";stop.id="historyStop";
+    stop.setAttribute("aria-expanded",String(historyStopOpen));stop.setAttribute("aria-controls","historyStopConfirm");
+    stop.onclick=()=>{historyStopOpen=!historyStopOpen;historySignature=null;renderHistory(runs,r);$("historyStop")?.focus();};
+    head.append(stop);
+  }
+  details.append(head);
+  const states=Object.entries(r.sources||{}), total=states.length;
+  const count=list=>states.filter(([,st])=>list.includes(st.status)).length;
+  if(active){
+    const done=count(sourceDone)+count(sourceFailed);
+    const prog=el("div",undefined,"prog");prog.setAttribute("role","progressbar");prog.setAttribute("aria-label","Проверено источников");
+    prog.setAttribute("aria-valuemin","0");prog.setAttribute("aria-valuemax",String(total));prog.setAttribute("aria-valuenow",String(done));
+    const text=el("span");text.append(el("b",`${done} из ${total}`),` ${plural(total,"источника","источников","источников")} проверено`);
+    const bar=el("div",undefined,"bar"),fill=el("i");fill.style.width=total?`${Math.round(done/total*100)}%`:"0";bar.append(fill);bar.setAttribute("aria-hidden","true");
+    const minutes=Math.max(0,Math.round((Date.now()/1000-r.created_at)/60));
+    prog.append(text,bar,el("span",`идёт ${minutes} ${plural(minutes,"минуту","минуты","минут")}`,"muted"));details.append(prog);
+  }
+  if(typeof r.request?.second_chance==="boolean")details.append(el("p",`Частичные совпадения: ${r.request.second_chance?"включены":"выключены"}.${active?" Найденные вакансии уже видны в воронке.":""}`,"muted"));
+  if(active&&historyStopOpen){
+    const box=el("div",undefined,"confirm");box.id="historyStopConfirm";box.setAttribute("role","alertdialog");box.setAttribute("aria-labelledby","historyStopTitle");
+    const t=el("b","Остановить поиск?");t.id="historyStopTitle";
+    const queued=count(["queued","running"]);
+    const actions=el("div",undefined,"actions"),yes=el("button","Остановить поиск","danger-button"),no=el("button","Продолжить поиск","secondary");
+    yes.type=no.type="button";
+    yes.onclick=async()=>{yes.disabled=true;try{await api(`/api/v1/runs/${r.id}/cancel`,"POST");historyStopOpen=false;notify("Поиск остановлен. Найденные вакансии остались в брифе.");await refresh();}catch(e){error(e.message);yes.disabled=false;}};
+    no.onclick=()=>{historyStopOpen=false;historySignature=null;renderHistory(runs,r);$("historyStop")?.focus();};
+    actions.append(yes,no);
+    box.append(t,el("p",`Найденные ${m.unique_seen||0} ${plural(m.unique_seen||0,"вакансия останется","вакансии останутся","вакансий останутся")} в брифе. ${queued} ${plural(queued,"непроверенный источник будет пропущен","непроверенных источника будут пропущены","непроверенных источников будут пропущены")}, запуск получит статус «Остановлен».`),actions);
+    details.append(box);
+  }
+  if(["failed","interrupted","partial"].includes(r.status)&&b){
+    const box=el("div",undefined,"retry "+(r.status==="partial"?"part":"err"));box.setAttribute("role",r.status==="partial"?"status":"alert");
+    box.append(el("span",r.error||(r.status==="partial"?"Часть источников не ответила, поэтому найдено не всё.":"Поиск не завершился.")));
+    if(!activeRun(b)){const again=el("button","Запустить поиск снова");again.type="button";again.onclick=()=>startSearch(b,again);box.append(again);}
+    details.append(box);
+  }
+  if(r.limit_reached)details.append(el("p","Достигнут заданный лимит поиска: часть вакансий могла не попасть в бриф.","hint"));
+  const stats=el("div",undefined,"stats4");
+  for(const [value,name,cls,selection] of [[m.unique_seen||0,"Найдено","","all"],[m.accepted||0,"Подходит","good","accepted"],[m.maybe||0,"Может быть подходит","warn","maybe"],[m.rejected||0,"Скрыто","","rejected"]]){
+    const a=el("a",undefined,"stat "+cls);a.href=`${briefPath(route.briefId,"all")}?page=1&q=&selection=${selection}&sort=newest`;
+    const small=el("small");small.append(el("span",name),Object.assign(el("span","→"),{ariaHidden:"true"}));
+    a.append(el("strong",Number(value).toLocaleString("ru")),small);stats.append(a);
+  }
+  details.append(stats);
+  // Sources: summary by status and type, only the ones that need attention in full, the rest on demand.
+  const sec=el("section",undefined,"sec"),h=el("h3",`Источники · ${total}`);h.id="historySources";sec.setAttribute("aria-labelledby",h.id);sec.append(h);
+  const groups=[["готовы","■",count(sourceDone),"var(--accent)"],["идут","●",count(["running"]),"#5eead4"],["с ошибкой","✕",count(sourceFailed),"var(--danger)"],["в очереди","○",count(["queued"]),"var(--line)"]].filter(g=>g[2]);
+  const segBar=el("div",undefined,"seg-bar");segBar.setAttribute("role","img");segBar.setAttribute("aria-label",groups.map(g=>`${g[2]} ${g[0]}`).join(", "));
+  for(const g of groups){const i=el("i");i.style.flex=String(g[2]);i.style.background=g[3];segBar.append(i);}
+  const legend=el("div",undefined,"legend");
+  for(const g of groups){const span=el("span",g[1]+" ");span.append(el("b",String(g[2]))," "+g[0]);legend.append(span);}
+  sec.append(segBar,legend);
+  const byType=new Map();
+  for(const [id,state] of states){const type=sourceTypePlural[sources.find(s=>s.id===id)?.type]||"Другие";if(!byType.has(type))byType.set(type,[]);byType.get(type).push(state);}
+  if(byType.size>1){
+    const types=el("div",undefined,"types");
+    for(const [type,list] of byType){
+      const ready=list.filter(st=>sourceDone.includes(st.status)).length,running=list.filter(st=>st.status==="running").length,failed=list.filter(st=>sourceFailed.includes(st.status)).length;
+      const d=el("div",undefined,"type");d.append(el("b",type),el("span",[`${ready} из ${list.length} готовы`,running?`${running} идут`:"",failed?`${failed} с ошибкой`:""].filter(Boolean).join(", "),"muted"));types.append(d);
+    }
+    sec.append(types);
+  }
+  const attention=states.filter(([,st])=>sourceFailed.includes(st.status)||st.status==="partial"||st.status==="blocked");
+  if(attention.length){
+    const att=el("div",undefined,"att");att.setAttribute("role","region");att.setAttribute("aria-label","Источники, требующие внимания");
+    att.append(el("p",`Требуют внимания · ${attention.length}`,"att-h"),...attention.map(([id,st])=>sourceRow(id,st)),el("p","Ошибка одного источника не останавливает поиск по остальным.","att-foot muted"));
+    sec.append(att);
+  }else if(!active&&total)sec.append(el("p","Все источники отработали без ошибок.","ok-line"));
+  const running=states.filter(([,st])=>st.status==="running");
+  const fold=(key,label,rows,extra=[])=>{const d=el("details",undefined,"d");d.dataset.key=key;d.open=opened.has(key);d.append(el("summary",label),...extra,...rows);return d;};
+  if(active&&running.length)sec.append(fold("running",`Идут сейчас · ${running.length}`,running.map(([id,st])=>sourceRow(id,st))));
+  // The full list: search, status filter and pages of 20.
+  const query=historySourceQuery.toLowerCase(),filtered=states.filter(([id,st])=>(!query||(sources.find(s=>s.id===id)?.name||id).toLowerCase().includes(query))&&(!historySourceStatus||st.status===historySourceStatus));
+  const pages=Math.max(1,Math.ceil(filtered.length/20));historySourcePage=Math.min(historySourcePage,pages);
+  const tools=el("div",undefined,"all-tools"),find=el("input"),label=el("label","Найти источник","sr"),statusFilter=el("select");
+  find.type="search";find.id="historySourceFind";label.htmlFor=find.id;find.placeholder="Найти источник по названию";find.value=historySourceQuery;
+  find.oninput=()=>{historySourceQuery=find.value;historySourcePage=1;historySignature=null;renderHistory(runs,r);};
+  statusFilter.id="historySourceStatus";statusFilter.setAttribute("aria-label","Статус источника");
+  statusFilter.append(Object.assign(el("option","Все статусы"),{value:""}),...[...new Set(states.map(([,st])=>st.status))].map(st=>Object.assign(el("option",(runStatusPills[st]||[,,statusNames[st]||st])[2]),{value:st})));
+  statusFilter.value=historySourceStatus;statusFilter.onchange=()=>{historySourceStatus=statusFilter.value;historySourcePage=1;historySignature=null;renderHistory(runs,r);};
+  tools.append(label,find,statusFilter);
+  const rows=filtered.slice((historySourcePage-1)*20,historySourcePage*20).map(([id,st])=>sourceRow(id,st));
+  if(!rows.length)rows.push(el("p","Источники не найдены.","muted"));
+  const pager=el("nav",undefined,"pagination");pager.setAttribute("aria-label","Страницы источников");
+  const prev=el("button","← Назад","secondary"),next=el("button","Далее →","secondary");prev.type=next.type="button";
+  prev.disabled=historySourcePage<=1;next.disabled=historySourcePage>=pages;
+  prev.onclick=()=>{historySourcePage--;historySignature=null;renderHistory(runs,r);};next.onclick=()=>{historySourcePage++;historySignature=null;renderHistory(runs,r);};
+  pager.append(prev,next,el("small",`Показаны ${rows.length&&filtered.length?Math.min(historySourcePage*20,filtered.length)-(historySourcePage-1)*20:0} из ${filtered.length}`));
+  sec.append(fold("all",`Все источники · ${total}`,[...rows,...(pages>1?[pager]:[])],[tools]));
+  details.append(sec);
+  // Parameters of this run; the brief's conditions are not part of the run snapshot yet.
+  const cond=el("section",undefined,"sec"),ch=el("h3","Параметры этого запуска");ch.id="historyConditions";cond.setAttribute("aria-labelledby",ch.id);cond.append(ch);
+  const req=r.request||{},dl=el("dl",undefined,"conds");
+  const limitText=Object.entries(req.limits||{}).map(([id,l])=>[l.max_items_per_query?`${l.max_items_per_query} вакансий`:"",l.max_pages_per_query?`${l.max_pages_per_query} страниц`:""].filter(Boolean).join(", ")&&`${sources.find(s=>s.id===id)?.name||id}: ${[l.max_items_per_query?`до ${l.max_items_per_query} вакансий`:"",l.max_pages_per_query?`до ${l.max_pages_per_query} страниц`:""].filter(Boolean).join(", ")} на запрос`).filter(Boolean).join("; ");
+  const profiles=req.company_profiles&&typeof req.company_profiles==="object"?Object.values(req.company_profiles).some(Boolean):req.company_profiles;
+  for(const [term,value] of [["Источники",(req.sources||[]).map(id=>sources.find(s=>s.id===id)?.name||id).join(", ")],
+    ["Пропущены",Object.entries(req.skipped||{}).map(([id,why])=>`${sources.find(s=>s.id===id)?.name||id} — ${why}`).join("; ")],
+    ["Лимиты",limitText||"по настройкам источников"],["Описание компаний",profiles==null?"":profiles?"загружалось":"не загружалось"]])
+    if(value)dl.append(el("dt",term),el("dd",value));
+  cond.append(dl);
+  if(b){
+    const now=el("p",undefined,"muted cond-now"),edit=el("a","Условия брифа");edit.href=`#/brief/${encodeURIComponent(b.id)}/settings`;
+    now.append(`Запросы и условия отбора на момент запуска пока не сохраняются. Сейчас в брифе: ${b.queries.join(" · ")||"без запросов"}. `,edit);cond.append(now);
+  }
+  details.append(cond);
+  const tech=fold("tech","Технические подробности",[]);tech.id="eventDetails";
+  const grid=el("div",undefined,"tech");
+  for(const [value,name] of [[m.pages||0,"Страниц источников"],[m.details_reused||0,"Карточек из базы"],[m.descriptions_ready||0,"Полных описаний"],[((m.elapsed_ms||0)/1000).toLocaleString("ru",{maximumFractionDigits:1}),"Время поиска, с"],[(m.detail_errors||0)+(m.company_errors||0)+(m.listing_errors||0),"Ошибок"]]){
+    const d=el("div");d.append(el("b",String(value)),name);grid.append(d);
+  }
+  const pre=el("pre");pre.id="log";
+  tech.append(grid,el("p","События","tech-label"),pre,el("p","Параметры запуска в JSON","tech-label"),el("pre",JSON.stringify(r.request,null,2)));
+  tech.querySelector("summary").onclick=()=>{if(!tech.open)setTimeout(()=>refresh().catch(handleRefreshError),0);};
+  details.append(tech);
+  if(focusedId&&$(focusedId)&&focusedId!==document.activeElement?.id){const f=$(focusedId);f.focus();if(f.type==="search")f.setSelectionRange(f.value.length,f.value.length);}
 }
 async function refresh() {
   if(servicePaused || readerTransition)return;
@@ -1075,7 +1206,7 @@ async function refresh() {
     const runs=await api(`/api/v1/runs?brief_id=${b.id}`,"GET",undefined,signal);if(!valid())return;
     const r=route.run?runs.find(r=>r.id===route.run):runs[0];
     if(route.run&&!r){$("runDetails").replaceChildren(el("p","Запуск не найден в истории этого брифа.","notice"));return;}
-    if(historyRun!==r?.id){historyRun=r?.id;lastEvent=0;events=[];historySignature=null;}
+    if(historyRun!==r?.id){historyRun=r?.id;lastEvent=0;events=[];historySignature=null;historySourceQuery="";historySourceStatus="";historySourcePage=1;historyStopOpen=false;}
     renderHistory(runs,r);
     if(r&&$("eventDetails")?.open){
       const batch=await api(`/api/v1/runs/${r.id}/events?after=${lastEvent}`,"GET",undefined,signal);if(!valid())return;

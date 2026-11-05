@@ -2,12 +2,12 @@
 <html lang="ru">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Поиск работы · Мои брифы</title><link rel="stylesheet" href="/assets/tokens.css?v=20261104-rebuild">
-<link rel="stylesheet" href="/assets/app.css?v=20261105-form">
+<link rel="stylesheet" href="/assets/app.css?v=20261105-history">
 <link rel="stylesheet" href="/assets/brief-form.css?v=20261105-form">
 <script defer src="/assets/token-editor.js?v=20261104-rebuild"></script>
-<script defer src="/assets/location-editor.js?v=20261105-country"></script>
+<script defer src="/assets/location-editor.js?v=20261105-history"></script>
 <script defer src="/assets/vocabulary.js?v=20261105-form"></script>
-<script defer src="/assets/app.js?v=20261105-country"></script>
+<script defer src="/assets/app.js?v=20261105-history"></script>
 <script defer src="/assets/auth.js?v=20261105-login"></script></head>
 <body>
 <header class="app-header"><a href="#/briefs" class="brand">Поиск работы</a><nav class="actions" aria-label="Основная навигация"><a id="navBriefs" href="#/briefs" class="nav-link" aria-current="page">Мои брифы</a><div class="pop-anchor"><button id="serviceIndicator" type="button" class="svc" aria-haspopup="dialog" aria-expanded="false" aria-controls="servicePopover"><span id="serviceDot" class="svc-dot" aria-hidden="true"></span><span id="serviceIndicatorText">Сервис работает</span></button><div id="servicePopover" class="popover" role="dialog" aria-label="Сервис поиска" hidden><p><b id="servicePopoverTitle">Сервис поиска работает</b></p><p id="serviceActiveRuns" class="muted">Активных поисков нет.</p><button id="stopService" type="button" class="secondary" hidden>Остановить сервис…</button></div></div><div class="pop-anchor"><button id="accountButton" type="button" class="secondary acct" aria-haspopup="menu" aria-expanded="false" aria-controls="accountMenu" hidden><span id="accountName"></span><span aria-hidden="true">▾</span></button><div id="accountMenu" class="menu" role="menu" aria-label="Аккаунт" hidden><button id="signOut" type="button" role="menuitem">Выйти</button></div></div></nav></header>
@@ -149,9 +149,9 @@
   </aside></div>
 </section>
 <section id="historyView" hidden>
-  <button id="historyBack" class="text-button">← К вакансиям</button><h1 id="historyTitle">История поиска</h1>
+  <a id="historyBack" href="#/briefs" class="back">← К вакансиям брифа</a><h1 id="historyTitle">История поиска</h1>
   <p class="muted">Каждый запуск пополняет общую воронку брифа.</p>
-  <div class="history-layout"><nav id="history" class="history" aria-label="Запуски поиска"></nav><section id="runDetails"></section></div>
+  <div class="history-layout"><nav id="history" class="history" aria-label="Запуски поиска"></nav><section id="runDetails" aria-labelledby="runTitle"></section></div>
 </section>
 </main>
 <dialog id="vacancyDialog" class="reader" aria-labelledby="vacancyTitle"><button id="closeVacancyIcon" class="secondary close-x" type="button" aria-label="Закрыть">×</button><div id="vacancyBody" class="dialog-body"></div><footer id="vacancyFooter" class="foot-cluster"><div id="vacancyStageRow" class="foot-row" hidden><span class="lbl" id="vacancyStageLabel">Этап</span><div id="vacancyStages" class="seg" role="group" aria-labelledby="vacancyStageLabel"></div></div><div id="stageLine" class="stage-line" role="status" hidden></div><div id="readerMessage" role="status" hidden></div><div class="foot-row"><button id="closeVacancy" type="button" class="secondary">Закрыть</button><span class="reader-navigation"><button id="previousVacancy" type="button" class="secondary ib" aria-label="Предыдущая вакансия">←</button><button id="nextVacancy" type="button" class="secondary ib" aria-label="Следующая вакансия">→</button><span id="readerPosition" class="pos"></span></span><span id="vacancySource" class="push"></span></div></footer></dialog>
