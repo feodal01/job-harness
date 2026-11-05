@@ -183,8 +183,17 @@ class LocationEditor {
       }
       country.value = group.country; country.disabled = !this.countries.length;
       country.onchange = () => {
+        // The change applies at once; cities that belonged to the old country can be brought back.
+        const previous = {country: group.country, cities: group.cities, wholeCountry: group.wholeCountry};
         group.country = country.value; group.cities = []; group.wholeCountry = false; group.draft = "";
         this.render(); this.onChange();
+        const removed = previous.wholeCountry ? ["вся страна"] : previous.cities.map(city => city.city_display_name || city.city);
+        if (removed.length && this.onCountryReset) this.onCountryReset(removed, () => {
+          if (!this.groups.includes(group)) return;
+          Object.assign(group, previous, {draft: ""});
+          this.render(); this.onChange();
+          this.views.get(group.id)?.country.focus();
+        });
       };
       const fields = this.node("div", undefined, "location-fields");
       const countryField = this.node("div", undefined, "location-field");

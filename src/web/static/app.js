@@ -81,6 +81,9 @@ const conditionNames = {query:"Профиль вакансии",profile:"Про�
     const tokenEditors = [queryTokens, companyTokens, textTokens];
     const locationEditor = new LocationEditor($("locationGroups"), $("locationCount"),
       $("addLocationGroup"), api, () => {updateUnsupportedConditions(); updateStart(); renderConditionsSummary();});
+    locationEditor.onCountryReset = (removed, undo) => notify(
+      `Страна изменена: ${removed.length === 1 && removed[0] === "вся страна" ? "убран выбор всей страны" : (removed.length === 1 ? "убран город " : "убраны города ") + removed.join(", ")}.`,
+      undo);
     const chosenSources = () => sources.filter((s) => $("source-" + s.id)?.checked);
     function updateStart() {
       const b=currentBrief(), active=!!b&&route.view==="settings"&&activeRun(b);
