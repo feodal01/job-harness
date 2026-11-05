@@ -14,8 +14,9 @@ class VacancyService:
         status: str = "all",
         q: str = "",
         sort: str = "first_seen",
+        source: str = "",
     ) -> dict:
-        return self.store.pool_page(brief_id, page, page_size, selection, status, q, sort)
+        return self.store.pool_page(brief_id, page, page_size, selection, status, q, sort, source)
 
     def adjacent(
         self,
@@ -28,9 +29,10 @@ class VacancyService:
         q: str = "",
         sort: str = "first_seen",
         anchor_time: float | None = None,
+        source: str = "",
     ) -> dict:
         return self.store.pool_adjacent(
-            brief_id, vacancy_key, direction, page_size, selection, status, q, sort, anchor_time
+            brief_id, vacancy_key, direction, page_size, selection, status, q, sort, anchor_time, source
         )
 
     def get(self, brief_id: str, vacancy_key: str) -> dict:

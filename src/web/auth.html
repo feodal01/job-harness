@@ -4,35 +4,48 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <title>Вход · Поиск работы</title>
-  <link rel="stylesheet" href="/assets/app.css?v=20261011-auth">
-  <script defer src="/assets/auth.js?v=20261011-auth"></script>
+  <link rel="stylesheet" href="/assets/tokens.css?v=20261105-login">
+  <link rel="stylesheet" href="/assets/app.css?v=20261105-login">
+  <script defer src="/assets/auth.js?v=20261105-login"></script>
 </head>
-<body>
-  <header class="app-header">
-    <a href="/" class="brand">Поиск работы <span>Брифы и отклики</span></a>
-    <a href="/" class="secondary nav-link">Вернуться к поиску</a>
-  </header>
-  <main class="auth-main">
-    <section class="auth-card" aria-labelledby="authTitle">
-      <p class="eyebrow">АККАУНТ</p>
-      <h1 id="authTitle">Вход в Поиск работы</h1>
-      <p id="authDescription" class="muted">Войдите, чтобы пользоваться общим каталогом компаний.</p>
-      <p id="authNotice" class="notice" role="status" hidden></p>
-      <div id="authAlert" class="auth-alert" role="alert" hidden></div>
-      <div id="authProviders" class="auth-providers" aria-live="polite">
-        <p class="muted">Проверяем вход…</p>
+<body class="login-page">
+  <header class="login-top"><span class="brand">Поиск работы</span></header>
+  <main class="login-main">
+    <section class="pitch" aria-labelledby="pitchTitle">
+      <h1 id="pitchTitle">Опишите, что ищете, — вакансии <mark>разберём вместе</mark></h1>
+      <p class="lead">Бриф с условиями поиска собирает вакансии из нескольких источников, отсеивает лишнее и объясняет, почему вакансия подходит. Дальше вы ведёте её по этапам: отклик, собеседование, оффер.</p>
+      <ol class="steps">
+        <li><b aria-hidden="true">1</b><strong>Бриф</strong><span>Запросы, места, зарплата и исключения</span></li>
+        <li><b aria-hidden="true">2</b><strong>Поиск</strong><span>Много источников за один запуск, без дублей между запусками</span></li>
+        <li><b aria-hidden="true">3</b><strong>Воронка</strong><span>Решение по каждой вакансии в один клик</span></li>
+      </ol>
+      <div class="login-preview" aria-hidden="true">
+        <div class="pv-head"><b>QA Engineer, Москва</b><span>· Неразобранные</span><span class="pv-count">6 вакансий</span></div>
+        <div class="pv-row"><div><div class="t1">QA engineer (manual)</div><div class="t2">Яндекс · Москва · Гибрид</div></div><span class="pv-salary">от 180 000 ₽</span><span class="pill ok">Подходит</span><span class="pill new">Новая</span></div>
+        <div class="pv-row"><div><div class="t1">Тестировщик веб-приложений</div><div class="t2">Ozon · Москва · Офис</div></div><span class="pv-salary">150 000 – 200 000 ₽</span><span class="pill maybe">Может быть подходит</span><span class="pill viewed">Неразобранная</span></div>
+        <div class="pv-row"><div><div class="t1">QA Engineer, платежи</div><div class="t2">Т-Банк · Удалённо по стране</div></div><span class="muted">Не указана</span><span class="pill ok">Подходит</span><span class="pill applied">Отклик</span></div>
       </div>
-      <div id="authAccount" hidden>
-        <p id="accountName" class="account-name"></p>
-        <p class="muted">Можно вернуться к ассистенту или продолжить работу в приложении.</p>
-        <div class="actions auth-actions">
-          <a href="/" class="button">К поиску работы</a>
-          <button id="signOut" class="secondary" hidden>Выйти</button>
-        </div>
-      </div>
-      <button id="authRetry" class="secondary" hidden>Повторить</button>
-      <button id="authReset" class="secondary" hidden>Сбросить вход</button>
     </section>
+    <aside class="signin" aria-labelledby="authTitle">
+      <div class="signin-card">
+        <h2 id="authTitle">Вход</h2>
+        <p class="muted">Войдите, чтобы открыть брифы и найденные вакансии. Этим же входом пользуется ассистент.</p>
+        <p id="authNotice" class="login-error" role="alert" hidden></p>
+        <p id="authAlert" class="login-error" role="alert" hidden></p>
+        <div id="authProviders" class="prov" aria-live="polite" aria-busy="true">
+          <p class="muted">Загружаем способы входа…</p>
+        </div>
+        <details id="authMore" class="more" hidden><summary id="authMoreLabel">Другие способы</summary><div id="authMoreProviders" class="more-grid"></div></details>
+        <div class="login-retry">
+          <button id="authRetry" type="button" class="secondary" hidden>Повторить</button>
+          <button id="authReset" type="button" class="secondary" hidden>Сбросить вход</button>
+        </div>
+        <ul class="facts">
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 12 10 18 20 6"></polyline></svg><span>Отклики вы отправляете сами, сервис только отмечает этап</span></li>
+        </ul>
+      </div>
+    </aside>
   </main>
+  <footer class="login-foot"><span id="appVersion">Поиск работы</span></footer>
 </body>
 </html>

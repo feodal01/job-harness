@@ -6,16 +6,26 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from src.dependencies import AuthDep
-from src.services.auth import AuthError
+from src.services.auth import AuthError, AuthService
 
 router = APIRouter(include_in_schema=False)
 PAGE = Path(__file__).parent / "auth.html"
+
+
+async def signed_in(service: AuthService) -> bool:
+    try:
+        return (await service.status()).authenticated
+    except AuthError:
+        # The login page shows the reason and a retry; the app stays closed meanwhile.
+        return False
 
 
 @router.get("/auth")
 async def login_page(request: Request, service: AuthDep) -> Response:
     if str(request.base_url).rstrip("/") != service.base_url:
         return RedirectResponse(service.login_url, status_code=303)
+    if await signed_in(service):
+        return RedirectResponse(service.base_url + "/", status_code=303)
     response = HTMLResponse(PAGE.read_text())
     browser_id = request.cookies.get(service.cookie_name, "")
     if not re.fullmatch(r"[A-Za-z0-9_-]{43}", browser_id):

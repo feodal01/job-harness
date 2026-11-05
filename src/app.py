@@ -7,7 +7,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -18,6 +18,7 @@ from src.auth.storage import SessionStore
 from src.core.config import Settings
 from src.core.observability import RequestLoggingMiddleware
 from src.db import Database
+from src.dependencies import AuthDep
 from src.engine import SearchEngine
 from src.enrichment.registry import Enrichment
 from src.geography.catalog import default_catalog
@@ -33,6 +34,7 @@ from src.services.sources import SourceService
 from src.services.system import SystemService
 from src.services.vacancies import VacancyService
 from src.web.auth import router as auth_pages
+from src.web.auth import signed_in
 
 logger = logging.getLogger(__name__)
 WEB_ROOT = Path(__file__).parent / "web"
@@ -126,7 +128,8 @@ def create_app(
             response.headers["Referrer-Policy"] = "no-referrer"
             response.headers["X-Frame-Options"] = "DENY"
             response.headers["Content-Security-Policy"] = (
-                "default-src 'self'; script-src 'self'; style-src 'self'; "
+                "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; "
+                "font-src https://fonts.gstatic.com; "
                 "frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
             )
         return response
@@ -134,7 +137,10 @@ def create_app(
     app.add_middleware(RequestLoggingMiddleware)
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-    async def index() -> str:
-        return (WEB_ROOT / "index.html").read_text()
+    async def index(service: AuthDep) -> Response:
+        # The web app is closed behind the login screen; the REST API and MCP keep their own checks.
+        if not await signed_in(service):
+            return RedirectResponse(service.login_url, status_code=303)
+        return HTMLResponse((WEB_ROOT / "index.html").read_text())
 
     return app

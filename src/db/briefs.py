@@ -3,7 +3,7 @@ import time
 from typing import Any
 from uuid import uuid4
 
-from src.core.errors import NotFoundError
+from src.core.errors import ConflictError, NotFoundError
 from src.models.brief import BriefInput
 
 from .connection import Connection
@@ -25,6 +25,31 @@ class BriefRepository:
                 (brief_id, brief.model_dump_json(), now),
             )
         return {"id": brief_id, **brief.model_dump(), "updated_at": now}
+
+    def delete_brief(self, brief_id: str) -> int:
+        """Delete a brief with its runs, funnel, stages and notes; the shared vacancy corpus stays.
+
+        Returns how many vacancies left the brief's funnel. A brief with an active search is refused.
+        """
+        if self.brief(brief_id) is None:
+            raise NotFoundError(brief_id)
+        db = self._connection.db
+        with self._connection.transaction():
+            active = db.execute(
+                "SELECT 1 FROM runs WHERE brief_id=? AND status IN ('queued','running') LIMIT 1", (brief_id,)
+            ).fetchone()
+            if active:
+                raise ConflictError("По брифу идёт поиск. Остановите его, затем удалите бриф.")
+            removed = db.execute(
+                "SELECT count(*) FROM brief_vacancies WHERE brief_id=?", (brief_id,)
+            ).fetchone()[0]
+            runs = "SELECT id FROM runs WHERE brief_id=?"
+            for table in ("events", "vacancy_origins", "run_vacancies"):
+                db.execute(f"DELETE FROM {table} WHERE run_id IN ({runs})", (brief_id,))
+            db.execute("DELETE FROM brief_vacancies WHERE brief_id=?", (brief_id,))
+            db.execute("DELETE FROM runs WHERE brief_id=?", (brief_id,))
+            db.execute("DELETE FROM briefs WHERE id=?", (brief_id,))
+        return int(removed)
 
     def brief(self, brief_id: str) -> dict[str, Any] | None:
         row = self._connection.db.execute("SELECT * FROM briefs WHERE id=?", (brief_id,)).fetchone()

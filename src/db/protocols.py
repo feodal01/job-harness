@@ -18,6 +18,8 @@ class RunReader(Protocol):
 class BriefStore(BriefReader, Protocol):
     def save_brief(self, brief: BriefInput, brief_id: str | None = None) -> dict[str, Any]: ...
 
+    def delete_brief(self, brief_id: str) -> int: ...
+
     def briefs(self) -> list[dict[str, Any]]: ...
 
     def brief_overviews(self) -> list[dict[str, Any]]: ...
@@ -78,6 +80,7 @@ class VacancyStore(Protocol):
         status: str = "all",
         q: str = "",
         sort: str = "first_seen",
+        source: str = "",
     ) -> dict[str, Any]: ...
 
     def pool_adjacent(
@@ -91,6 +94,7 @@ class VacancyStore(Protocol):
         q: str = "",
         sort: str = "first_seen",
         anchor_time: float | None = None,
+        source: str = "",
     ) -> dict[str, Any]: ...
 
     def pool_item(self, brief_id: str, vacancy_key: str) -> dict[str, Any]: ...

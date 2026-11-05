@@ -2,6 +2,7 @@ import httpx
 import pytest
 from geo_support import confirmed
 
+from src.core.errors import ConflictError
 from src.db import Database
 from src.models.brief import BriefInput
 from src.models.vacancy import Vacancy
@@ -90,7 +91,7 @@ async def test_frontend_assets_and_search_sorting(tmp_path):
         assert page["items"][1]["note"] == "Saved"
         updated = (await client.get(f"/api/v1/briefs/{b['id']}/vacancies", params={"sort": "updated"})).json()
         assert updated["items"][0]["id"] == "0"
-        assert "/assets/app.js" in (await client.get("/")).text
+        assert (await client.get("/")).status_code == 303  # closed behind the login screen
         assert (await client.get("/assets/app.js")).status_code == 200
         assert (await client.get("/assets/app.css")).status_code == 200
 
@@ -136,3 +137,54 @@ async def test_edit_brief_with_historical_unregistered_source(tmp_path):
         assert response.status_code == 200
         item = (await client.get(f"/api/v1/briefs/{b['id']}/vacancies/retired_source:one")).json()
         assert item["selection"]["status"] == "accepted"
+
+
+async def test_funnel_filters_by_source_and_navigation_keeps_the_filter(tmp_path):
+    store = Database(tmp_path / "test.sqlite")
+    b = store.briefs.save_brief(BriefInput(name="Sources"))
+    r = store.runs.create_run(b["id"], {}, {})
+    for n, source in enumerate(["hh_ru", "getmatch", "hh_ru", "getmatch"]):
+        store.vacancies.save_vacancy(r["id"], b["id"], Vacancy(id=str(n), title="QA", url="u"), source=source)
+    store.close()
+    async with client_for(tmp_path, lambda r: httpx.Response(200)) as client:
+        base = f"/api/v1/briefs/{b['id']}/vacancies"
+        page = (await client.get(base, params={"source": "getmatch"})).json()
+        assert [v["key"] for v in page["items"]] == ["getmatch:1", "getmatch:3"] and page["total"] == 2
+        assert (await client.get(base)).json()["total"] == 4
+        step = (await client.get(f"{base}/getmatch:1/adjacent", params={"source": "getmatch"})).json()
+        assert step["key"] == "getmatch:3" and step["page"]["total"] == 2
+
+
+async def test_delete_brief_removes_its_runs_funnel_and_notes_only(tmp_path):
+    store = Database(tmp_path / "test.sqlite")
+    gone = store.briefs.save_brief(BriefInput(name="Gone", queries=["QA"]))
+    kept = store.briefs.save_brief(BriefInput(name="Kept", queries=["QA"]))
+    for brief in (gone, kept):
+        run = store.runs.create_run(brief["id"], {}, {})
+        store.vacancies.save_vacancy(
+            run["id"], brief["id"], Vacancy(id="1", title="QA", url="u"), source="hh_ru"
+        )
+        store.vacancies.set_pool_status(brief["id"], "hh_ru:1", "applied", "Note")
+    store.close()
+    async with client_for(tmp_path, lambda r: httpx.Response(200)) as client:
+        deleted = await client.delete(f"/api/v1/briefs/{gone['id']}")
+        assert deleted.status_code == 200 and deleted.json() == {"id": gone["id"], "removed_vacancies": 1}
+        assert [b["id"] for b in (await client.get("/api/v1/briefs")).json()] == [kept["id"]]
+        assert (await client.get(f"/api/v1/runs?brief_id={gone['id']}")).json() == []
+        assert (await client.get(f"/api/v1/briefs/{gone['id']}/vacancies")).status_code == 404
+        survivor = (
+            await client.get(f"/api/v1/briefs/{kept['id']}/vacancies", params={"status": "all"})
+        ).json()
+        assert survivor["items"][0]["note"] == "Note" and survivor["items"][0]["user_status"] == "applied"
+        assert len((await client.get(f"/api/v1/runs?brief_id={kept['id']}")).json()) == 1
+        assert (await client.delete(f"/api/v1/briefs/{gone['id']}")).status_code == 404
+
+
+def test_delete_brief_is_refused_while_its_search_runs(tmp_path):
+    store = Database(tmp_path / "test.sqlite")
+    brief = store.briefs.save_brief(BriefInput(name="Busy", queries=["QA"]))
+    store.runs.create_run(brief["id"], {}, {})
+    with pytest.raises(ConflictError, match="идёт поиск"):
+        store.briefs.delete_brief(brief["id"])
+    assert store.briefs.brief(brief["id"]) is not None
+    store.close()

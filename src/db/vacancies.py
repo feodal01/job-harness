@@ -143,10 +143,11 @@ class VacancyRepository:
         status: str = "all",
         q: str = "",
         sort: str = "first_seen",
+        source: str = "",
     ) -> dict[str, Any]:
         if self._briefs.brief(brief_id) is None:
             raise NotFoundError(brief_id)
-        where, params = self._pool_filter(selection, status, q)
+        where, params = self._pool_filter(selection, status, q, source)
         column, descending = self._pool_sort(sort)
         order = self._pool_order(column, descending)
         rows, result = self._page(
@@ -161,7 +162,9 @@ class VacancyRepository:
         return {**result, "items": self._pool_items(brief_id, rows)}
 
     @classmethod
-    def _pool_filter(cls, selection: str, status: str, q: str) -> tuple[str, tuple[Any, ...]]:
+    def _pool_filter(
+        cls, selection: str, status: str, q: str, source: str = ""
+    ) -> tuple[str, tuple[Any, ...]]:
         where, params = cls._selection_clause("json_extract(b.selection, '$.status')", selection)
         if status == "open":
             where += " AND b.user_status IN ('new', 'viewed')"
@@ -172,6 +175,9 @@ class VacancyRepository:
             where += " AND (instr(casefold(json_extract(v.data, '$.title')), ?) > 0 "
             where += "OR instr(casefold(json_extract(v.data, '$.company.name')), ?) > 0)"
             params += (q.strip().casefold(), q.strip().casefold())
+        if source:
+            where += " AND json_extract(v.data, '$.source')=?"
+            params += (source,)
         return (where, params)
 
     @staticmethod
@@ -198,6 +204,7 @@ class VacancyRepository:
         q: str = "",
         sort: str = "first_seen",
         anchor_time: float | None = None,
+        source: str = "",
     ) -> dict[str, Any]:
         column, descending = self._pool_sort(sort)
         anchor = self._connection.db.execute(
@@ -207,7 +214,7 @@ class VacancyRepository:
         if anchor is None:
             raise NotFoundError(vacancy_key)
         timestamp = anchor[0] if anchor_time is None else anchor_time
-        where, params = self._pool_filter(selection, status, q)
+        where, params = self._pool_filter(selection, status, q, source)
         where = "b.brief_id=?" + where
         params = (brief_id, *params)
         table = "brief_vacancies b JOIN vacancies v ON v.id=b.vacancy_id"
@@ -226,7 +233,9 @@ class VacancyRepository:
             f"SELECT count(*) FROM {table} WHERE {where} AND ({column}, b.rowid) {before} (?, ?)",
             (*params, target[1], target[2]),
         ).fetchone()[0]
-        page = self.pool_page(brief_id, position // page_size + 1, page_size, selection, status, q, sort)
+        page = self.pool_page(
+            brief_id, position // page_size + 1, page_size, selection, status, q, sort, source
+        )
         return {"key": target[0], "page": page}
 
     def pool_item(self, brief_id: str, vacancy_key: str) -> dict[str, Any]:

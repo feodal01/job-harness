@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 from src.api.openapi import error_responses
 from src.dependencies import BriefDep, VacancyDep
 from src.models.brief import BriefInput
-from src.schemas.briefs import BriefOverview, BriefResponse
+from src.schemas.briefs import BriefDeleted, BriefOverview, BriefResponse
 from src.schemas.vacancies import (
     PoolStatusInput,
     PoolVacancy,
@@ -49,6 +49,12 @@ async def update_brief(brief_id: str, brief: BriefInput, service: BriefDep) -> B
     return BriefResponse.model_validate(service.update(brief_id, brief))
 
 
+@router.delete("/{brief_id}", response_model=BriefDeleted, responses=error_responses(403, 404, 409))
+async def delete_brief(brief_id: str, service: BriefDep) -> BriefDeleted:
+    """Удалить бриф вместе с историей поиска, воронкой, этапами и заметками. Нельзя, пока идёт поиск."""
+    return BriefDeleted(id=brief_id, removed_vacancies=service.delete(brief_id))
+
+
 @router.get(
     "/{brief_id}/vacancies",
     response_model=PoolVacancyPage,
@@ -64,10 +70,11 @@ async def list_pool(
     status: PoolView = "all",
     q: Annotated[str, Query(max_length=200)] = "",
     sort: Literal["first_seen", "newest", "updated"] = "first_seen",
+    source: Annotated[str, Query(max_length=100)] = "",
 ) -> PoolVacancyPage:
     """Страница общего списка вакансий брифа с отбором и пользовательскими статусами."""
     return PoolVacancyPage.model_validate(
-        service.list_vacancies(brief_id, page, page_size, selection, status, q, sort)
+        service.list_vacancies(brief_id, page, page_size, selection, status, q, sort, source)
     )
 
 
@@ -88,10 +95,13 @@ async def adjacent_pool_item(
     q: Annotated[str, Query(max_length=200)] = "",
     sort: Literal["first_seen", "newest", "updated"] = "first_seen",
     anchor_time: Annotated[float | None, Query(ge=0, allow_inf_nan=False)] = None,
+    source: Annotated[str, Query(max_length=100)] = "",
 ) -> VacancyNavigation:
     """Соседняя вакансия и её страница с учётом текущих фильтров и порядка."""
     return VacancyNavigation.model_validate(
-        service.adjacent(brief_id, vacancy_key, direction, page_size, selection, status, q, sort, anchor_time)
+        service.adjacent(
+            brief_id, vacancy_key, direction, page_size, selection, status, q, sort, anchor_time, source
+        )
     )
 
 

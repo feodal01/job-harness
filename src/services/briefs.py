@@ -78,6 +78,9 @@ class BriefService:
     def create(self, brief: BriefInput) -> dict:
         return self.briefs.save_brief(self.normalize(brief))
 
+    def delete(self, brief_id: str) -> int:
+        return self.briefs.delete_brief(brief_id)
+
     def update(self, brief_id: str, brief: BriefInput) -> dict:
         brief = self.normalize(brief)
         with self.transaction():
