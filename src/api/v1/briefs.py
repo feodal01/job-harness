@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 
 from src.api.openapi import error_responses
 from src.dependencies import BriefDep, VacancyDep
@@ -47,6 +47,13 @@ async def create_brief(brief: BriefInput, service: BriefDep) -> BriefResponse:
 async def update_brief(brief_id: str, brief: BriefInput, service: BriefDep) -> BriefResponse:
     """Сохранить бриф и пересчитать отбор уже найденных вакансий."""
     return BriefResponse.model_validate(service.update(brief_id, brief))
+
+
+@router.delete("/{brief_id}", status_code=204, responses=error_responses(403, 404, 409))
+async def delete_brief(brief_id: str, service: BriefDep) -> Response:
+    """Удалить бриф вместе с историей поиска, воронкой, этапами и заметками. Нельзя, пока идёт поиск."""
+    service.delete(brief_id)
+    return Response(status_code=204)
 
 
 @router.get(

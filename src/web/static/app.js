@@ -316,7 +316,9 @@ function briefMenuCell(b) {
   button.setAttribute("aria-haspopup", "menu"); button.setAttribute("aria-expanded", "false"); button.setAttribute("aria-controls", id);
   const menu = el("div", undefined, "menu fixed-menu"); menu.id = id; menu.setAttribute("role", "menu"); menu.hidden = true;
   const item = (text, action) => { const x = el("button", text); x.type = "button"; x.setAttribute("role", "menuitem"); x.onclick = () => { closePopups(); action(); }; return x; };
-  menu.append(item("Переименовать", () => renameBrief(b)));
+  const remove = item("Удалить…", () => deleteBrief(b)); remove.classList.add("danger");
+  if (activeRun(b)) { remove.disabled = true; remove.title = "Сначала остановите идущий поиск"; }
+  menu.append(item("Переименовать", () => renameBrief(b)), el("hr"), remove);
   anchor.append(button, menu); cell.append(anchor); return cell;
 }
 async function renameBrief(b) {
@@ -327,6 +329,21 @@ async function renameBrief(b) {
     await api(`/api/v1/briefs/${encodeURIComponent(b.id)}`, "PUT", briefPayload(b, {name:answer.text}));
     await loadOverviews(); renderedHome = null; renderHome(); notify(`Бриф переименован: «${answer.text}»`);
   } catch (e) { error("Не удалось переименовать: " + e.message); }
+}
+async function deleteBrief(b) {
+  const total = (b.funnel?.all || 0) + (b.hidden_count || 0);
+  const what = total ? `Удалятся ${total.toLocaleString("ru")} ${plural(total, "вакансия", "вакансии", "вакансий")} брифа, этапы и заметки к ним, а также история поиска.`
+    : "Удалятся условия брифа и история поиска.";
+  const answer = await ask({title:`Удалить бриф «${b.name}»?`, text:`${what} Это нельзя отменить.`,
+    buttons:[{label:"Удалить бриф", value:"delete", cls:"danger-button"}, {label:"Отмена", value:null, cls:"secondary", focus:true}]});
+  if (answer !== "delete") return;
+  try {
+    const response = await fetch(`/api/v1/briefs/${encodeURIComponent(b.id)}`, {method:"DELETE"});
+    if (!response.ok) throw Error((await response.json().catch(() => ({}))).detail || "Не удалось удалить бриф");
+    if (route.briefId === b.id) location.hash = "#/briefs";
+    await loadOverviews(); renderedHome = null; renderHome();
+    notify(`Бриф «${b.name}» удалён`);
+  } catch (e) { error(e.message); }
 }
 /** A modal question with buttons (and optionally one text field); resolves with the chosen button's value. */
 function ask({title, text = "", buttons, input}) {
@@ -351,7 +368,7 @@ function ask({title, text = "", buttons, input}) {
     $("askInput").onkeydown = event => { if (event.key === "Enter") { event.preventDefault(); nodes.find((n, i) => buttons[i].submit)?.click(); } };
     dialog.oncancel = event => { event.preventDefault(); done(null); };
     dialog.showModal();
-    (input ? $("askInput") : nodes[0]).focus();
+    (input ? $("askInput") : nodes[buttons.findIndex(spec => spec.focus)] || nodes[0]).focus();
   });
 }
 let pendingLeave = null;

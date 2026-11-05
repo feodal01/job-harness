@@ -292,3 +292,4 @@ select,.combo input{-webkit-appearance:none;appearance:none;min-height:var(--tar
 select:disabled{background-color:var(--surface-2);color:var(--muted)}
 .combo input::-webkit-search-cancel-button{margin-right:4px}
 .pagination select{min-height:36px}
+.menu button.danger{color:var(--danger)}.menu button.danger:disabled{color:var(--muted)}.menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
