@@ -42,7 +42,7 @@ class LocationEditor {
     for (const group of this.groups) {
       const view = this.views.get(group.id);
       if (!group.country) {
-        errors.push({target: view.country, message: "Выберите страну для этой локации."});
+        errors.push({target: view.country, message: "Выберите страну для этого места."});
       } else if (group.draft.trim()) {
         errors.push({target: view.input, message: "Выберите введённый город из подсказок или очистите поле."});
       } else if (group.wholeCountry) {
@@ -64,7 +64,7 @@ class LocationEditor {
     });
   }
   read() {
-    if (!this.valid) throw Error("Выберите от 1 до 5 мест поиска. Завершите или удалите пустые блоки локаций.");
+    if (!this.valid) throw Error("Выберите от 1 до 5 мест. Завершите или удалите пустые блоки мест.");
     return this.locations;
   }
   setCountries(countries) {
@@ -125,6 +125,9 @@ class LocationEditor {
     wrapper.append(button, tooltip);
     return wrapper;
   }
+  kind(type) {
+    return this.node("span", type === "must" ? "Обязательное" : "Пожелание", "kind " + type);
+  }
   setStatus(view, text) {
     view.status.textContent = text; view.status.hidden = !text;
   }
@@ -145,7 +148,7 @@ class LocationEditor {
       view.timer = setTimeout(() => this.suggest(group, view), 400);
   }
   updateSummary() {
-    this.counter.textContent = `${this.count} из 5 мест поиска`;
+    this.counter.textContent = `${this.count} из 5 мест`;
     this.addButton.disabled = !this.countries.length || this.count >= 5 || this.groups.length >= 5;
     for (const group of this.groups) {
       const view = this.views.get(group.id);
@@ -159,14 +162,14 @@ class LocationEditor {
     this.root.replaceChildren();
     this.groups.forEach((group, index) => {
       const fieldset = this.node("fieldset", undefined, "location-group");
-      fieldset.append(this.node("legend", `Локация ${index + 1}`));
-      const remove = this.button("Удалить локацию", () => {
+      fieldset.append(this.node("legend", `Место ${index + 1}`));
+      const remove = this.button("Удалить место", () => {
         this.groups = this.groups.filter(item => item !== group);
         if (!this.groups.length) this.groups.push(this.newGroup());
         this.render();
         this.onChange();
       }, "text-button");
-      remove.setAttribute("aria-label", `Удалить локацию ${index + 1}`);
+      remove.setAttribute("aria-label", `Удалить место ${index + 1}`);
       const heading = this.node("div", undefined, "location-group-heading");
       heading.append(remove);
       fieldset.append(heading);
@@ -211,7 +214,7 @@ class LocationEditor {
       const cityLabel = this.node("label", "Города");
       cityLabel.htmlFor = cityId;
       const input = this.node("input"); input.id = cityId; input.autocomplete = "off"; input.maxLength = 100;
-      input.placeholder = this.count >= 5 && !group.wholeCountry ? "Выбрано 5 мест поиска" : "Найти город";
+      input.placeholder = this.count >= 5 && !group.wholeCountry ? "Выбрано 5 мест" : "Найти город";
       input.value = group.draft;
       const status = this.node("small"); status.hidden = true;
       status.id = `${cityId}-status`; status.setAttribute("role", "status");
@@ -272,10 +275,10 @@ class LocationEditor {
       dropdown.append(options, status, retry); picker.append(cityControl, dropdown);
       cityField.append(cityLabel, picker); fields.append(cityField);
       const formatId = `location-format-${group.id}`;
-      const formatLabel = this.node("label", "Формат работы"); formatLabel.htmlFor = formatId;
+      const formatLabel = this.node("label", "Минимальный формат работы"); formatLabel.htmlFor = formatId;
       const format = this.node("select"); format.id = formatId;
-      for (const [value, label] of [["", "Любой"], ["remote_worldwide", "Глобальная удалёнка"],
-        ["remote_country", "Удалёнка в стране"], ["hybrid", "Гибрид"], ["office", "Офис"]]) {
+      for (const [value, label] of [["", "Любой"], ["office", "Офис"], ["hybrid", "Гибрид"],
+        ["remote_country", "Удалённо по стране"], ["remote_worldwide", "Удалённо по миру"]]) {
         const option = this.node("option", label); option.value = value; format.append(option);
       }
       format.value = group.minimum;
@@ -283,17 +286,19 @@ class LocationEditor {
       const relocationLabel = this.node("label", undefined, "location-relocation");
       const relocation = this.node("input"); relocation.type = "checkbox"; relocation.checked = group.relocation;
       relocation.onchange = () => {group.relocation = relocation.checked; this.onChange();};
-      relocationLabel.append(relocation, document.createTextNode(" Нужна релокация"));
+      relocationLabel.append(relocation, document.createTextNode(" Нужна помощь с релокацией"));
       const formatField = this.node("div", undefined, "location-field location-format-field");
       const formatHeading = this.node("div", undefined, "field-label");
       formatHeading.append(formatLabel, this.help(`${formatId}-help`, "О формате работы",
-        "Мы предполагаем, что для соискателя: Глобальная удалёнка > Удалёнка в стране > Гибрид > Офис. " +
-        "Выбирайте минимально приемлемый формат. Например, если выберете «Офис», в поиск также будут " +
-        "включены гибрид, удалёнка в стране и глобальная удалёнка."));
-      formatField.append(formatHeading, format);
+        "Подходит выбранный формат и все более свободные: офис → гибрид → удалённо по стране → удалённо по миру. " +
+        "Например, при «Гибрид» подходят гибрид и удалённая работа, а вакансии в офисе получат «Может быть подходит»."));
+      format.setAttribute("aria-describedby", `${formatId}-note`);
+      const formatNote = this.node("small", "Подходят и более удалённые форматы.");
+      formatNote.id = `${formatId}-note`;
+      formatField.append(formatHeading, format, formatNote, this.kind("wish"));
       fields.append(formatField);
       const relocationRow = this.node("div", undefined, "location-relocation-row");
-      relocationRow.append(relocationLabel, this.help(`${formatId}-relocation-help`, "О релокации",
+      relocationRow.append(relocationLabel, this.kind("wish"), this.help(`${formatId}-relocation-help`, "О релокации",
         "Релокационные пакеты различаются в разных компаниях: они могут включать помощь с оформлением виз, " +
         "компенсацию переезда, жильё и транспортировку вещей. Конкретный состав нужно уточнять у работодателя."));
       fieldset.append(fields, relocationRow);

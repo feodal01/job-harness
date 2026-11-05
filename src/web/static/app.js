@@ -80,20 +80,31 @@ const conditionNames = {query:"Профиль вакансии",profile:"Про�
       {label: "Исключённый текст", maxItems: 50, maxLength: 200, onChange: updateFormFeedback});
     const tokenEditors = [queryTokens, companyTokens, textTokens];
     const locationEditor = new LocationEditor($("locationGroups"), $("locationCount"),
-      $("addLocationGroup"), api, () => {updateUnsupportedConditions(); updateStart();});
+      $("addLocationGroup"), api, () => {updateUnsupportedConditions(); updateStart(); renderConditionsSummary();});
     const chosenSources = () => sources.filter((s) => $("source-" + s.id)?.checked);
     function updateStart() {
-      const active=["queued","running"].includes(currentBrief()?.last_run?.status);
+      const b=currentBrief(), active=!!b&&route.view==="settings"&&activeRun(b);
       $("start").disabled = submitting || active;
-      $("start").textContent=submitting?"Сохраняем…":active?"Поиск уже идёт":"Сохранить и искать";
-      $("settingsSearchState").textContent=active?"Поиск уже идёт по условиям на момент запуска. Изменения можно сохранить для следующего поиска.":"";
-      $("settingsSearchState").hidden=!active;
+      $("start").textContent=submitting?"Сохраняем…":"Сохранить и запустить поиск";
+      $("start").classList.toggle("secondary",active);$("saveBrief").classList.toggle("secondary",!active);
+      $("saveBrief").textContent=active?"Сохранить для следующего поиска":"Сохранить без поиска";
+      // While a search runs, the save that still works comes first.
+      if(active)$("start").before($("saveBrief"));else $("saveBrief").before($("start"));
+      $("startHint").hidden=!active;
+      if(active)$("start").setAttribute("aria-describedby","startHint");else $("start").removeAttribute("aria-describedby");
+      const state=$("settingsSearchState");state.hidden=!active;
+      if(active){
+        const history=el("a","История поиска");history.href=historyHref(b,b.last_run.id);
+        state.replaceChildren(el("b",`Сейчас идёт поиск (с ${new Date(b.last_run.created_at*1000).toLocaleTimeString("ru",{hour:"2-digit",minute:"2-digit"})})`),el("span","Он работает по условиям на момент запуска."),history);
+      }
       $("saveBrief").disabled = submitting;
       if (validationAttempted) validateSearchForm();
     }
     function updateSource() {
       const chosen = chosenSources();
       queryTokens.setRequired(chosen.length > 0 && chosen.every(s => s.capabilities.query_parameters.query === "native"));
+      $("queriesRequired").hidden = !queryTokens.required;
+      $("sourceCount").textContent = `${chosen.length} из ${sources.length} ${plural(sources.length, "источника", "источников", "источников")}`;
       $("profiles").disabled = !chosen.some((s) => s.capabilities.actions.includes("company_profile"));
       if ($("profiles").disabled) $("profiles").checked = false;
       updateUnsupportedConditions();
@@ -123,7 +134,7 @@ const conditionNames = {query:"Профиль вакансии",profile:"Про�
       const countries = await api("/api/v1/geography/countries");
       locationEditor.setCountries(countries);
       catalogReady = true;
-      $("countryRetry").hidden = true;
+      $("countryRetryBox").hidden = true;
       updateSource();
     }
     const employmentLabels = {full_time:"Полная", part_time:"Частичная", contract:"Проектная / контракт", internship:"Стажировка", volunteer:"Волонтёрство"};
@@ -159,11 +170,11 @@ const conditionNames = {query:"Профиль вакансии",profile:"Про�
     async function loadCatalog() {
       sources = await api("/api/v1/sources");
       for (const source of sources) {
-        const label = el("label"), box = el("input");
+        const label = el("label", undefined, "type-card"), box = el("input");
         box.type = "checkbox"; box.id = "source-" + source.id; box.checked = true; box.onchange = updateSource;
         const blocked = source.state?.status === "blocked"
-          ? " · заблокирован до " + new Date(source.state.until * 1000).toLocaleTimeString("ru") : "";
-        label.append(box, document.createTextNode(" " + source.name + " · " + (typeNames[source.type] || source.type) + blocked));
+          ? "заблокирован до " + new Date(source.state.until * 1000).toLocaleTimeString("ru", {hour:"2-digit", minute:"2-digit"}) : "";
+        label.append(box, " " + source.name, el("span", blocked || typeNames[source.type] || source.type, "n"));
         $("sources").append(label);
       }
       $("sourceOptions").replaceChildren(...sources.map(source => Object.assign(el("option"), {value:source.name, label:typeNames[source.type] || source.type})));
@@ -171,9 +182,9 @@ const conditionNames = {query:"Профиль вакансии",profile:"Про�
       updateSource();
       await loadGeography();
     }
-function notify(message, undo) {
+function notify(message, undo, actionLabel = "Отменить") {
   clearTimeout(toastTimer); $("toastText").textContent = message; $("toast").hidden = false;
-  $("toastUndo").hidden = !undo;
+  $("toastUndo").hidden = !undo; $("toastUndo").textContent = actionLabel;
   $("toastUndo").onclick = undo ? () => { $("toast").hidden = true; undo(); } : null;
   toastTimer = setTimeout(() => { $("toast").hidden = true; }, undo ? 8000 : 3500);
 }
@@ -371,7 +382,14 @@ async function startSearch(b, button) {
     await refresh().catch(handleRefreshError);
   } catch (e) { error(e.message); button.disabled = false; }
 }
+let shownHash = location.hash;
 function navigate() {
+  if (formDirty() && !submitting && parseRoute().view !== "settings"
+      && !confirm("Уйти без сохранения? Изменения в условиях брифа пропадут.")) {
+    history.replaceState(null, "", shownHash);
+    return;
+  }
+  shownHash = location.hash;
   const next = parseRoute(), previous = route;
   route = next; viewVersion++; requestVersion++; refreshController?.abort(); clearTimeout(searchTimer);
   error(""); closeVacancy(); closePopups();
@@ -382,7 +400,7 @@ function navigate() {
     return;
   }
   const b = currentBrief();
-  document.title = b ? `${b.name} · Поиск работы` : "Мои брифы · Поиск работы";
+  document.title = b ? `${b.name} · Поиск работы` : route.view === "settings" ? "Новый бриф · Поиск работы" : "Мои брифы · Поиск работы";
   if (route.view === "home") renderHome();
   if (route.view === "settings") fillSettings(b);
   if (route.view === "workspace") {
@@ -811,8 +829,11 @@ function searchOptionsForBrief(b) {
 }
 function fillSettings(b) {
   resetFormValidation();
-  $("settingsTitle").textContent=b?"Поиск · "+b.name:"Новый бриф";
-  $("settingsBack").textContent=b?"← К вакансиям":"← Все брифы";
+  $("settingsTitle").textContent=b?b.name:"Новый бриф";
+  $("settingsBack").textContent=b?"← К вакансиям брифа":"← Все брифы";
+  $("settingsBack").href=$("settingsCancel").href=b?briefPath(b.id):"#/briefs";
+  $("settingsIntro").textContent=b?"Условия брифа. Изменения применятся к следующему поиску; найденные вакансии, этапы и заметки сохранятся."
+    :"Что искать, где и какие вакансии вам подходят.";
   $("name").value=b?.name || "";queryTokens.setValues(b?.queries || []);$("briefText").value=b?.text || "";
   $("briefNotice").textContent=b?.migration_note || b?.filters_migration_notice || "";fillFilters(b?.filters || {});
   settingsSearch=searchOptionsForBrief(b);
@@ -827,7 +848,47 @@ function fillSettings(b) {
   $("searchForm").querySelector(".search-volume").open = false;
   $("secondChance").checked=settingsSearch.second_chance===true;
   $("profiles").checked=settingsSearch.company_profiles!==false;updateSource();
+  formSnapshot=formState();renderConditionsSummary();
 }
+/* Everything the user can change, without validation; compared to detect unsaved edits. */
+let formSnapshot=null;
+function formState(){
+  return JSON.stringify([$("name").value.trim(),queryTokens.values,$("briefText").value,locationEditor.locations,selected("employment"),
+    $("experience").value,$("salaryMin").value,$("currency").value,$("salaryPeriod").value,$("publishedAfter").value,
+    companyTokens.values,textTokens.values,chosenSources().map(s=>s.id),$("secondChance").checked,$("profiles").checked,$("limit").value,$("pages").value]);
+}
+const formDirty=()=>route.view==="settings"&&formSnapshot!==null&&formState()!==formSnapshot;
+function summaryList(rows){
+  const dl=el("dl");
+  for(const [term,value] of rows)if(value){dl.append(el("dt",term),el("dd",value));}
+  return dl.childElementCount?dl:el("p","Не заданы","muted");
+}
+const formatPhrases={office:"любой: офис, гибрид или удалённо",hybrid:"гибрид или удалённо",remote_country:"удалённо по стране или по миру",remote_worldwide:"удалённо по миру"};
+function renderConditionsSummary(){
+  const groups=locationEditor.groups.filter(g=>g.country);
+  const countryName=code=>locationEditor.countries.find(c=>c.code===code)?.name||code;
+  const places=groups.map(g=>[countryName(g.country),...(g.wholeCountry?[]:g.cities.map(c=>c.city_display_name||c.city))].join(", ")).join("; ");
+  const formats=[...new Set(groups.map(g=>formatPhrases[g.minimum]).filter(Boolean))].join("; ");
+  const relocation=groups.some(g=>g.relocation)?"нужна помощь с переездом":"";
+  const periods={month:"в месяц",year:"в год",hour:"в час"};
+  const salary=$("salaryMin").value?`от ${money($("salaryMin").value)} ${currencySigns[$("currency").value]||$("currency").value} ${periods[$("salaryPeriod").value]}`:"";
+  const years=$("experience").value;
+  const exclusions=[...companyTokens.values.map(c=>`компания «${c}»`),...textTokens.values.map(t=>`слово «${t}»`)].join(", ");
+  const host=$("conditionsSummary");host.replaceChildren();
+  const heading=(cls,text,note)=>{const h=el("h3");h.append(el("span",text,"kind "+cls));host.append(h,el("p",note,"kind-note"));};
+  heading("must","Обязательные","Несовпадение скрывает вакансию");
+  host.append(summaryList([["Запросы",queryTokens.values.join(" · ")],["Места",places],["Исключения",exclusions]]));
+  heading("wish","Пожелания","Несовпадение — «Может быть подходит»");
+  host.append(summaryList([["Формат",formats],["Релокация",relocation],["Зарплата",salary],
+    ["Опыт",years===""?"":`ваш опыт ${years.replace(".",",")} ${plural(Math.ceil(Number(years)),"год","года","лет")}`],
+    ["Публикация",$("publishedAfter").value?"не раньше "+dayMonth($("publishedAfter").value):""],
+    ["Занятость",selected("employment").map(v=>employmentLabels[v].toLowerCase()).join(", ")]]));
+  const chosen=chosenSources();
+  host.append(el("h3","Источники"),el("p",chosen.length===sources.length?`Все · ${sources.length}: ${sources.map(s=>s.name).join(", ")}`:chosen.length?chosen.map(s=>s.name).join(", "):"Не выбраны","src-sum"));
+  const dirty=formDirty();$("dirtyNote").hidden=!dirty||!route.briefId;
+  $("dirtyNote").textContent="Есть несохранённые изменения. Если уйти со страницы, спросим, можно ли их потерять.";
+}
+window.addEventListener("beforeunload",e=>{if(formDirty()&&!submitting){e.preventDefault();e.returnValue="";}});
 function readSearchOptions() {
   const limits={};
   for(const source of chosenSources()){
@@ -852,12 +913,13 @@ function clearFormErrors() {
 function resetFormValidation() {
   validationAttempted = false;
   clearFormErrors();
+  $("formSummary").hidden = true;
   if ($("error").textContent === validationSummary) error("");
 }
 function validateSearchForm(focus = false) {
   clearFormErrors();
   const errors = new Map();
-  if (!$("name").value.trim()) errors.set($("name"), "Введите название брифа.");
+  if (!$("name").value.trim()) errors.set($("name"), "Назовите бриф, чтобы отличать его от других.");
   for (const editor of tokenEditors) if (editor.error) errors.set(editor.input, editor.error);
   if (queryTokens.required && !queryTokens.values.length)
     errors.set($("queries"), "Добавьте хотя бы один поисковый запрос для выбранного источника.");
@@ -879,8 +941,18 @@ function validateSearchForm(focus = false) {
     target.setAttribute("aria-describedby", [target.getAttribute("aria-describedby"), message.id].filter(Boolean).join(" "));
     (target.closest(".token-editor, .location-picker") || target).after(message); validationFields.push({target, message});
   }
+  const summary=$("formSummary");
+  if (errors.size && (focus || !summary.hidden)) {
+    $("formSummaryTitle").textContent=`Проверьте ${errors.size} ${plural(errors.size,"поле","поля","полей")}, чтобы сохранить бриф`;
+    $("formSummaryList").replaceChildren(...[...errors].map(([target,text])=>{
+      const item=el("li"),a=el("a",`${fieldName(target)}: ${text.charAt(0).toLowerCase()+text.slice(1)}`);a.href="#";
+      a.onclick=event=>{event.preventDefault();focusField(target);};item.append(a);return item;
+    }));
+    summary.hidden=false;
+  } else summary.hidden=true;
   if (focus && errors.size) {
-    error(validationSummary);
+    summary.focus();
+    return false;
     const target = [...errors.keys()].find(field => !field.disabled);
     if (target) {
       if (!target.matches("input, textarea, select")) target.tabIndex = -1;
@@ -892,9 +964,21 @@ function validateSearchForm(focus = false) {
   } else if (!errors.size && $("error").textContent === validationSummary) error("");
   return errors.size === 0;
 }
+function fieldName(target){
+  const group=target.closest(".location-group")?.querySelector("legend")?.textContent;
+  const label=target.id?document.querySelector(`label[for="${CSS.escape(target.id)}"]`)?.textContent:"";
+  const section=target.closest(".form-section")?.querySelector("h2")?.textContent;
+  return [group,(label||section||"Поле").replace("*","").trim()].filter(Boolean).join(", ");
+}
+function focusField(target){
+  if (!target.matches("input, textarea, select")) target.tabIndex = -1;
+  for (let parent = target.parentElement; parent; parent = parent.parentElement) if (parent.tagName === "DETAILS") parent.open = true;
+  target.focus({preventScroll: true}); target.scrollIntoView({block: "center", behavior: "smooth"});
+}
 function updateFormFeedback() {
   updateUnsupportedConditions();
   if (validationAttempted) validateSearchForm();
+  renderConditionsSummary();
 }
 $("searchForm").addEventListener("input", updateFormFeedback);
 $("searchForm").addEventListener("change", updateFormFeedback);
@@ -911,15 +995,19 @@ $("searchForm").onsubmit=async e=>{
     const payload={name:$("name").value,queries:queryTokens.values,text:$("briefText").value,filters:readFilters(),search};
     const b=await api(id?`/api/v1/briefs/${id}`:"/api/v1/briefs",id?"PUT":"POST",payload);
     await loadOverviews();
+    formSnapshot=formState();
     if(launch){
-      try{await api("/api/v1/runs","POST",{brief_id:b.id,...search});await loadOverviews();notify("Бриф сохранён. Поиск запущен");}
-      catch(e){location.hash=`#/brief/${b.id}/settings`;setTimeout(()=>error("Бриф сохранён, но поиск не запущен: "+e.message),0);return;}
-    }else notify("Бриф сохранён");
+      try{await api("/api/v1/runs","POST",{brief_id:b.id,...search});await loadOverviews();notify("Бриф сохранён, поиск запущен. Вакансии появятся в «Неразобранных».");}
+      catch(e){
+        const saved=briefs.find(x=>x.id===b.id)||b;
+        notify("Бриф сохранён, но поиск не запустился: "+e.message,()=>startSearch(saved,$("runSearch")),"Запустить поиск");
+      }
+    }else notify(id?"Изменения сохранены.":"Бриф сохранён без поиска.");
     location.hash=briefPath(b.id);
   }catch(e){error(e.message);}finally{submitting=false;updateStart();}
 };
 function backToBrief(){location.hash=route.briefId?briefPath(route.briefId):"#/briefs";}
-$("settingsBack").onclick=backToBrief;$("settingsCancel").onclick=backToBrief;$("historyBack").onclick=backToBrief;
+$("historyBack").onclick=backToBrief;
 $("openSearch").onclick=()=>{location.hash=`#/brief/${route.briefId}/settings`;};
 $("openHistory").onclick=()=>{location.hash=`#/brief/${route.briefId}/history`;};
 $("runSearch").onclick=()=>{const b=currentBrief();if(b)startSearch(b,$("runSearch"));};
@@ -1092,8 +1180,8 @@ async function poll(){
 async function boot(){
   const results=await Promise.allSettled([loadCatalog(),loadOverviews(),checkServiceStatus()]);
   window.addEventListener("hashchange",navigate);navigate();
-  for(const result of results)if(result.status==="rejected"){error(result.reason.message);$("countryRetry").hidden=true;}
-  if(!catalogReady)$("countryRetry").hidden=false;
+  for(const result of results)if(result.status==="rejected"){error(result.reason.message);$("countryRetryBox").hidden=true;}
+  if(!catalogReady)$("countryRetryBox").hidden=false;
   if(!servicePaused)pollTimer=setTimeout(poll,3000);
 }
 boot().catch(e=>error(e.message));
