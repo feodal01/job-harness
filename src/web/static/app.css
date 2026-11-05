@@ -286,3 +286,9 @@ th.menu-col{font-size:0}td.menu-col{width:56px;text-align:right}
 .ask-dialog input{min-height:var(--target);border-color:var(--line-strong);border-radius:var(--radius)}
 .ask-dialog label{margin:0 0 6px;font-size:13px;font-weight:600}
 @media(max-width:650px){.bulk-bar .text-button{margin-left:0}}.menu{white-space:normal;text-align:left}.menu button{display:flex}
+
+/* Все выпадающие списки и поле «Источник» выглядят одинаково: высота, рамка, стрелка */
+select,.combo input{-webkit-appearance:none;appearance:none;min-height:var(--target);padding:0 36px 0 12px;border:1px solid var(--line-strong);border-radius:var(--radius);background-color:var(--surface);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23475569' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;color:var(--ink);font:400 14px var(--font)}
+select:disabled{background-color:var(--surface-2);color:var(--muted)}
+.combo input::-webkit-search-cancel-button{margin-right:4px}
+.pagination select{min-height:36px}

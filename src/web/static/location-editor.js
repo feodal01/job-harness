@@ -210,8 +210,10 @@ class LocationEditor {
       }
       for (const city of group.cities) {
         const chip = this.node("div", undefined, "location-city");
-        chip.append(this.node("span", [city.city_display_name || city.city, city.region,
+        // The region only disambiguates suggestions; in the chosen chip it stays in the tooltip.
+        chip.append(this.node("span", [city.city_display_name || city.city,
           city.geoname_id ? null : "Выберите город заново"].filter(Boolean).join(" · ")));
+        if (city.region) chip.title = city.region;
         const name = city.city_display_name || city.city || "город";
         const removeCity = this.button("×", () => {
           group.cities = group.cities.filter(item => item !== city);
@@ -284,7 +286,7 @@ class LocationEditor {
       dropdown.append(options, status, retry); picker.append(cityControl, dropdown);
       cityField.append(cityLabel, picker); fields.append(cityField);
       const formatId = `location-format-${group.id}`;
-      const formatLabel = this.node("label", "Минимальный формат работы"); formatLabel.htmlFor = formatId;
+      const formatLabel = this.node("label", "Формат работы"); formatLabel.htmlFor = formatId;
       const format = this.node("select"); format.id = formatId;
       for (const [value, label] of [["", "Любой"], ["office", "Офис"], ["hybrid", "Гибрид"],
         ["remote_country", "Удалённо по стране"], ["remote_worldwide", "Удалённо по миру"]]) {
@@ -302,7 +304,7 @@ class LocationEditor {
         "Подходит выбранный формат и все более свободные: офис → гибрид → удалённо по стране → удалённо по миру. " +
         "Например, при «Гибрид» подходят гибрид и удалённая работа, а вакансии в офисе получат «Может быть подходит»."));
       format.setAttribute("aria-describedby", `${formatId}-note`);
-      const formatNote = this.node("small", "Подходят и более удалённые форматы.");
+      const formatNote = this.node("small", "Не хуже выбранного: подойдут и более свободные.");
       formatNote.id = `${formatId}-note`;
       formatField.append(formatHeading, format, formatNote, this.kind("wish"));
       fields.append(formatField);

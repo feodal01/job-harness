@@ -14,7 +14,7 @@ let readerItems = [], readerIndex = -1, readerDrafts = new Map(), pageInfo = nul
 const pageSize = 50;
 const typeNames = {aggregator:"агрегатор",career_site:"карьерный сайт",ats:"ATS",telegram:"Telegram"};
 const statusNames = {blocked:"Заблокирован",skipped:"Пропущен",queued:"В очереди",running:"Идёт поиск",complete:"Завершён",partial:"Частичный результат",failed:"Ошибка",cancelled:"Остановлен",interrupted:"Прерван"};
-const conditionNames = {query:"Профиль вакансии",profile:"Профиль вакансии",locations:"Места работы",minimum_work_format:"Формат работы",employment:"Занятость",experience_years:"Опыт",salary:"Зарплата",published_after:"Дата публикации",relocation_support:"Помощь с релокацией",excluded_companies:"Исключённые компании",excluded_text:"Исключённые фразы"};
+const conditionNames = {query:"Запрос",profile:"Запрос",locations:"Места работы",minimum_work_format:"Формат работы",employment:"Занятость",experience_years:"Опыт",salary:"Зарплата",published_after:"Дата публикации",relocation_support:"Помощь с релокацией",excluded_companies:"Исключённые компании",excluded_text:"Исключённые фразы"};
     function el(tag, text, cls) {
       let e = document.createElement(tag);
       if (text !== undefined) e.textContent = text;
@@ -134,7 +134,7 @@ const conditionNames = {query:"Профиль вакансии",profile:"Про�
       host.hidden = !host.childElementCount;
     }
     async function loadGeography() {
-      const countries = await api("/api/v1/geography/countries");
+      const countries = await api("/api/v1/geography/countries?locale=ru");
       locationEditor.setCountries(countries);
       catalogReady = true;
       $("countryRetryBox").hidden = true;
@@ -177,7 +177,8 @@ const conditionNames = {query:"Профиль вакансии",profile:"Про�
         box.type = "checkbox"; box.id = "source-" + source.id; box.checked = true; box.onchange = updateSource;
         const blocked = source.state?.status === "blocked"
           ? "заблокирован до " + new Date(source.state.until * 1000).toLocaleTimeString("ru", {hour:"2-digit", minute:"2-digit"}) : "";
-        label.append(box, " " + source.name, el("span", blocked || typeNames[source.type] || source.type, "n"));
+        const type = typeNames[source.type] || source.type;
+        label.append(box, " " + source.name, el("span", blocked || type.charAt(0).toUpperCase() + type.slice(1), "n"));
         $("sources").append(label);
       }
       $("sourceOptions").replaceChildren(...sources.map(source => Object.assign(el("option"), {value:source.name, label:typeNames[source.type] || source.type})));
@@ -267,7 +268,7 @@ function renderHome() {
   if (signature === renderedHome) return;
   renderedHome = signature;
   const host = $("briefTable"); host.replaceChildren(); host.removeAttribute("aria-busy");
-  $("briefTools").hidden = briefs.length < 2; $("briefLegend").hidden = !briefs.length;
+  $("briefTools").hidden = briefs.length < 2;
   host.classList.toggle("table-wrap", briefs.length > 0);
   if (!briefs.length) {
     const first = el("section", undefined, "first-brief"); first.setAttribute("aria-labelledby", "firstTitle");
@@ -315,7 +316,7 @@ function briefMenuCell(b) {
   button.setAttribute("aria-haspopup", "menu"); button.setAttribute("aria-expanded", "false"); button.setAttribute("aria-controls", id);
   const menu = el("div", undefined, "menu fixed-menu"); menu.id = id; menu.setAttribute("role", "menu"); menu.hidden = true;
   const item = (text, action) => { const x = el("button", text); x.type = "button"; x.setAttribute("role", "menuitem"); x.onclick = () => { closePopups(); action(); }; return x; };
-  menu.append(item("Переименовать", () => renameBrief(b)), item("Дублировать", () => duplicateBrief(b)));
+  menu.append(item("Переименовать", () => renameBrief(b)));
   anchor.append(button, menu); cell.append(anchor); return cell;
 }
 async function renameBrief(b) {
@@ -326,13 +327,6 @@ async function renameBrief(b) {
     await api(`/api/v1/briefs/${encodeURIComponent(b.id)}`, "PUT", briefPayload(b, {name:answer.text}));
     await loadOverviews(); renderedHome = null; renderHome(); notify(`Бриф переименован: «${answer.text}»`);
   } catch (e) { error("Не удалось переименовать: " + e.message); }
-}
-async function duplicateBrief(b) {
-  try {
-    const copy = await api("/api/v1/briefs", "POST", briefPayload(b, {name:`${b.name} (копия)`.slice(0, 200)}));
-    await loadOverviews(); renderedHome = null; renderHome();
-    notify(`Создана копия «${copy.name}» — с теми же условиями, без вакансий`, () => { location.hash = `#/brief/${encodeURIComponent(copy.id)}/settings`; }, "Открыть условия");
-  } catch (e) { error("Не удалось создать копию: " + e.message); }
 }
 /** A modal question with buttons (and optionally one text field); resolves with the chosen button's value. */
 function ask({title, text = "", buttons, input}) {
@@ -864,8 +858,13 @@ function conditionLabel(check,v){
     case "published_after": return v.published_at?`Опубликована ${dayMonth(v.published_at)}`:"Дата публикации не указана";
     case "employment": return v.employment?.length?"Занятость: "+v.employment.map(e=>(employmentLabels[e]||e).toLowerCase()).join(", "):"Занятость не указана";
     case "query": case "profile": {
-      const title=(v.title||"").toLowerCase(),query=(currentBrief()?.queries||[]).find(q=>title.includes(q.toLowerCase()));
-      return query?`Запрос: ${query}`:conditionNames[check.field];
+      // The profile check compares the title and skills with the brief's queries.
+      const text=[v.title,...(v.skills||[])].join(" ").toLowerCase();
+      const queries=currentBrief()?.queries||[];
+      const query=queries.find(q=>text.includes(q.toLowerCase()))||(queries.length===1?queries[0]:null);
+      if(check.status==="accepted")return query?`Совпадает с запросом «${query}»`:"Совпадает с запросами";
+      if(check.status==="rejected")return "Не совпадает с запросами";
+      return "Совпадение с запросами не ясно";
     }
     default: return conditionNames[check.field] || check.field;
   }
@@ -1047,33 +1046,45 @@ function formState(){
     companyTokens.values,textTokens.values,chosenSources().map(s=>s.id),$("secondChance").checked,$("profiles").checked,$("limit").value,$("pages").value]);
 }
 const formDirty=()=>route.view==="settings"&&formSnapshot!==null&&formState()!==formSnapshot;
-function summaryList(rows){
-  const dl=el("dl");
-  for(const [term,value] of rows)if(value){dl.append(el("dt",term),el("dd",value));}
-  return dl.childElementCount?dl:el("p","Не заданы","muted");
+const formatWishes={office:"",hybrid:"работа только в офисе",remote_country:"офис или гибрид",remote_worldwide:"не удалённо по миру"};
+function summaryRow(term,content){
+  const row=el("div",undefined,"sum-row");row.append(el("dt",term));
+  const dd=el("dd");
+  if(Array.isArray(content)){const ul=el("ul");for(const text of content)ul.append(el("li",text));dd.append(ul);}else dd.append(content);
+  row.append(dd);return row;
 }
-const formatPhrases={office:"любой: офис, гибрид или удалённо",hybrid:"гибрид или удалённо",remote_country:"удалённо по стране или по миру",remote_worldwide:"удалённо по миру"};
 function renderConditionsSummary(){
   const groups=locationEditor.groups.filter(g=>g.country);
   const countryName=code=>locationEditor.countries.find(c=>c.code===code)?.name||code;
-  const places=groups.map(g=>[countryName(g.country),...(g.wholeCountry?[]:g.cities.map(c=>c.city_display_name||c.city))].join(", ")).join("; ");
-  const formats=[...new Set(groups.map(g=>formatPhrases[g.minimum]).filter(Boolean))].join("; ");
-  const relocation=groups.some(g=>g.relocation)?"нужна помощь с переездом":"";
+  const places=groups.map(g=>g.wholeCountry||!g.cities.length?`${countryName(g.country)}, вся страна`
+    :`${g.cities.map(c=>c.city_display_name||c.city).join(", ")} (${countryName(g.country)})`);
   const periods={month:"в месяц",year:"в год",hour:"в час"};
-  const salary=$("salaryMin").value?`от ${money($("salaryMin").value)} ${currencySigns[$("currency").value]||$("currency").value} ${periods[$("salaryPeriod").value]}`:"";
+  const hide=[];
+  if(queryTokens.values.length)hide.push("название и навыки не совпадают ни с одним запросом");
+  if(places.length)hide.push("работа в других местах");
+  if(companyTokens.values.length)hide.push(`компании: ${companyTokens.values.join(", ")}`);
+  if(textTokens.values.length)hide.push(`в тексте есть: ${textTokens.values.map(t=>`«${t}»`).join(", ")}`);
+  const maybe=[];
+  const formats=[...new Set(groups.map(g=>formatWishes[g.minimum]).filter(Boolean))];
+  if(formats.length)maybe.push(`формат: ${formats.join("; ")}`);
+  if(groups.some(g=>g.relocation))maybe.push("нет помощи с переездом");
+  if($("salaryMin").value)maybe.push(`зарплата ниже ${money($("salaryMin").value)} ${currencySigns[$("currency").value]||$("currency").value} ${periods[$("salaryPeriod").value]}`);
   const years=$("experience").value;
-  const exclusions=[...companyTokens.values.map(c=>`компания «${c}»`),...textTokens.values.map(t=>`слово «${t}»`)].join(", ");
-  const host=$("conditionsSummary");host.replaceChildren();
-  const heading=(cls,text,note)=>{const h=el("h3");h.append(el("span",text,"kind "+cls));host.append(h,el("p",note,"kind-note"));};
-  heading("must","Обязательные","Несовпадение скрывает вакансию");
-  host.append(summaryList([["Запросы",queryTokens.values.join(" · ")],["Места",places],["Исключения",exclusions]]));
-  heading("wish","Пожелания","Несовпадение — «Может быть подходит»");
-  host.append(summaryList([["Формат",formats],["Релокация",relocation],["Зарплата",salary],
-    ["Опыт",years===""?"":`ваш опыт ${years.replace(".",",")} ${plural(Math.ceil(Number(years)),"год","года","лет")}`],
-    ["Публикация",$("publishedAfter").value?"не раньше "+dayMonth($("publishedAfter").value):""],
-    ["Занятость",selected("employment").map(v=>employmentLabels[v].toLowerCase()).join(", ")]]));
+  if(years!=="")maybe.push(`нужен опыт больше ${years.replace(".",",")} ${plural(Math.ceil(Number(years)),"года","лет","лет")}`);
+  if($("publishedAfter").value)maybe.push(`опубликована раньше ${dayMonth($("publishedAfter").value)}`);
+  const employment=selected("employment");
+  if(employment.length)maybe.push(`занятость не ${employment.map(v=>employmentLabels[v].toLowerCase()).join(" и не ")}`);
   const chosen=chosenSources();
-  host.append(el("h3","Источники"),el("p",chosen.length===sources.length?`Все · ${sources.length}: ${sources.map(s=>s.name).join(", ")}`:chosen.length?chosen.map(s=>s.name).join(", "):"Не выбраны","src-sum"));
+  const sourceText=!chosen.length?"не выбраны":chosen.length===sources.length?`все подключённые · ${sources.length}`
+    :chosen.length<=3?chosen.map(s=>s.name).join(", "):`${chosen.length} из ${sources.length}`;
+  const host=$("conditionsSummary"),dl=el("dl");host.replaceChildren(dl);
+  dl.append(summaryRow("Ищем",queryTokens.values.length?queryTokens.values.join(", "):"запросы не заданы"));
+  dl.append(summaryRow("Где",places.length?places.join("; "):"места не выбраны"));
+  if(hide.length)dl.append(summaryRow("Скрываем, если",hide));
+  if(maybe.length)dl.append(summaryRow("«Может быть подходит», если",maybe));
+  dl.append(summaryRow("Источники",sourceText));
+  const limit=$("limit").value,pages=$("pages").value;
+  $("limitsSummary").textContent=limit||pages?[limit?`до ${limit} ${plural(Number(limit),"вакансии","вакансий","вакансий")}`:"",pages?`до ${pages} ${plural(Number(pages),"страницы","страниц","страниц")}`:""].filter(Boolean).join(" и ")+" на запрос":"по настройкам источников";
   const dirty=formDirty();$("dirtyNote").hidden=!dirty||!route.briefId;
   $("dirtyNote").textContent="Есть несохранённые изменения. Если уйти со страницы, спросим, можно ли их потерять.";
 }

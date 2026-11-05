@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="ru">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Поиск работы · Мои брифы</title><link rel="stylesheet" href="/assets/tokens.css?v=20261104-rebuild">
-<link rel="stylesheet" href="/assets/app.css?v=20261105-scenarios">
-<link rel="stylesheet" href="/assets/brief-form.css?v=20261105-form">
-<script defer src="/assets/token-editor.js?v=20261104-rebuild"></script>
-<script defer src="/assets/location-editor.js?v=20261105-scenarios"></script>
-<script defer src="/assets/vocabulary.js?v=20261105-form"></script>
-<script defer src="/assets/app.js?v=20261105-scenarios"></script>
-<script defer src="/assets/auth.js?v=20261105-login"></script></head>
+<title>Поиск работы · Мои брифы</title><link rel="stylesheet" href="/assets/tokens.css?v=20261105-review3">
+<link rel="stylesheet" href="/assets/app.css?v=20261105-review3">
+<link rel="stylesheet" href="/assets/brief-form.css?v=20261105-review3">
+<script defer src="/assets/token-editor.js?v=20261105-review3"></script>
+<script defer src="/assets/location-editor.js?v=20261105-review3"></script>
+<script defer src="/assets/vocabulary.js?v=20261105-review3"></script>
+<script defer src="/assets/app.js?v=20261105-review3"></script>
+<script defer src="/assets/auth.js?v=20261105-review3"></script></head>
 <body>
 <header class="app-header"><a href="#/briefs" class="brand">Поиск работы</a><nav class="actions" aria-label="Основная навигация"><a id="navBriefs" href="#/briefs" class="nav-link" aria-current="page">Мои брифы</a><div class="pop-anchor"><button id="serviceIndicator" type="button" class="svc" aria-haspopup="dialog" aria-expanded="false" aria-controls="servicePopover"><span id="serviceDot" class="svc-dot" aria-hidden="true"></span><span id="serviceIndicatorText">Сервис работает</span></button><div id="servicePopover" class="popover" role="dialog" aria-label="Сервис поиска" hidden><p><b id="servicePopoverTitle">Сервис поиска работает</b></p><p id="serviceActiveRuns" class="muted">Активных поисков нет.</p><button id="stopService" type="button" class="secondary" hidden>Остановить сервис…</button></div></div><div class="pop-anchor"><button id="accountButton" type="button" class="secondary acct" aria-haspopup="menu" aria-expanded="false" aria-controls="accountMenu" hidden><span id="accountName"></span><span aria-hidden="true">▾</span></button><div id="accountMenu" class="menu" role="menu" aria-label="Аккаунт" hidden><button id="signOut" type="button" role="menuitem">Выйти</button></div></div></nav></header>
 
@@ -26,7 +26,6 @@
   <div class="page-heading"><div><h1 id="homeTitle">Мои брифы</h1><p class="muted">Условия поиска, найденные вакансии и отклики — для каждого направления.</p></div><a class="button" href="#/briefs/new">+ Новый бриф</a></div>
   <div id="briefTools" class="brief-tools" hidden><div class="search-field"><label for="briefSearch">Найти бриф</label><input id="briefSearch" type="search" maxlength="200" placeholder="Название или запрос"></div></div>
   <div id="briefTable" class="table-wrap" aria-busy="true"><div class="empty">Загружаем брифы…</div></div>
-  <p id="briefLegend" class="muted brief-legend" hidden>Закрыто — отказ и неинтересные. Всего — сумма всех этапов.</p>
 </section>
 <section id="workspaceView" hidden>
   <a href="#/briefs" class="back">← Все брифы</a>
@@ -37,7 +36,7 @@
   <section class="vacancies" aria-labelledby="folderTitle"><div class="list-heading"><h2 id="folderTitle"></h2><span id="folderCount" class="muted"></span><button id="keysHelp" type="button" class="text-button keys-link">Клавиши <kbd>?</kbd></button></div>
   <div class="list-filters"><div class="search-field"><label for="vacancySearch">Поиск в папке</label><input id="vacancySearch" type="search" maxlength="200" placeholder="Название или компания"></div>
   <div><label for="selectionView">Соответствие брифу</label><select id="selectionView"><option value="candidates">Подходит и может быть подходит</option><option value="accepted">Подходит</option><option value="maybe">Может быть подходит</option><option value="rejected">Скрытые</option><option value="all">Все, включая скрытые</option></select></div>
-  <div class="combo"><label for="sourceFilter">Источник</label><input id="sourceFilter" type="search" list="sourceOptions" autocomplete="off" placeholder="Все источники"><span class="caret" aria-hidden="true">▾</span><datalist id="sourceOptions"></datalist></div>
+  <div class="combo"><label for="sourceFilter">Источник</label><input id="sourceFilter" type="search" list="sourceOptions" autocomplete="off" placeholder="Все источники"><datalist id="sourceOptions"></datalist></div>
   <div><label for="sortView">Порядок</label><select id="sortView"><option value="newest">Сначала новые</option><option value="first_seen">Сначала найденные раньше</option><option value="updated">Последние изменения этапа</option></select></div></div>
   <div id="bulkBar" class="bulk-bar" role="region" aria-label="Действия с выбранными вакансиями" hidden><b id="bulkCount"></b><button id="bulkDismiss" type="button" class="secondary">Неинтересна</button><button id="bulkApplied" type="button" class="secondary">Откликнулся</button><button id="bulkClear" type="button" class="text-button">Снять выбор</button></div><div class="tw0"><div id="results" class="tb" role="table" aria-labelledby="folderTitle"></div></div>
   <nav id="pagination" class="pagination" aria-label="Страницы вакансий" hidden></nav>
@@ -50,7 +49,7 @@
   <p id="settingsIntro" class="settings-intro">Что искать, где и какие вакансии вам подходят.</p>
   <div id="settingsSearchState" class="run-note" role="status" hidden></div>
   <small id="briefNotice" role="status"></small>
-  <div class="legend-box"><span><span class="kind must">Обязательное</span><span class="kind-note">несовпадение скрывает вакансию</span></span><span><span class="kind wish">Пожелание</span><span class="kind-note">несовпадение понижает до «Может быть подходит»</span></span><span>Поля со <b class="req">*</b> обязательны для сохранения.</span></div>
+  <div class="legend-box"><p><span class="kind must">Обязательное</span> если вакансия не подходит, мы её скрываем.</p><p><span class="kind wish">Пожелание</span> если не подходит, вакансия остаётся, но с пометкой «Может быть подходит».</p><p class="legend-req"><b class="req">*</b> — без этих полей бриф не сохранить.</p></div>
   <div id="formSummary" class="form-summary" role="alert" tabindex="-1" aria-labelledby="formSummaryTitle" hidden><b id="formSummaryTitle"></b><ul id="formSummaryList"></ul></div>
       <form id="searchForm" novalidate>
         <section class="form-section">
@@ -58,7 +57,7 @@
           <input id="name" required aria-required="true" maxlength="200" placeholder="Например, продуктовый аналитик в Алматы">
         </section>
         <section class="form-section" aria-labelledby="queriesTitle">
-          <div class="sec-head"><h2 id="queriesTitle"><label for="queries">Поисковые запросы<span id="queriesRequired" class="req" aria-hidden="true" hidden>*</span></label></h2><span class="kind must">Обязательное</span><span class="kind-note">вакансия должна совпасть хотя бы с одним запросом в названии или навыках</span></div>
+          <div class="sec-head"><h2 id="queriesTitle"><label for="queries">Поисковые запросы<span id="queriesRequired" class="req" aria-hidden="true" hidden>*</span></label></h2><span class="kind must">Обязательное</span><span class="kind-note">название или навыки вакансии должны совпасть хотя бы с одним запросом</span></div>
           <div id="queriesEditor" class="token-editor"><input id="queries" placeholder="Например, QA Engineer" aria-describedby="queriesHelp"></div>
           <small id="queriesHelp">До 10 запросов. Добавляйте по Enter или кнопкой «Добавить».</small>
         </section>
@@ -70,7 +69,7 @@
           <div id="countryRetryBox" class="hint" role="alert" hidden>Не удалось загрузить список стран и городов.<button id="countryRetry" type="button" class="secondary">Повторить</button></div>
         </section>
         <section class="form-section" aria-labelledby="conditionsTitle">
-          <div class="sec-head"><h2 id="conditionsTitle">Условия вакансии</h2><span class="kind wish">Пожелание</span><span class="kind-note">несовпадение понижает до «Может быть подходит»</span></div>
+          <div class="sec-head"><h2 id="conditionsTitle">Условия вакансии</h2><span class="kind wish">Пожелание</span><span class="kind-note">не совпало — «Может быть подходит»</span></div>
           <div class="salary-fields">
             <div class="form-field"><label for="salaryMin">Зарплата от</label>
               <input id="salaryMin" type="number" min="0.01" step="any" aria-describedby="salaryHelp"></div>
@@ -91,7 +90,7 @@
           <fieldset class="employment-options"><legend>Занятость</legend><div id="employment" class="flex-opts"></div></fieldset>
         </section>
         <section class="form-section" aria-labelledby="exclusionsTitle">
-          <div class="sec-head"><h2 id="exclusionsTitle">Исключения</h2><span class="kind must">Обязательное</span><span class="kind-note">совпадение скрывает вакансию</span></div>
+          <div class="sec-head"><h2 id="exclusionsTitle">Исключения</h2><span class="kind must">Обязательное</span><span class="kind-note">совпало — вакансия скрыта</span></div>
           <div class="form-field">
             <label for="excludedCompanies">Компании</label>
             <div id="excludedCompaniesEditor" class="token-editor"><input id="excludedCompanies" placeholder="Название компании" aria-describedby="excludedCompaniesHelp"></div>
@@ -110,7 +109,6 @@
             <div id="sources" class="src-types"></div>
             <div id="unsupportedConditions" role="status" hidden></div>
           </fieldset>
-          <small class="src-foot">Правила выбора источников по типам и компаниям появятся, когда их будет больше; новые источники будут подключаться сами.</small>
         </section>
         <section class="form-section" aria-labelledby="searchOptionsTitle">
           <div class="sec-head"><h2 id="searchOptionsTitle">Как искать</h2></div>
@@ -123,7 +121,7 @@
             <small id="profilesHelp">Загружаем страницу работодателя в источнике. Поиск идёт дольше.</small>
           </div>
           <details class="search-volume">
-            <summary>Сколько собирать</summary>
+            <summary><span class="sv-title">Сколько собирать</span><span id="limitsSummary" class="sv-value">по настройкам источников</span><span class="sv-action">Изменить</span></summary>
             <div class="limit-fields">
               <div class="form-field"><label for="limit">Новых вакансий на запрос, не больше</label><input id="limit" type="number" min="1" max="5000" placeholder="По настройкам"></div>
               <div class="form-field"><label for="pages">Страниц выдачи на запрос, не больше</label><input id="pages" type="number" min="1" max="50" placeholder="По настройкам"></div>
@@ -139,7 +137,7 @@
       </form>
   </div>
   <aside class="sum-box" aria-labelledby="summaryTitle">
-    <h2 id="summaryTitle">Итог условий</h2><p class="muted">Так бриф будет проверять вакансии.</p>
+    <h2 id="summaryTitle">Как бриф отберёт вакансии</h2>
     <div id="conditionsSummary"></div>
     <p id="dirtyNote" class="dirty-note" role="status" hidden></p>
     <button id="start" type="submit" form="searchForm">Сохранить и запустить поиск</button>
