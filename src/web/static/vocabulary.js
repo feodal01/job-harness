@@ -20,7 +20,7 @@ function selectionLabel(selection) {
   const status = selection?.status;
   if (!status) return null;
   if (status === "accepted" && selection.checks?.some(check => check.status === "unknown"))
-    return {text:"Подходит, не всё проверено", cls:"ok"};
+    return {text:"Подходит, не всё проверено", cls:"partial"};
   return {text:selectionNames[status] || status, cls:{accepted:"ok", maybe:"maybe", rejected:"hidden"}[status] || "unknown"};
 }
 
@@ -59,4 +59,24 @@ function plural(n, one, few, many) {
   if (mod10 === 1 && mod100 !== 11) return one;
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
   return many;
+}
+
+const checkStatusNames = {accepted:"Подходит", rejected:"Не подходит", unknown:"Не проверено"};
+const conditionKinds = {hard:"Обязательное условие", soft:"Пожелание"};
+/** «Обязательное условие · Не подходит»; a check the source cannot verify is «Не проверено». */
+function checkHead(check) {
+  const status = check.supported === false ? "Не проверено" : checkStatusNames[check.status] || "Не проверено";
+  return `${conditionKinds[check.kind] || conditionKinds.soft} · ${status}`;
+}
+function checkTone(check) {
+  if (check.supported === false || check.status === "unknown") return "unk";
+  return check.status === "rejected" ? "no" : "ok";
+}
+/** «3 ноября» from an ISO date or seconds. */
+function dayMonth(value) {
+  const date = typeof value === "number" ? new Date(value * 1000) : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const options = {day:"numeric", month:"long"};
+  if (date.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
+  return date.toLocaleDateString("ru", options).replace(" г.", "");
 }

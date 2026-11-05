@@ -15,7 +15,6 @@ const pageSize = 50;
 const typeNames = {aggregator:"агрегатор",career_site:"карьерный сайт",ats:"ATS",telegram:"Telegram"};
 const statusNames = {blocked:"Заблокирован",skipped:"Пропущен",queued:"В очереди",running:"Идёт поиск",complete:"Завершён",partial:"Частичный результат",failed:"Ошибка",cancelled:"Остановлен",interrupted:"Прерван"};
 const conditionNames = {query:"Профиль вакансии",profile:"Профиль вакансии",locations:"Места работы",minimum_work_format:"Формат работы",employment:"Занятость",experience_years:"Опыт",salary:"Зарплата",published_after:"Дата публикации",relocation_support:"Помощь с релокацией",excluded_companies:"Исключённые компании",excluded_text:"Исключённые фразы"};
-const checkStatusNames = {accepted:"Подходит",rejected:"Не подходит",unknown:"Не проверено"};
     function el(tag, text, cls) {
       let e = document.createElement(tag);
       if (text !== undefined) e.textContent = text;
@@ -493,7 +492,7 @@ function showPagination(data) {
   pageInfo={page:data.page,pages:data.pages,total:data.total};
   if($("vacancyDialog").open && data.total>readerTotal){
     readerTotal=data.total;readerEnds.clear();
-    if(!$("vacancyStage")?.disabled)updateReaderNavigation();
+    if(!readerSaving)updateReaderNavigation();
   }
   const signature=JSON.stringify([route.briefId,route.folder,route.q,route.selection,route.sort,route.source,data.total,data.page,data.pages]);
   $("folderCount").textContent = `Вакансий: ${data.total.toLocaleString("ru")}`;
@@ -523,7 +522,7 @@ function closeVacancy() {
 }
 $("closeVacancy").onclick=closeVacancy;
 $("closeVacancyIcon").onclick=closeVacancy;
-$("vacancyDialog").addEventListener("cancel",e=>{e.preventDefault();closeVacancy();});
+$("vacancyDialog").addEventListener("cancel",e=>{e.preventDefault();if(!closeTips())closeVacancy();});
 // Close only when the click starts and ends outside the reader, not when selecting text.
 let readerBackdropPressed=false;
 function outsideReader(event) {
@@ -537,18 +536,13 @@ $("vacancyDialog").addEventListener("click",e=>{
   readerBackdropPressed=false;
   if(close)closeVacancy();
 });
-function positionReader() {
-  const left=innerWidth<=650?0:Math.max(0,document.querySelector(".vacancies").getBoundingClientRect().left);
-  $("vacancyDialog").style.setProperty("--reader-left",left+"px");
-}
-window.addEventListener("resize",()=>{if($("vacancyDialog").open)positionReader();});
 function readerEntry(v) {
   return {key:v.key,time:route.sort==="updated"?(v.status_updated_at ?? v.first_seen):v.first_seen};
 }
 function updateReaderNavigation() {
   $("previousVacancy").disabled=readerTransition || readerIndex<0 || (readerIndex===0 && (readerPage<=1 || readerEnds.has(-1)));
   $("nextVacancy").disabled=readerTransition || readerIndex<0 || (readerIndex===readerItems.length-1 && ((readerPage-1)*pageSize+readerItems.length>=readerTotal || readerEnds.has(1)));
-  $("readerPosition").textContent=readerTransition?"Загружаем…":readerIndex<0?"":`${(readerPage-1)*pageSize+readerIndex+1} / ${readerTotal}`;
+  $("readerPosition").textContent=readerTransition?"Загружаем…":readerIndex<0?"":`${(readerPage-1)*pageSize+readerIndex+1} из ${readerTotal}`;
   $("readerPosition").title="Вакансии в выбранной папке с учётом фильтров";
 }
 async function adjacentVacancy(direction) {
@@ -559,9 +553,7 @@ async function adjacentVacancy(direction) {
   const valid=()=>version===detailVersion && context===viewVersion && $("vacancyDialog").open;
   readerTransition=true;readerController=new AbortController();
   ++requestVersion;refreshController?.abort();
-  $("vacancyFooter").inert=true;updateReaderNavigation();
-  const feedback=$("vacancyFooter").querySelector(".action-feedback");
-  if(feedback)feedback.textContent="";
+  $("vacancyFooter").inert=true;updateReaderNavigation();readerMessage("");
   try{
     const params=new URLSearchParams({direction:direction>0?"next":"previous",page_size:pageSize,status:route.folder,selection:route.selection,q:route.q,sort:route.sort,source:route.source});
     params.set("anchor_time",readerItems[readerIndex].time);
@@ -569,7 +561,7 @@ async function adjacentVacancy(direction) {
     if(!valid())return;
     if(!result.key){
       readerEnds.add(direction);
-      if(feedback)feedback.textContent=direction>0?"Вы просмотрели все вакансии в этой папке.":"Это первая вакансия в этой папке.";
+      readerMessage(direction>0?"Дальше вакансий в этой папке нет.":"Это первая вакансия в этой папке.");
       return;
     }
     const data=result.page;
@@ -580,7 +572,7 @@ async function adjacentVacancy(direction) {
     readerTransition=false;readerController=null;$("vacancyFooter").inert=false;
     await openVacancy(result.key,true);
   }catch(e){
-    if(valid() && e.name!=="AbortError" && feedback)feedback.textContent="Не удалось загрузить следующую вакансию. Попробуйте ещё раз. "+e.message;
+    if(valid() && e.name!=="AbortError")readerMessage(direction>0?"Не удалось загрузить следующую вакансию.":"Не удалось загрузить предыдущую вакансию.",()=>adjacentVacancy(direction));
   }finally{
     if(valid()){
       readerTransition=false;readerController=null;$("vacancyFooter").inert=false;updateReaderNavigation();
@@ -589,118 +581,220 @@ async function adjacentVacancy(direction) {
 }
 $("previousVacancy").onclick=()=>adjacentVacancy(-1);
 $("nextVacancy").onclick=()=>adjacentVacancy(1);
+let readerSaving=false, noteTimer=null, noteSaving=Promise.resolve();
+/** One line in the reader footer: info, or an error with «Повторить». */
+function readerMessage(text, retry) {
+  const host=$("readerMessage");host.replaceChildren();host.hidden=!text;
+  host.className=retry?"inline-err":"reader-note";host.setAttribute("role",retry?"alert":"status");
+  if(!text)return;
+  host.append(el("span",text));
+  if(retry){const again=el("button","Повторить","secondary");again.type="button";again.onclick=()=>{readerMessage("");retry();};host.append(again);}
+}
+/* Tips on the match pill and condition chips: one open at a time, Esc closes it first. */
+function closeTips(except){
+  let closed=false;
+  for(const button of $("vacancyBody").querySelectorAll('[aria-expanded="true"][data-tip]')){
+    if(button===except)continue;
+    button.setAttribute("aria-expanded","false");button.classList.remove("open");closed=true;
+  }
+  return closed;
+}
+function tipButton(cls, content, head, text, id){
+  const button=el("button",undefined,cls);button.type="button";button.dataset.tip="";
+  button.setAttribute("aria-expanded","false");button.setAttribute("aria-controls",id);
+  const tip=el("span",undefined,"tip");tip.id=id;tip.setAttribute("role","note");
+  tip.append(el("b",head),el("br"),text,el("span","Esc — закрыть","tip-x"));
+  button.append(...content,tip);
+  button.onclick=()=>{const open=button.getAttribute("aria-expanded")!=="true";closeTips(button);
+    button.setAttribute("aria-expanded",String(open));button.classList.toggle("open",open);};
+  return button;
+}
+$("vacancyDialog").addEventListener("click",e=>{if(!e.target.closest("[data-tip]"))closeTips();});
+async function flushNote(){
+  clearTimeout(noteTimer);noteTimer=null;
+  const note=$("vacancyNote");
+  if(note&&selectedVacancy&&note.value!==(selectedVacancy.note||""))await saveVacancy({note:note.value});
+  await noteSaving;
+}
 async function openVacancy(key,adjacent=false) {
   if(adjacent){
     const note=$("vacancyNote");
-    if(selectedVacancy&&note)readerDrafts.set(selectedVacancy.key,{text:note.value,open:document.querySelector(".vacancy-notes").open});
+    if(selectedVacancy&&note)readerDrafts.set(selectedVacancy.key,note.value);
+    flushNote().catch(()=>{});
   }else{
     readerItems=pageItems.map(readerEntry);readerDrafts.clear();readerEnds.clear();
     readerPage=pageInfo.page;readerTotal=pageInfo.total;readerChangedPage=false;
   }
   readerIndex=readerItems.findIndex(v=>v.key===key);
-  updateReaderNavigation();positionReader();
+  updateReaderNavigation();
   const version=++detailVersion, briefId=route.briefId;
-  selectedVacancy=null;
-  $("vacancySource").replaceChildren();$("vacancyFooter").hidden=true;
-  $("vacancyBody").replaceChildren(el("h2","Загружаем…"));$("vacancyBody").firstChild.id="vacancyTitle";
+  selectedVacancy=null;readerMessage("");$("stageLine").hidden=true;
+  $("vacancySource").replaceChildren();$("vacancyStageRow").hidden=true;
+  const loading=el("h2","Загружаем…");loading.id="vacancyTitle";$("vacancyBody").replaceChildren(loading);
   if(!$("vacancyDialog").open)$("vacancyDialog").showModal();
   try{
     const v=await api(`/api/v1/briefs/${briefId}/vacancies/${encodeURIComponent(key)}`);
     if(version!==detailVersion)return;selectedVacancy=v;renderVacancy(v,briefId);
   }catch(e){
-    if(version===detailVersion){const title=el("h2","Не удалось открыть вакансию");title.id="vacancyTitle";$("vacancyBody").replaceChildren(title,el("p",e.message));}
+    if(version!==detailVersion)return;
+    const box=el("div",undefined,"open-error");box.setAttribute("role","alert");
+    const title=el("h2","Не удалось открыть вакансию");title.id="vacancyTitle";
+    const actions=el("div",undefined,"actions"),retry=el("button","Повторить"),close=el("button","Закрыть","secondary");
+    retry.type=close.type="button";retry.onclick=()=>openVacancy(key,true);close.onclick=closeVacancy;actions.append(retry,close);
+    box.append(title,el("p",e instanceof TypeError?"Сервис не ответил. Проверьте, что он работает, и попробуйте ещё раз.":e.message),actions);
+    $("vacancyBody").replaceChildren(box);
   }
+}
+function conditionLabel(check,v){
+  const place=placeText(v);
+  switch(check.field){
+    case "locations": return place.city || "Место не указано";
+    case "minimum_work_format": return place.format || "Формат не указан";
+    case "salary": return salaryLine(v.salary) || "Зарплата не указана";
+    case "experience_years":
+      if(v.experience)return v.experience;
+      return v.min_experience!=null?`Опыт от ${v.min_experience.toLocaleString("ru")} ${plural(Math.ceil(v.min_experience),"года","лет","лет")}`:"Опыт не указан";
+    case "published_after": return v.published_at?`Опубликована ${dayMonth(v.published_at)}`:"Дата публикации не указана";
+    case "employment": return v.employment?.length?"Занятость: "+v.employment.map(e=>(employmentLabels[e]||e).toLowerCase()).join(", "):"Занятость не указана";
+    case "query": case "profile": {
+      const title=(v.title||"").toLowerCase(),query=(currentBrief()?.queries||[]).find(q=>title.includes(q.toLowerCase()));
+      return query?`Запрос: ${query}`:conditionNames[check.field];
+    }
+    default: return conditionNames[check.field] || check.field;
+  }
+}
+function selectionSummary(v){
+  const checks=v.selection?.checks||[];
+  if(v.selection?.status==="rejected")return "Вакансия не подходит по обязательному условию брифа и скрыта из списка.";
+  if(v.selection?.status==="maybe")return "Есть несовпадения с пожеланиями брифа.";
+  if(checks.some(c=>c.status==="unknown"||c.supported===false))return "Противоречий с брифом нет, но часть условий не удалось проверить.";
+  return "Все условия брифа совпали.";
 }
 function renderVacancy(v,briefId) {
-  const body=$("vacancyBody");body.replaceChildren();body.scrollTop=0;
-  const title=el("h2",v.title);title.id="vacancyTitle";body.append(title);
-  body.append(el("p",[v.company?.name,v.location].filter(Boolean).join(" · "),"muted"));
-  appendCompanySite(body, v.company);
-  if(salaryText(v))body.append(el("p",salaryText(v),"salary"));
-  const sourceName=sources.find(s=>s.id===v.source)?.name || "сайте источника";
-  const original=link(`Открыть на ${sourceName} ↗`,v.url);
-  original.id="vacancyOriginal";original.className="button";
-  $("vacancySource").replaceChildren(original);
-  renderVacancyActions(v,briefId);
-  if(v.description||v.summary)body.append(el("h3","Описание вакансии"));
-  if(v.summary){
-    const section=el("section");
-    section.append(el("h4","Краткое описание"),descriptionContent(v.summary,v.summary_html));
-    body.append(section);
-  }
-  if(v.description)body.append(descriptionContent(v.description,v.description_html));
-  if(!v.description&&!v.summary)body.append(el("p","Описание пока не получено. Вакансию можно посмотреть в оригинале.","muted"));
-  if(v.skills?.length)body.append(el("p",v.skills.join(" · "),"muted"));
-  if(v.selection){
-    const section=el("section",undefined,"selection-checks");
-    section.append(el("h3","Проверка условий брифа"));
-    const checks=v.selection.checks;
-    let explanation;
-    if(!checks.length)explanation="Условия отбора не заданы. Вакансия показана без оценки соответствия.";
-    else if(v.selection.status==="rejected")explanation="Вакансия скрыта из-за несовпадения с обязательными условиями. Причины ниже.";
-    else if(v.selection.status==="maybe")explanation="Есть несовпадения с пожеланиями из брифа. Подробности ниже.";
-    else if(checks.some(check=>check.status==="unknown"||check.supported===false))explanation="Противоречий с условиями брифа не найдено, но часть условий не удалось проверить. Причины ниже.";
-    else explanation="Вакансия соответствует проверенным условиям брифа.";
-    section.append(el("p",explanation));
-    for(const check of checks){
-      const item=el("div",undefined,"selection-check");
-      item.append(el("strong",conditionNames[check.field] || check.field));
-      const kind=check.kind==="hard"?"Жёсткое условие":"Мягкое условие";
-      const status=check.supported===false?"Не проверено · В этом источнике не проверяется":checkStatusNames[check.status] || "Не проверено";
-      item.append(el("small",`${kind} · ${status}`,"check-status "+check.status));
-      item.append(el("p",check.reason));section.append(item);
+  const body=$("vacancyBody");body.replaceChildren();body.scrollTop=0;closeTips();
+  const checks=v.selection?.checks||[], head=el("div",undefined,"vac-head");
+  if(v.selection&&checks.length){
+    const match=selectionLabel(v.selection);
+    head.append(tipButton("pill "+match.cls,[match.text],"Соответствие брифу",selectionSummary(v),"selectionTip"));
+  }else head.append(el("span","Без оценки","pill plain"));
+  if(v.user_status==="new")head.append(el("span","Новая","pill new"));
+  const title=el("h2",v.title);title.id="vacancyTitle";
+  const place=placeText(v), line=el("p",[v.company?.name,[place.city,place.format].filter(Boolean).join(", ")].filter(Boolean).join(" · ")||"Компания и регион не указаны","muted vac-line");
+  const site=v.company?.site_url?link("Сайт работодателя ↗",v.company.site_url):null;
+  if(site?.hasAttribute("href")){site.append(el("span"," (откроется в новой вкладке)","sr"));line.append(" · ",site);}
+  body.append(head,title,line);
+  const salary=salaryLine(v.salary);
+  if(salary)body.append(el("p",[salary,v.salary?.gross===false?"на руки":v.salary?.gross===true?"до вычета налогов":""].filter(Boolean).join(" "),"vac-salary"));
+  if(checks.length){
+    const chips=el("div",undefined,"chips");
+    checks.forEach((check,n)=>{
+      const tone=checkTone(check),icon=el("i",{ok:"✓",no:"✕",unk:"?"}[tone]);icon.setAttribute("aria-hidden","true");
+      chips.append(tipButton("chip "+tone,[icon,conditionLabel(check,v),el("span",": "+checkStatusNames[tone==="unk"?"unknown":tone==="no"?"rejected":"accepted"].toLowerCase(),"sr")],checkHead(check),check.reason,"checkTip"+n));
+    });
+    body.append(chips);
+    const status=v.selection.status;
+    const problems=status==="rejected"?checks.filter(c=>c.status==="rejected"&&c.kind==="hard")
+      :status==="maybe"?checks.filter(c=>c.status==="rejected")
+      :checks.filter(c=>c.status==="unknown"||c.supported===false);
+    if(problems.length){
+      const why=el("div",undefined,"why"),list=el("ul");
+      why.append(el("h3",status==="rejected"?"Почему вакансия скрыта":status==="maybe"?"Почему «Может быть подходит»":"Что не удалось проверить"));
+      for(const check of problems){const item=el("li");item.append(el("b",checkHead(check)+".")," "+check.reason);list.append(item);}
+      why.append(list);body.append(why);
     }
-    body.append(section);
+  }else{
+    const why=el("div",undefined,"why");
+    why.append(el("p","В брифе нет условий отбора, поэтому соответствие не оценивается."));
+    const edit=el("a","Задать условия брифа");edit.href=`#/brief/${encodeURIComponent(briefId)}/settings`;why.append(edit);body.append(why);
   }
+  body.append(noteBox(v));
+  const sourceName=sources.find(s=>s.id===v.source)?.name || "сайте источника";
+  const original=()=>{const a=link(`Открыть на ${sourceName} ↗`,v.url);a.className="button secondary ext";a.append(el("span"," (откроется в новой вкладке)","sr"));return a;};
+  $("vacancySource").replaceChildren(original());
+  if(v.description){
+    body.append(el("h3","Описание вакансии"));
+    if(v.summary&&v.summary!==v.description)body.append(descriptionContent(v.summary,v.summary_html));
+    body.append(descriptionContent(v.description,v.description_html));
+  }else{
+    if(v.summary)body.append(el("h3","Краткое описание"),descriptionContent(v.summary,v.summary_html));
+    const missing=el("div",undefined,"ph");
+    missing.append(el("p","Полное описание пока не получено. Его можно прочитать на сайте источника."),original());
+    body.append(missing);
+  }
+  if(v.skills?.length)body.append(el("p","Навыки: "+v.skills.join(" · "),"muted vac-skills"));
+  renderVacancyActions(v,briefId);
 }
-function renderVacancyActions(v,briefId) {
-  const footer=$("vacancyFooter"),version=detailVersion;
-  footer.replaceChildren();footer.hidden=false;
-  let saved=v, busy=false;
-  const row=el("div",undefined,"vacancy-action-row");
-  const select=el("select");select.id="vacancyStage";select.setAttribute("aria-label","Этап воронки");
-  for(const [key,name] of Object.entries(userStatusNames)){
-    if(key==="viewed")continue;
-    const option=el("option",name);option.value=key;select.append(option);
-  }
-  const applied=el("button","Отклик отправлен");applied.id="markApplied";
-  applied.title="Отметить уже отправленный отклик";
-  const dismissed=el("button","Неинтересна","secondary");dismissed.id="markDismissed";
-  row.append(applied,dismissed,select);
-  const notes=el("details",undefined,"vacancy-notes"),summary=el("summary");
-  const note=el("textarea");note.id="vacancyNote";note.setAttribute("aria-label","Заметка к вакансии");
-  note.maxLength=2000;note.rows=2;note.value=readerDrafts.get(v.key)?.text ?? v.note ?? "";notes.open=readerDrafts.get(v.key)?.open || false;note.placeholder="Дата собеседования, условия или ваши пометки";
-  const saveNote=el("button","Сохранить заметку","secondary");saveNote.id="saveVacancyNote";
-  const feedback=el("div",undefined,"action-feedback");feedback.setAttribute("role","status");
-  notes.append(summary,note,saveNote);footer.append(row,notes,feedback);
-  function updateControls(){
-    select.value=saved.user_status==="viewed"?"new":saved.user_status;
-    applied.hidden=!["new","viewed"].includes(saved.user_status);
-    dismissed.hidden=saved.user_status==="dismissed";
-    summary.textContent=saved.note?"Заметка · добавлена":"Добавить заметку";
-    for(const control of [select,applied,dismissed,saveNote])control.disabled=busy;
-  }
-  async function save(status,noteValue,isNote=false){
-    if(busy)return;
-    busy=true;updateControls();$("previousVacancy").disabled=true;$("nextVacancy").disabled=true;feedback.textContent="Сохраняем…";
+function noteBox(v){
+  const box=el("div",undefined,"note-box"),label=el("label","Ваша заметка"),status=el("span");
+  label.htmlFor="vacancyNote";status.id="noteStatus";status.setAttribute("aria-live","polite");label.append(status);
+  const note=el("textarea");note.id="vacancyNote";note.rows=2;note.maxLength=2000;
+  note.placeholder="Дата собеседования, условия или ваши пометки";
+  note.value=readerDrafts.get(v.key) ?? v.note ?? "";
+  status.textContent=v.note?"Сохранено":"";
+  note.oninput=()=>{status.textContent="Изменено";clearTimeout(noteTimer);noteTimer=setTimeout(()=>flushNote().catch(()=>{}),1200);};
+  note.onblur=()=>{if(noteTimer)flushNote().catch(()=>{});};
+  box.append(label,note);return box;
+}
+/* All writes of the open vacancy go through one queue, so a note never overwrites a newer stage. */
+function saveVacancy({status,note}){
+  const v=selectedVacancy,briefId=route.briefId,version=detailVersion;
+  if(!v)return Promise.resolve();
+  const job=noteSaving.catch(()=>{}).then(async()=>{
+    const current=version===detailVersion?selectedVacancy:v;
+    const body={status:status??current.user_status,note:note??(version===detailVersion?$("vacancyNote")?.value:undefined)??current.note??""};
+    const noteStatus=()=>version===detailVersion?$("noteStatus"):null;
+    if(note!==undefined&&noteStatus())noteStatus().textContent="Сохраняем…";
     try{
-      const updated=await api(`/api/v1/briefs/${briefId}/vacancies/${encodeURIComponent(v.key)}`,"PATCH",{status,note:noteValue});
-      saved=updated;
+      const updated=await api(`/api/v1/briefs/${briefId}/vacancies/${encodeURIComponent(v.key)}`,"PATCH",body);
       if(version===detailVersion){
-        selectedVacancy=updated;
-        feedback.textContent=isNote?"Заметка сохранена":userStatusNames[updated.user_status]+" · сохранено";
-        if(isNote&&note.value===noteValue)notes.open=false;
+        selectedVacancy=updated;readerDrafts.delete(v.key);
+        if(note!==undefined&&noteStatus())noteStatus().textContent="Сохранено в "+new Date().toLocaleTimeString("ru",{hour:"2-digit",minute:"2-digit"});
       }
-      await refresh().catch(handleRefreshError);
-    }catch(e){if(version===detailVersion)feedback.textContent="Не удалось сохранить: "+e.message;}
-    finally{busy=false;updateControls();if(version===detailVersion)updateReaderNavigation();}
+      refresh().catch(handleRefreshError);
+      return updated;
+    }catch(e){
+      if(version===detailVersion){
+        if(note!==undefined&&noteStatus())noteStatus().textContent="Не сохранено";
+        readerMessage("Не удалось сохранить: "+e.message,()=>saveVacancy({status,note}));
+      }
+      throw e;
+    }
+  });
+  noteSaving=job;return job;
+}
+const readerStages=["new","applied","interview","offer","rejected","dismissed"];
+function renderVacancyActions(v,briefId) {
+  const host=$("vacancyStages");host.replaceChildren();$("vacancyStageRow").hidden=false;
+  const pressed=status=>status==="viewed"?"new":status;
+  const buttons=readerStages.map(status=>{
+    const button=el("button",userStatusNames[status]);button.type="button";button.dataset.status=status;
+    button.onclick=()=>chooseStage(status);return button;
+  });
+  host.append(...buttons);
+  function update(){for(const b of buttons){b.setAttribute("aria-pressed",String(b.dataset.status===pressed(selectedVacancy?.user_status||v.user_status)));b.disabled=readerSaving;}}
+  async function chooseStage(status,undo=false){
+    const previous=selectedVacancy.user_status;
+    if(pressed(previous)===status&&!undo)return;
+    readerSaving=true;update();updateReaderNavigation();
+    try{
+      await saveVacancy({status});
+      update();
+      if(undo){$("stageLine").hidden=true;return;}
+      showStageLine(status,previous,s=>chooseStage(s,true));
+    }catch{/* readerMessage shows the error */}
+    finally{readerSaving=false;update();updateReaderNavigation();}
   }
-  // Stage changes keep the saved note; an unfinished note stays in the editor.
-  select.onchange=()=>save(select.value,saved.note || "");
-  applied.onclick=()=>save("applied",saved.note || "");
-  dismissed.onclick=()=>save("dismissed",saved.note || "");
-  saveNote.onclick=()=>save(saved.user_status,note.value,true);
-  updateControls();
+  update();
+}
+function showStageLine(status,previous,undo){
+  const line=$("stageLine");line.replaceChildren();line.hidden=false;
+  const text=el("span","Этап: ");text.append(el("b",userStatusNames[status]));
+  const back=el("button","Отменить","undo");back.type="button";back.onclick=()=>undo(previous);
+  line.append(text,back);
+  if(route.folder==="open"&&!openStatuses.includes(status)){
+    if($("nextVacancy").disabled)line.append(el("span","Неразобранных дальше нет","push"));
+    else{const next=el("button","Следующая неразобранная →","push");next.type="button";next.onclick=()=>adjacentVacancy(1);line.append(next);}
+  }
 }
 function searchOptionsForBrief(b) {
   // Saved run diagnostics contain per-source outcomes, unlike editable search options.
