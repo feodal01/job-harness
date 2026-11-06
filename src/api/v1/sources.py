@@ -5,20 +5,26 @@ from fastapi import APIRouter, Query
 from src.api.openapi import error_responses
 from src.dependencies import SourceDep
 from src.schemas.runs import EventResponse
-from src.schemas.sources import SourceResponse
+from src.schemas.sources import SourceCounts, SourceFilter, SourceQuery, SourcesPage
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 
 
-@router.get(
-    "",
-    response_model=list[SourceResponse],
-    response_model_exclude_unset=True,
-    responses=error_responses(),
-)
-async def list_sources(service: SourceDep) -> list[SourceResponse]:
-    """Настроенные источники, их возможности и известное локальное состояние без сетевой проверки."""
-    return [SourceResponse.model_validate(item) for item in service.list_sources()]
+@router.get("", response_model=SourcesPage, response_model_exclude_unset=True, responses=error_responses(422))
+async def list_sources(service: SourceDep, query: Annotated[SourceQuery, Query()]) -> SourcesPage:
+    """Источники по фильтрам: встроенные площадки и сайты компаний из каталога.
+
+    Сайты компаний читаются из каталога сейчас, с сессией пользователя. Без входа ответ содержит
+    остальные источники, а `catalog.status` объясняет, почему сайтов компаний нет.
+    """
+    filters = SourceFilter.model_validate(query.model_dump(exclude={"page", "page_size"}))
+    return SourcesPage.model_validate(await service.list_sources(filters, query.page, query.page_size))
+
+
+@router.get("/counts", response_model=SourceCounts, responses=error_responses(422))
+async def count_sources(service: SourceDep, filters: Annotated[SourceFilter, Query()]) -> SourceCounts:
+    """Число поддерживаемых и неподдерживаемых источников по группам для тех же фильтров."""
+    return SourceCounts.model_validate(await service.counts(filters))
 
 
 @router.get(

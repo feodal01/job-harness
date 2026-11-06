@@ -171,7 +171,8 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
     }
     $("countryRetry").onclick = () => { error(""); loadGeography().catch(e => error(e.message)); };
     async function loadCatalog() {
-      sources = await api("/api/v1/sources");
+      // Until the rules dialog (8о), the form offers the built-in sources only.
+      sources = (await api("/api/v1/sources?status=supported&groups=aggregator&groups=it_board")).items;
       for (const source of sources) {
         const label = el("label", undefined, "type-card"), box = el("input");
         box.type = "checkbox"; box.id = "source-" + source.id; box.checked = true; box.onchange = updateSource;

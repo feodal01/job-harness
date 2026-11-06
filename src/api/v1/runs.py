@@ -28,7 +28,7 @@ async def list_runs(service: RunDep, brief_id: str | None = None) -> list[RunRes
 )
 async def launch_run(request: RunInput, service: RunDep) -> RunResponse:
     """Запустить поиск и вернуть сохранённый снимок его параметров."""
-    return RunResponse.model_validate(service.start(request))
+    return RunResponse.model_validate(await service.start(request))
 
 
 @router.get(

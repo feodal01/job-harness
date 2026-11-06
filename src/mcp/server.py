@@ -1,5 +1,5 @@
 from collections.abc import Awaitable
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 from urllib.parse import quote
 
 import httpx
@@ -11,10 +11,12 @@ from pydantic import Field
 from src.geography.catalog import DEFAULT_LOCALE
 from src.models.brief import BriefInput
 from src.models.run import RunInput
+from src.parsers.interfaces import SourceGroup
 from src.runtime.manager import ServiceError, ServiceManager
 from src.schemas.auth import AuthStatus
 from src.schemas.companies import CompanyFilterField, CompanyFiltersPage, CompanyLinksPage
 from src.schemas.service import ServiceStatus
+from src.schemas.sources import SourceStatusFilter
 from src.schemas.vacancies import PoolStatusInput, PoolView, SelectionView
 
 Page = Annotated[int, Field(ge=1)]
@@ -69,10 +71,43 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
         """Остановить сервис. cancel_active=true допустим после подтверждения отмены поисков пользователем."""
         return await perform(manager.stop(cancel_active))
 
-    @mcp.tool(annotations=READ)
-    async def list_sources() -> dict[str, Any]:
-        """Подключённые источники и возможности фильтрации. Не проверяет доступность сайтов в сети."""
-        return {"sources": await request("GET", "/api/v1/sources")}
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
+    async def list_sources(
+        groups: Annotated[
+            list[SourceGroup] | None,
+            Field(description="aggregator, it_board, company_site (сайты компаний из каталога), telegram."),
+        ] = None,
+        countries: Annotated[
+            list[str] | None,
+            Field(description="ISO-коды стран: только источники, которые их покрывают."),
+        ] = None,
+        supports: Annotated[
+            list[str] | None,
+            Field(description="Условия брифа, которые источник должен проверять, например salary."),
+        ] = None,
+        name: Annotated[
+            str | None, Field(min_length=1, max_length=200, description="Часть названия источника.")
+        ] = None,
+        status: SourceStatusFilter = "all",
+        page: Page = 1,
+        page_size: PageSize = 50,
+    ) -> dict[str, Any]:
+        """Источники по фильтрам: параметры, которые они проверяют, покрытие стран и состояние.
+
+        Сайты компаний читаются из каталога в момент запроса и требуют входа; без входа ответ
+        содержит остальные источники, а catalog.status объясняет, почему сайтов компаний нет.
+        Сайты в сети не проверяются.
+        """
+        params: dict[str, Any] = {"status": status, "page": page, "page_size": page_size}
+        for key, value in (
+            ("groups", groups),
+            ("countries", countries),
+            ("supports", supports),
+            ("name", name),
+        ):
+            if value is not None:
+                params[key] = value
+        return cast(dict[str, Any], await request("GET", "/api/v1/sources", params=params))
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
     async def authorize() -> AuthStatus:

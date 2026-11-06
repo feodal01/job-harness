@@ -42,7 +42,7 @@ async def test_catalog_distinguishes_native_parameters_from_extracted_fields(tmp
     )
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
-            source = (await c.get("/api/v1/sources")).json()[0]
+            source = (await c.get("/api/v1/sources")).json()["items"][0]
             assert "capabilities" in source
             capabilities = source["capabilities"]
             assert capabilities["query_parameters"]["query"] == "native"

@@ -329,6 +329,7 @@ async def test_versioned_api_is_documented_by_resource(tmp_path):
             "/api/v1/runs/{run_id}/events": {"get": "runs"},
             "/api/v1/sources/events": {"get": "sources"},
             "/api/v1/sources": {"get": "sources"},
+            "/api/v1/sources/counts": {"get": "sources"},
             "/api/v1/geography/countries": {"get": "geography"},
             "/api/v1/geography/cities": {"get": "geography"},
             "/api/v1/health": {"get": "system"},

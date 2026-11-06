@@ -1,6 +1,7 @@
 """One source request budget for listing, detail and company requests across all runs."""
 
 import asyncio
+import contextlib
 import logging
 import random
 import time
@@ -23,12 +24,36 @@ class FetchError(RuntimeError):
         super().__init__(f"{kind}: {message}")
 
 
+class HostSlots:
+    """A ceiling on concurrent requests to one host, shared by every source that calls it.
+
+    Company boards of one platform each keep their own pacing and breaker, but they may share an
+    API host; the ceiling keeps hundreds of boards from hitting that host at once.
+    """
+
+    def __init__(self, per_host: int) -> None:
+        self.per_host = per_host
+        self.slots: dict[str, asyncio.Semaphore] = {}
+
+    def __call__(self, host: str) -> asyncio.Semaphore:
+        slot = self.slots.get(host)
+        if slot is None:
+            slot = self.slots[host] = asyncio.Semaphore(self.per_host)
+        return slot
+
+
 class Network:
     def __init__(
-        self, source: SourceAdapter, resources: ResourceStore, events: EventStore, client: httpx.AsyncClient
+        self,
+        source: SourceAdapter,
+        resources: ResourceStore,
+        events: EventStore,
+        client: httpx.AsyncClient,
+        hosts: HostSlots | None = None,
     ) -> None:
         self.source, self.settings, self.client = source, source.settings, client
         self.resources, self.events = resources, events
+        self.hosts = hosts
         self.slots = asyncio.Semaphore(source.settings.concurrency)
         self.pacing = asyncio.Lock()
         self.state = resources.resource(source.resource)
@@ -129,13 +154,14 @@ class Network:
                     )
                     # Account for time spent committing the event before the actual send.
                     self.state["next_request_at"] = time.time() + self.settings.interval_seconds
-                    response = await self.client.request(
-                        method,
-                        url,
-                        json=json_body,
-                        data=form_body,
-                        timeout=self.settings.request_timeout_seconds,
-                    )
+                    async with self.hosts(host) if self.hosts else contextlib.nullcontext():
+                        response = await self.client.request(
+                            method,
+                            url,
+                            json=json_body,
+                            data=form_body,
+                            timeout=self.settings.request_timeout_seconds,
+                        )
                     self.events.event(
                         run_id,
                         "http.finished",

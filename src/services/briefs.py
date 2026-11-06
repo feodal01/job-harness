@@ -9,7 +9,6 @@ from src.engine.pool import reevaluate_pool
 from src.enrichment.registry import Enrichment
 from src.geography.catalog import GeographyCatalog
 from src.models.brief import BriefInput
-from src.parsers.interfaces import SourceAdapter
 from src.selection.salary.settings import SalaryRange
 
 
@@ -19,13 +18,14 @@ class BriefService:
         briefs: BriefStore,
         vacancies: VacancyStore,
         transaction: Callable[[], AbstractContextManager[None]],
-        sources: dict[str, SourceAdapter],
+        unsupported: Callable[[str], frozenset[str] | None],
         geography: GeographyCatalog,
         enrichment: Enrichment,
         salary_range: SalaryRange,
     ) -> None:
         self.briefs, self.vacancies, self.transaction = briefs, vacancies, transaction
-        self.sources = sources
+        # Conditions each source cannot check, by source id (the source registry answers).
+        self.unsupported = unsupported
         # The application's single geography catalog and the enrichment built on it.
         self.geography, self.enrichment = geography, enrichment
         self.salary_range = salary_range
@@ -90,7 +90,7 @@ class BriefService:
                 brief_id,
                 brief.filters,
                 tuple(brief.queries),
-                self.sources,
+                self.unsupported,
                 self.enrichment,
                 self.salary_range,
             )

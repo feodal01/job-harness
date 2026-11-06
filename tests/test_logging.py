@@ -205,6 +205,7 @@ async def test_concurrent_http_runs_keep_engine_source_and_network_contexts(
     from src.core.config import Settings
     from src.models.vacancy import Vacancy
     from src.parsers.interfaces import RequestSettings, SearchPage, SearchPlan, SearchRequest, SourceAdapter
+    from src.parsers.registry import SourceKind, SourceRegistry
 
     def source(source_id: str) -> SourceAdapter:
         host = f"{source_id}.example.test"
@@ -246,7 +247,12 @@ async def test_concurrent_http_runs_keep_engine_source_and_network_contexts(
         )
 
     adapters = {name: source(name) for name in ("left", "right")}
-    monkeypatch.setattr("src.app.build_sources", lambda settings, catalog=None: adapters)
+    kinds = tuple(
+        SourceKind(name, name, "aggregator", fixed=lambda _s, _g, a=a: a) for name, a in adapters.items()
+    )
+    monkeypatch.setattr(
+        "src.app.SourceRegistry", lambda settings, geography=None: SourceRegistry(settings, geography, kinds)
+    )
     settings = Settings(database_path=tmp_path / "logging.sqlite")
     arrived = 0
     all_listings_started = asyncio.Event()

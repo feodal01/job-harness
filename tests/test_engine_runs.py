@@ -248,7 +248,7 @@ async def test_sources_run_in_parallel_and_one_blocked_source_does_not_stop_othe
         assert blocked["sources"]["hh_ru"]["status"] == "blocked"
         assert blocked["sources"]["hh_ru"]["blocked_reason"] == "captcha"
         assert blocked["sources"]["getmatch"]["status"] == "complete"
-        sources = {s["id"]: s for s in (await client.get("/api/v1/sources")).json()}
+        sources = {s["id"]: s for s in (await client.get("/api/v1/sources")).json()["items"]}
         assert sources["hh_ru"]["state"]["status"] == "blocked" and sources["hh_ru"]["type"] == "aggregator"
         assert sources["getmatch"]["state"]["status"] == "ready"
 

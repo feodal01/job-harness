@@ -27,6 +27,8 @@ from src.selection.filtering import FILTER_FIELDS
 Fetch = Callable[[str], Awaitable[str]]
 ParameterMode = Literal["native", "local", "none", "ignored"]
 SourceType = Literal["aggregator", "career_site", "ats", "telegram"]
+# How sources are grouped for people (mockup 8о): job boards, IT boards, company career sites, Telegram.
+SourceGroup = Literal["aggregator", "it_board", "company_site", "telegram"]
 # Outcomes of a response that HTTP status alone does not reveal; neither is retried.
 ResponseClass = Literal["captcha", "vpn_blocked", "blocked"]
 
@@ -397,6 +399,9 @@ class SourceAdapter:
     company_profile: CompanyProfile | None = None
     geography: CountryCityGeography | RegionGeography | None = None
     classify: Classify | None = None
+    # Set by the source registry: the group people see and the company catalog rows of a board.
+    group: SourceGroup | None = None
+    company_ids: tuple[str, ...] = ()
 
     @property
     def capabilities(self) -> SourceCapabilities:

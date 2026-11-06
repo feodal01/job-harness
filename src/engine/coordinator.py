@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import fields
 
 import httpx
@@ -20,7 +20,7 @@ from src.engine.tasks import TaskRegistry
 from src.enrichment.registry import Enrichment, default_enrichment
 from src.models.brief import BriefInput
 from src.models.run import RunInput
-from src.network.client import Network
+from src.network.client import HostSlots, Network
 from src.parsers.interfaces import Fetch, SourceAdapter
 
 logger = logging.getLogger(__name__)
@@ -39,27 +39,42 @@ class SearchEngine:
         self.settings, self.store, self.sources = settings, store, sources
         # The application passes its single enrichment (built on its geography catalog).
         self.enrichment = enrichment or default_enrichment()
-        resources: dict[str, Network] = {}
-        self.networks: dict[str, Network] = {}
-        for key, source in sources.items():
-            network = resources.get(source.resource)
-            if network is None:
-                network = resources[source.resource] = Network(source, store.resources, store.events, client)
-            elif network.settings != source.settings or network.source.allowed_hosts != source.allowed_hosts:
-                raise ValueError(f"Conflicting policies for shared resource {source.resource}")
-            self.networks[key] = network
+        self.client = client
+        self.hosts = HostSlots(settings.max_requests_per_host)
+        # One network per resource for the service's life, so runs share pacing and breakers.
+        self.resources: dict[str, Network] = {}
+        self.networks: dict[str, Network] = {key: self._network(source) for key, source in sources.items()}
         self.tasks: dict[str, asyncio.Task] = {}
         self.cancelled_runs: set[str] = set()
         self.registry = TaskRegistry()
         self.known = KnownData(store.vacancies, store.companies, self.enrichment)
         self.stopping = False
 
-    def start(self, request: RunInput) -> dict:
+    def _network(self, source: SourceAdapter) -> Network:
+        network = self.resources.get(source.resource)
+        if network is None:
+            network = self.resources[source.resource] = Network(
+                source, self.store.resources, self.store.events, self.client, self.hosts
+            )
+        elif network.settings != source.settings or network.source.allowed_hosts != source.allowed_hosts:
+            raise ValueError(f"Conflicting policies for shared resource {source.resource}")
+        return network
+
+    def start(
+        self,
+        request: RunInput,
+        boards: Mapping[str, SourceAdapter] | None = None,
+        unavailable: Mapping[str, str] | None = None,
+    ) -> dict:
+        """Start a run. `boards` are company boards read from the catalog for this run;
+        `unavailable` are requested sources left out with the reason (e.g. no login)."""
         if self.stopping:
             raise ConflictError("Сервис останавливается. Запустите его снова перед поиском.")
         if len(self.tasks) >= self.settings.max_active_runs:
             raise ConflictError("Too many active searches; wait or cancel one")
-        unknown = [s for s in request.sources if s not in self.sources]
+        adapters = {**self.sources, **(boards or {})}
+        unavailable = dict(unavailable or {})
+        unknown = [s for s in request.sources if s not in adapters and s not in unavailable]
         if unknown:
             raise InvalidSearchError(f"Unknown source: {', '.join(unknown)}")
         brief = self.store.briefs.brief(request.brief_id)
@@ -73,19 +88,21 @@ class SearchEngine:
             )
         except ValidationError as exc:
             raise InvalidSearchError("Проверьте и сохраните условия этого брифа перед поиском") from exc
-        selected = list(dict.fromkeys(request.sources or self.sources))
+        selected = [s for s in dict.fromkeys(request.sources or self.sources) if s not in unavailable]
         skipped = {
-            s: f"{self.sources[s].name} requires at least one search query"
+            s: f"{adapters[s].name} requires at least one search query"
             for s in selected
-            if self.sources[s].search.parameters.get("query") in {"native", "mapped"}
-            and not saved_brief.queries
+            if adapters[s].search.parameters.get("query") in {"native", "mapped"} and not saved_brief.queries
         }
         active = [s for s in selected if s not in skipped]
+        skipped.update(unavailable)
         if not active:
-            raise InvalidSearchError("; ".join(skipped.values()))
-        limits = {s: self._limits(s, request) for s in active}
+            raise InvalidSearchError("; ".join(dict.fromkeys(skipped.values())))
+        for s in active:
+            self._network(adapters[s])  # refuses conflicting policies before the run is stored
+        limits = {s: self._limits(adapters[s], request) for s in active}
         profiles = {
-            s: request.company_profiles is not False and self.sources[s].company_profile is not None
+            s: request.company_profiles is not False and adapters[s].company_profile is not None
             for s in active
         }
         second_chance = (
@@ -111,6 +128,7 @@ class SearchEngine:
             limits=limits,
             company_profiles=profiles,
             second_chance=second_chance,
+            adapters={s: adapters[s] for s in active},
         )
         task = asyncio.create_task(self._run(spec), name=f"search-{run['id']}")
         self.tasks[run["id"]] = task
@@ -121,8 +139,8 @@ class SearchEngine:
         self.tasks.pop(run_id, None)
         self.cancelled_runs.discard(run_id)
 
-    def _limits(self, source: str, request: RunInput) -> Limits:
-        settings, override = self.sources[source].settings, request.limits.get(source)
+    def _limits(self, source: SourceAdapter, request: RunInput) -> Limits:
+        settings, override = source.settings, request.limits.get(source.id)
         return Limits(
             max_items_per_query=(override and override.max_items_per_query) or settings.max_items_per_query,
             max_pages_per_query=(override and override.max_pages_per_query) or settings.max_pages_per_query,
@@ -177,7 +195,7 @@ class SearchEngine:
                 enrichment=self.enrichment,
                 salary_range=self.settings.salary_range,
                 unsupported=frozenset(
-                    key for key, mode in self.sources[source].search.parameters.items() if mode == "none"
+                    key for key, mode in spec.adapters[source].search.parameters.items() if mode == "none"
                 ),
             )
         run = self.store.runs.run(spec.run_id)
@@ -185,8 +203,8 @@ class SearchEngine:
             spec.run_id,
             "run.started",
             request=run["request"],
-            settings={s: self.sources[s].settings.model_dump(mode="json") for s in spec.sources},
-            capabilities={s: self.sources[s].capabilities.model_dump(mode="json") for s in spec.sources},
+            settings={s: spec.adapters[s].settings.model_dump(mode="json") for s in spec.sources},
+            capabilities={s: spec.adapters[s].capabilities.model_dump(mode="json") for s in spec.sources},
             run_timeout_seconds=self.settings.run_timeout_seconds,
         )
         self.store.events.event(spec.run_id, "filters.started", filters=run["request"]["brief"]["filters"])
@@ -199,8 +217,8 @@ class SearchEngine:
                 async with asyncio.TaskGroup() as group:
                     for source in spec.sources:
                         runner = SourceRun(
-                            self.sources[source],
-                            self.networks[source],
+                            spec.adapters[source],
+                            self._network(spec.adapters[source]),
                             spec,
                             recorders[source],
                             self.known,

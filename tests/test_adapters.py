@@ -32,7 +32,7 @@ async def test_catalog_exposes_operations_and_data_origins_without_claiming_full
     app = app_for(tmp_path, lambda r: httpx.Response(500))
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
-            sources = {s["id"]: s for s in (await c.get("/api/v1/sources")).json()}
+            sources = {s["id"]: s for s in (await c.get("/api/v1/sources")).json()["items"]}
             assert "getmatch" in sources
             hh, gm = (sources[key]["capabilities"] for key in ("hh_ru", "getmatch"))
             assert set(hh["actions"]) == {"search", "vacancy_details", "company_profile"}

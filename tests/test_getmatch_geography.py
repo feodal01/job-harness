@@ -33,7 +33,7 @@ async def test_getmatch_region_choices_are_available_without_fake_countries(tmp_
             choices = [p.model_dump() for p in app.state.engine.sources["getmatch"].geography.options]
             assert {x["id"] for x in choices} == {"moscow", "saints_p", "regions_ru", "relocate", "remote"}
             assert next(x["name"] for x in choices if x["id"] == "moscow") == "Офис или гибрид в Москве"
-            catalog = {s["id"]: s for s in (await c.get("/api/v1/sources")).json()}
+            catalog = {s["id"]: s for s in (await c.get("/api/v1/sources")).json()["items"]}
             assert catalog["getmatch"]["geography"] == "regions"
             assert catalog["hh_ru"]["geography"] == "country_city"
             assert catalog["getmatch"]["capabilities"]["query_parameters"]["locations"] == "native"

@@ -43,7 +43,7 @@ def test_real_native_and_custom_boards(company, count, title, location, formats,
     assert first.locations == []  # Labels are not structured eligibility or countries.
     assert first.salary == [] and first.employment == []
     assert len({v.id for v in page.vacancies}) == count
-    assert all(urlsplit(v.url).hostname == adapter.resource for v in page.vacancies)
+    assert all(urlsplit(v.url).hostname in adapter.allowed_hosts for v in page.vacancies)
 
 
 @pytest.mark.parametrize(

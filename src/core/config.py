@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     second_chance: bool = False
     run_timeout_seconds: float = Field(default=900, gt=0)
     max_active_runs: int = Field(default=3, ge=1, le=10)
+    # Concurrent requests to one host across all sources, e.g. many company boards on one ATS API.
+    max_requests_per_host: int = Field(default=4, ge=1, le=50)
     # Tails of open salary records, k₁ and k₂ (docs/brief-parameters/salary-minimum-check.md).
     salary_range: SalaryRange = Field(default_factory=SalaryRange)
 

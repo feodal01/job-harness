@@ -19,6 +19,6 @@ async def test_source_catalog_exposes_actual_configured_limits(tmp_path):
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app), base_url="http://localhost"
         ) as client:
-            sources = {s["id"]: s for s in (await client.get("/api/v1/sources")).json()}
+            sources = {s["id"]: s for s in (await client.get("/api/v1/sources")).json()["items"]}
     assert sources["hh_ru"]["default_limits"] == {"max_items_per_query": 17, "max_pages_per_query": 4}
     assert sources["getmatch"]["default_limits"] == {"max_items_per_query": 333, "max_pages_per_query": 7}

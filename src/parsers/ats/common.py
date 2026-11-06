@@ -106,7 +106,9 @@ def adapter(
         id=f"ats:{platform}:{key}",
         name=board.company,
         type="ats",
-        resource=resource,
+        # Each company board has its own pacing and breaker, even when boards share one API host;
+        # the network caps concurrent requests per host separately.
+        resource=f"{resource}/{key}",
         allowed_hosts=allowed_hosts,
         settings=settings if settings is not None else AtsSettings(),
         search=search,
