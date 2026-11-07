@@ -1,9 +1,9 @@
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from src.models.sources import SourceGroup
+from src.models.sources import SourceGroup, SourceRules
 from src.parsers.interfaces import SourceCapabilities, SourceType
 
 SourceStatusFilter = Literal["supported", "unsupported", "all"]
@@ -84,4 +84,80 @@ class SourceGroupCount(BaseModel):
 class SourceCounts(BaseModel):
     groups: list[SourceGroupCount]
     supported: int
+    catalog: CatalogState
+
+
+Countries = Annotated[
+    list[Annotated[str, Field(pattern="^[A-Za-z]{2}$")]],
+    Field(default_factory=list, max_length=20, description="ISO-коды стран мест брифа; пусто — все страны."),
+]
+
+
+class SourceRulesRequest(BaseModel):
+    """Rules as the brief form holds them now, possibly unsaved, and the countries of its places."""
+
+    model_config = ConfigDict(extra="forbid")
+    source_rules: SourceRules = Field(default_factory=SourceRules)
+    countries: Countries
+
+
+class SourceGroupPreview(BaseModel):
+    group: SourceGroup
+    available: int = Field(description="Поддерживаемые источники типа, покрывающие страны.")
+    selected: int = Field(description="Сколько из них войдёт в поиск по правилам.")
+
+
+RuleItemStatus = Literal["included", "excluded", "missing"]
+
+
+class RuleItemPreview(BaseModel):
+    item: str = Field(description="Элемент include или exclude как в правилах.")
+    name: str | None = None
+    group: SourceGroup | None = None
+    status: RuleItemStatus
+    reason: str | None = None
+
+
+class PreviewCatalogState(CatalogState):
+    rows: int | None = Field(default=None, description="Строк в каталоге компаний, если он прочитан.")
+
+
+class SourcePreview(BaseModel):
+    countries: list[str]
+    groups: list[SourceGroupPreview]
+    total: int = Field(description="Источников в поиске по этим правилам.")
+    excluded: int = Field(description="Источников, которые убрал exclude.")
+    items: list[RuleItemPreview]
+    catalog: PreviewCatalogState
+
+
+class SourceSearchRequest(SourceRulesRequest):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    groups: list[SourceGroup] | None = None
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=200)
+
+
+Participation = Literal["included", "excluded", "not_selected", "not_covered", "unsupported"]
+
+
+class SourceMatch(SourceResponse):
+    participation: Participation
+    participation_reason: str
+    rule_item: str | None = Field(
+        description="Что положить в include или exclude: company:<uuid> для сайта компании, иначе id."
+    )
+
+
+class SourceMatchGroup(BaseModel):
+    group: SourceGroup
+    total: int
+
+
+class SourceSearchPage(BaseModel):
+    items: list[SourceMatch]
+    groups: list[SourceMatchGroup]
+    total: int
+    page: int
+    page_size: int
     catalog: CatalogState

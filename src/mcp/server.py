@@ -11,7 +11,7 @@ from pydantic import Field
 from src.geography.catalog import DEFAULT_LOCALE
 from src.models.brief import BriefInput
 from src.models.run import RunInput
-from src.models.sources import SourceGroup
+from src.models.sources import SourceGroup, SourceRules
 from src.runtime.manager import ServiceError, ServiceManager
 from src.schemas.auth import AuthStatus
 from src.schemas.companies import CompanyFilterField, CompanyFiltersPage, CompanyLinksPage
@@ -108,6 +108,31 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
             if value is not None:
                 params[key] = value
         return cast(dict[str, Any], await request("GET", "/api/v1/sources", params=params))
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
+    async def preview_sources(
+        source_rules: SourceRules | None = None,
+        countries: Annotated[
+            list[str] | None, Field(description="ISO-коды стран мест брифа; пусто — все страны.")
+        ] = None,
+        name: Annotated[
+            str | None,
+            Field(min_length=1, max_length=200, description="Найти источник или компанию по названию."),
+        ] = None,
+    ) -> dict[str, Any]:
+        """Что дадут правила источников брифа: сколько источников каждого типа войдёт в поиск.
+
+        С name — ещё и найденные источники: участвует ли каждый и что положить в include/exclude
+        (rule_item), чтобы добавить или исключить его. Поиск не запускается.
+        """
+        body: dict[str, Any] = {
+            "source_rules": (source_rules or SourceRules()).model_dump(mode="json"),
+            "countries": countries or [],
+        }
+        result: dict[str, Any] = {"preview": await request("POST", "/api/v1/sources/preview", body=body)}
+        if name is not None:
+            result["matches"] = await request("POST", "/api/v1/sources/search", body={**body, "name": name})
+        return result
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
     async def authorize() -> AuthStatus:

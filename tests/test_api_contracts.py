@@ -25,7 +25,7 @@ def api() -> FastAPI:
 def test_every_api_operation_declares_a_structured_response(api: FastAPI) -> None:
     document = api.openapi()
     operations = [operation for path in document["paths"].values() for operation in path.values()]
-    assert len(operations) == 30
+    assert len(operations) == 32
     for operation in operations:
         assert operation.get("description")
         success = next(value for code, value in operation["responses"].items() if code.startswith("2"))
