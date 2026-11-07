@@ -5,6 +5,9 @@ const C = "company:00000000-0000-4000-8000-000000000001", D = "company:00000000-
 const A = rules => ({mode: "auto", groups: null, include: [], exclude: [], ...rules});
 const ALL = ["aggregator", "it_board", "company_site"];
 const round = rules => M.toRules(M.fromRules(rules));
+function shared0() {
+  return {participation: "excluded", rule_item: C, id: "ats:greenhouse:abbyy", group: "company_site", company_ids: [C.slice(8), D.slice(8)]};
+}
 
 // The default stays the default; opening it as custom shows every type and all company sites.
 assert.strictEqual(M.toRules(M.fromRules(null)), null);
@@ -68,8 +71,13 @@ const both = {...gm, types: ["aggregator", "it_board"]};
 assert.strictEqual(M.action(both, {...match("included", "getmatch"), group: "it_board"}).label, "Исключить");
 assert.deepStrictEqual(M.toRules(M.action(both, {...match("included", "getmatch"), group: "it_board"}).apply(both)),
   A({groups: ["aggregator", "it_board"], exclude: ["getmatch"]}));
+// A board shared by two chosen companies leaves the search only when both are dropped.
+const two = {...sel, include: [C, D]}, board = {...shared0(), participation: "included"};
+assert.strictEqual(M.action(two, board).label, "Убрать");
+assert.deepStrictEqual(M.action(two, board).apply(two).include, []);
+assert.strictEqual(M.action({...two, types: [], companies: "all"}, board).label, "Исключить");
 // A board shared by two catalog companies comes back whichever of them was excluded.
-const shared = {participation: "excluded", rule_item: C, id: "ats:greenhouse:abbyy", company_ids: [C.slice(8), D.slice(8)]};
+const shared = shared0();
 assert.deepStrictEqual(M.restore({...sel, exclude: [D, "hh_ru"]}, shared).exclude, ["hh_ru"]);
 // Not covered sources can be added explicitly; unsupported ones get no button.
 assert.strictEqual(M.action(auto, match("not_covered", "hh_ru")).label, "Добавить");

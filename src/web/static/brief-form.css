@@ -114,6 +114,7 @@
 .sd-match-text{display:grid;min-width:0}.sd-match-text b{font-weight:600;overflow-wrap:anywhere}.sd-match-text small{margin:0}
 .sd-match.included .sd-match-text small{color:var(--soft-ink)}.sd-match.excluded .sd-match-text small{color:var(--danger-ink)}
 .sd-match>button{margin-left:auto;flex-shrink:0;min-height:36px;font-size:13px}
+.sd-results [aria-disabled=true]{opacity:.45;cursor:progress}.sd-results[aria-busy=true] .sd-matches{opacity:.7}
 .sd-error{color:var(--danger)}
 .sd-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:14px 24px;border-top:1px solid var(--line);background:var(--surface)}
 .sd-total{display:grid}.sd-total b{font-size:16px}.sd-total small{margin:0}

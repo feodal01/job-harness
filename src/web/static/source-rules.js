@@ -60,9 +60,10 @@ const SourceRulesModel = {
       // «Убрать» only when the source is in the search through include alone; when a chosen type
       // brings it in as well, only an exclusion takes it out.
       case "included": {
-        const rules = SourceRulesModel.toRules(state);
-        return rules?.include.includes(item) && !rules.groups.includes(match.group)
-          ? {label: "Убрать", apply: s => SourceRulesModel.drop(s, item)}
+        const rules = SourceRulesModel.toRules(state), own = SourceRulesModel.itemsOf(match);
+        const including = rules ? rules.include.filter(other => own.has(other)) : [];
+        return including.length && !rules.groups.includes(match.group)
+          ? {label: "Убрать", apply: s => SourceRulesModel.dropAll(s, including)}
           : {label: "Исключить", apply: s => SourceRulesModel.exclude(s, item)};
       }
       case "not_selected": case "not_covered":
@@ -76,10 +77,15 @@ const SourceRulesModel = {
     if (!next.include.includes(item)) next.include.push(item);
     return next;
   },
-  drop(state, item) {
+  drop(state, item) { return SourceRulesModel.dropAll(state, [item]); },
+  dropAll(state, items) {
     const next = SourceRulesModel.custom(state);
-    next.include = next.include.filter(other => other !== item);
+    next.include = next.include.filter(other => !items.includes(other));
     return next;
+  },
+  /* Every rule item that names this source: its id and each catalog company of a shared board. */
+  itemsOf(match) {
+    return new Set([match.rule_item, match.id, ...(match.company_ids || []).map(id => COMPANY + id)].filter(Boolean));
   },
   exclude(state, item) {
     const next = SourceRulesModel.custom(state);
@@ -90,8 +96,7 @@ const SourceRulesModel = {
   /* An excluded source comes back whether its id or any of its companies was excluded
    * (several catalog companies can share one board). */
   restore(state, match) {
-    const next = SourceRulesModel.custom(state);
-    const items = new Set([match.rule_item, match.id, ...(match.company_ids || []).map(id => COMPANY + id)]);
+    const next = SourceRulesModel.custom(state), items = SourceRulesModel.itemsOf(match);
     next.exclude = next.exclude.filter(other => !items.has(other));
     return next;
   },
@@ -262,7 +267,7 @@ class SourceRulesEditor {
   }
   editDraft(state) {
     this.draft = state; this.renderDialog(); this.recountDraft();
-    if (this.query) { this.searchPage = 1; this.search(); }
+    if (this.query) this.search();  // asks again for every row shown, under the new rules
   }
   async recountDraft() {
     const version = ++this.draftVersion;
@@ -380,16 +385,22 @@ class SourceRulesEditor {
   async search(more = false) {
     clearTimeout(this.searchTimer);
     this.searchController?.abort();
-    if (!this.query) { this.matches = null; this.ui.results.replaceChildren(); return; }
+    if (!this.query) { this.searching = false; this.matches = null; this.ui.results.replaceChildren(); return; }
     const controller = this.searchController = new AbortController();
+    // «Показать ещё» asks for the next page; a refresh asks again for every row already shown.
+    const size = more ? 20 : Math.min(200, this.searchPage * 20);
+    if (!more) this.searchPage = size / 20;
+    this.searching = true;
+    if (this.matches) this.renderMatches();
     // Rules the service would refuse (nothing chosen yet) cannot say who takes part; then every
     // supported source is shown as not chosen, which is exactly what those rules mean.
     const empty = !!SourceRulesModel.problem(this.draft);
     const rules = empty ? null : SourceRulesModel.toRules(this.draft);
     try {
       const page = await this.api("/api/v1/sources/search", "POST", {source_rules: rules ?? {},
-        countries: this.countryCodes(), name: this.query, page: this.searchPage, page_size: 20}, controller.signal);
+        countries: this.countryCodes(), name: this.query, page: more ? this.searchPage : 1, page_size: size}, controller.signal);
       if (controller.signal.aborted) return;
+      this.searching = false;
       if (empty) for (const match of page.items) if (match.rule_item) {
         match.participation = "not_selected"; match.participation_reason = "Ничего не выбрано.";
       }
@@ -397,12 +408,14 @@ class SourceRulesEditor {
       this.renderMatches();
     } catch (error) {
       if (controller.signal.aborted) return;
+      this.searching = false;
       this.matches = null; this.ui.results.replaceChildren(el("p", `Поиск не удался: ${error.message}`, "sd-error"));
     }
   }
   renderMatches() { this.keepFocus(() => this.drawMatches()); }
   drawMatches() {
     const page = this.matches, host = this.ui.results;
+    host.setAttribute("aria-busy", String(!!this.searching));
     if (!page.items.length) { host.replaceChildren(el("p", `Ничего не нашлось по «${this.query}».`, "muted")); return; }
     const nodes = [];
     for (const group of page.groups) {
@@ -416,7 +429,8 @@ class SourceRulesEditor {
     if (page.items.length < page.total) {
       const more = el("button", `Показать ещё · ${page.total - page.items.length}`, "secondary"); more.type = "button";
       more.dataset.key = "more";
-      more.onclick = () => { this.searchPage += 1; this.search(true); };
+      if (this.searching) more.setAttribute("aria-disabled", "true");
+      more.onclick = () => { if (this.searching) return; this.searchPage += 1; this.search(true); };
       nodes.push(more);
     }
     host.replaceChildren(...nodes);
@@ -430,7 +444,9 @@ class SourceRulesEditor {
     if (action) {
       const button = el("button", action.label, "secondary"); button.type = "button";
       button.setAttribute("aria-label", `${action.label}: ${match.name}`); button.dataset.key = "match:" + match.id;
-      button.onclick = () => this.editDraft(action.apply(this.draft));
+      // While the list is being asked again its labels may be stale; aria-disabled keeps focus.
+      if (this.searching) button.setAttribute("aria-disabled", "true");
+      button.onclick = () => { if (!this.searching) this.editDraft(action.apply(this.draft)); };
       row.append(button);
     }
     return row;
