@@ -80,11 +80,26 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
       {label: "Исключённый текст", maxItems: 50, maxLength: 200, onChange: updateFormFeedback});
     const tokenEditors = [queryTokens, companyTokens, textTokens];
     const locationEditor = new LocationEditor($("locationGroups"), $("locationCount"),
-      $("addLocationGroup"), api, () => {updateUnsupportedConditions(); updateStart(); renderConditionsSummary();});
+      $("addLocationGroup"), api, () => {sourceRulesEditor.refresh(); updateUnsupportedConditions(); updateStart(); renderConditionsSummary();});
     locationEditor.onCountryReset = (removed, undo) => notify(
       `Страна изменена: ${removed.length === 1 && removed[0] === "вся страна" ? "убран выбор всей страны" : (removed.length === 1 ? "убран город " : "убраны города ") + removed.join(", ")}.`,
       undo);
-    const chosenSources = () => sources.filter((s) => $("source-" + s.id)?.checked);
+    /* The brief's places as text, e.g. «Россия, Москва; Казахстан». */
+    function placeTexts() {
+      const countryName = code => locationEditor.countries.find(c => c.code === code)?.name || code;
+      return locationEditor.groups.filter(g => g.country).map(g => g.wholeCountry || !g.cities.length
+        ? `${countryName(g.country)}, вся страна`
+        : `${g.cities.map(c => c.city_display_name || c.city).join(", ")} (${countryName(g.country)})`);
+    }
+    const sourceRulesEditor = new SourceRulesEditor({
+      api, countries: () => locationEditor.groups.map(g => g.country), places: () => placeTexts().join("; "),
+      onChange: () => {updateSource(); renderConditionsSummary();},
+    });
+    /* Built-in sources the rules search, once counted; null while counting. */
+    const builtinSources = () => {
+      const ids = sourceRulesEditor.builtin;
+      return ids === null ? null : sources.filter(s => ids.includes(s.id));
+    };
     function updateStart() {
       const b=currentBrief(), active=!!b&&route.view==="settings"&&activeRun(b);
       $("start").disabled = submitting || active;
@@ -104,14 +119,14 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
       if (validationAttempted) validateSearchForm();
     }
     function updateSource() {
-      const chosen = chosenSources();
-      const rules = sourceRules(chosen.map(s => s.id), settingsSearch?.source_rules);
-      queryTokens.setRequired(chosen.length > 0 && chosen.every(s => s.capabilities.query_parameters.query === "native")
-        && !rulesReachBeyondBuiltIns(rules));
+      // Only HH refuses a search without queries; the preview says whether HH is all the rules leave.
+      queryTokens.setRequired(sourceRulesEditor.requiresQuery);
       $("queriesRequired").hidden = !queryTokens.required;
-      $("sourceCount").textContent = `${chosen.length} из ${sources.length} ${plural(sources.length, "источника", "источников", "источников")}`;
-      $("profiles").disabled = !chosen.some((s) => s.capabilities.actions.includes("company_profile"));
-      if ($("profiles").disabled) $("profiles").checked = false;
+      const builtin = builtinSources();
+      if (builtin) {
+        $("profiles").disabled = !builtin.some(s => s.capabilities.actions.includes("company_profile"));
+        if ($("profiles").disabled) $("profiles").checked = false;
+      }
       updateUnsupportedConditions();
       updateStart();
     }
@@ -129,7 +144,7 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
         excluded_text: textTokens.values.length > 0,
       };
       const host = $("unsupportedConditions"); host.replaceChildren();
-      for (const source of chosenSources()) {
+      for (const source of builtinSources() || []) {
         const unsupported = Object.keys(enabled).filter(field => enabled[field] && source.capabilities.query_parameters[field] === "none");
         if (unsupported.length) host.append(el("p",`${source.name} — в этом источнике не проверяются: ${unsupported.map(field => conditionNames[field]).join(", ")}.`));
       }
@@ -173,17 +188,8 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
     }
     $("countryRetry").onclick = () => { error(""); loadGeography().catch(e => error(e.message)); };
     async function loadCatalog() {
-      // Until the rules dialog (8о), the form offers the built-in sources only.
+      // Built-in sources: names, capabilities and limits. Which sources a brief searches is its rules.
       sources = (await api("/api/v1/sources?status=supported&groups=aggregator&groups=it_board")).items;
-      for (const source of sources) {
-        const label = el("label", undefined, "type-card"), box = el("input");
-        box.type = "checkbox"; box.id = "source-" + source.id; box.checked = true; box.onchange = updateSource;
-        const blocked = source.state?.status === "blocked"
-          ? "заблокирован до " + new Date(source.state.until * 1000).toLocaleTimeString("ru", {hour:"2-digit", minute:"2-digit"}) : "";
-        const type = typeNames[source.type] || source.type;
-        label.append(box, " " + source.name, el("span", blocked || type.charAt(0).toUpperCase() + type.slice(1), "n"));
-        $("sources").append(label);
-      }
       $("sourceOptions").replaceChildren(...sources.map(source => Object.assign(el("option"), {value:source.name, label:typeNames[source.type] || source.type})));
       $("sourceFilter").placeholder = `Все источники · ${sources.length}`;
       updateSource();
@@ -616,46 +622,10 @@ function salaryText(v) {
 function renderBriefSummary(b) {
   const summary = $("briefSummary"); summary.replaceChildren();
   if (b.queries.length) summary.append(`Запросы: ${b.queries.join(" · ")}`);
-  const rules = b.search?.source_rules;
-  const companies = (rules?.include || []).filter(id => id.startsWith("company:")).length;
-  const named = (rules?.include || []).filter(id => !id.startsWith("company:")).map(id => sourceName(id));
-  if (companies) named.push(`компаний: ${companies}`);
-  const sourceText = rules?.mode === "selected" ? named.join(", ") : "все по местам брифа";
+  const sourceText = SourceRulesModel.describe(b.search?.source_rules ?? null);
   summary.append(`${b.queries.length ? " · " : ""}Источники: ${sourceText}`);
 }
 const sourceName = id => sources.find(s => s.id === id)?.name || id;
-// Until the rules dialog (8о) the form shows built-in sources only. The boxes show which built-ins
-// the rules choose (countries are checked at run start), and saving keeps what the form cannot show (companies, boards, groups, exclusions):
-// - selected rules: the boxes set the built-in part of include, the rest stays;
-// - auto rules with anything set stay auto: a checked built-in its groups leave out joins include,
-//   an unchecked one leaves include and joins exclude;
-// - default rules: all checked keeps them (company sites included), fewer become a selection.
-const isBuiltIn = id => sources.some(s => s.id === id);
-const ruleSources = rules => sources.filter(s => {
-  if (rules?.mode === "selected") return rules.include.includes(s.id);
-  if ((rules?.exclude || []).includes(s.id)) return false;
-  return rules?.groups == null || rules.groups.includes(s.group) || rules.include.includes(s.id);
-}).map(s => s.id);
-function sourceRules(ids, saved) {
-  const unchecked = sources.map(s => s.id).filter(id => !ids.includes(id));
-  if (saved?.mode === "selected") {
-    const others = saved.include.filter(id => !isBuiltIn(id));
-    return {...saved, include: [...ids, ...others], exclude: saved.exclude.filter(id => !ids.includes(id))};
-  }
-  const plain = !saved || (saved.groups == null && !saved.include.length && !saved.exclude.length);
-  if (plain) return unchecked.length ? {mode: "selected", include: ids} : null;
-  const byGroup = id => saved.groups == null || saved.groups.includes(sources.find(s => s.id === id).group);
-  const kept = saved.include.filter(id => !unchecked.includes(id));
-  const include = [...kept, ...ids.filter(id => !byGroup(id) && !kept.includes(id))];
-  const exclude = [...saved.exclude.filter(id => !isBuiltIn(id)), ...unchecked.filter(byGroup)];
-  return {...saved, include, exclude};
-}
-// Rules with nothing to search: the server refuses them on save or at run start, the form earlier.
-const rulesEmpty = rules => !!rules && (rules.mode === "selected"
-  ? !rules.include.length : !rulesReachBeyondBuiltIns(rules) && !ruleSources(rules).length);
-// Companies, boards and auto groups beyond the built-ins search without queries.
-const rulesReachBeyondBuiltIns = rules => !rules || rules.include.some(id => !isBuiltIn(id))
-  || rules.mode === "auto" && (rules.groups == null || rules.groups.some(g => !["aggregator", "it_board"].includes(g)));
 function placeText(v) {
   const place = v.locations?.find(l => !l.excluded && (l.city || l.country));
   const city = place?.city || place?.country || v.location || "";
@@ -1080,9 +1050,8 @@ function fillSettings(b) {
   $("name").value=b?.name || "";queryTokens.setValues(b?.queries || []);$("briefText").value=b?.text || "";
   $("briefNotice").textContent=b?.migration_note || b?.filters_migration_notice || "";fillFilters(b?.filters || {});
   settingsSearch=searchOptionsForBrief(b);
-  const selected=ruleSources(settingsSearch.source_rules);
-  for(const s of sources)$("source-"+s.id).checked=selected.includes(s.id);
-  const limits=selected.map(id=>settingsSearch.limits?.[id] || {});
+  sourceRulesEditor.load(settingsSearch.source_rules);
+  const limits=sources.map(s=>settingsSearch.limits?.[s.id] || {});
   for(const [id,key] of [["limit","max_items_per_query"],["pages","max_pages_per_query"]]){
     const values=[...new Set(limits.map(l=>l[key]??""))];$(id).value=values.length===1?values[0]:"";
     $(id).placeholder=values.length>1?"Разные лимиты источников":"По настройкам";
@@ -1098,7 +1067,7 @@ let formSnapshot=null;
 function formState(){
   return JSON.stringify([$("name").value.trim(),queryTokens.values,$("briefText").value,locationEditor.locations,selected("employment"),
     $("experience").value,$("salaryMin").value,$("currency").value,$("salaryPeriod").value,$("publishedAfter").value,
-    companyTokens.values,textTokens.values,chosenSources().map(s=>s.id),$("secondChance").checked,$("profiles").checked,$("limit").value,$("pages").value]);
+    companyTokens.values,textTokens.values,sourceRulesEditor.rules,$("secondChance").checked,$("profiles").checked,$("limit").value,$("pages").value]);
 }
 const formDirty=()=>route.view==="settings"&&formSnapshot!==null&&formState()!==formSnapshot;
 const formatWishes={office:"",hybrid:"работа только в офисе",remote_country:"офис или гибрид",remote_worldwide:"не удалённо по миру"};
@@ -1109,10 +1078,7 @@ function summaryRow(term,content){
   row.append(dd);return row;
 }
 function renderConditionsSummary(){
-  const groups=locationEditor.groups.filter(g=>g.country);
-  const countryName=code=>locationEditor.countries.find(c=>c.code===code)?.name||code;
-  const places=groups.map(g=>g.wholeCountry||!g.cities.length?`${countryName(g.country)}, вся страна`
-    :`${g.cities.map(c=>c.city_display_name||c.city).join(", ")} (${countryName(g.country)})`);
+  const groups=locationEditor.groups.filter(g=>g.country), places=placeTexts();
   const periods={month:"в месяц",year:"в год",hour:"в час"};
   const hide=[];
   if(queryTokens.values.length)hide.push("название и навыки не совпадают ни с одним запросом");
@@ -1129,9 +1095,7 @@ function renderConditionsSummary(){
   if($("publishedAfter").value)maybe.push(`опубликована раньше ${dayMonth($("publishedAfter").value)}`);
   const employment=selected("employment");
   if(employment.length)maybe.push(`занятость не ${employment.map(v=>employmentLabels[v].toLowerCase()).join(" и не ")}`);
-  const chosen=chosenSources();
-  const sourceText=!chosen.length?"не выбраны":chosen.length===sources.length?`все подключённые · ${sources.length}`
-    :chosen.length<=3?chosen.map(s=>s.name).join(", "):`${chosen.length} из ${sources.length}`;
+  const sourceText=sourceRulesEditor.describe();
   const host=$("conditionsSummary"),dl=el("dl");host.replaceChildren(dl);
   dl.append(summaryRow("Ищем",queryTokens.values.length?queryTokens.values.join(", "):"запросы не заданы"));
   dl.append(summaryRow("Где",places.length?places.join("; "):"места не выбраны"));
@@ -1146,14 +1110,14 @@ function renderConditionsSummary(){
 window.addEventListener("beforeunload",e=>{if(formDirty()&&!submitting){e.preventDefault();e.returnValue="";}});
 function readSearchOptions() {
   const limits={};
-  for(const source of chosenSources()){
+  for(const source of sources){
     const own={...settingsSearch.limits?.[source.id]};
     for(const [id,key,initial] of [["limit","max_items_per_query",initialLimit],["pages","max_pages_per_query",initialPages]]){
       if($(id).value!==initial){if($(id).value)own[key]=Number($(id).value);else delete own[key];}
     }
     limits[source.id]=own;
   }
-  return {source_rules:sourceRules(chosenSources().map(s=>s.id),settingsSearch.source_rules),limits,company_profiles:$("profiles").checked,second_chance:$("secondChance").checked};
+  return {source_rules:sourceRulesEditor.rules,limits,company_profiles:$("profiles").checked,second_chance:$("secondChance").checked};
 }
 function clearFormErrors() {
   for (const {target, message} of validationFields) {
@@ -1178,8 +1142,7 @@ function validateSearchForm(focus = false) {
   for (const editor of tokenEditors) if (editor.error) errors.set(editor.input, editor.error);
   if (queryTokens.required && !queryTokens.values.length)
     errors.set($("queries"), "Добавьте хотя бы один поисковый запрос для выбранного источника.");
-  if (rulesEmpty(sourceRules(chosenSources().map(s => s.id), settingsSearch?.source_rules)))
-    errors.set($("sourcesBox"), "Выберите хотя бы один источник поиска.");
+  if (sourceRulesEditor.problem) errors.set($("sourcesBox"), sourceRulesEditor.problem);
   for (const {target, message} of locationEditor.validationErrors()) errors.set(target, message);
   for (const field of $("searchForm").querySelectorAll("input, textarea, select")) {
     if (field.disabled || field.validity.valid || errors.has(field)) continue;
@@ -1247,7 +1210,7 @@ $("searchForm").onsubmit=async e=>{
   try{
     if(launch && ["queued","running"].includes(currentBrief()?.last_run?.status))throw Error("Поиск уже идёт. Дождитесь его завершения или остановите его в ленте.");
     if(!catalogReady)throw Error("Дождитесь загрузки географии");
-    const search=readSearchOptions();if(rulesEmpty(search.source_rules))throw Error("Выберите хотя бы один источник");
+    if(sourceRulesEditor.problem)throw Error(sourceRulesEditor.problem);const search=readSearchOptions();
     const payload={name:$("name").value,queries:queryTokens.values,text:$("briefText").value,filters:readFilters(),search};
     const b=await api(id?`/api/v1/briefs/${id}`:"/api/v1/briefs",id?"PUT":"POST",payload);
     await loadOverviews();

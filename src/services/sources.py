@@ -267,6 +267,9 @@ class SourceService:
             "groups": groups,
             "total": len(resolved.sources),
             "excluded": len(resolved.excluded),
+            "builtin": [id for id, adapter in resolved.sources.items() if adapter.group != "company_site"],
+            "requires_query": bool(resolved.sources)
+            and all(adapter.requires_query for adapter in resolved.sources.values()),
             "items": [
                 *(self._included_item(item, resolved, names, known) for item in rules.include),
                 *(self._excluded_item(item, names, known) for item in rules.exclude),

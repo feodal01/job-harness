@@ -127,6 +127,8 @@ class SourcePreview(BaseModel):
     groups: list[SourceGroupPreview]
     total: int = Field(description="Источников в поиске по этим правилам.")
     excluded: int = Field(description="Источников, которые убрал exclude.")
+    builtin: list[str] = Field(description="Встроенные источники (не сайты компаний), которые войдут в поиск.")
+    requires_query: bool = Field(description="Все источники поиска требуют запрос: без запросов искать не по чему.")
     items: list[RuleItemPreview]
     catalog: PreviewCatalogState
 

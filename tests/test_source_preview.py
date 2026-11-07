@@ -108,6 +108,25 @@ async def test_an_included_board_removed_by_its_company_exclusion_is_marked_excl
 async def test_nothing_left_is_zero_not_an_error(store):
     preview = await sources(store).preview(SourceRules(groups=["it_board"], exclude=["getmatch"]), ["RU"])
     assert preview["total"] == 0 and preview["excluded"] == 1
+    assert preview["builtin"] == [] and preview["requires_query"] is False
+
+
+@pytest.mark.parametrize(
+    ("rules", "builtin", "requires_query"),
+    [
+        (SourceRules(), ["hh_ru", "getmatch"], False),
+        (SourceRules(groups=["aggregator"]), ["hh_ru"], True),  # only HH refuses a search without queries
+        (SourceRules(groups=["aggregator", "company_site"]), ["hh_ru"], False),  # boards list everything
+        (SourceRules(groups=["company_site"]), [], False),
+        (SourceRules(mode="selected", include=["getmatch"]), ["getmatch"], False),
+    ],
+)
+async def test_the_preview_says_which_built_ins_search_and_whether_queries_are_needed(
+    store, rules, builtin, requires_query
+):
+    preview = await sources(store).preview(rules, ["RU"])
+    assert preview["builtin"] == builtin
+    assert preview["requires_query"] is requires_query
 
 
 @pytest.mark.parametrize(
