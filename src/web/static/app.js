@@ -625,7 +625,7 @@ function renderBriefSummary(b) {
 }
 const sourceName = id => sources.find(s => s.id === id)?.name || id;
 // Until the rules dialog (8о) the form shows built-in sources only. The boxes show which built-ins
-// the rules search, and saving keeps what the form cannot show (companies, boards, groups, exclusions):
+// the rules choose (countries are checked at run start), and saving keeps what the form cannot show (companies, boards, groups, exclusions):
 // - selected rules: the boxes set the built-in part of include, the rest stays;
 // - auto rules with anything set stay auto: a checked built-in its groups leave out joins include,
 //   an unchecked one leaves include and joins exclude;
@@ -645,13 +645,14 @@ function sourceRules(ids, saved) {
   const plain = !saved || (saved.groups == null && !saved.include.length && !saved.exclude.length);
   if (plain) return unchecked.length ? {mode: "selected", include: ids} : null;
   const byGroup = id => saved.groups == null || saved.groups.includes(sources.find(s => s.id === id).group);
-  const include = [...saved.include.filter(id => !isBuiltIn(id)), ...ids.filter(id => !byGroup(id))];
+  const kept = saved.include.filter(id => !unchecked.includes(id));
+  const include = [...kept, ...ids.filter(id => !byGroup(id) && !kept.includes(id))];
   const exclude = [...saved.exclude.filter(id => !isBuiltIn(id)), ...unchecked.filter(byGroup)];
   return {...saved, include, exclude};
 }
-// Rules the server refuses as "nothing chosen"; the form says so before saving.
-const rulesEmpty = rules => !!rules && !rules.include.length
-  && (rules.mode === "selected" || (rules.groups != null && !rules.groups.length));
+// Rules with nothing to search: the server refuses them on save or at run start, the form earlier.
+const rulesEmpty = rules => !!rules && (rules.mode === "selected"
+  ? !rules.include.length : !rulesReachBeyondBuiltIns(rules) && !ruleSources(rules).length);
 // Companies, boards and auto groups beyond the built-ins search without queries.
 const rulesReachBeyondBuiltIns = rules => !rules || rules.include.some(id => !isBuiltIn(id))
   || rules.mode === "auto" && (rules.groups == null || rules.groups.some(g => !["aggregator", "it_board"].includes(g)));

@@ -17,4 +17,9 @@ const sel={mode:"selected",groups:null,include:[C,"hh_ru"],exclude:["ats:lever:a
 a.ok(x(s(["hh_ru"],sel)));a.ok(!x(s(["hh_ru"],null)));a.ok(!x(s(["hh_ru"],ga)));a.ok(x(s(["hh_ru"],gc)));a.ok(x(null));
 // roundtrip: every case, saving unchanged boxes keeps rules equivalent
 for(const R of [ex,g0,gc,ga,gcomp,sel])a.deepStrictEqual(r(s(r(R),R)),r(R));
+// explicitly included built-ins survive a save
+const inc=A({include:["hh_ru",C]});a.deepStrictEqual(s(r(inc),inc),inc);a.deepStrictEqual(s(["getmatch"],inc),A({include:[C],exclude:["hh_ru"]}));
+const gai=A({groups:["aggregator"],include:["hh_ru"]});a.deepStrictEqual(s(r(gai),gai),gai);
+// auto rules whose chosen types end up empty
+a.ok(e(s([],ga)));a.ok(e(s([],A({groups:["aggregator","it_board"]}))));a.ok(!e(s([],gc)));a.ok(!e(s([],ex)));a.ok(!e(null));
 console.log("ok");
