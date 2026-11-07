@@ -291,7 +291,9 @@ class SourceRulesEditor {
     render();
     if (!key || document.activeElement?.dataset?.key === key) return;
     const again = this.ui.dialog.querySelector(`[data-key="${CSS.escape(key)}"]`);
-    (again || (key.startsWith("match:") || key.startsWith("chip:") ? this.ui.search : null))?.focus();
+    // «Показать ещё» is gone once the last rows are in: focus the last row's button, else the search box.
+    const last = key === "more" ? [...this.ui.results.querySelectorAll("li button")].pop() : null;
+    (again || last || (/^(match|chip):|^more$/.test(key) ? this.ui.search : null))?.focus();
   }
   renderDialog() { this.keepFocus(() => this.drawDialog()); }
   drawDialog() {
