@@ -57,10 +57,14 @@ const SourceRulesModel = {
     if (!item) return null;
     switch (match.participation) {
       case "excluded": return {label: "Вернуть", apply: s => SourceRulesModel.restore(s, match)};
-      // What the rules will send, not the draft: «all companies» leaves chosen companies out.
-      case "included": return (SourceRulesModel.toRules(state)?.include ?? []).includes(item)
-        ? {label: "Убрать", apply: s => SourceRulesModel.drop(s, item)}
-        : {label: "Исключить", apply: s => SourceRulesModel.exclude(s, item)};
+      // «Убрать» only when the source is in the search through include alone; when a chosen type
+      // brings it in as well, only an exclusion takes it out.
+      case "included": {
+        const rules = SourceRulesModel.toRules(state);
+        return rules?.include.includes(item) && !rules.groups.includes(match.group)
+          ? {label: "Убрать", apply: s => SourceRulesModel.drop(s, item)}
+          : {label: "Исключить", apply: s => SourceRulesModel.exclude(s, item)};
+      }
       case "not_selected": case "not_covered":
         return {label: "Добавить", apply: s => SourceRulesModel.add(s, item)};
       default: return null;
@@ -83,10 +87,12 @@ const SourceRulesModel = {
     if (!next.exclude.includes(item)) next.exclude.push(item);
     return next;
   },
-  /* An excluded source comes back whether its board id or its company was excluded. */
+  /* An excluded source comes back whether its id or any of its companies was excluded
+   * (several catalog companies can share one board). */
   restore(state, match) {
     const next = SourceRulesModel.custom(state);
-    next.exclude = next.exclude.filter(other => other !== match.rule_item && other !== match.id);
+    const items = new Set([match.rule_item, match.id, ...(match.company_ids || []).map(id => COMPANY + id)]);
+    next.exclude = next.exclude.filter(other => !items.has(other));
     return next;
   },
   custom(state) {
@@ -146,7 +152,8 @@ class SourceRulesEditor {
   /* --- The form ------------------------------------------------------------------------- */
 
   load(rules) {
-    this.rules = rules ? structuredClone(rules) : null;
+    // Default rules written out (a run's snapshot, an API client) are the default: keep them as null.
+    this.rules = rules && SourceRulesModel.fromRules(rules).custom ? structuredClone(rules) : null;
     this.preview = null; this.error = "";
     this.render(); this.refresh(0);
   }
@@ -255,7 +262,7 @@ class SourceRulesEditor {
   }
   editDraft(state) {
     this.draft = state; this.renderDialog(); this.recountDraft();
-    if (this.query) this.search();
+    if (this.query) { this.searchPage = 1; this.search(); }
   }
   async recountDraft() {
     const version = ++this.draftVersion;
@@ -273,7 +280,16 @@ class SourceRulesEditor {
     }
     this.renderDialog();
   }
-  renderDialog() {
+  /* Controls are rebuilt on every change; focus goes back to the control with the same key. */
+  keepFocus(render) {
+    const key = document.activeElement?.dataset?.key;
+    render();
+    if (!key || document.activeElement?.dataset?.key === key) return;
+    const again = this.ui.dialog.querySelector(`[data-key="${CSS.escape(key)}"]`);
+    (again || (key.startsWith("match:") || key.startsWith("chip:") ? this.ui.search : null))?.focus();
+  }
+  renderDialog() { this.keepFocus(() => this.drawDialog()); }
+  drawDialog() {
     const ui = this.ui, state = this.draft, preview = this.draftPreview, counts = this.groupCounts(preview);
     ui.dAuto.checked = !state.custom; ui.dCustom.checked = state.custom;
     ui.dAutoCount.textContent = preview && !state.custom ? ` · ${preview.total.toLocaleString("ru")}` : "";
@@ -300,14 +316,14 @@ class SourceRulesEditor {
       : state.custom ? "по правилам" : "все, что покрывают места брифа");
     const note = this.catalogNote(preview);
     ui.dNote.textContent = note; ui.dNote.hidden = !note;
-    if (this.matches) this.renderMatches();
+    if (this.matches) this.drawMatches();
   }
   typeRow(group, count) {
     const [title, text] = GROUP_TITLES[group], row = el("label", undefined, "sd-type");
     const body = el("span", undefined, "sd-type-text"), n = el("span", "", "n");
     body.append(el("b", title), el("small", text));
     if (RULE_TYPES.includes(group)) {
-      const box = el("input"); box.type = "checkbox"; box.checked = this.draft.types.includes(group);
+      const box = el("input"); box.type = "checkbox"; box.checked = this.draft.types.includes(group); box.dataset.key = "type:" + group;
       box.onchange = () => {
         const next = SourceRulesModel.custom(this.draft);
         next.types = RULE_TYPES.filter(type => type === group ? box.checked : next.types.includes(type));
@@ -332,6 +348,7 @@ class SourceRulesEditor {
       ["selected", `Только выбранные · ${chosen.length}`]]) {
       const label = el("label", undefined, "check-label"), radio = el("input");
       radio.type = "radio"; radio.name = "sdCompanyMode"; radio.value = value; radio.checked = state.companies === value;
+      radio.dataset.key = "companies:" + value;
       radio.onchange = () => { if (radio.checked) this.editDraft({...SourceRulesModel.custom(this.draft), companies: value}); };
       label.append(radio, " " + text); modes.append(label);
     }
@@ -354,7 +371,7 @@ class SourceRulesEditor {
       const entry = preview?.items.find(known => known.item === item), name = this.nameOf(item, preview);
       const chip = el("span", undefined, "token" + (entry?.status === "missing" ? " missing" : ""));
       const button = el("button", "×"); button.type = "button"; button.setAttribute("aria-label", `Убрать: ${name}`);
-      button.onclick = () => remove(item);
+      button.dataset.key = "chip:" + item; button.onclick = () => remove(item);
       chip.append(el("span", name), button); list.append(chip);
       if (entry?.status === "missing" && entry.reason) list.append(el("small", `${name}: ${entry.reason}`, "sd-missing"));
     }
@@ -383,7 +400,8 @@ class SourceRulesEditor {
       this.matches = null; this.ui.results.replaceChildren(el("p", `Поиск не удался: ${error.message}`, "sd-error"));
     }
   }
-  renderMatches() {
+  renderMatches() { this.keepFocus(() => this.drawMatches()); }
+  drawMatches() {
     const page = this.matches, host = this.ui.results;
     if (!page.items.length) { host.replaceChildren(el("p", `Ничего не нашлось по «${this.query}».`, "muted")); return; }
     const nodes = [];
@@ -397,6 +415,7 @@ class SourceRulesEditor {
     }
     if (page.items.length < page.total) {
       const more = el("button", `Показать ещё · ${page.total - page.items.length}`, "secondary"); more.type = "button";
+      more.dataset.key = "more";
       more.onclick = () => { this.searchPage += 1; this.search(true); };
       nodes.push(more);
     }
@@ -410,7 +429,7 @@ class SourceRulesEditor {
     const action = SourceRulesModel.action(this.draft, match);
     if (action) {
       const button = el("button", action.label, "secondary"); button.type = "button";
-      button.setAttribute("aria-label", `${action.label}: ${match.name}`);
+      button.setAttribute("aria-label", `${action.label}: ${match.name}`); button.dataset.key = "match:" + match.id;
       button.onclick = () => this.editDraft(action.apply(this.draft));
       row.append(button);
     }

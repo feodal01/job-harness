@@ -122,11 +122,10 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
       // Only HH refuses a search without queries; the preview says whether HH is all the rules leave.
       queryTokens.setRequired(sourceRulesEditor.requiresQuery);
       $("queriesRequired").hidden = !queryTokens.required;
+      // The count arrives after the form is filled: only disable, never change the saved choice
+      // (the service loads company profiles only from sources that have them).
       const builtin = builtinSources();
-      if (builtin) {
-        $("profiles").disabled = !builtin.some(s => s.capabilities.actions.includes("company_profile"));
-        if ($("profiles").disabled) $("profiles").checked = false;
-      }
+      if (builtin) $("profiles").disabled = !builtin.some(s => s.capabilities.actions.includes("company_profile"));
       updateUnsupportedConditions();
       updateStart();
     }

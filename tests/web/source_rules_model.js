@@ -36,7 +36,7 @@ assert.ok(M.problem({...none, include: Array.from({length: MAX_RULE_ITEMS + 1}, 
 
 // Actions from search results keep include and exclude apart and make the rules custom.
 const auto = M.fromRules(null);
-const match = (participation, rule_item, id = rule_item) => ({participation, rule_item, id});
+const match = (participation, rule_item, id = rule_item) => ({participation, rule_item, id, group: "company_site"});
 let s = M.action(auto, match("included", "hh_ru")).apply(auto);
 assert.deepStrictEqual(M.toRules(s), A({groups: ALL, exclude: ["hh_ru"]}));
 assert.strictEqual(M.action(s, match("excluded", "hh_ru")).label, "Вернуть");
@@ -61,6 +61,16 @@ s = M.add({...sel, exclude: [C]}, C);
 assert.deepStrictEqual([s.include, s.exclude], [[C], []]);
 s = M.exclude({...sel, include: [C]}, C);
 assert.deepStrictEqual([s.include, s.exclude], [[], [C]]);
+// «Убрать» only when include alone brings the source in; a chosen type keeps it, so then «Исключить».
+const gm = {...sel, include: ["getmatch"]};
+assert.strictEqual(M.action(gm, {...match("included", "getmatch"), group: "it_board"}).label, "Убрать");
+const both = {...gm, types: ["aggregator", "it_board"]};
+assert.strictEqual(M.action(both, {...match("included", "getmatch"), group: "it_board"}).label, "Исключить");
+assert.deepStrictEqual(M.toRules(M.action(both, {...match("included", "getmatch"), group: "it_board"}).apply(both)),
+  A({groups: ["aggregator", "it_board"], exclude: ["getmatch"]}));
+// A board shared by two catalog companies comes back whichever of them was excluded.
+const shared = {participation: "excluded", rule_item: C, id: "ats:greenhouse:abbyy", company_ids: [C.slice(8), D.slice(8)]};
+assert.deepStrictEqual(M.restore({...sel, exclude: [D, "hh_ru"]}, shared).exclude, ["hh_ru"]);
 // Not covered sources can be added explicitly; unsupported ones get no button.
 assert.strictEqual(M.action(auto, match("not_covered", "hh_ru")).label, "Добавить");
 assert.strictEqual(M.action(auto, match("unsupported", null, "linkedin")), null);
