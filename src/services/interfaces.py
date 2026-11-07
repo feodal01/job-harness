@@ -11,8 +11,9 @@ class SearchExecutor(Protocol):
     def start(
         self,
         request: RunInput,
-        boards: Mapping[str, SourceAdapter] | None = None,
+        sources: Mapping[str, SourceAdapter] | None = None,
         unavailable: Mapping[str, str] | None = None,
+        snapshot: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]: ...
 
     def cancel(self, run_id: str) -> None: ...

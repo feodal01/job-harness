@@ -101,7 +101,11 @@ async def test_without_login_the_run_searches_what_it_can_and_records_why_boards
         assert fake.lever == []
 
         only_boards = await client.post(
-            "/api/v1/runs", json={"brief_id": b["id"], "sources": ["ats:lever:airslate"]}
+            "/api/v1/runs",
+            json={
+                "brief_id": b["id"],
+                "source_rules": {"mode": "selected", "include": ["ats:lever:airslate"]},
+            },
         )
         assert only_boards.status_code == 422 and NO_LOGIN in only_boards.text
 
@@ -111,7 +115,10 @@ async def test_unknown_sources_are_still_refused(tmp_path):
         app.state.sources_service.catalog = catalog()
         b = await brief(client, ["QA"])
         for source in ("nope", "ats:manatal:acme"):
-            response = await client.post("/api/v1/runs", json={"brief_id": b["id"], "sources": [source]})
+            response = await client.post(
+                "/api/v1/runs",
+                json={"brief_id": b["id"], "source_rules": {"mode": "selected", "include": [source]}},
+            )
             assert response.status_code == 422 and "Unknown source" in response.text
 
 

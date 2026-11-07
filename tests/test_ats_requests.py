@@ -195,7 +195,7 @@ async def test_engine_walks_post_pages_and_keeps_existing_storage_and_filters(tm
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
             engine = SearchEngine(Settings(), store, {source.id: source}, client)
             brief = store.briefs.save_brief(BriefInput(name="POST", queries=["QA"]))
-            run = engine.start(RunInput(brief_id=brief["id"], sources=[source.id]))
+            run = engine.start(RunInput(brief_id=brief["id"]), {s: engine.sources[s] for s in [source.id]})
             await asyncio.gather(*engine.tasks.values())
             assert store.runs.run(run["id"])["status"] == "complete"
             assert [json.loads(r.content)["offset"] for r in calls] == [0, 1]
@@ -250,7 +250,7 @@ async def test_real_native_adapter_carries_brief_queries_through_engine_and_pagi
             brief = store.briefs.save_brief(
                 BriefInput(name="Native query", queries=[positive["query"], negative["query"]])
             )
-            run = engine.start(RunInput(brief_id=brief["id"], sources=[source.id]))
+            run = engine.start(RunInput(brief_id=brief["id"]), {s: engine.sources[s] for s in [source.id]})
             await asyncio.gather(*engine.tasks.values())
             assert calls == [("Community", "0"), ("zxqvnonexistent", "0"), ("Community", "100")]
             assert store.runs.run(run["id"])["status"] == "complete"

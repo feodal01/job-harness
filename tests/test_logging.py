@@ -306,7 +306,10 @@ async def test_concurrent_http_runs_keep_engine_source_and_network_contexts(
                         *(
                             client.post(
                                 "/api/v1/runs",
-                                json={"brief_id": brief_id, "sources": ["left", "right"]},
+                                json={
+                                    "brief_id": brief_id,
+                                    "source_rules": {"mode": "selected", "include": ["left", "right"]},
+                                },
                                 headers={
                                     "X-Request-Id": f"request-{number}",
                                     "Authorization": "PRIVATE_TOKEN",

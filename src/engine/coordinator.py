@@ -4,6 +4,7 @@ import asyncio
 import logging
 from collections.abc import Iterable, Mapping
 from dataclasses import fields
+from typing import Any
 
 import httpx
 from pydantic import ValidationError
@@ -63,20 +64,19 @@ class SearchEngine:
     def start(
         self,
         request: RunInput,
-        boards: Mapping[str, SourceAdapter] | None = None,
+        sources: Mapping[str, SourceAdapter] | None = None,
         unavailable: Mapping[str, str] | None = None,
+        snapshot: Mapping[str, Any] | None = None,
     ) -> dict:
-        """Start a run. `boards` are company boards read from the catalog for this run;
-        `unavailable` are requested sources left out with the reason (e.g. no login)."""
+        """Start a run over `sources` (built from the brief's source rules; every fixed source when
+        omitted). `unavailable` are sources left out with the reason (e.g. no login); `snapshot` is
+        stored in the run's request beside the brief it searched with."""
         if self.stopping:
             raise ConflictError("Сервис останавливается. Запустите его снова перед поиском.")
         if len(self.tasks) >= self.settings.max_active_runs:
             raise ConflictError("Too many active searches; wait or cancel one")
-        adapters = {**self.sources, **(boards or {})}
+        adapters = dict(self.sources if sources is None else sources)
         unavailable = dict(unavailable or {})
-        unknown = [s for s in request.sources if s not in adapters and s not in unavailable]
-        if unknown:
-            raise InvalidSearchError(f"Unknown source: {', '.join(unknown)}")
         brief = self.store.briefs.brief(request.brief_id)
         if brief is None:
             raise NotFoundError("Brief not found")
@@ -88,7 +88,7 @@ class SearchEngine:
             )
         except ValidationError as exc:
             raise InvalidSearchError("Проверьте и сохраните условия этого брифа перед поиском") from exc
-        selected = [s for s in dict.fromkeys(request.sources or self.sources) if s not in unavailable]
+        selected = [s for s in adapters if s not in unavailable]
         skipped = {
             s: f"{adapters[s].name} requires at least one search query"
             for s in selected
@@ -97,7 +97,8 @@ class SearchEngine:
         active = [s for s in selected if s not in skipped]
         skipped.update(unavailable)
         if not active:
-            raise InvalidSearchError("; ".join(dict.fromkeys(skipped.values())))
+            reasons = "; ".join(dict.fromkeys(skipped.values()))
+            raise InvalidSearchError(reasons or "Не осталось ни одного источника для поиска")
         for s in active:
             self._network(adapters[s])  # refuses conflicting policies before the run is stored
         limits = {s: self._limits(adapters[s], request) for s in active}
@@ -110,6 +111,7 @@ class SearchEngine:
         )
         payload = {
             "brief_id": request.brief_id,
+            **dict(snapshot or {}),
             "sources": active,
             "skipped": skipped,
             "limits": {s: vars(v) for s, v in limits.items()},

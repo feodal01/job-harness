@@ -20,6 +20,7 @@ from src.models.filters import (
     WorkFormat,
     accepted_formats,
 )
+from src.models.sources import SourceGroup
 from src.models.vacancy import Vacancy
 from src.parsers.models import Location, Place
 from src.selection.filtering import FILTER_FIELDS
@@ -28,7 +29,6 @@ Fetch = Callable[[str], Awaitable[str]]
 ParameterMode = Literal["native", "local", "none", "ignored"]
 SourceType = Literal["aggregator", "career_site", "ats", "telegram"]
 # How sources are grouped for people (mockup 8о): job boards, IT boards, company career sites, Telegram.
-SourceGroup = Literal["aggregator", "it_board", "company_site", "telegram"]
 # Outcomes of a response that HTTP status alone does not reveal; neither is retried.
 ResponseClass = Literal["captcha", "vpn_blocked", "blocked"]
 

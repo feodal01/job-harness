@@ -614,11 +614,15 @@ function salaryText(v) {
 function renderBriefSummary(b) {
   const summary = $("briefSummary"); summary.replaceChildren();
   if (b.queries.length) summary.append(`Запросы: ${b.queries.join(" · ")}`);
-  const chosen = b.search?.sources || [];
-  const sourceText = !chosen.length || chosen.length === sources.length ? `все, ${sources.length}` : chosen.map(id => sourceName(id)).join(", ");
+  const rules = b.search?.source_rules;
+  const sourceText = rules?.mode === "selected" ? rules.include.map(id => sourceName(id)).join(", ") : "все по местам брифа";
   summary.append(`${b.queries.length ? " · " : ""}Источники: ${sourceText}`);
 }
 const sourceName = id => sources.find(s => s.id === id)?.name || id;
+// Until the rules dialog (8о) the form shows built-in sources: all checked keeps the default rules
+// (every source covering the brief's places, company sites included), fewer become a selection.
+const ruleSources = rules => rules?.mode === "selected" ? sources.map(s => s.id).filter(id => rules.include.includes(id)) : sources.map(s => s.id);
+const sourceRules = ids => ids.length === sources.length ? null : {mode: "selected", include: ids};
 function placeText(v) {
   const place = v.locations?.find(l => !l.excluded && (l.city || l.country));
   const city = place?.city || place?.country || v.location || "";
@@ -1025,7 +1029,7 @@ function searchOptionsForBrief(b) {
   const saved=b?.search || b?.last_run?.request || {};
   const profiles=saved.company_profiles;
   return {
-    sources:[...(saved.sources || [])],
+    source_rules:saved.source_rules ? structuredClone(saved.source_rules) : null,
     limits:structuredClone(saved.limits || {}),
     company_profiles:profiles && typeof profiles==="object"
       ? Object.values(profiles).some(value=>value===true)
@@ -1043,7 +1047,7 @@ function fillSettings(b) {
   $("name").value=b?.name || "";queryTokens.setValues(b?.queries || []);$("briefText").value=b?.text || "";
   $("briefNotice").textContent=b?.migration_note || b?.filters_migration_notice || "";fillFilters(b?.filters || {});
   settingsSearch=searchOptionsForBrief(b);
-  const selected=settingsSearch.sources?.length?settingsSearch.sources:sources.map(s=>s.id);
+  const selected=ruleSources(settingsSearch.source_rules);
   for(const s of sources)$("source-"+s.id).checked=selected.includes(s.id);
   const limits=selected.map(id=>settingsSearch.limits?.[id] || {});
   for(const [id,key] of [["limit","max_items_per_query"],["pages","max_pages_per_query"]]){
@@ -1116,7 +1120,7 @@ function readSearchOptions() {
     }
     limits[source.id]=own;
   }
-  return {sources:chosenSources().map(s=>s.id),limits,company_profiles:$("profiles").checked,second_chance:$("secondChance").checked};
+  return {source_rules:sourceRules(chosenSources().map(s=>s.id)),limits,company_profiles:$("profiles").checked,second_chance:$("secondChance").checked};
 }
 function clearFormErrors() {
   for (const {target, message} of validationFields) {
@@ -1209,7 +1213,7 @@ $("searchForm").onsubmit=async e=>{
   try{
     if(launch && ["queued","running"].includes(currentBrief()?.last_run?.status))throw Error("Поиск уже идёт. Дождитесь его завершения или остановите его в ленте.");
     if(!catalogReady)throw Error("Дождитесь загрузки географии");
-    const search=readSearchOptions();if(!search.sources.length)throw Error("Выберите хотя бы один источник");
+    if(!chosenSources().length)throw Error("Выберите хотя бы один источник");const search=readSearchOptions();
     const payload={name:$("name").value,queries:queryTokens.values,text:$("briefText").value,filters:readFilters(),search};
     const b=await api(id?`/api/v1/briefs/${id}`:"/api/v1/briefs",id?"PUT":"POST",payload);
     await loadOverviews();
@@ -1374,12 +1378,13 @@ function renderHistory(runs, r) {
   pager.append(prev,next,el("small",`Показаны ${rows.length&&filtered.length?Math.min(historySourcePage*20,filtered.length)-(historySourcePage-1)*20:0} из ${filtered.length}`));
   sec.append(fold("all",`Все источники · ${total}`,[...rows,...(pages>1?[pager]:[])],[tools]));
   details.append(sec);
-  // Parameters of this run; the brief's conditions are not part of the run snapshot yet.
+  // Parameters of this run. The run also keeps the whole brief it searched with (request.brief);
+  // showing those conditions and what changed since (8д) is still to come.
   const cond=el("section",undefined,"sec"),ch=el("h3","Параметры этого запуска");ch.id="historyConditions";cond.setAttribute("aria-labelledby",ch.id);cond.append(ch);
   const req=r.request||{},dl=el("dl",undefined,"conds");
   const limitText=Object.entries(req.limits||{}).map(([id,l])=>[l.max_items_per_query?`${l.max_items_per_query} вакансий`:"",l.max_pages_per_query?`${l.max_pages_per_query} страниц`:""].filter(Boolean).join(", ")&&`${sources.find(s=>s.id===id)?.name||id}: ${[l.max_items_per_query?`до ${l.max_items_per_query} вакансий`:"",l.max_pages_per_query?`до ${l.max_pages_per_query} страниц`:""].filter(Boolean).join(", ")} на запрос`).filter(Boolean).join("; ");
   const profiles=req.company_profiles&&typeof req.company_profiles==="object"?Object.values(req.company_profiles).some(Boolean):req.company_profiles;
-  for(const [term,value] of [["Источники",(req.sources||[]).map(id=>sources.find(s=>s.id===id)?.name||id).join(", ")],
+  for(const [term,value] of [["Источники",(req.sources||[]).length>5?`${req.sources.length} ${plural(req.sources.length,"источник","источника","источников")}`:(req.sources||[]).map(id=>sources.find(s=>s.id===id)?.name||id).join(", ")],
     ["Пропущены",Object.entries(req.skipped||{}).map(([id,why])=>`${sources.find(s=>s.id===id)?.name||id} — ${why}`).join("; ")],
     ["Лимиты",limitText||"по настройкам источников"],["Описание компаний",profiles==null?"":profiles?"загружалось":"не загружалось"]])
     if(value)dl.append(el("dt",term),el("dd",value));

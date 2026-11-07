@@ -74,7 +74,7 @@ async def test_selected_regions_reach_offer_requests_pagination_and_logs(tmp_pat
                 "/api/v1/runs",
                 json={
                     "brief_id": brief["id"],
-                    "sources": ["getmatch"],
+                    "source_rules": {"mode": "selected", "include": ["getmatch"]},
                     "limits": {"getmatch": {"max_items_per_query": 12}},
                 },
             )
@@ -325,7 +325,13 @@ async def test_failed_branch_is_reported_and_other_places_still_run(tmp_path):
             )
             brief = (await c.post("/api/v1/briefs", json={"name": "Geo", "filters": places})).json()
             run = (
-                await c.post("/api/v1/runs", json={"brief_id": brief["id"], "sources": ["getmatch"]})
+                await c.post(
+                    "/api/v1/runs",
+                    json={
+                        "brief_id": brief["id"],
+                        "source_rules": {"mode": "selected", "include": ["getmatch"]},
+                    },
+                )
             ).json()
             await asyncio.gather(*engine.tasks.values())
             result = (await c.get("/api/v1/runs/" + run["id"])).json()

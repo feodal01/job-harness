@@ -11,7 +11,8 @@ from dataclasses import dataclass, field, replace
 
 from src.core.errors import InvalidSearchError
 from src.db.protocols import EventStore, ResourceStore
-from src.parsers.interfaces import Fetch, SourceAdapter, SourceGroup
+from src.models.sources import COMPANY_PREFIX, SourceGroup, SourceRules, company_id, unknown_sources
+from src.parsers.interfaces import Fetch, SourceAdapter
 from src.parsers.registry import CATALOG_ALIASES, UNKNOWN, Coverage, SourceKind, SourceRegistry, Unsupported
 from src.schemas.companies import CompanyLink
 from src.schemas.sources import CatalogState, SourceFilter
@@ -20,6 +21,8 @@ from src.services.auth import AuthError, LoginRequired
 CatalogRows = Callable[..., Awaitable[list[CompanyLink]]]
 GROUP_ORDER: tuple[SourceGroup, ...] = ("aggregator", "it_board", "company_site", "telegram")
 NO_LOGIN = "Сайты компаний доступны после входа."
+# Skipped-sources key for company sites the catalog could not give a run (no login, failure).
+CATALOG_SKIP = "company_site"
 
 
 @dataclass
@@ -45,6 +48,16 @@ class Resolved:
     sources: dict[str, SourceAdapter]
     skipped: dict[str, str]
     catalog: CatalogState
+    countries: list[str] = field(default_factory=list)
+    excluded: list[str] = field(default_factory=list)
+
+
+def _merged(states: list[CatalogState]) -> CatalogState:
+    """One catalog answer for a run: a failure wins, then ok, else the catalog was not asked."""
+    for state in states:
+        if state.status not in {"ok", "not_requested"}:
+            return state
+    return next((s for s in states if s.status == "ok"), CatalogState(status="not_requested"))
 
 
 class SourceService:
@@ -94,21 +107,86 @@ class SourceService:
         sources = {e.id: e.adapter for e in entries if e.adapter is not None}
         return Resolved(sources, {}, catalog)
 
+    def check_rules(self, rules: SourceRules) -> None:
+        """Refuse rule items that name no searchable source; companies are checked at run start."""
+        if unknown := unknown_sources(rules, self.registry.searchable):
+            raise InvalidSearchError(f"Unknown source: {', '.join(unknown)}")
+
+    async def resolve_rules(self, rules: SourceRules, countries: Iterable[str]) -> Resolved:
+        """The run's sources from the brief's rules, read from the registry and the catalog now.
+
+        Boards missing because of the catalog (no login, Supabase failure) are skipped with the reason;
+        everything else still runs. See docs/brief-parameters/source-rules.md.
+        """
+        self.check_rules(rules)
+        wanted = sorted({code.upper() for code in countries})
+        sources: dict[str, SourceAdapter] = {}
+        skipped: dict[str, str] = {}
+        states: list[CatalogState] = []
+        if rules.mode == "auto":
+            entries, catalog = await self._entries(
+                SourceFilter(groups=rules.groups, countries=wanted, status="supported")
+            )
+            sources.update({e.id: e.adapter for e in entries if e.adapter is not None})
+            states.append(catalog)
+            if catalog.status not in {"ok", "not_requested"}:
+                skipped[CATALOG_SKIP] = catalog.message or NO_LOGIN
+        ids = [item for item in rules.include if company_id(item) is None]
+        if ids:
+            explicit = await self.resolve_ids(ids)
+            sources.update(explicit.sources)
+            skipped.update(explicit.skipped)
+            states.append(explicit.catalog)
+        companies = [c for item in rules.include if (c := company_id(item)) is not None]
+        if companies:
+            boards, missing, catalog = await self._company_boards(companies)
+            sources.update(boards)
+            skipped.update(missing)
+            states.append(catalog)
+        excluded_ids = {item for item in rules.exclude if company_id(item) is None}
+        excluded_companies = {c for item in rules.exclude if (c := company_id(item)) is not None}
+        excluded = [
+            key
+            for key, adapter in sources.items()
+            if key in excluded_ids or excluded_companies.intersection(adapter.company_ids)
+        ]
+        for key in excluded:
+            del sources[key]
+        return Resolved(sources, skipped, _merged(states), wanted, excluded)
+
+    async def _company_boards(
+        self, companies: list[str]
+    ) -> tuple[dict[str, SourceAdapter], dict[str, str], CatalogState]:
+        """Every supported board of the companies; companies without one are skipped with the reason."""
+        rows, catalog = await self._catalog(ids=companies)
+        by_company: dict[str, list[Entry]] = {}
+        for entry in self._boards(rows):
+            for company in entry.company_ids:
+                by_company.setdefault(company, []).append(entry)
+        boards: dict[str, SourceAdapter] = {}
+        missing: dict[str, str] = {}
+        for company in companies:
+            entries = by_company.get(company, [])
+            found = {e.id: e.adapter for e in entries if e.adapter is not None}
+            if found:
+                boards.update(found)
+            elif catalog.status != "ok":
+                missing[COMPANY_PREFIX + company] = catalog.message or NO_LOGIN
+            elif entries:
+                reasons = "; ".join(dict.fromkeys(e.reason or "" for e in entries if e.reason))
+                missing[COMPANY_PREFIX + company] = f"У компании нет поддерживаемой доски: {reasons}"
+            else:
+                missing[COMPANY_PREFIX + company] = "Этой компании больше нет в каталоге компаний."
+        return boards, missing, catalog
+
     async def resolve_ids(self, ids: Iterable[str]) -> Resolved:
         """Adapters for explicit source ids; boards come from the catalog, unknown fixed ids are errors."""
         wanted = list(dict.fromkeys(ids))
-        sources: dict[str, SourceAdapter] = {}
-        boards: list[str] = []
-        unknown: list[str] = []
-        for source_id in wanted:
-            if source_id in self.registry.fixed:
-                sources[source_id] = self.registry.fixed[source_id]
-            elif (kind := self.registry.kind_of(source_id)) is not None and kind.board is not None:
-                boards.append(source_id)
-            else:
-                unknown.append(source_id)
+        unknown = [source_id for source_id in wanted if not self.registry.searchable(source_id)]
         if unknown:
             raise InvalidSearchError(f"Unknown source: {', '.join(unknown)}")
+        sources = {s: self.registry.fixed[s] for s in wanted if s in self.registry.fixed}
+        boards = [s for s in wanted if s not in self.registry.fixed]
         if not boards:
             return Resolved(sources, {}, CatalogState(status="not_requested"))
         providers = {kind.key for b in boards if (kind := self.registry.kind_of(b)) is not None}

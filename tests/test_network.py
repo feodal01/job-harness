@@ -19,7 +19,7 @@ def setup(tmp_path, **values):
     source = build_sources(settings)["hh_ru"]
     store = Database(settings.database_path)
     brief = store.briefs.save_brief(BriefInput(name="network", queries=["hello"]))
-    run = store.runs.create_run(brief["id"], {"sources": ["hh_ru"]}, {})
+    run = store.runs.create_run(brief["id"], {"source_rules": {"mode": "selected", "include": ["hh_ru"]}}, {})
     return source, store, run["id"]
 
 

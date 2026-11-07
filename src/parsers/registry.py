@@ -11,6 +11,7 @@ from dataclasses import dataclass, replace
 
 from src.core.config import Settings
 from src.geography.catalog import GeographyCatalog
+from src.models.sources import SourceGroup
 from src.parsers.aggregators.getmatch.parser import create_adapter as getmatch_adapter
 from src.parsers.aggregators.hh.parser import create_adapter as hh_adapter
 from src.parsers.ats.ashby.parser import create_adapter as ashby
@@ -35,7 +36,7 @@ from src.parsers.ats.teamtailor.parser import create_adapter as teamtailor
 from src.parsers.ats.workable.parser import create_adapter as workable
 from src.parsers.ats.workday.parser import create_adapter as workday
 from src.parsers.ats.ycombinator.parser import create_adapter as ycombinator
-from src.parsers.interfaces import Fetch, SourceAdapter, SourceCapabilities, SourceGroup
+from src.parsers.interfaces import Fetch, SourceAdapter, SourceCapabilities
 
 BoardBuilder = Callable[[Board], SourceAdapter]
 FixedBuilder = Callable[[Settings, GeographyCatalog | None], SourceAdapter]
@@ -209,6 +210,13 @@ class SourceRegistry:
         prefix = ":".join(source_id.split(":", 2)[:2])
         kind = self.kinds.get(prefix)
         return kind if kind is not None and kind.board is not None else None
+
+    def searchable(self, source_id: str) -> bool:
+        """A fixed source or a board of a supported platform (`ats:lever:acme`, not `ats:lever`)."""
+        if source_id in self.fixed:
+            return True
+        kind = self.kind_of(source_id)
+        return kind is not None and kind.board is not None and source_id != kind.key
 
     def catalog_kind(self, provider: str) -> SourceKind | None:
         key = provider.strip().lower()

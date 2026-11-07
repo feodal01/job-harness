@@ -44,7 +44,7 @@ async def launch(client, *, name="Тест", queries=None, max_items=2, companie
         "/api/v1/runs",
         json={
             "brief_id": brief["id"],
-            "sources": ["hh_ru"],
+            "source_rules": {"mode": "selected", "include": ["hh_ru"]},
             "limits": {"hh_ru": {"max_items_per_query": max_items}},
             "company_profiles": companies,
         },
@@ -178,7 +178,7 @@ async def test_rerun_deduplicates_but_retains_each_run_and_brief_snapshot(tmp_pa
                 "/api/v1/runs",
                 json={
                     "brief_id": brief["id"],
-                    "sources": ["hh_ru"],
+                    "source_rules": {"mode": "selected", "include": ["hh_ru"]},
                     "limits": {"hh_ru": {"max_items_per_query": 2}},
                     "company_profiles": False,
                 },

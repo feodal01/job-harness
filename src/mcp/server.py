@@ -11,7 +11,7 @@ from pydantic import Field
 from src.geography.catalog import DEFAULT_LOCALE
 from src.models.brief import BriefInput
 from src.models.run import RunInput
-from src.parsers.interfaces import SourceGroup
+from src.models.sources import SourceGroup
 from src.runtime.manager import ServiceError, ServiceManager
 from src.schemas.auth import AuthStatus
 from src.schemas.companies import CompanyFilterField, CompanyFiltersPage, CompanyLinksPage
@@ -238,6 +238,9 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
         Для каждого места в locations задайте свои minimum_work_format и relocation_support.
         Города — альтернативы; формат и помощь с переездом проверяются вместе с выбранным местом.
         Всего 1–5 мест: город с GeoNames ID или вся страна (scope=country, без полей города).
+        Источники задаются правилами search.source_rules, а не списком: по умолчанию — все
+        поддерживаемые источники, покрывающие страны мест, включая сайты компаний из каталога.
+        mode=selected ищет только include; include/exclude — id источника или company:<uuid>.
         """
         return {"brief": await request("POST", "/api/v1/briefs", body=brief.model_dump(mode="json"))}
 
@@ -250,7 +253,11 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True))
     async def start_search(search: RunInput) -> dict[str, Any]:
-        """Начать поиск по brief_id и явно выбранным источникам/лимитам. Вернуть run.id без ожидания конца."""
+        """Начать поиск по brief_id. Источники — по правилам брифа или по source_rules запроса.
+
+        Список собирается сейчас: сайты компаний читаются из каталога с сессией пользователя,
+        без входа они пропускаются с причиной. Вернуть run.id без ожидания конца.
+        """
         return {"run": await request("POST", "/api/v1/runs", body=search.model_dump(mode="json"))}
 
     @mcp.tool(annotations=READ)

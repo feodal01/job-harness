@@ -127,7 +127,9 @@ def test_rich_description_survives_storage_listing_refresh_and_reuse(tmp_path):
     with_store = Database(tmp_path / "rich.sqlite")
     try:
         brief = with_store.briefs.save_brief(BriefInput(name="QA", queries=["QA"]))
-        run = with_store.runs.create_run(brief["id"], {"sources": ["getmatch"]}, {})
+        run = with_store.runs.create_run(
+            brief["id"], {"source_rules": {"mode": "selected", "include": ["getmatch"]}}, {}
+        )
         vacancy = Vacancy(
             id="42",
             title="QA",

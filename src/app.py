@@ -93,6 +93,7 @@ def create_app(
                 geography,
                 enrichment,
                 settings.salary_range,
+                registry.searchable,
             )
             app.state.vacancies_service = VacancyService(database.vacancies)
             sources_service = app.state.sources_service = SourceService(

@@ -3,7 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from src.parsers.interfaces import SourceCapabilities, SourceGroup, SourceType
+from src.models.sources import SourceGroup
+from src.parsers.interfaces import SourceCapabilities, SourceType
 
 SourceStatusFilter = Literal["supported", "unsupported", "all"]
 CatalogStatus = Literal["ok", "not_requested", "login_required", "forbidden", "unavailable"]
