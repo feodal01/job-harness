@@ -149,7 +149,7 @@ class SourceRulesEditor {
     ui.dCustom.onchange = () => { if (ui.dCustom.checked) this.editDraft(SourceRulesModel.custom(this.draft)); };
     ui.search.oninput = () => {
       clearTimeout(this.searchTimer);
-      this.searchTimer = setTimeout(() => { this.query = ui.search.value.trim(); this.searchPage = 1; this.search(); }, 300);
+      this.searchTimer = setTimeout(() => this.search(), 300);
     };
     ui.search.onkeydown = event => { if (event.key === "Enter") event.preventDefault(); };
   }
@@ -253,7 +253,7 @@ class SourceRulesEditor {
     const state = SourceRulesModel.fromRules(this.rules);
     this.draft = custom ? SourceRulesModel.custom(state) : state;
     this.draftPreview = this.preview; this.draftError = "";
-    this.matches = null; this.query = ""; this.ui.search.value = ""; this.ui.results.replaceChildren();
+    this.matches = null; this.query = ""; this.ui.search.value = ""; this.ui.results.replaceChildren(); this.idle();
     this.ui.dialog.showModal();
     (this.draft.custom ? this.ui.dCustom : this.ui.dAuto).focus();
     this.renderDialog(); this.recountDraft();
@@ -385,22 +385,32 @@ class SourceRulesEditor {
   async search(more = false) {
     clearTimeout(this.searchTimer);
     this.searchController?.abort();
-    if (!this.query) { this.searching = false; this.matches = null; this.ui.results.replaceChildren(); return; }
+    // The box is read here, so a rule change while typing searches what is typed now.
+    const query = this.ui.search.value.trim();
+    if (query !== this.query) { this.query = query; this.searchPage = 1; this.matches = null; more = false; }
+    if (!this.query) { this.idle(); this.matches = null; this.ui.results.replaceChildren(); return; }
     const controller = this.searchController = new AbortController();
-    // «Показать ещё» asks for the next page; a refresh asks again for every row already shown.
-    const size = more ? 20 : Math.min(200, this.searchPage * 20);
-    if (!more) this.searchPage = size / 20;
+    // «Показать ещё» asks for the next page; a refresh asks again for every row already shown,
+    // 200 rows (the service's page limit) per request.
+    const rows = more ? 20 : this.searchPage * 20;
     this.searching = true;
     if (this.matches) this.renderMatches();
     // Rules the service would refuse (nothing chosen yet) cannot say who takes part; then every
     // supported source is shown as not chosen, which is exactly what those rules mean.
     const empty = !!SourceRulesModel.problem(this.draft);
-    const rules = empty ? null : SourceRulesModel.toRules(this.draft);
+    const body = {source_rules: (empty ? null : SourceRulesModel.toRules(this.draft)) ?? {},
+      countries: this.countryCodes(), name: this.query};
     try {
-      const page = await this.api("/api/v1/sources/search", "POST", {source_rules: rules ?? {},
-        countries: this.countryCodes(), name: this.query, page: more ? this.searchPage : 1, page_size: size}, controller.signal);
+      let page;
+      if (more) page = await this.api("/api/v1/sources/search", "POST", {...body, page: this.searchPage, page_size: 20}, controller.signal);
+      else for (let n = 1; !page || (page.items.length < rows && page.items.length < page.total); n++) {
+        const next = await this.api("/api/v1/sources/search", "POST", {...body, page: n, page_size: 200}, controller.signal);
+        page = page ? {...next, items: [...page.items, ...next.items]} : next;
+        if (!next.items.length) break;
+      }
       if (controller.signal.aborted) return;
-      this.searching = false;
+      if (!more) page.items = page.items.slice(0, rows);
+      this.idle();
       if (empty) for (const match of page.items) if (match.rule_item) {
         match.participation = "not_selected"; match.participation_reason = "Ничего не выбрано.";
       }
@@ -408,10 +418,12 @@ class SourceRulesEditor {
       this.renderMatches();
     } catch (error) {
       if (controller.signal.aborted) return;
-      this.searching = false;
+      this.idle();
+      if (more) { this.searchPage -= 1; if (this.matches) this.renderMatches(); this.ui.results.append(el("p", `Не удалось загрузить ещё: ${error.message}`, "sd-error")); return; }
       this.matches = null; this.ui.results.replaceChildren(el("p", `Поиск не удался: ${error.message}`, "sd-error"));
     }
   }
+  idle() { this.searching = false; this.ui.results.setAttribute("aria-busy", "false"); }
   renderMatches() { this.keepFocus(() => this.drawMatches()); }
   drawMatches() {
     const page = this.matches, host = this.ui.results;
