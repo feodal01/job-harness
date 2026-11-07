@@ -105,7 +105,9 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
     }
     function updateSource() {
       const chosen = chosenSources();
-      queryTokens.setRequired(chosen.length > 0 && chosen.every(s => s.capabilities.query_parameters.query === "native"));
+      const rules = sourceRules(chosen.map(s => s.id), settingsSearch?.source_rules);
+      queryTokens.setRequired(chosen.length > 0 && chosen.every(s => s.capabilities.query_parameters.query === "native")
+        && !rulesReachBeyondBuiltIns(rules));
       $("queriesRequired").hidden = !queryTokens.required;
       $("sourceCount").textContent = `${chosen.length} из ${sources.length} ${plural(sources.length, "источника", "источников", "источников")}`;
       $("profiles").disabled = !chosen.some((s) => s.capabilities.actions.includes("company_profile"));
@@ -622,28 +624,37 @@ function renderBriefSummary(b) {
   summary.append(`${b.queries.length ? " · " : ""}Источники: ${sourceText}`);
 }
 const sourceName = id => sources.find(s => s.id === id)?.name || id;
-// Until the rules dialog (8о) the form shows built-in sources only. Saving must keep the parts of
-// the saved rules it cannot show (companies, boards, groups, exclusions):
-// - selected rules keep their other items and exclusions, the boxes set the built-in part;
-// - auto rules with anything set stay auto, unchecked built-ins join the exclusions;
+// Until the rules dialog (8о) the form shows built-in sources only. The boxes show which built-ins
+// the rules search, and saving keeps what the form cannot show (companies, boards, groups, exclusions):
+// - selected rules: the boxes set the built-in part of include, the rest stays;
+// - auto rules with anything set stay auto: a checked built-in its groups leave out joins include,
+//   an unchecked one leaves include and joins exclude;
 // - default rules: all checked keeps them (company sites included), fewer become a selection.
-const ruleSources = rules => {
-  const ids = sources.map(s => s.id);
-  if (rules?.mode === "selected") return ids.filter(id => rules.include.includes(id));
-  return ids.filter(id => !(rules?.exclude || []).includes(id));
-};
+const isBuiltIn = id => sources.some(s => s.id === id);
+const ruleSources = rules => sources.filter(s => {
+  if (rules?.mode === "selected") return rules.include.includes(s.id);
+  if ((rules?.exclude || []).includes(s.id)) return false;
+  return rules?.groups == null || rules.groups.includes(s.group) || rules.include.includes(s.id);
+}).map(s => s.id);
 function sourceRules(ids, saved) {
-  const builtIn = sources.map(s => s.id), unchecked = builtIn.filter(id => !ids.includes(id));
+  const unchecked = sources.map(s => s.id).filter(id => !ids.includes(id));
   if (saved?.mode === "selected") {
-    const others = saved.include.filter(id => !builtIn.includes(id));
+    const others = saved.include.filter(id => !isBuiltIn(id));
     return {...saved, include: [...ids, ...others], exclude: saved.exclude.filter(id => !ids.includes(id))};
   }
   const plain = !saved || (saved.groups == null && !saved.include.length && !saved.exclude.length);
   if (plain) return unchecked.length ? {mode: "selected", include: ids} : null;
-  const exclude = [...saved.exclude.filter(id => !builtIn.includes(id)), ...unchecked];
-  return {...saved, include: saved.include.filter(id => !unchecked.includes(id)), exclude};
+  const byGroup = id => saved.groups == null || saved.groups.includes(sources.find(s => s.id === id).group);
+  const include = [...saved.include.filter(id => !isBuiltIn(id)), ...ids.filter(id => !byGroup(id))];
+  const exclude = [...saved.exclude.filter(id => !isBuiltIn(id)), ...unchecked.filter(byGroup)];
+  return {...saved, include, exclude};
 }
-const rulesEmpty = rules => rules?.mode === "selected" && !rules.include.length;
+// Rules the server refuses as "nothing chosen"; the form says so before saving.
+const rulesEmpty = rules => !!rules && !rules.include.length
+  && (rules.mode === "selected" || (rules.groups != null && !rules.groups.length));
+// Companies, boards and auto groups beyond the built-ins search without queries.
+const rulesReachBeyondBuiltIns = rules => !rules || rules.include.some(id => !isBuiltIn(id))
+  || rules.mode === "auto" && (rules.groups == null || rules.groups.some(g => !["aggregator", "it_board"].includes(g)));
 function placeText(v) {
   const place = v.locations?.find(l => !l.excluded && (l.city || l.country));
   const city = place?.city || place?.country || v.location || "";
