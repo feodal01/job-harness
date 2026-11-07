@@ -402,6 +402,8 @@ class SourceAdapter:
     # Set by the source registry: the group people see and the company catalog rows of a board.
     group: SourceGroup | None = None
     company_ids: tuple[str, ...] = ()
+    # A search without queries is refused (HH lists every vacancy then); a board lists its whole feed.
+    requires_query: bool = False
 
     @property
     def capabilities(self) -> SourceCapabilities:

@@ -615,14 +615,35 @@ function renderBriefSummary(b) {
   const summary = $("briefSummary"); summary.replaceChildren();
   if (b.queries.length) summary.append(`Запросы: ${b.queries.join(" · ")}`);
   const rules = b.search?.source_rules;
-  const sourceText = rules?.mode === "selected" ? rules.include.map(id => sourceName(id)).join(", ") : "все по местам брифа";
+  const companies = (rules?.include || []).filter(id => id.startsWith("company:")).length;
+  const named = (rules?.include || []).filter(id => !id.startsWith("company:")).map(id => sourceName(id));
+  if (companies) named.push(`компаний: ${companies}`);
+  const sourceText = rules?.mode === "selected" ? named.join(", ") : "все по местам брифа";
   summary.append(`${b.queries.length ? " · " : ""}Источники: ${sourceText}`);
 }
 const sourceName = id => sources.find(s => s.id === id)?.name || id;
-// Until the rules dialog (8о) the form shows built-in sources: all checked keeps the default rules
-// (every source covering the brief's places, company sites included), fewer become a selection.
-const ruleSources = rules => rules?.mode === "selected" ? sources.map(s => s.id).filter(id => rules.include.includes(id)) : sources.map(s => s.id);
-const sourceRules = ids => ids.length === sources.length ? null : {mode: "selected", include: ids};
+// Until the rules dialog (8о) the form shows built-in sources only. Saving must keep the parts of
+// the saved rules it cannot show (companies, boards, groups, exclusions):
+// - selected rules keep their other items and exclusions, the boxes set the built-in part;
+// - auto rules with anything set stay auto, unchecked built-ins join the exclusions;
+// - default rules: all checked keeps them (company sites included), fewer become a selection.
+const ruleSources = rules => {
+  const ids = sources.map(s => s.id);
+  if (rules?.mode === "selected") return ids.filter(id => rules.include.includes(id));
+  return ids.filter(id => !(rules?.exclude || []).includes(id));
+};
+function sourceRules(ids, saved) {
+  const builtIn = sources.map(s => s.id), unchecked = builtIn.filter(id => !ids.includes(id));
+  if (saved?.mode === "selected") {
+    const others = saved.include.filter(id => !builtIn.includes(id));
+    return {...saved, include: [...ids, ...others], exclude: saved.exclude.filter(id => !ids.includes(id))};
+  }
+  const plain = !saved || (saved.groups == null && !saved.include.length && !saved.exclude.length);
+  if (plain) return unchecked.length ? {mode: "selected", include: ids} : null;
+  const exclude = [...saved.exclude.filter(id => !builtIn.includes(id)), ...unchecked];
+  return {...saved, include: saved.include.filter(id => !unchecked.includes(id)), exclude};
+}
+const rulesEmpty = rules => rules?.mode === "selected" && !rules.include.length;
 function placeText(v) {
   const place = v.locations?.find(l => !l.excluded && (l.city || l.country));
   const city = place?.city || place?.country || v.location || "";
@@ -1120,7 +1141,7 @@ function readSearchOptions() {
     }
     limits[source.id]=own;
   }
-  return {source_rules:sourceRules(chosenSources().map(s=>s.id)),limits,company_profiles:$("profiles").checked,second_chance:$("secondChance").checked};
+  return {source_rules:sourceRules(chosenSources().map(s=>s.id),settingsSearch.source_rules),limits,company_profiles:$("profiles").checked,second_chance:$("secondChance").checked};
 }
 function clearFormErrors() {
   for (const {target, message} of validationFields) {
@@ -1145,7 +1166,8 @@ function validateSearchForm(focus = false) {
   for (const editor of tokenEditors) if (editor.error) errors.set(editor.input, editor.error);
   if (queryTokens.required && !queryTokens.values.length)
     errors.set($("queries"), "Добавьте хотя бы один поисковый запрос для выбранного источника.");
-  if (!chosenSources().length) errors.set($("sourcesBox"), "Выберите хотя бы один источник поиска.");
+  if (rulesEmpty(sourceRules(chosenSources().map(s => s.id), settingsSearch?.source_rules)))
+    errors.set($("sourcesBox"), "Выберите хотя бы один источник поиска.");
   for (const {target, message} of locationEditor.validationErrors()) errors.set(target, message);
   for (const field of $("searchForm").querySelectorAll("input, textarea, select")) {
     if (field.disabled || field.validity.valid || errors.has(field)) continue;
@@ -1213,7 +1235,7 @@ $("searchForm").onsubmit=async e=>{
   try{
     if(launch && ["queued","running"].includes(currentBrief()?.last_run?.status))throw Error("Поиск уже идёт. Дождитесь его завершения или остановите его в ленте.");
     if(!catalogReady)throw Error("Дождитесь загрузки географии");
-    if(!chosenSources().length)throw Error("Выберите хотя бы один источник");const search=readSearchOptions();
+    const search=readSearchOptions();if(rulesEmpty(search.source_rules))throw Error("Выберите хотя бы один источник");
     const payload={name:$("name").value,queries:queryTokens.values,text:$("briefText").value,filters:readFilters(),search};
     const b=await api(id?`/api/v1/briefs/${id}`:"/api/v1/briefs",id?"PUT":"POST",payload);
     await loadOverviews();

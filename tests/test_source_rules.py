@@ -335,3 +335,26 @@ async def test_the_old_source_list_in_a_run_request_is_refused(tmp_path):  # cas
         b = await brief(client, ["QA"])
         response = await client.post("/api/v1/runs", json={"brief_id": b["id"], "sources": ["hh_ru"]})
         assert response.status_code == 422 and "sources" in response.text
+
+
+async def test_without_queries_boards_list_their_whole_feed_and_only_hh_is_skipped(tmp_path):
+    """HH refuses a search without queries; a board with a keyword search lists the whole board."""
+    async with service(tmp_path, Boards()) as (app, client):
+        engine = app.state.engine
+        board = app.state.sources_service.registry.board(
+            "ats:greenhouse", "https://boards.greenhouse.io/secretco", "Secret Co", GONE
+        )
+        assert board.search.parameters["query"] == "native" and not board.requires_query
+        assert engine.sources["hh_ru"].requires_query
+        b = await brief(client, [])
+        run = engine.start(
+            RunInput(brief_id=b["id"], company_profiles=False),
+            {"hh_ru": engine.sources["hh_ru"], board.id: board},
+        )
+        for task in engine.tasks.values():
+            task.cancel()
+        await asyncio.gather(*engine.tasks.values(), return_exceptions=True)
+        stored = app.state.database.runs.run(run["id"])
+        assert stored["request"]["sources"] == [board.id]
+        assert stored["request"]["skipped"] == {"hh_ru": "HH requires at least one search query"}
+        assert "Secret Co" not in str(stored)  # catalog names stay in Supabase

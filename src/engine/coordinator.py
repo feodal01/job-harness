@@ -92,7 +92,7 @@ class SearchEngine:
         skipped = {
             s: f"{adapters[s].name} requires at least one search query"
             for s in selected
-            if adapters[s].search.parameters.get("query") in {"native", "mapped"} and not saved_brief.queries
+            if adapters[s].requires_query and not saved_brief.queries
         }
         active = [s for s in selected if s not in skipped]
         skipped.update(unavailable)
