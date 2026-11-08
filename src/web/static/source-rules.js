@@ -1,184 +1,174 @@
-/* Source rules of a brief (mockup 8о): the rules model, the form section and the dialog.
- * The brief keeps rules, not a list: `null` is the default (every source covering the brief's
- * places), otherwise `{mode:"auto", groups, include, exclude}`. Counts and names come from
- * POST /api/v1/sources/preview, which resolves the rules with the same code as a run. */
+/* Where a brief searches (mockup 8о): the choice model, the form line and the dialog.
+ * The brief keeps rules, not a list: `null` is «everywhere» (every source covering the brief's
+ * places), otherwise `{mode:"auto", groups, include, exclude}`. The person sees one list instead:
+ * each built-in site and «company sites» with a box, company sites either all or only chosen ones.
+ * Counts and names come from POST /api/v1/sources/preview, which resolves rules like a run. */
 
-const RULE_TYPES = ["aggregator", "it_board"];
+const BUILTIN_GROUPS = ["aggregator", "it_board"];
 const COMPANY = "company:";
 const MAX_RULE_ITEMS = 1000;
-const GROUP_TITLES = {
-  aggregator: ["Агрегаторы", "Крупные сайты вакансий: HH и другие"],
-  it_board: ["IT-площадки", "Getmatch и другие площадки для IT"],
-  company_site: ["Сайты компаний", "Карьерные страницы работодателей: все или только выбранные"],
-  telegram: ["Telegram-каналы", "Пока не поддерживаются"],
-};
-const isCompanyItem = item => item.startsWith(COMPANY);
 const ruleWord = (n, one, few, many) => {
   const m10 = n % 10, m100 = n % 100;
   return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
 };
-const sourcesText = n => `${n.toLocaleString("ru")} ${ruleWord(n, "источник", "источника", "источников")}`;
+const countText = (n, one, few, many) => `${n.toLocaleString("ru")} ${ruleWord(n, one, few, many)}`;
+const sourcesText = n => countText(n, "источник", "источника", "источников");
 
-/* The dialog's state: custom rules or the default, chosen built-in types, all or selected company
- * sites, and the include/exclude lists. Pure, so tests/web runs it in node. */
+/* The person's choice. `builtins` — checked built-in sites; `sites` — company sites at all;
+ * `companies` — "all" or "selected"; `picked` — chosen companies (or boards); `skipped` — company
+ * sites not to search while all are searched. `list` is the built-in sources: [{id, group, name}]. */
 const SourceRulesModel = {
-  fromRules(rules) {
-    if (!rules) return {custom: false, types: [...RULE_TYPES], companies: "all", include: [], exclude: []};
-    const include = [...rules.include], exclude = [...rules.exclude];
-    if (rules.mode === "selected") return {custom: true, types: [], companies: "selected", include, exclude};
-    const groups = rules.groups ?? null;
+  fromRules(rules, list) {
+    const ids = list.map(source => source.id);
+    if (!rules) return {custom: false, builtins: ids, sites: true, companies: "all", picked: [], skipped: []};
+    const others = items => items.filter(item => !ids.includes(item));
+    if (rules.mode === "selected") {
+      const picked = others(rules.include);
+      return {custom: true, builtins: ids.filter(id => rules.include.includes(id)), sites: picked.length > 0,
+        companies: "selected", picked, skipped: others(rules.exclude)};
+    }
+    const groups = rules.groups ?? null, all = groups === null || groups.includes("company_site");
+    const picked = others(rules.include);
     return {
-      custom: groups !== null || include.length > 0 || exclude.length > 0,
-      types: groups === null ? [...RULE_TYPES] : RULE_TYPES.filter(type => groups.includes(type)),
-      companies: groups === null || groups.includes("company_site") ? "all" : "selected",
-      include, exclude,
+      custom: groups !== null || rules.include.length > 0 || rules.exclude.length > 0,
+      builtins: list.filter(source => !rules.exclude.includes(source.id)
+        && (groups === null || groups.includes(source.group) || rules.include.includes(source.id))).map(source => source.id),
+      sites: all || picked.length > 0, companies: all ? "all" : "selected", picked, skipped: others(rules.exclude),
     };
   },
-  toRules(state) {
+  toRules(state, list) {
     if (!state.custom) return null;
-    const groups = [...RULE_TYPES.filter(type => state.types.includes(type)),
-      ...(state.companies === "all" ? ["company_site"] : [])];
-    // With every company site chosen, a chosen company adds nothing; it stays in the draft only.
-    const include = state.companies === "all" ? state.include.filter(item => !isCompanyItem(item)) : [...state.include];
-    return {mode: "auto", groups, include, exclude: [...state.exclude]};
+    const groups = [], exclude = [];
+    // A built-in type joins when any of its sites is checked, so new sites of that type join too;
+    // its unchecked sites are left out by name.
+    for (const group of BUILTIN_GROUPS) {
+      const members = list.filter(source => source.group === group).map(source => source.id);
+      if (!members.some(id => state.builtins.includes(id))) continue;
+      groups.push(group);
+      exclude.push(...members.filter(id => !state.builtins.includes(id)));
+    }
+    const all = state.sites && state.companies === "all";
+    if (all) groups.push("company_site");
+    const include = state.sites && state.companies === "selected" ? [...state.picked] : [];
+    if (all) exclude.push(...state.skipped);
+    return {mode: "auto", groups, include, exclude};
   },
-  /* Why the service would refuse these rules; null when it accepts them. */
-  problem(state) {
-    const rules = SourceRulesModel.toRules(state);
+  /* Why these rules cannot be searched; null when they can. */
+  problem(state, list) {
+    const rules = SourceRulesModel.toRules(state, list);
     if (!rules) return null;
-    if (!rules.groups.length && !rules.include.length) return "Выберите тип источника или добавьте компанию.";
+    if (!rules.groups.length && !rules.include.length) {
+      return state.sites && state.companies === "selected" ? "Выберите компанию или отметьте другой источник."
+        : "Отметьте, где искать.";
+    }
     if (rules.include.length > MAX_RULE_ITEMS || rules.exclude.length > MAX_RULE_ITEMS)
-      return `В списках правил может быть до ${MAX_RULE_ITEMS} элементов.`;
+      return `Можно выбрать до ${MAX_RULE_ITEMS} компаний.`;
     return null;
   },
-  /* The button a found source gets, from its participation under the draft rules. */
-  action(state, match) {
-    const item = match.rule_item;
-    if (!item) return null;
-    switch (match.participation) {
-      case "excluded": return {label: "Вернуть", apply: s => SourceRulesModel.restore(s, match)};
-      // «Убрать» only when the source is in the search through include alone; when a chosen type
-      // brings it in as well, only an exclusion takes it out.
-      case "included": {
-        const rules = SourceRulesModel.toRules(state), own = SourceRulesModel.itemsOf(match);
-        const including = rules ? rules.include.filter(other => own.has(other)) : [];
-        return including.length && !rules.groups.includes(match.group)
-          ? {label: "Убрать", apply: s => SourceRulesModel.dropAll(s, including)}
-          : {label: "Исключить", apply: s => SourceRulesModel.exclude(s, item)};
-      }
-      case "not_selected": case "not_covered":
-        return {label: "Добавить", apply: s => SourceRulesModel.add(s, item)};
-      default: return null;
-    }
-  },
-  add(state, item) {
-    const next = SourceRulesModel.custom(state);
-    next.exclude = next.exclude.filter(other => other !== item);
-    if (!next.include.includes(item)) next.include.push(item);
-    return next;
-  },
-  drop(state, item) { return SourceRulesModel.dropAll(state, [item]); },
-  dropAll(state, items) {
-    const next = SourceRulesModel.custom(state);
-    next.include = next.include.filter(other => !items.includes(other));
-    return next;
-  },
-  /* Every rule item that names this source: its id and each catalog company of a shared board. */
+  /* Every rule item that names a found company site: its board id and each of its companies. */
   itemsOf(match) {
     return new Set([match.rule_item, match.id, ...(match.company_ids || []).map(id => COMPANY + id)].filter(Boolean));
   },
-  exclude(state, item) {
-    const next = SourceRulesModel.custom(state);
-    next.include = next.include.filter(other => other !== item);
-    if (!next.exclude.includes(item)) next.exclude.push(item);
+  isPicked: (state, match) => state.picked.some(item => SourceRulesModel.itemsOf(match).has(item)),
+  isSkipped: (state, match) => state.skipped.some(item => SourceRulesModel.itemsOf(match).has(item)),
+  pick(state, match) {
+    const next = SourceRulesModel.copy(state), own = SourceRulesModel.itemsOf(match);
+    next.skipped = next.skipped.filter(item => !own.has(item));
+    if (!next.picked.some(item => own.has(item))) next.picked.push(match.rule_item);
     return next;
   },
-  /* An excluded source comes back whether its id or any of its companies was excluded
-   * (several catalog companies can share one board). */
-  restore(state, match) {
-    const next = SourceRulesModel.custom(state), items = SourceRulesModel.itemsOf(match);
-    next.exclude = next.exclude.filter(other => !items.has(other));
+  unpick(state, match) {
+    const next = SourceRulesModel.copy(state), own = SourceRulesModel.itemsOf(match);
+    next.picked = next.picked.filter(item => !own.has(item));
     return next;
   },
-  custom(state) {
-    return {...state, custom: true, types: [...state.types], include: [...state.include], exclude: [...state.exclude]};
+  skip(state, match) {
+    const next = SourceRulesModel.copy(state), own = SourceRulesModel.itemsOf(match);
+    next.picked = next.picked.filter(item => !own.has(item));
+    if (!next.skipped.some(item => own.has(item))) next.skipped.push(match.rule_item);
+    return next;
   },
-  /* Short text where no preview is at hand: brief summary, before the count arrives. */
-  describe(rules) {
-    if (!rules) return "все по местам брифа";
-    const state = SourceRulesModel.fromRules(rules), parts = [];
-    const types = state.types.map(type => GROUP_TITLES[type][0].toLowerCase());
-    if (types.length) parts.push(types.join(", "));
-    const companies = state.include.filter(isCompanyItem).length;
-    if (state.companies === "all") parts.push("сайты компаний");
-    else if (companies) parts.push(`${companies} ${ruleWord(companies, "компания", "компании", "компаний")}`);
-    const added = state.include.filter(item => !isCompanyItem(item)).length;
-    if (added) parts.push(`добавлено: ${added}`);
-    if (state.exclude.length) parts.push(`исключено: ${state.exclude.length}`);
-    return parts.length ? parts.join(" · ") : "не выбраны";
+  unskip(state, match) {
+    const next = SourceRulesModel.copy(state), own = SourceRulesModel.itemsOf(match);
+    next.skipped = next.skipped.filter(item => !own.has(item));
+    return next;
+  },
+  without(state, key, item) {
+    const next = SourceRulesModel.copy(state);
+    next[key] = next[key].filter(other => other !== item);
+    return next;
+  },
+  copy(state) {
+    return {...state, builtins: [...state.builtins], picked: [...state.picked], skipped: [...state.skipped]};
+  },
+  /* Short text where no count is at hand, e.g. the brief card. */
+  describe(rules, list) {
+    if (!rules) return "везде";
+    const state = SourceRulesModel.fromRules(rules, list);
+    const parts = list.filter(source => state.builtins.includes(source.id)).map(source => source.name);
+    if (state.sites && state.companies === "all") parts.push("сайты компаний");
+    else if (state.sites && state.picked.length) parts.push(countText(state.picked.length, "компания", "компании", "компаний"));
+    let text = parts.length ? parts.join(", ") : "не выбраны";
+    if (state.sites && state.companies === "all" && state.skipped.length)
+      text += `; не искать: ${countText(state.skipped.length, "сайт", "сайта", "сайтов")}`;
+    return text;
   },
 };
 
 class SourceRulesEditor {
-  /* api(path, method, body, signal); countries() gives the ISO codes of the form's places and
-   * places() their text; onChange() runs when the rules or their count change. */
-  constructor({api, countries, places, onChange}) {
-    this.api = api; this.countries = countries; this.places = places; this.onChange = onChange;
+  /* api(path, method, body, signal); builtins() — built-in sources [{id, group, name}];
+   * countries() — ISO codes of the form's places, places() — their text; onChange() runs when the
+   * rules or their count change. */
+  constructor({api, builtins, countries, places, onChange}) {
+    Object.assign(this, {api, builtins, countries, places, onChange});
     this.rules = null; this.preview = null; this.error = ""; this.loading = false;
     this.timer = null; this.controller = null; this.version = 0;
     this.draft = null; this.draftPreview = null; this.draftError = ""; this.draftVersion = 0; this.draftController = null;
-    this.query = ""; this.searchTimer = null; this.searchController = null; this.matches = null; this.searchPage = 1;
+    this.everywhere = null; this.names = new Map();
+    this.query = ""; this.searchTimer = null; this.searchController = null; this.matches = null; this.skipOpen = false;
     const $ = id => document.getElementById(id);
-    this.ui = {
-      auto: $("sourceModeAuto"), custom: $("sourceModeCustom"), autoCount: $("sourceAutoCount"),
-      summary: $("sourceRulesSummary"), note: $("sourceCatalogNote"), open: $("openSourceRules"), count: $("sourceCount"),
-      dialog: $("sourcesDialog"), close: $("sourcesDialogClose"), cancel: $("sourcesCancel"), apply: $("sourcesApply"),
-      dAuto: $("sdModeAuto"), dCustom: $("sdModeCustom"), dAutoCount: $("sdAutoCount"), rules: $("sdRules"),
-      types: $("sdTypes"), places: $("sdPlaces"), companies: $("sdCompanies"), added: $("sdAdded"),
-      search: $("sdSearch"), results: $("sdResults"), exclusions: $("sdExclusions"), exclusionsTitle: $("sdExclusionsTitle"),
-      total: $("sdTotal"), totalNote: $("sdTotalNote"), problem: $("sdProblem"), dNote: $("sdCatalogNote"),
-    };
-    const ui = this.ui;
-    ui.auto.onchange = () => { if (ui.auto.checked) this.set(null); };
-    ui.custom.onchange = () => { if (ui.custom.checked) this.openDialog(true); };
-    ui.open.onclick = () => this.openDialog(false);
-    ui.close.onclick = ui.cancel.onclick = () => this.closeDialog(false);
-    ui.apply.onclick = () => this.closeDialog(true);
-    ui.dialog.oncancel = event => { event.preventDefault(); this.closeDialog(false); };
-    ui.dAuto.onchange = () => { if (ui.dAuto.checked) this.editDraft({...this.draft, custom: false}); };
-    ui.dCustom.onchange = () => { if (ui.dCustom.checked) this.editDraft(SourceRulesModel.custom(this.draft)); };
-    ui.search.oninput = () => {
-      clearTimeout(this.searchTimer);
-      this.searchTimer = setTimeout(() => this.search(), 300);
-    };
-    ui.search.onkeydown = event => { if (event.key === "Enter") event.preventDefault(); };
+    this.ui = Object.fromEntries(["sourceSummary", "sourceCatalogNote", "openSourceRules", "sourceCount", "sourcesDialog",
+      "sourcesDialogClose", "sourcesCancel", "sourcesApply", "sdModeAuto", "sdModeCustom", "sdAutoText", "sdCatalogNote",
+      "sdList", "sdBuiltins", "sdSites", "sdSitesCount", "sdSitesBox", "sdSitesAll", "sdSitesPicked",
+      "sdSitesPickedText", "sdSitesNote", "sdChips", "sdSkipOpen", "sdSearchBox", "sdSearch", "sdResults", "sdTotal"]
+      .map(id => [id, $(id)]));
+    const ui = this.ui, M = SourceRulesModel;
+    ui.openSourceRules.onclick = () => this.openDialog();
+    ui.sourcesDialogClose.onclick = ui.sourcesCancel.onclick = () => this.closeDialog(false);
+    ui.sourcesApply.onclick = () => this.closeDialog(true);
+    ui.sourcesDialog.oncancel = event => { event.preventDefault(); this.closeDialog(false); };
+    ui.sdModeAuto.onchange = () => { if (ui.sdModeAuto.checked) this.edit({...M.copy(this.draft), custom: false}); };
+    ui.sdModeCustom.onchange = () => { if (ui.sdModeCustom.checked) this.edit({...M.copy(this.draft), custom: true}); };
+    // Ticking company sites with no company chosen yet means all of them.
+    ui.sdSites.onchange = () => this.edit({...M.copy(this.draft), sites: ui.sdSites.checked,
+      companies: ui.sdSites.checked && !this.draft.picked.length ? "all" : this.draft.companies});
+    ui.sdSitesAll.onchange = () => { if (ui.sdSitesAll.checked) this.edit({...M.copy(this.draft), companies: "all"}); };
+    ui.sdSitesPicked.onchange = () => { if (ui.sdSitesPicked.checked) this.edit({...M.copy(this.draft), companies: "selected"}); };
+    ui.sdSkipOpen.onclick = () => { this.skipOpen = true; this.drawDialog(); ui.sdSearch.focus(); };
+    ui.sdSearch.oninput = () => { clearTimeout(this.searchTimer); this.searchTimer = setTimeout(() => this.search(), 300); };
+    ui.sdSearch.onkeydown = event => { if (event.key === "Enter") event.preventDefault(); };
   }
 
   /* --- The form ------------------------------------------------------------------------- */
 
+  get list() { return this.builtins(); }
   load(rules) {
-    // Default rules written out (a run's snapshot, an API client) are the default: keep them as null.
-    this.rules = rules && SourceRulesModel.fromRules(rules).custom ? structuredClone(rules) : null;
+    // Rules that mean «everywhere» (a run's snapshot, an API client) load as the default.
+    this.rules = rules && SourceRulesModel.fromRules(rules, this.list).custom ? structuredClone(rules) : null;
     this.preview = null; this.error = "";
     this.render(); this.refresh(0);
   }
-  set(rules) {
-    this.rules = rules; this.render(); this.onChange(); this.refresh(0);
-  }
-  get problem() { return SourceRulesModel.problem(SourceRulesModel.fromRules(this.rules)); }
+  set(rules) { this.rules = rules; this.render(); this.onChange(); this.refresh(0); }
+  get problem() { return SourceRulesModel.problem(SourceRulesModel.fromRules(this.rules, this.list), this.list); }
   get requiresQuery() { return this.preview?.requires_query === true; }
   get builtin() { return this.preview?.builtin ?? null; }
   describe() {
-    if (!this.preview || this.loading) return SourceRulesModel.describe(this.rules);
-    return this.rules ? `${sourcesText(this.preview.total)} по правилам`
-      : `все по местам брифа · ${this.preview.total.toLocaleString("ru")}`;
+    return this.preview && !this.loading ? this.summary(this.rules, this.preview)
+      : SourceRulesModel.describe(this.rules, this.list);
   }
 
   /* Count again after the rules or the brief's places change; only the latest answer is shown. */
-  refresh(delay = 300) {
-    clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.recount(), delay);
-  }
+  refresh(delay = 300) { clearTimeout(this.timer); this.timer = setTimeout(() => this.recount(), delay); }
   async recount() {
     const version = ++this.version;
     this.controller?.abort();
@@ -199,47 +189,31 @@ class SourceRulesEditor {
     return this.api("/api/v1/sources/preview", "POST", {source_rules: rules ?? {}, countries: this.countryCodes()}, signal);
   }
   countryCodes() { return [...new Set(this.countries().filter(Boolean).map(code => code.toUpperCase()))]; }
+  learnNames(preview) { for (const entry of preview?.items || []) if (entry.name) this.names.set(entry.item, entry.name); }
 
   render() {
-    const ui = this.ui, custom = !!this.rules, preview = this.preview;
-    ui.auto.checked = !custom; ui.custom.checked = custom;
-    ui.autoCount.textContent = !custom && preview ? ` · ${preview.total.toLocaleString("ru")}` : "";
-    ui.count.textContent = this.loading ? "Считаем…" : preview ? sourcesText(preview.total) : "";
-    ui.summary.hidden = !custom;
-    ui.summary.replaceChildren(...(custom ? this.summaryRows() : []));
-    const note = this.error || this.catalogNote(preview) || (preview && !preview.total
-      ? "По этим правилам искать не по чему: добавьте тип источника или компанию." : "");
-    ui.note.textContent = note; ui.note.hidden = !note;
+    const ui = this.ui, preview = this.preview;
+    ui.sourceCount.textContent = this.loading ? "Считаем…" : preview ? sourcesText(preview.total) : "";
+    ui.sourceSummary.textContent = this.loading && !preview ? "Считаем…" : this.describe();
+    const note = this.error || this.catalogNote(preview);
+    ui.sourceCatalogNote.textContent = note; ui.sourceCatalogNote.hidden = !note;
   }
-  summaryRows() {
-    const state = SourceRulesModel.fromRules(this.rules), counts = this.groupCounts(this.preview), rows = [];
-    const types = state.types.map(type => GROUP_TITLES[type][0] + (counts[type] ? ` · ${counts[type].selected}` : ""));
-    rows.push(this.row("Типы", el("span", types.length ? types.join(", ") : "не выбраны")));
-    const chosen = state.include.filter(isCompanyItem);
-    rows.push(this.row("Сайты компаний", el("span", state.companies === "all"
-      ? `все компании${counts.company_site ? " · " + counts.company_site.selected.toLocaleString("ru") : ""}`
-      : chosen.length ? `только выбранные · ${chosen.length}: ${chosen.map(item => this.nameOf(item, this.preview)).join(", ")}`
-        : "не искать")));
-    const added = state.include.filter(item => !isCompanyItem(item));
-    if (added.length) rows.push(this.row("Добавлены", this.chips(added, this.preview,
-      item => this.set(SourceRulesModel.toRules(SourceRulesModel.drop(state, item))))));
-    if (state.exclude.length) rows.push(this.row("Не искать в источниках", this.chips(state.exclude, this.preview,
-      item => this.set(SourceRulesModel.toRules({...state, exclude: state.exclude.filter(other => other !== item)})))));
-    return rows;
-  }
-  row(term, content) {
-    const row = el("div", undefined, "rs-row");
-    row.append(el("span", term, "rs-term"), content);
-    return row;
-  }
-  nameOf(item, preview) {
-    const known = preview?.items.find(entry => entry.item === item);
-    if (known?.name) return known.name;
-    const builtin = typeof sources === "undefined" ? null : sources.find(source => source.id === item);
-    return builtin?.name || (isCompanyItem(item) ? "Компания" : item);
-  }
-  groupCounts(preview) {
-    return Object.fromEntries((preview?.groups || []).map(group => [group.group, group]));
+  /* «HH, Getmatch и 218 сайтов компаний»; chosen companies by name. */
+  summary(rules, preview) {
+    if (!preview.total) return "Негде искать: отметьте хотя бы один источник.";
+    this.learnNames(preview);
+    const state = SourceRulesModel.fromRules(rules, this.list);
+    const parts = this.list.filter(source => preview.builtin.includes(source.id)).map(source => source.name);
+    const sites = preview.groups.find(group => group.group === "company_site")?.selected || 0;
+    if (state.sites && state.companies === "selected" && state.picked.length) {
+      const names = state.picked.map(item => this.names.get(item) || "компания");
+      parts.push(names.length <= 3 ? names.join(", ") : `${names.slice(0, 2).join(", ")} и ещё ${names.length - 2}`);
+    } else if (sites) parts.push(countText(sites, "сайт компании", "сайта компаний", "сайтов компаний"));
+    const last = parts.pop();
+    let text = parts.length ? `${parts.join(", ")} и ${last}` : last;
+    if (state.sites && state.companies === "all" && state.skipped.length)
+      text += `; не искать: ${state.skipped.map(item => this.names.get(item) || "сайт").join(", ")}`;
+    return (rules ? "" : "Везде: ") + text;
   }
   catalogNote(preview) {
     const catalog = preview?.catalog;
@@ -249,227 +223,152 @@ class SourceRulesEditor {
 
   /* --- The dialog ------------------------------------------------------------------------ */
 
-  openDialog(custom) {
-    const state = SourceRulesModel.fromRules(this.rules);
-    this.draft = custom ? SourceRulesModel.custom(state) : state;
-    this.draftPreview = this.preview; this.draftError = "";
-    this.matches = null; this.query = ""; this.ui.search.value = ""; this.ui.results.replaceChildren(); this.idle();
-    this.ui.dialog.showModal();
-    (this.draft.custom ? this.ui.dCustom : this.ui.dAuto).focus();
-    this.renderDialog(); this.recountDraft();
+  openDialog() {
+    this.draft = SourceRulesModel.fromRules(this.rules, this.list);
+    this.draftPreview = this.preview; this.draftError = ""; this.everywhere = this.rules ? null : this.preview;
+    this.skipOpen = false; this.query = ""; this.matches = null; this.ui.sdSearch.value = ""; this.ui.sdResults.replaceChildren();
+    this.ui.sourcesDialog.showModal();
+    (this.draft.custom ? this.ui.sdModeCustom : this.ui.sdModeAuto).focus();
+    this.drawDialog(); this.recountDraft();
+    if (!this.everywhere) this.request(null).then(answer => { this.everywhere = answer; this.drawDialog(); }).catch(() => {});
   }
   closeDialog(apply) {
-    if (apply && SourceRulesModel.problem(this.draft)) return;
+    if (apply && SourceRulesModel.problem(this.draft, this.list)) return;
     this.draftController?.abort(); this.searchController?.abort(); clearTimeout(this.searchTimer);
-    this.ui.dialog.close();
-    if (apply) this.set(SourceRulesModel.toRules(this.draft)); else this.render();
-    this.ui.open.focus();
+    this.ui.sourcesDialog.close();
+    if (apply) this.set(SourceRulesModel.toRules(this.draft, this.list));
+    this.ui.openSourceRules.focus();
   }
-  editDraft(state) {
-    this.draft = state; this.renderDialog(); this.recountDraft();
-    if (this.query) this.search();  // asks again for every row shown, under the new rules
-  }
+  edit(state) { this.draft = state; this.drawDialog(); this.recountDraft(); }
   async recountDraft() {
     const version = ++this.draftVersion;
     this.draftController?.abort();
-    if (SourceRulesModel.problem(this.draft)) { this.draftPreview = null; this.renderDialog(); return; }
+    if (SourceRulesModel.problem(this.draft, this.list)) { this.draftPreview = null; this.drawDialog(); return; }
     const controller = this.draftController = new AbortController();
-    this.ui.total.textContent = "Считаем…";
+    this.ui.sdTotal.textContent = "Считаем…";
     try {
-      const answer = await this.request(SourceRulesModel.toRules(this.draft), controller.signal);
+      const answer = await this.request(SourceRulesModel.toRules(this.draft, this.list), controller.signal);
       if (version !== this.draftVersion) return;
       this.draftPreview = answer; this.draftError = "";
     } catch (error) {
       if (version !== this.draftVersion) return;
       this.draftPreview = null; this.draftError = `Не удалось посчитать источники: ${error.message}`;
     }
-    this.renderDialog();
+    this.drawDialog();
   }
-  /* Controls are rebuilt on every change; focus goes back to the control with the same key. */
-  keepFocus(render) {
+  /* Controls rebuilt on a change get focus back by their data-key. */
+  keepFocus(draw) {
     const key = document.activeElement?.dataset?.key;
-    render();
+    draw();
     if (!key || document.activeElement?.dataset?.key === key) return;
-    const again = this.ui.dialog.querySelector(`[data-key="${CSS.escape(key)}"]`);
-    // «Показать ещё» is gone once the last rows are in: focus the last row's button, else the search box.
-    const last = key === "more" ? [...this.ui.results.querySelectorAll("li button")].pop() : null;
-    (again || last || (/^(match|chip):|^more$/.test(key) ? this.ui.search : null))?.focus();
+    (this.ui.sourcesDialog.querySelector(`[data-key="${CSS.escape(key)}"]`) || this.ui.sdSearch).focus();
   }
-  renderDialog() { this.keepFocus(() => this.drawDialog()); }
-  drawDialog() {
-    const ui = this.ui, state = this.draft, preview = this.draftPreview, counts = this.groupCounts(preview);
-    ui.dAuto.checked = !state.custom; ui.dCustom.checked = state.custom;
-    ui.dAutoCount.textContent = preview && !state.custom ? ` · ${preview.total.toLocaleString("ru")}` : "";
-    ui.rules.hidden = !state.custom;
-    const places = this.places();
-    ui.places.textContent = places ? `Учитываются только источники, которые покрывают места брифа: ${places}.`
-      : "Места в брифе не выбраны: учитываются источники всех стран.";
-    ui.types.replaceChildren(...[...RULE_TYPES, "company_site", "telegram"].map(group => this.typeRow(group, counts[group])));
-    ui.companies.replaceChildren(...this.companyRows(preview, counts.company_site));
-    const added = state.include.filter(item => !isCompanyItem(item));
-    ui.added.hidden = !added.length;
-    ui.added.replaceChildren(...(added.length ? [el("h3", "Добавлены вручную"),
-      this.chips(added, preview, item => this.editDraft(SourceRulesModel.drop(this.draft, item)))] : []));
-    ui.exclusionsTitle.textContent = `Исключения · ${state.exclude.length}`;
-    ui.exclusions.replaceChildren(state.exclude.length
-      ? this.chips(state.exclude, preview, item => this.editDraft({...SourceRulesModel.custom(this.draft),
-        exclude: this.draft.exclude.filter(other => other !== item)}))
-      : el("p", "Нет. Исключить источник можно через поиск выше.", "muted"));
-    const problem = SourceRulesModel.problem(state);
-    ui.problem.textContent = problem || ""; ui.problem.hidden = !problem;
-    ui.apply.disabled = !!problem;
-    ui.total.textContent = problem ? "Нет источников" : preview ? sourcesText(preview.total) : "Считаем…";
-    ui.totalNote.textContent = this.draftError || (preview && !preview.total ? "по этим правилам искать не по чему"
-      : state.custom ? "по правилам" : "все, что покрывают места брифа");
-    const note = this.catalogNote(preview);
-    ui.dNote.textContent = note; ui.dNote.hidden = !note;
+  drawDialog() { this.keepFocus(() => this.draw()); }
+  draw() {
+    const ui = this.ui, state = this.draft, preview = this.draftPreview;
+    this.learnNames(preview);
+    ui.sdModeAuto.checked = !state.custom; ui.sdModeCustom.checked = state.custom;
+    const places = this.places(), total = this.everywhere?.total;
+    ui.sdAutoText.textContent = [total != null ? sourcesText(total) : "Все источники", places ? `для мест брифа: ${places}` : "",
+      ].filter(Boolean).join(" ") + ". Новые подключатся сами.";
+    ui.sdList.hidden = !state.custom;
+    ui.sdBuiltins.replaceChildren(...this.list.map(source => this.builtinRow(source, preview)));
+    const sites = preview?.groups.find(group => group.group === "company_site");
+    ui.sdSites.checked = state.sites;
+    ui.sdSitesCount.textContent = sites?.available ? `${countText(sites.available, "сайт", "сайта", "сайтов")} для мест брифа` : "";
+    ui.sdSitesBox.hidden = !state.sites;
+    const all = state.companies === "all";
+    ui.sdSitesAll.checked = all; ui.sdSitesPicked.checked = !all;
+    ui.sdSitesPickedText.textContent = state.picked.length ? `Только выбранные · ${state.picked.length}` : "Только выбранные";
+    const note = all && state.picked.length
+      ? `Выбранные компании (${state.picked.length}) не сохранятся: ищем на всех сайтах.` : "";
+    ui.sdSitesNote.textContent = note; ui.sdSitesNote.hidden = !note;
+    const chips = all ? state.skipped : state.picked;
+    ui.sdChips.replaceChildren(...(chips.length ? [el("span", all ? "Не искать:" : "Выбраны:", "sd-chips-label"),
+      ...chips.map(item => this.chip(item, all ? "skipped" : "picked"))] : []));
+    const searching = !all || this.skipOpen || state.skipped.length > 0;
+    ui.sdSkipOpen.hidden = searching; ui.sdSearchBox.hidden = !searching;
+    ui.sdSearch.placeholder = all ? "Название компании, где не искать" : "Название компании";
+    const problem = SourceRulesModel.problem(state, this.list);
+    ui.sdTotal.classList.toggle("sd-problem", !!problem || !!this.draftError || (preview && !preview.total));
+    ui.sdTotal.textContent = problem || this.draftError || (!preview ? "Считаем…" : preview.total
+      ? `Будем искать в ${countText(preview.total, "источнике", "источниках", "источниках")}` : "По этому выбору искать негде.");
+    ui.sourcesApply.disabled = !!problem;
+    const catalog = this.catalogNote(preview);
+    ui.sdCatalogNote.textContent = catalog; ui.sdCatalogNote.hidden = !catalog;
     if (this.matches) this.drawMatches();
   }
-  typeRow(group, count) {
-    const [title, text] = GROUP_TITLES[group], row = el("label", undefined, "sd-type");
-    const body = el("span", undefined, "sd-type-text"), n = el("span", "", "n");
-    body.append(el("b", title), el("small", text));
-    if (RULE_TYPES.includes(group)) {
-      const box = el("input"); box.type = "checkbox"; box.checked = this.draft.types.includes(group); box.dataset.key = "type:" + group;
-      box.onchange = () => {
-        const next = SourceRulesModel.custom(this.draft);
-        next.types = RULE_TYPES.filter(type => type === group ? box.checked : next.types.includes(type));
-        this.editDraft(next);
-      };
-      if (count) n.textContent = box.checked && count.selected !== count.available
-        ? `${count.selected} из ${count.available}` : String(count.available);
-      row.append(box);
-    } else {
-      row.classList.add(group === "telegram" ? "off" : "fixed");
-      row.append(el("span", undefined, "sd-type-gap"));
-      n.textContent = group === "telegram" ? "—" : !count ? "" : count.selected !== count.available
-        ? `${count.selected.toLocaleString("ru")} из ${count.available.toLocaleString("ru")}` : count.available.toLocaleString("ru");
-    }
-    row.append(body, n);
+  builtinRow(source, preview) {
+    const row = el("label", undefined, "sd-type"), box = el("input"), text = el("span", undefined, "sd-type-text");
+    box.type = "checkbox"; box.dataset.key = "builtin:" + source.id; box.checked = this.draft.builtins.includes(source.id);
+    box.onchange = () => {
+      const next = SourceRulesModel.copy(this.draft);
+      next.builtins = this.list.map(s => s.id).filter(id => id === source.id ? box.checked : next.builtins.includes(id));
+      this.edit(next);
+    };
+    text.append(el("b", source.name));
+    if (box.checked && preview && !preview.builtin.includes(source.id)) text.append(el("small", "Нет вакансий для мест брифа"));
+    row.append(box, text);
     return row;
   }
-  companyRows(preview, count) {
-    const state = this.draft, rows = [], chosen = state.include.filter(isCompanyItem);
-    const modes = el("div", undefined, "sd-company-modes");
-    for (const [value, text] of [["all", `Все компании${count ? " · " + count.available.toLocaleString("ru") : ""}`],
-      ["selected", `Только выбранные · ${chosen.length}`]]) {
-      const label = el("label", undefined, "check-label"), radio = el("input");
-      radio.type = "radio"; radio.name = "sdCompanyMode"; radio.value = value; radio.checked = state.companies === value;
-      radio.dataset.key = "companies:" + value;
-      radio.onchange = () => { if (radio.checked) this.editDraft({...SourceRulesModel.custom(this.draft), companies: value}); };
-      label.append(radio, " " + text); modes.append(label);
-    }
-    rows.push(modes);
-    if (state.companies === "selected") rows.push(chosen.length
-      ? this.chips(chosen, preview, item => this.editDraft(SourceRulesModel.drop(this.draft, item)))
-      : el("p", "Компании не выбраны: найдите компанию ниже и нажмите «Добавить».", "muted"));
-    const catalog = preview?.catalog;
-    if (catalog?.status === "ok" && catalog.rows != null && count)
-      rows.push(el("small", `В каталоге ${catalog.rows.toLocaleString("ru")} ${ruleWord(catalog.rows, "запись", "записи", "записей")}; `
-        + `для мест брифа подходят ${count.available.toLocaleString("ru")} ${ruleWord(count.available, "сайт", "сайта", "сайтов")}.`));
-    const find = el("button", "Добавить или убрать компанию", "text-button"); find.type = "button";
-    find.onclick = () => { this.ui.search.focus(); this.ui.search.scrollIntoView({block: "center"}); };
-    rows.push(find);
-    return rows;
+  chip(item, key) {
+    const name = this.names.get(item) || "Компания", chip = el("span", undefined, "token");
+    const button = el("button", "×"); button.type = "button"; button.dataset.key = "chip:" + item;
+    button.setAttribute("aria-label", `Убрать: ${name}`);
+    button.onclick = () => this.edit(SourceRulesModel.without(this.draft, key, item));
+    chip.append(el("span", name), button);
+    return chip;
   }
-  chips(items, preview, remove) {
-    const list = el("div", undefined, "sd-chips");
-    for (const item of items) {
-      const entry = preview?.items.find(known => known.item === item), name = this.nameOf(item, preview);
-      const chip = el("span", undefined, "token" + (entry?.status === "missing" ? " missing" : ""));
-      const button = el("button", "×"); button.type = "button"; button.setAttribute("aria-label", `Убрать: ${name}`);
-      button.dataset.key = "chip:" + item; button.onclick = () => remove(item);
-      chip.append(el("span", name), button); list.append(chip);
-      if (entry?.status === "missing" && entry.reason) list.append(el("small", `${name}: ${entry.reason}`, "sd-missing"));
-    }
-    return list;
-  }
-  async search(more = false) {
+  /* Company sites by name; whether each is searched follows the draft, so it is drawn locally. */
+  async search() {
     clearTimeout(this.searchTimer);
     this.searchController?.abort();
-    // The box is read here, so a rule change while typing searches what is typed now.
-    const query = this.ui.search.value.trim();
-    if (query !== this.query) { this.query = query; this.searchPage = 1; this.matches = null; more = false; }
-    if (!this.query) { this.idle(); this.matches = null; this.ui.results.replaceChildren(); return; }
+    this.query = this.ui.sdSearch.value.trim();
+    if (!this.query) { this.matches = null; this.ui.sdResults.replaceChildren(); return; }
     const controller = this.searchController = new AbortController();
-    // «Показать ещё» asks for the next page; a refresh asks again for every row already shown,
-    // 200 rows (the service's page limit) per request.
-    const rows = more ? 20 : this.searchPage * 20;
-    this.searching = true;
-    if (this.matches) this.renderMatches();
-    // Rules the service would refuse (nothing chosen yet) cannot say who takes part; then every
-    // supported source is shown as not chosen, which is exactly what those rules mean.
-    const empty = !!SourceRulesModel.problem(this.draft);
-    const body = {source_rules: (empty ? null : SourceRulesModel.toRules(this.draft)) ?? {},
-      countries: this.countryCodes(), name: this.query};
     try {
-      let page;
-      if (more) page = await this.api("/api/v1/sources/search", "POST", {...body, page: this.searchPage, page_size: 20}, controller.signal);
-      else for (let n = 1; !page || (page.items.length < rows && page.items.length < page.total); n++) {
-        const next = await this.api("/api/v1/sources/search", "POST", {...body, page: n, page_size: 200}, controller.signal);
-        page = page ? {...next, items: [...page.items, ...next.items]} : next;
-        if (!next.items.length) break;
-      }
+      const page = await this.api("/api/v1/sources/search", "POST", {countries: this.countryCodes(), name: this.query,
+        groups: ["company_site"], page: 1, page_size: 50}, controller.signal);
       if (controller.signal.aborted) return;
-      if (!more) page.items = page.items.slice(0, rows);
-      this.idle();
-      if (empty) for (const match of page.items) if (match.rule_item) {
-        match.participation = "not_selected"; match.participation_reason = "Ничего не выбрано.";
-      }
-      this.matches = more && this.matches ? {...page, items: [...this.matches.items, ...page.items]} : page;
-      this.renderMatches();
+      for (const match of page.items) if (match.rule_item) this.names.set(match.rule_item, match.name);
+      this.matches = page; this.drawMatches();
     } catch (error) {
       if (controller.signal.aborted) return;
-      this.idle();
-      if (more) { this.searchPage -= 1; if (this.matches) this.renderMatches(); this.ui.results.append(el("p", `Не удалось загрузить ещё: ${error.message}`, "sd-error")); return; }
-      this.matches = null; this.ui.results.replaceChildren(el("p", `Поиск не удался: ${error.message}`, "sd-error"));
+      this.matches = null; this.ui.sdResults.replaceChildren(el("p", `Поиск не удался: ${error.message}`, "sd-error"));
     }
   }
-  idle() { this.searching = false; this.ui.results.setAttribute("aria-busy", "false"); }
-  renderMatches() { this.keepFocus(() => this.drawMatches()); }
   drawMatches() {
-    const page = this.matches, host = this.ui.results;
-    host.setAttribute("aria-busy", String(!!this.searching));
-    if (!page.items.length) { host.replaceChildren(el("p", `Ничего не нашлось по «${this.query}».`, "muted")); return; }
+    const page = this.matches, host = this.ui.sdResults;
+    const usable = page.items.filter(match => match.rule_item), unusable = page.items.filter(match => !match.rule_item);
     const nodes = [];
-    for (const group of page.groups) {
-      const items = page.items.filter(item => item.group === group.group);
-      if (!items.length) continue;
-      nodes.push(el("h4", `${GROUP_TITLES[group.group][0]} · ${group.total} ${ruleWord(group.total, "совпадение", "совпадения", "совпадений")}`));
+    if (!page.items.length) nodes.push(el("p", `Не нашли компанию «${this.query}».`, "muted"));
+    if (usable.length) {
       const list = el("ul", undefined, "sd-matches");
-      for (const match of items) list.append(this.matchRow(match));
+      for (const match of usable) list.append(this.matchRow(match));
       nodes.push(list);
     }
-    if (page.items.length < page.total) {
-      const more = el("button", `Показать ещё · ${page.total - page.items.length}`, "secondary"); more.type = "button";
-      more.dataset.key = "more";
-      if (this.searching) more.setAttribute("aria-disabled", "true");
-      more.onclick = () => { if (this.searching) return; this.searchPage += 1; this.search(true); };
+    if (unusable.length) {
+      const more = el("details", undefined, "sd-unusable");
+      more.append(el("summary", `Ещё ${unusable.length} — пока не умеем искать на этих сайтах`),
+        el("p", unusable.map(match => match.name).join(", "), "muted"));
       nodes.push(more);
     }
+    if (page.total > page.items.length)
+      nodes.push(el("p", `Показаны первые ${page.items.length} из ${page.total}: уточните название.`, "muted"));
     host.replaceChildren(...nodes);
   }
   matchRow(match) {
-    const row = el("li", undefined, "sd-match " + match.participation);
-    const text = el("span", undefined, "sd-match-text");
-    text.append(el("b", match.name), el("small", `${match.kind_name} · ${this.participationText(match)}`));
-    row.append(text);
-    const action = SourceRulesModel.action(this.draft, match);
-    if (action) {
-      const button = el("button", action.label, "secondary"); button.type = "button";
-      button.setAttribute("aria-label", `${action.label}: ${match.name}`); button.dataset.key = "match:" + match.id;
-      // While the list is being asked again its labels may be stale; aria-disabled keeps focus.
-      if (this.searching) button.setAttribute("aria-disabled", "true");
-      button.onclick = () => { if (!this.searching) this.editDraft(action.apply(this.draft)); };
-      row.append(button);
-    }
+    const state = this.draft, all = state.companies === "all", row = el("li", undefined, "sd-match");
+    const on = all ? !SourceRulesModel.isSkipped(state, match) : SourceRulesModel.isPicked(state, match);
+    row.classList.toggle("on", on);
+    row.append(el("b", match.name), el("small", on ? "ищем" : "не ищем", "sd-state"));
+    const label = all ? (on ? "Не искать" : "Искать") : (on ? "Убрать" : "Выбрать");
+    const button = el("button", label, "secondary"); button.type = "button"; button.dataset.key = "match:" + match.id;
+    button.setAttribute("aria-label", `${label}: ${match.name}`);
+    const M = SourceRulesModel;
+    button.onclick = () => this.edit(all ? (on ? M.skip : M.unskip)(this.draft, match) : (on ? M.unpick : M.pick)(this.draft, match));
+    row.append(button);
     return row;
-  }
-  participationText(match) {
-    const state = {included: "Участвует", excluded: "Не участвует", not_selected: "Не участвует",
-      not_covered: "Не участвует", unsupported: "Не поддерживается"}[match.participation];
-    const reason = match.participation_reason.replace(/\.$/, "");
-    return `${state}: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}`;
   }
 }
 

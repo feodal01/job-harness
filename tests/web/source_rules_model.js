@@ -1,93 +1,74 @@
-// The rules model of the sources dialog (src/web/static/source-rules.js), run by tests/test_web_source_rules.py.
+// The choice model of the «Где искать вакансии» dialog (src/web/static/source-rules.js),
+// run by tests/test_web_source_rules.py.
 const assert = require("assert");
 const {SourceRulesModel: M, MAX_RULE_ITEMS} = require(process.argv[2]);
+const LIST = [{id: "hh_ru", group: "aggregator", name: "HH"}, {id: "getmatch", group: "it_board", name: "Getmatch"}];
 const C = "company:00000000-0000-4000-8000-000000000001", D = "company:00000000-0000-4000-8000-000000000002";
 const A = rules => ({mode: "auto", groups: null, include: [], exclude: [], ...rules});
-const ALL = ["aggregator", "it_board", "company_site"];
-const round = rules => M.toRules(M.fromRules(rules));
-function shared0() {
-  return {participation: "excluded", rule_item: C, id: "ats:greenhouse:abbyy", group: "company_site", company_ids: [C.slice(8), D.slice(8)]};
-}
+const from = rules => M.fromRules(rules, LIST), to = state => M.toRules(state, LIST);
+const custom = over => ({custom: true, builtins: ["hh_ru", "getmatch"], sites: true, companies: "all", picked: [], skipped: [], ...over});
 
-// The default stays the default; opening it as custom shows every type and all company sites.
-assert.strictEqual(M.toRules(M.fromRules(null)), null);
-assert.deepStrictEqual(M.fromRules(null), {custom: false, types: ["aggregator", "it_board"], companies: "all", include: [], exclude: []});
-assert.deepStrictEqual(M.toRules(M.custom(M.fromRules(null))), A({groups: ALL}));
-assert.strictEqual(M.fromRules(A()).custom, false);
+// «Везде» stays «везде»; choosing yourself starts from everything checked.
+assert.strictEqual(to(from(null)), null);
+assert.deepStrictEqual(from(null), {custom: false, builtins: ["hh_ru", "getmatch"], sites: true, companies: "all", picked: [], skipped: []});
+assert.deepStrictEqual(to({...from(null), custom: true}), A({groups: ["aggregator", "it_board", "company_site"]}));
+assert.strictEqual(from(A()).custom, false);
 
-// Rules made elsewhere (MCP, API) open and apply unchanged in meaning.
-for (const rules of [
-  A({exclude: [C, "getmatch"]}),
-  A({groups: ["aggregator", "company_site"], exclude: ["hh_ru"]}),
-  A({groups: ["it_board"], include: [C, D, "ats:lever:acme"]}),
-  A({groups: [], include: [C]}),
-]) assert.deepStrictEqual(round(rules), {...rules, groups: rules.groups ?? ALL});
-// A selection is the same search as auto rules with no types and the same items.
-assert.deepStrictEqual(round({mode: "selected", groups: null, include: ["hh_ru", C], exclude: []}),
-  A({groups: [], include: ["hh_ru", C]}));
-// A company chosen while every company site is searched adds nothing and is left out.
-assert.deepStrictEqual(round(A({include: [C, "hh_ru"]})), A({groups: ALL, include: ["hh_ru"]}));
+// An unchecked built-in is just unchecked: its type leaves the rules, nothing lands in a list.
+assert.deepStrictEqual(to(custom({builtins: ["getmatch"]})), A({groups: ["it_board", "company_site"]}));
+// Rules from MCP or the old dialog show the built-in as it is searched.
+assert.deepStrictEqual(from(A({exclude: ["hh_ru"]})).builtins, ["getmatch"]);
+assert.deepStrictEqual(from(A({groups: ["it_board"], include: ["hh_ru"]})).builtins, ["hh_ru", "getmatch"]);
+assert.deepStrictEqual(from(A({groups: ["company_site"]})).builtins, []);
+assert.deepStrictEqual(from({mode: "selected", groups: null, include: ["getmatch", C], exclude: []}),
+  {custom: true, builtins: ["getmatch"], sites: true, companies: "selected", picked: [C], skipped: []});
 
-// Problems are the rules the service refuses.
-const none = {custom: true, types: [], companies: "selected", include: [], exclude: []};
-assert.ok(M.problem(none));
-assert.strictEqual(M.problem({...none, include: [C]}), null);
-assert.strictEqual(M.problem({...none, types: ["aggregator"]}), null);
-assert.strictEqual(M.problem({...none, companies: "all"}), null);
-assert.strictEqual(M.problem(M.fromRules(null)), null);
-assert.ok(M.problem({...none, include: Array.from({length: MAX_RULE_ITEMS + 1}, (_, i) => `ats:lever:b${i}`)}));
+// Every kind of rules opens and applies to the same search.
+for (const [rules, expected] of [
+  [A({exclude: [C, "getmatch"]}), A({groups: ["aggregator", "company_site"], exclude: [C]})],
+  [A({groups: ["aggregator", "company_site"], exclude: ["hh_ru", D]}), A({groups: ["company_site"], exclude: [D]})],
+  [A({groups: ["it_board"], include: [C, "ats:lever:acme"]}), A({groups: ["it_board"], include: [C, "ats:lever:acme"]})],
+  [A({groups: [], include: [C]}), A({groups: [], include: [C]})],
+  [{mode: "selected", groups: null, include: ["hh_ru", C], exclude: []}, A({groups: ["aggregator"], include: [C]})],
+]) assert.deepStrictEqual(to(from(rules)), expected, JSON.stringify(rules));
 
-// Actions from search results keep include and exclude apart and make the rules custom.
-const auto = M.fromRules(null);
-const match = (participation, rule_item, id = rule_item) => ({participation, rule_item, id, group: "company_site"});
-let s = M.action(auto, match("included", "hh_ru")).apply(auto);
-assert.deepStrictEqual(M.toRules(s), A({groups: ALL, exclude: ["hh_ru"]}));
-assert.strictEqual(M.action(s, match("excluded", "hh_ru")).label, "Вернуть");
-s = M.action(s, match("excluded", "hh_ru")).apply(s);
-assert.deepStrictEqual(s.exclude, []);
-// A board excluded by its id comes back through its company.
-s = M.restore({...auto, custom: true, exclude: ["ats:lever:acme", D]}, match("excluded", C, "ats:lever:acme"));
-assert.deepStrictEqual(s.exclude, [D]);
-// Adding a company in «only selected» mode, then removing it.
-const sel = {...none, types: ["aggregator"]};
-s = M.action(sel, match("not_selected", C)).apply(sel);
-assert.deepStrictEqual(M.toRules(s), A({groups: ["aggregator"], include: [C]}));
-assert.strictEqual(M.action(s, match("included", C)).label, "Убрать");
-s = M.action(s, match("included", C)).apply(s);
-assert.deepStrictEqual(s.include, []);
-// With every company site chosen, a company kept from «only selected» is excluded, not removed.
-const kept = {...sel, companies: "all", include: [C]};
-assert.strictEqual(M.action(kept, match("included", C)).label, "Исключить");
-assert.deepStrictEqual(M.toRules(M.action(kept, match("included", C)).apply(kept)), A({groups: ["aggregator", "company_site"], exclude: [C]}));
-// Adding what was excluded moves it, never leaves it in both lists.
-s = M.add({...sel, exclude: [C]}, C);
-assert.deepStrictEqual([s.include, s.exclude], [[C], []]);
-s = M.exclude({...sel, include: [C]}, C);
-assert.deepStrictEqual([s.include, s.exclude], [[], [C]]);
-// «Убрать» only when include alone brings the source in; a chosen type keeps it, so then «Исключить».
-const gm = {...sel, include: ["getmatch"]};
-assert.strictEqual(M.action(gm, {...match("included", "getmatch"), group: "it_board"}).label, "Убрать");
-const both = {...gm, types: ["aggregator", "it_board"]};
-assert.strictEqual(M.action(both, {...match("included", "getmatch"), group: "it_board"}).label, "Исключить");
-assert.deepStrictEqual(M.toRules(M.action(both, {...match("included", "getmatch"), group: "it_board"}).apply(both)),
-  A({groups: ["aggregator", "it_board"], exclude: ["getmatch"]}));
-// A board shared by two chosen companies leaves the search only when both are dropped.
-const two = {...sel, include: [C, D]}, board = {...shared0(), participation: "included"};
-assert.strictEqual(M.action(two, board).label, "Убрать");
-assert.deepStrictEqual(M.action(two, board).apply(two).include, []);
-assert.strictEqual(M.action({...two, types: [], companies: "all"}, board).label, "Исключить");
-// A board shared by two catalog companies comes back whichever of them was excluded.
-const shared = shared0();
-assert.deepStrictEqual(M.restore({...sel, exclude: [D, "hh_ru"]}, shared).exclude, ["hh_ru"]);
-// Not covered sources can be added explicitly; unsupported ones get no button.
-assert.strictEqual(M.action(auto, match("not_covered", "hh_ru")).label, "Добавить");
-assert.strictEqual(M.action(auto, match("unsupported", null, "linkedin")), null);
-// Actions never change the state they were given.
-const frozen = JSON.stringify(sel); M.add(sel, C); M.exclude(sel, "hh_ru"); assert.strictEqual(JSON.stringify(sel), frozen);
+// Company sites: all, only chosen, or none; chosen companies are kept only in «only chosen».
+const picked = custom({companies: "selected", picked: [C], skipped: [D]});
+assert.deepStrictEqual(to(picked), A({groups: ["aggregator", "it_board"], include: [C]}));
+assert.deepStrictEqual(to({...picked, companies: "all"}), A({groups: ["aggregator", "it_board", "company_site"], exclude: [D]}));
+assert.deepStrictEqual(to({...picked, sites: false}), A({groups: ["aggregator", "it_board"]}));
 
-// Short descriptions without a preview.
-assert.strictEqual(M.describe(null), "все по местам брифа");
-assert.strictEqual(M.describe(A({groups: ["aggregator"], include: [C, D], exclude: ["getmatch"]})), "агрегаторы · 2 компании · исключено: 1");
-assert.strictEqual(M.describe(A({exclude: [C]})), "агрегаторы, it-площадки · сайты компаний · исключено: 1");
-assert.strictEqual(M.describe(A({groups: [], include: ["hh_ru"]})), "добавлено: 1");
+// Nothing to search is a problem the dialog names; an empty company choice says so.
+assert.strictEqual(M.problem(custom({builtins: [], sites: false}), LIST), "Отметьте, где искать.");
+assert.strictEqual(M.problem(custom({builtins: [], companies: "selected"}), LIST), "Выберите компанию или отметьте другой источник.");
+assert.strictEqual(M.problem(custom({builtins: [], companies: "selected", picked: [C]}), LIST), null);
+assert.strictEqual(M.problem(custom({builtins: ["hh_ru"], sites: false}), LIST), null);
+assert.strictEqual(M.problem(from(null), LIST), null);
+const many = Array.from({length: MAX_RULE_ITEMS + 1}, (_, i) => `ats:lever:b${i}`);
+assert.ok(M.problem(custom({companies: "selected", picked: many}), LIST));
+
+// Picking and skipping company sites; a board shared by two companies counts as one site.
+const abbyy = {rule_item: C, id: "ats:greenhouse:abbyy", company_ids: [C.slice(8), D.slice(8)]};
+let s = M.pick(custom({companies: "selected"}), abbyy);
+assert.deepStrictEqual(s.picked, [C]); assert.ok(M.isPicked(s, abbyy));
+assert.deepStrictEqual(M.pick({...s}, abbyy).picked, [C]);
+assert.deepStrictEqual(M.unpick({...s, picked: [C, D, "ats:greenhouse:abbyy"]}, abbyy).picked, []);
+s = M.skip(custom(), abbyy);
+assert.deepStrictEqual([s.skipped, s.picked], [[C], []]); assert.ok(M.isSkipped(s, abbyy));
+assert.deepStrictEqual(M.unskip({...s, skipped: [D, "hh_ru"]}, abbyy).skipped, ["hh_ru"]);
+// A site is never both chosen and skipped.
+s = M.pick(custom({skipped: [D]}), abbyy);
+assert.deepStrictEqual([s.picked, s.skipped], [[C], []]);
+s = M.skip(custom({picked: [D]}), abbyy);
+assert.deepStrictEqual([s.picked, s.skipped], [[], [C]]);
+// Changes never touch the state they were given.
+const frozen = custom({picked: [C]}), before = JSON.stringify(frozen);
+M.pick(frozen, abbyy); M.skip(frozen, abbyy); M.without(frozen, "picked", C);
+assert.strictEqual(JSON.stringify(frozen), before);
+
+// Short descriptions for the brief card.
+assert.strictEqual(M.describe(null, LIST), "везде");
+assert.strictEqual(M.describe(A({groups: ["aggregator"], include: [C, D]}), LIST), "HH, 2 компании");
+assert.strictEqual(M.describe(A({exclude: [C, "getmatch"]}), LIST), "HH, сайты компаний; не искать: 1 сайт");
+assert.strictEqual(M.describe(A({groups: ["company_site"]}), LIST), "сайты компаний");
 console.log("ok");

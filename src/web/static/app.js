@@ -92,7 +92,7 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
         : `${g.cities.map(c => c.city_display_name || c.city).join(", ")} (${countryName(g.country)})`);
     }
     const sourceRulesEditor = new SourceRulesEditor({
-      api, countries: () => locationEditor.groups.map(g => g.country), places: () => placeTexts().join("; "),
+      api, builtins: () => sources, countries: () => locationEditor.groups.map(g => g.country), places: () => placeTexts().join("; "),
       onChange: () => {updateSource(); renderConditionsSummary();},
     });
     /* Built-in sources the rules search, once counted; null while counting. */
@@ -621,7 +621,7 @@ function salaryText(v) {
 function renderBriefSummary(b) {
   const summary = $("briefSummary"); summary.replaceChildren();
   if (b.queries.length) summary.append(`Запросы: ${b.queries.join(" · ")}`);
-  const sourceText = SourceRulesModel.describe(b.search?.source_rules ?? null);
+  const sourceText = SourceRulesModel.describe(b.search?.source_rules ?? null, sources);
   summary.append(`${b.queries.length ? " · " : ""}Источники: ${sourceText}`);
 }
 const sourceName = id => sources.find(s => s.id === id)?.name || id;
