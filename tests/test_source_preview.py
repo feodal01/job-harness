@@ -323,3 +323,21 @@ async def test_mcp_preview_asks_search_only_with_a_name():
     )
     assert [c[1] for c in manager.calls[1:]] == ["/api/v1/sources/preview", "/api/v1/sources/search"]
     assert manager.calls[-1][2]["body"]["name"] == "Яндекс"
+
+
+async def test_found_company_sites_carry_the_industries_of_every_catalog_row(store):
+    from test_source_service import link
+
+    rows = [
+        link(ABBYY_1, "ABBYY", "https://job-boards.greenhouse.io/abbyy", "ats:greenhouse").model_copy(
+            update={"categories": ["Корпоративное ПО"]}
+        ),
+        link(ABBYY_2, "ABBYY Group", "https://boards.greenhouse.io/abbyy", "ats:greenhouse").model_copy(
+            update={"categories": ["Корпоративное ПО", "Искусственный интеллект"]}
+        ),
+        link(WEB, "Web", "https://example.org/careers", "web").model_copy(update={"categories": ["Финтех"]}),
+    ]
+    page = await sources(store, Catalog(rows=rows)).search(SourceRules(), ["RU"], groups=["company_site"])
+    found = {item["id"]: item["categories"] for item in page["items"]}
+    assert found["ats:greenhouse:abbyy"] == ["Корпоративное ПО", "Искусственный интеллект"]
+    assert found[f"catalog:{WEB}"] == ["Финтех"]  # unsupported sites keep theirs too

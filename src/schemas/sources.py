@@ -37,6 +37,7 @@ class SourceResponse(BaseModel):
     reason: str | None = None
     type: SourceType | None = None
     company_ids: list[str] = Field(default_factory=list)
+    categories: list[str] = Field(default_factory=list, description="Отрасли компании из каталога.")
     coverage: SourceCoverage
     capabilities: SourceCapabilities | None = None
     state: SourceAvailability | None = None

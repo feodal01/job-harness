@@ -1,4 +1,4 @@
-/* Where a brief searches (mockup 8о): the choice model, the form line and the dialog.
+/* Where a brief searches (mockups 8о, 8о-2): the choice model, the form section and the dialog.
  * The brief keeps rules, not a list: `null` is «everywhere» (every source covering the brief's
  * places), otherwise `{mode:"auto", groups, include, exclude}`. The person sees one list instead:
  * each built-in site and «company sites» with a box, company sites either all or only chosen ones.
@@ -120,23 +120,27 @@ const SourceRulesModel = {
   },
 };
 
+const GROUP_NAMES = {aggregator: "Агрегаторы", it_board: "IT-площадки"};
+const listText = (names, limit = 3) => names.length <= limit ? names.join(", ")
+  : `${names.slice(0, limit - 1).join(", ")} и ещё ${names.length - limit + 1}`;
+
 class SourceRulesEditor {
   /* api(path, method, body, signal); builtins() — built-in sources [{id, group, name}];
    * countries() — ISO codes of the form's places, places() — their text; onChange() runs when the
    * rules or their count change. */
   constructor({api, builtins, countries, places, onChange}) {
     Object.assign(this, {api, builtins, countries, places, onChange});
-    this.rules = null; this.preview = null; this.error = ""; this.loading = false;
-    this.timer = null; this.controller = null; this.version = 0;
-    this.draft = null; this.draftPreview = null; this.draftError = ""; this.draftVersion = 0; this.draftController = null;
-    this.everywhere = null; this.names = new Map();
-    this.query = ""; this.searchTimer = null; this.searchController = null; this.matches = null; this.skipOpen = false;
+    this.rules = null; this.preview = null; this.everywhere = null; this.error = ""; this.loading = false;
+    this.timer = null; this.controller = null; this.version = 0; this.pending = false;
+    this.draft = null; this.draftPreview = null; this.draftError = ""; this.draftVersion = 0; this.draftStale = false;
+    this.names = new Map(); this.rows = null; this.rowsKey = ""; this.rowsError = ""; this.rowsController = null;
+    this.category = null; this.onlyChecked = false; this.showUnreadable = false; this.searchTimer = null;
     const $ = id => document.getElementById(id);
-    this.ui = Object.fromEntries(["sourceSummary", "sourceCatalogNote", "openSourceRules", "sourceCount", "sourcesDialog",
-      "sourcesDialogClose", "sourcesCancel", "sourcesApply", "sdModeAuto", "sdModeCustom", "sdAutoText", "sdCatalogNote",
-      "sdList", "sdBuiltins", "sdSites", "sdSitesCount", "sdSitesBox", "sdSitesAll", "sdSitesPicked",
-      "sdSitesPickedText", "sdSitesNote", "sdSitesLost", "sdFound", "sdHint", "sdChips", "sdSkipOpen", "sdSearchBox", "sdSearch", "sdResults", "sdTotal"]
-      .map(id => [id, $(id)]));
+    this.ui = Object.fromEntries(["sourceSummary", "sourceCatalogNote", "openSourceRules", "sourceCount",
+      "sourcesDialog", "sourcesDialogClose", "sourcesCancel", "sourcesApply", "sdPlaces", "sdModeAuto",
+      "sdModeCustom", "sdAutoCount", "sdCatalogNote", "sdList", "sdBuiltins", "sdSites", "sdSitesNum",
+      "sdSitesBody", "sdCats", "sdSearch", "sdShowAll", "sdShowChecked", "sdAll", "sdAllNote", "sdRows",
+      "sdRowsFoot", "sdTotal", "sdTotalNote", "sdProblem"].map(id => [id, $(id)]));
     const ui = this.ui, M = SourceRulesModel;
     ui.openSourceRules.onclick = () => this.openDialog();
     ui.sourcesDialogClose.onclick = ui.sourcesCancel.onclick = () => this.closeDialog(false);
@@ -144,17 +148,22 @@ class SourceRulesEditor {
     ui.sourcesDialog.oncancel = event => { event.preventDefault(); this.closeDialog(false); };
     ui.sdModeAuto.onchange = () => { if (ui.sdModeAuto.checked) this.edit({...M.copy(this.draft), custom: false}); };
     ui.sdModeCustom.onchange = () => { if (ui.sdModeCustom.checked) this.edit({...M.copy(this.draft), custom: true}); };
-    // Ticking company sites with no company chosen yet means all of them.
+    // Ticking company sites with none chosen yet means all of them.
     ui.sdSites.onchange = () => this.edit({...M.copy(this.draft), sites: ui.sdSites.checked,
       companies: ui.sdSites.checked && !this.draft.picked.length ? "all" : this.draft.companies});
-    ui.sdSitesAll.onchange = () => { if (ui.sdSitesAll.checked) this.edit({...M.copy(this.draft), companies: "all"}); };
-    ui.sdSitesPicked.onchange = () => { if (ui.sdSitesPicked.checked) this.edit({...M.copy(this.draft), companies: "selected"}); };
-    ui.sdSkipOpen.onclick = () => { this.skipOpen = true; this.drawDialog(); ui.sdSearch.focus(); };
-    ui.sdSearch.oninput = () => { clearTimeout(this.searchTimer); this.searchTimer = setTimeout(() => this.search(), 300); };
+    // «Отметить все»: every company site, or none when all are already checked.
+    ui.sdAll.onchange = () => {
+      // Nothing checked is simply «no company sites», so the box above unchecks too.
+      const all = ui.sdAll.checked;
+      this.edit({...M.copy(this.draft), sites: all, companies: all ? "all" : "selected", picked: [], skipped: []});
+    };
+    ui.sdShowAll.onclick = () => { this.onlyChecked = false; this.drawRows(); };
+    ui.sdShowChecked.onclick = () => { this.onlyChecked = true; this.drawRows(); };
+    ui.sdSearch.oninput = () => { clearTimeout(this.searchTimer); this.searchTimer = setTimeout(() => this.drawRows(), 150); };
     ui.sdSearch.onkeydown = event => { if (event.key === "Enter") event.preventDefault(); };
   }
 
-  /* --- The form ------------------------------------------------------------------------- */
+  /* --- The form (mockup 8о-2) ------------------------------------------------------------ */
 
   get list() { return this.builtins(); }
   load(rules) {
@@ -174,8 +183,8 @@ class SourceRulesEditor {
   get requiresQuery() { return this.preview?.requires_query === true; }
   get builtin() { return this.preview?.builtin ?? null; }
   describe() {
-    return this.preview && !this.loading ? this.summary(this.rules, this.preview)
-      : SourceRulesModel.describe(this.rules, this.list);
+    if (!this.preview || this.loading) return SourceRulesModel.describe(this.rules, this.list);
+    return this.rules ? `${sourcesText(this.preview.total)} по выбору` : `везде · ${this.preview.total.toLocaleString("ru")}`;
   }
 
   /* Count again after the rules or the brief's places change; only the latest answer is shown. */
@@ -187,13 +196,14 @@ class SourceRulesEditor {
     const version = ++this.version;
     this.pending = false;
     this.controller?.abort();
-    if (this.problem) { this.preview = null; this.loading = false; this.render(); this.onChange(); return; }
     const controller = this.controller = new AbortController();
     this.loading = true; this.render();
     try {
-      const answer = await this.request(this.rules, controller.signal);
+      // «Везде» says which built-ins cover the places; the brief's own rules say what is searched.
+      const everywhere = await this.request(null, controller.signal);
+      const answer = this.problem ? null : this.rules ? await this.request(this.rules, controller.signal) : everywhere;
       if (version !== this.version) return;
-      this.preview = answer; this.error = "";
+      this.everywhere = everywhere; this.preview = answer; this.error = "";
     } catch (error) {
       if (version !== this.version) return;
       this.preview = null; this.error = `Не удалось посчитать источники: ${error.message}`;
@@ -205,59 +215,73 @@ class SourceRulesEditor {
   }
   countryCodes() { return [...new Set(this.countries().filter(Boolean).map(code => code.toUpperCase()))]; }
   learnNames(preview) { for (const entry of preview?.items || []) if (entry.name) this.names.set(entry.item, entry.name); }
-
-  render() {
-    const ui = this.ui, preview = this.preview;
-    ui.sourceCount.textContent = this.loading ? "Считаем…" : preview ? sourcesText(preview.total) : "";
-    ui.sourceSummary.textContent = this.loading && !preview ? "Считаем…" : this.describe();
-    const note = this.error || this.catalogNote(preview);
-    ui.sourceCatalogNote.textContent = note; ui.sourceCatalogNote.hidden = !note;
-  }
-  /* «HH, Getmatch и 218 сайтов компаний»; chosen companies by name. */
-  summary(rules, preview) {
-    if (!preview.total) return rules ? "По этому выбору искать негде: отмеченные источники не охватывают места брифа."
-      : "Для мест брифа нет источников: измените места.";
-    this.learnNames(preview);
-    const state = SourceRulesModel.fromRules(rules, this.list);
-    const parts = this.list.filter(source => preview.builtin.includes(source.id)).map(source => source.name);
-    const sites = preview.groups.find(group => group.group === "company_site")?.selected || 0;
-    if (state.sites && state.companies === "selected" && state.picked.length) {
-      const names = state.picked.map(item => this.names.get(item) || "компания");
-      parts.push(names.length <= 3 ? names.join(", ") : `${names.slice(0, 2).join(", ")} и ещё ${names.length - 2}`);
-    } else if (sites) parts.push(countText(sites, "сайт компании", "сайта компаний", "сайтов компаний"));
-    if (!parts.length) parts.push(sourcesText(preview.total));
-    const last = parts.pop();
-    let text = parts.length ? `${parts.join(", ")} и ${last}` : last;
-    if (state.sites && state.companies === "all" && state.skipped.length)
-      text += `; не искать: ${state.skipped.map(item => this.names.get(item) || "сайт").join(", ")}`;
-    return (rules ? "" : "Везде: ") + text;
-  }
+  covered(preview = this.everywhere) { return new Set(preview?.builtin || []); }
+  groupCount(preview, group) { return preview?.groups.find(g => g.group === group) || {available: 0, selected: 0}; }
   catalogNote(preview) {
     const catalog = preview?.catalog;
     if (!catalog || ["ok", "not_requested"].includes(catalog.status)) return "";
-    return `Сайты компаний сейчас не учитываются: ${catalog.message || "каталог недоступен"}`;
+    return `Сайты компаний сейчас недоступны: ${catalog.message || "каталог не отвечает"}`;
   }
 
-  /* --- The dialog ------------------------------------------------------------------------ */
+  render() {
+    const ui = this.ui, preview = this.preview;
+    ui.sourceCount.textContent = this.loading ? "Считаем…"
+      : preview ? `будем искать в ${countText(preview.total, "источнике", "источниках", "источниках")}` : "";
+    const note = this.error || this.catalogNote(preview);
+    ui.sourceCatalogNote.textContent = note; ui.sourceCatalogNote.hidden = !note;
+    if (!this.rules) {
+      ui.sourceSummary.replaceChildren(el("p", "Везде, где есть вакансии для мест брифа"));
+      return;
+    }
+    if (!preview) { ui.sourceSummary.replaceChildren(el("p", this.loading ? "Считаем…" : this.problem || "")); return; }
+    this.learnNames(preview);
+    const state = SourceRulesModel.fromRules(this.rules, this.list), dl = el("dl", undefined, "src-rows");
+    const row = (term, text, muted) => {
+      const line = el("div", undefined, "src-row");
+      line.append(el("dt", term), el("dd", text, muted ? "muted" : undefined));
+      dl.append(line);
+    };
+    const covered = this.covered();
+    for (const group of BUILTIN_GROUPS) {
+      const members = this.list.filter(source => source.group === group && covered.has(source.id));
+      if (!members.length) continue;
+      const on = members.filter(source => preview.builtin.includes(source.id));
+      const off = members.filter(source => !on.includes(source));
+      row(GROUP_NAMES[group], !on.length ? "не ищем" : !off.length
+        ? (members.length === 1 ? members[0].name : `все ${members.length}`)
+        : `${on.length} из ${members.length} · без ${listText(off.map(s => s.name))}`, !on.length);
+    }
+    const sites = this.groupCount(preview, "company_site"), available = this.groupCount(this.everywhere, "company_site").available;
+    let text;
+    if (this.catalogNote(preview)) text = "недоступны без каталога";
+    else if (!state.sites || !sites.selected) text = "не ищем";
+    else if (state.companies === "all") text = state.skipped.length
+      ? `все, ${sites.selected} из ${available} · без ${listText(state.skipped.map(item => this.names.get(item) || "компания"))}`
+      : `все ${available}`;
+    else text = `${sites.selected} из ${available}: ${listText(state.picked.map(item => this.names.get(item) || "компания"))}`;
+    row("Сайты компаний", text, text === "не ищем" || text.startsWith("недоступны"));
+    row("Telegram-каналы", "скоро", true);
+    ui.sourceSummary.replaceChildren(dl);
+  }
+
+  /* --- The dialog (mockup 8о) ------------------------------------------------------------ */
 
   openDialog() {
     if (!this.list.length) return;  // the built-in sources are not loaded yet
     this.draft = SourceRulesModel.fromRules(this.rules, this.list);
     // «Готово» without a change keeps rules made elsewhere exactly as they are.
     this.initial = SourceRulesModel.key(this.draft); this.initialState = SourceRulesModel.copy(this.draft);
-    this.draftPreview = this.preview; this.draftStale = this.loading || this.pending; this.draftError = ""; this.everywhere = null;
-    this.skipOpen = false; this.query = ""; this.matches = null; this.ui.sdSearch.value = ""; this.ui.sdResults.replaceChildren();
+    this.draftPreview = this.preview; this.draftStale = this.loading || this.pending; this.draftError = "";
+    this.category = null; this.onlyChecked = false; this.showUnreadable = false; this.ui.sdSearch.value = "";
+    const places = this.places();
+    this.ui.sdPlaces.textContent = places ? `Места брифа: ${places}` : "Места брифа не выбраны: учитываются все страны";
     this.ui.sourcesDialog.showModal();
     (this.draft.custom ? this.ui.sdModeCustom : this.ui.sdModeAuto).focus();
-    this.drawDialog(); this.recountDraft();
-    const asked = this.everywhereAsked = (this.everywhereAsked || 0) + 1;
-    this.request(null).then(answer => {
-      if (asked === this.everywhereAsked && this.ui.sourcesDialog.open) { this.everywhere = answer; this.drawDialog(); }
-    }).catch(() => {});
+    this.drawDialog(); this.recountDraft(); this.loadRows();
   }
   closeDialog(apply) {
-    if (apply && SourceRulesModel.problem(this.draft, this.list)) return;
-    this.draftController?.abort(); this.searchController?.abort(); clearTimeout(this.searchTimer);
+    if (apply && this.ui.sourcesApply.disabled) return;
+    this.draftController?.abort(); this.rowsController?.abort(); clearTimeout(this.searchTimer);
     this.ui.sourcesDialog.close();
     if (apply && SourceRulesModel.key(this.draft) !== this.initial) this.set(SourceRulesModel.toRules(this.draft, this.list));
     this.ui.openSourceRules.focus();
@@ -280,131 +304,207 @@ class SourceRulesEditor {
     }
     this.drawDialog();
   }
+  /* Every company site for the places, read once per set of countries: names, industries, and
+   * whether the site can be read. Kept in memory only while the page is open. */
+  async loadRows() {
+    const key = this.countryCodes().join(",");
+    if (this.rows && this.rowsKey === key) { this.drawRows(); return; }
+    this.rowsController?.abort();
+    const controller = this.rowsController = new AbortController();
+    this.rows = null; this.rowsError = ""; this.drawRows();
+    try {
+      const rows = [];
+      for (let page = 1; ; page++) {
+        const answer = await this.api("/api/v1/sources/search", "POST", {countries: this.countryCodes(),
+          groups: ["company_site"], page, page_size: 200}, controller.signal);
+        rows.push(...answer.items);
+        if (answer.catalog.status !== "ok") { this.rowsError = this.catalogNote({catalog: answer.catalog}); break; }
+        if (rows.length >= answer.total || !answer.items.length) break;
+      }
+      if (controller.signal.aborted) return;
+      for (const row of rows) row.categories = row.categories || [];
+      rows.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+      for (const row of rows) if (row.rule_item) for (const item of SourceRulesModel.itemsOf(row)) this.names.set(item, row.name);
+      this.rows = rows; this.rowsKey = key;
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      this.rowsError = `Не удалось загрузить сайты компаний: ${error.message}`;
+    }
+    this.drawDialog();
+  }
   /* Controls rebuilt on a change get focus back by their data-key. */
   keepFocus(draw) {
     const key = document.activeElement?.dataset?.key;
     draw();
     if (!key || document.activeElement?.dataset?.key === key) return;
-    const visible = node => node && node.offsetParent !== null;
     const again = this.ui.sourcesDialog.querySelector(`[data-key="${CSS.escape(key)}"]`);
-    [again, this.ui.sdSearch, this.ui.sdSkipOpen, this.ui.sdSites].find(visible)?.focus();
+    (again && again.offsetParent !== null ? again : this.ui.sdSearch.offsetParent !== null ? this.ui.sdSearch : this.ui.sdSites).focus();
   }
   drawDialog() { this.keepFocus(() => this.draw()); }
   draw() {
     const ui = this.ui, state = this.draft, preview = this.draftStale ? null : this.draftPreview;
     this.learnNames(this.draftPreview);
     ui.sdModeAuto.checked = !state.custom; ui.sdModeCustom.checked = state.custom;
-    const places = this.places(), total = this.everywhere?.total;
-    ui.sdAutoText.textContent = [total != null ? sourcesText(total) : "Все источники", places ? `для мест брифа: ${places}` : "",
-      ].filter(Boolean).join(" ") + ". Новые подключатся сами.";
+    ui.sdAutoCount.textContent = this.everywhere ? ` · ${sourcesText(this.everywhere.total)}` : "";
     ui.sdList.hidden = !state.custom;
-    ui.sdBuiltins.replaceChildren(...this.list.map(source => this.builtinRow(source, preview)));
-    const sites = preview?.groups.find(group => group.group === "company_site");
-    ui.sdSites.checked = state.sites;
-    ui.sdSitesCount.textContent = sites?.available ? `${countText(sites.available, "сайт", "сайта", "сайтов")} для мест брифа` : "";
-    ui.sdSitesBox.hidden = !state.sites;
-    const lost = state.picked.length + state.skipped.length;
-    ui.sdSitesLost.textContent = !state.sites && lost ? `Выбранные сайты (${lost}) не сохранятся: на сайтах компаний не ищем.` : "";
-    ui.sdSitesLost.hidden = state.sites || !lost;
-    const all = state.companies === "all";
-    ui.sdSitesAll.checked = all; ui.sdSitesPicked.checked = !all;
-    ui.sdSitesPickedText.textContent = state.picked.length ? `Только на выбранных (${state.picked.length})` : "Только на выбранных";
-    const note = all && state.picked.length
-      ? `Список выбранных (${state.picked.length}) не сохранится: их сайты и так войдут в поиск.`
-      : !all && state.skipped.length ? `Сайты без поиска (${state.skipped.length}) не сохранятся: ищем только на выбранных.` : "";
-    ui.sdSitesNote.textContent = note; ui.sdSitesNote.hidden = !note;
-    const chips = all ? state.skipped : state.picked;
-    ui.sdChips.replaceChildren(...(chips.length ? [el("span", all ? "Без этих сайтов:" : "Выбраны:", "sd-chips-label"),
-      ...chips.map(item => this.chip(item, all ? "skipped" : "picked"))] : []));
-    const searching = !all || this.skipOpen || state.skipped.length > 0;
-    ui.sdSkipOpen.hidden = searching; ui.sdSearchBox.hidden = !searching;
-    ui.sdSearch.placeholder = all ? "Название компании, где не искать" : "Название компании";
+    ui.sdBuiltins.replaceChildren(...BUILTIN_GROUPS.map(group => this.groupCard(group)).filter(Boolean));
+    const counts = this.siteCounts();
+    ui.sdSites.checked = state.sites && counts.checked > 0;
+    ui.sdSites.indeterminate = false;
+    ui.sdSites.closest(".group").classList.toggle("on", ui.sdSites.checked);
+    ui.sdSitesNum.replaceChildren(...(counts.total ? [String(counts.checked), el("small", ` из ${counts.total}`)] : []));
+    this.drawRows();
     const problem = SourceRulesModel.problem(state, this.list);
-    ui.sdTotal.classList.toggle("sd-problem", !!problem || !!this.draftError || (preview && !preview.total));
-    ui.sdTotal.textContent = problem || this.draftError || (!preview ? "Считаем…" : preview.total
-      ? `Будем искать в ${countText(preview.total, "источнике", "источниках", "источниках")}` : "По этому выбору искать негде.");
-    // Zero blocks «Готово» unless company sites are chosen and the catalog could not say how many.
     const catalogOk = !preview || !state.sites || ["ok", "not_requested"].includes(preview.catalog.status);
     ui.sourcesApply.disabled = !!problem || this.draftStale || (!!preview && !preview.total && catalogOk);
+    ui.sdProblem.textContent = problem || this.draftError || ""; ui.sdProblem.hidden = !(problem || this.draftError);
+    ui.sdTotal.textContent = problem ? "Негде искать" : !preview ? "Считаем…" : preview.total
+      ? `Будем искать в ${countText(preview.total, "источнике", "источниках", "источниках")}` : "По этому выбору искать негде";
+    ui.sdTotalNote.textContent = preview && preview.total ? this.composition(preview) : "";
     const catalog = this.catalogNote(preview);
     ui.sdCatalogNote.textContent = catalog; ui.sdCatalogNote.hidden = !catalog;
-    if (this.matches) this.drawMatches();
   }
-  builtinRow(source, preview) {
-    const row = el("label", undefined, "sd-type"), box = el("input"), text = el("span", undefined, "sd-type-text");
-    box.type = "checkbox"; box.dataset.key = "builtin:" + source.id; box.checked = this.draft.builtins.includes(source.id);
+  /* «HH, SuperJob, Getmatch и 4 компании» */
+  composition(preview) {
+    const parts = this.list.filter(source => preview.builtin.includes(source.id)).map(source => source.name);
+    const sites = this.groupCount(preview, "company_site").selected;
+    if (sites) parts.push(countText(sites, "сайт компании", "сайта компаний", "сайтов компаний"));
+    const last = parts.pop();
+    return parts.length ? `${parts.join(", ")} и ${last}` : last || "";
+  }
+  groupCard(group) {
+    const members = this.list.filter(source => source.group === group);
+    if (!members.length) return null;
+    const covered = this.covered(), usable = members.filter(source => covered.has(source.id));
+    const on = usable.filter(source => this.draft.builtins.includes(source.id));
+    const card = el("section", undefined, "group" + (on.length ? " on" : ""));
+    const head = el("div", undefined, "g-head"), box = el("input"), title = el("label", GROUP_NAMES[group]);
+    box.type = "checkbox"; box.id = "sdGroup-" + group; box.dataset.key = "group:" + group; title.htmlFor = box.id;
+    box.checked = usable.length > 0 && on.length === usable.length;
+    box.indeterminate = on.length > 0 && on.length < usable.length;
+    box.disabled = !usable.length;
     box.onchange = () => {
-      const next = SourceRulesModel.copy(this.draft);
-      next.builtins = this.list.map(s => s.id).filter(id => id === source.id ? box.checked : next.builtins.includes(id));
+      const next = SourceRulesModel.copy(this.draft), ids = members.map(source => source.id);
+      next.builtins = this.list.map(source => source.id)
+        .filter(id => ids.includes(id) ? box.checked : next.builtins.includes(id));
       this.edit(next);
     };
-    text.append(el("b", source.name));
-    if (box.checked && preview && !preview.builtin.includes(source.id)) text.append(el("small", "Не охватывает места брифа — здесь искать не будем"));
-    row.append(box, text);
-    return row;
-  }
-  chip(item, key) {
-    const name = this.names.get(item) || "Компания", chip = el("span", undefined, "token");
-    const button = el("button", "×"); button.type = "button"; button.dataset.key = "chip:" + item;
-    button.setAttribute("aria-label", key === "skipped" ? `Снова искать на сайте: ${name}` : `Убрать: ${name}`);
-    button.onclick = () => this.edit(SourceRulesModel.without(this.draft, key, item));
-    chip.append(el("span", name), button);
-    return chip;
-  }
-  /* Company sites by name; whether each is searched follows the draft, so it is drawn locally. */
-  async search() {
-    clearTimeout(this.searchTimer);
-    this.searchController?.abort();
-    this.query = this.ui.sdSearch.value.trim();
-    if (!this.query) { this.matches = null; this.ui.sdResults.replaceChildren(); return; }
-    const controller = this.searchController = new AbortController();
-    try {
-      const page = await this.api("/api/v1/sources/search", "POST", {countries: this.countryCodes(), name: this.query,
-        groups: ["company_site"], page: 1, page_size: 50}, controller.signal);
-      if (controller.signal.aborted) return;
-      for (const match of page.items) if (match.rule_item) this.names.set(match.rule_item, match.name);
-      this.matches = page; this.drawMatches();
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      this.matches = null; this.ui.sdResults.replaceChildren(el("p", `Поиск не удался: ${error.message}`, "sd-error"));
+    const num = el("span", undefined, "num");
+    num.append(String(on.length), el("small", ` из ${usable.length}`));
+    head.append(box, title, num);
+    const body = el("div", undefined, "g-body members");
+    for (const source of members) {
+      if (!covered.has(source.id)) {
+        const item = el("span", undefined, "member na"), off = el("input");
+        off.type = "checkbox"; off.disabled = true;
+        item.append(off, el("span", source.name),
+          el("span", this.countryCodes().length > 1 ? "не ищет в странах брифа" : "не ищет в стране брифа", "cov"));
+        body.append(item);
+        continue;
+      }
+      const item = el("label", undefined, "member"), check = el("input");
+      check.type = "checkbox"; check.dataset.key = "builtin:" + source.id; check.checked = this.draft.builtins.includes(source.id);
+      item.classList.toggle("on", check.checked);
+      check.onchange = () => {
+        const next = SourceRulesModel.copy(this.draft);
+        next.builtins = this.list.map(s => s.id).filter(id => id === source.id ? check.checked : next.builtins.includes(id));
+        this.edit(next);
+      };
+      item.append(check, el("span", source.name));
+      body.append(item);
     }
+    card.append(head, body);
+    return card;
   }
-  drawMatches() {
-    const page = this.matches, host = this.ui.sdResults;
-    const usable = page.items.filter(match => match.rule_item), unusable = page.items.filter(match => !match.rule_item);
-    const nodes = [];
-    if (!page.items.length) nodes.push(el("p", `Не нашли компанию «${this.query}».`, "muted"));
-    if (usable.length) {
-      const list = el("ul", undefined, "sd-matches");
-      for (const match of usable) list.append(this.matchRow(match));
-      nodes.push(list);
-    }
-    if (unusable.length) {
-      const more = el("details", undefined, "sd-unusable");
-      more.append(el("summary", unusable.length === 1 ? "Ещё 1 компания: на её сайте пока не умеем искать"
-        : `Ещё ${countText(unusable.length, "компания", "компании", "компаний")}: на их сайтах пока не умеем искать`),
-        el("p", unusable.map(match => match.name).join(", "), "muted"));
-      nodes.push(more);
-    }
-    this.ui.sdHint.textContent = usable.length ? (this.draft.companies === "all"
-      ? "Снимите галочку — на этом сайте искать не будем." : "Отметьте сайты, где искать.") : "";
-    this.ui.sdHint.hidden = !usable.length;
-    this.ui.sdFound.textContent = `Найдено: ${page.total}`;
-    if (page.total > page.items.length)
-      nodes.push(el("p", `Показаны первые ${page.items.length} из ${page.total}: уточните название.`, "muted"));
-    host.replaceChildren(...nodes);
+  isChecked(row) {
+    const state = this.draft, M = SourceRulesModel;
+    if (!state.sites || !row.rule_item) return false;
+    return state.companies === "all" ? !M.isSkipped(state, row) : M.isPicked(state, row);
   }
-  matchRow(match) {
-    const state = this.draft, all = state.companies === "all", M = SourceRulesModel;
-    const on = all ? !M.isSkipped(state, match) : M.isPicked(state, match);
-    const row = el("li", undefined, "sd-match"), label = el("label"), box = el("input");
-    box.type = "checkbox"; box.checked = on; box.dataset.key = "match:" + match.id;
-    const known = [...this.initialState.picked, ...this.initialState.skipped];
-    box.onchange = () => this.edit(all ? (box.checked ? M.unskip(this.draft, match) : M.skip(this.draft, match, known))
-      : (box.checked ? M.pick(this.draft, match, known) : M.unpick(this.draft, match)));
-    label.append(box, el("span", match.name));
-    row.append(label);
-    return row;
+  siteCounts() {
+    if (!this.rows) {
+      const counts = this.groupCount(this.draftStale ? null : this.draftPreview, "company_site");
+      return {checked: this.draft.sites ? counts.selected : 0, total: this.groupCount(this.everywhere, "company_site").available};
+    }
+    const usable = this.rows.filter(row => row.rule_item);
+    return {checked: usable.filter(row => this.isChecked(row)).length, total: usable.length};
+  }
+  drawRows() {
+    const ui = this.ui;
+    if (!this.draft) return;
+    ui.sdShowAll.setAttribute("aria-pressed", String(!this.onlyChecked));
+    ui.sdShowChecked.setAttribute("aria-pressed", String(this.onlyChecked));
+    const counts = this.siteCounts();
+    ui.sdShowChecked.textContent = `Отмеченные · ${counts.checked}`;
+    ui.sdAll.checked = counts.total > 0 && counts.checked === counts.total;
+    ui.sdAll.indeterminate = counts.checked > 0 && counts.checked < counts.total;
+    ui.sdAllNote.textContent = `отмечено ${counts.checked} из ${counts.total}`;
+    if (this.rowsError || !this.rows) {
+      ui.sdCats.replaceChildren();
+      ui.sdRows.replaceChildren(el("p", this.rowsError || "Загружаем сайты компаний…", this.rowsError ? "sd-error" : "muted"));
+      ui.sdRowsFoot.textContent = "";
+      return;
+    }
+    this.keepFocus(() => {
+      this.drawCategories();
+      const query = ui.sdSearch.value.trim().toLowerCase();
+      const base = this.rows.filter(row => this.showUnreadable || row.rule_item);
+      const shown = base.filter(row => (!this.category || row.categories.includes(this.category))
+        && (!query || row.name.toLowerCase().includes(query) || row.categories.some(c => c.toLowerCase().includes(query)))
+        && (!this.onlyChecked || this.isChecked(row)));
+      shown.sort((a, b) => Number(!a.rule_item) - Number(!b.rule_item));
+      const known = [...this.initialState.picked, ...this.initialState.skipped], M = SourceRulesModel;
+      const nodes = shown.map(row => {
+        const categories = el("small", row.categories.join(" · "));
+        if (!row.rule_item) {
+          const line = el("div", undefined, "row na"), box = el("input"), text = el("span");
+          box.type = "checkbox"; box.disabled = true;
+          text.append(el("b", row.name), categories);
+          line.append(box, text, el("span", "Сайт пока не читаем", "pill"));
+          return line;
+        }
+        const line = el("label", undefined, "row"), box = el("input"), text = el("span");
+        box.type = "checkbox"; box.checked = this.isChecked(row); box.dataset.key = "row:" + row.id;
+        box.onchange = () => {
+          let state = M.copy(this.draft);
+          if (!state.sites) state = {...state, sites: true, companies: "selected", picked: []};
+          let next = state.companies === "all" ? (box.checked ? M.unskip(state, row) : M.skip(state, row, known))
+            : (box.checked ? M.pick(state, row, known) : M.unpick(state, row));
+          if (next.companies === "selected" && !next.picked.length) next = {...next, sites: false};
+          this.edit(next);
+        };
+        text.append(el("b", row.name), categories);
+        line.append(box, text, el("span"));
+        return line;
+      });
+      ui.sdRows.replaceChildren(...(nodes.length ? nodes : [el("p", this.onlyChecked ? "Ничего не отмечено." : "Ничего не нашлось.", "muted")]));
+      const usable = this.rows.filter(row => row.rule_item).length, unreadable = this.rows.length - usable;
+      const parts = [shown.length === base.length ? countText(base.length, "компания", "компании", "компаний")
+        : `Показано ${shown.length} из ${base.length}`];
+      const foot = [el("span", parts[0])];
+      if (unreadable) {
+        const toggle = el("button", this.showUnreadable ? "Скрыть сайты, где пока не умеем искать"
+          : `Показать ещё ${unreadable}, где пока не умеем искать`, "text-button");
+        toggle.type = "button"; toggle.dataset.key = "unreadable";
+        toggle.onclick = () => { this.showUnreadable = !this.showUnreadable; this.drawRows(); };
+        foot.push(toggle);
+      }
+      ui.sdRowsFoot.replaceChildren(...foot);
+    });
+  }
+  drawCategories() {
+    const counts = new Map(), base = this.rows.filter(row => this.showUnreadable || row.rule_item);
+    for (const row of base) for (const category of row.categories) counts.set(category, (counts.get(category) || 0) + 1);
+    const sorted = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ru"));
+    const button = (label, value, count) => {
+      const b = el("button", undefined, "cat" + (this.category === value ? " on" : ""));
+      b.type = "button"; b.dataset.key = "cat:" + (value ?? ""); b.setAttribute("aria-pressed", String(this.category === value));
+      b.append(el("span", label), el("span", String(count), "n"));
+      b.onclick = () => { this.category = value; this.drawRows(); };
+      return b;
+    };
+    this.ui.sdCats.replaceChildren(el("h4", "Отрасль"), button("Все", null, base.length),
+      ...sorted.map(([category, count]) => button(category, category, count)));
   }
 }
 

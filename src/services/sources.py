@@ -35,6 +35,7 @@ class Entry:
     adapter: SourceAdapter | None = None
     reason: str | None = None
     company_ids: list[str] = field(default_factory=list)
+    categories: list[str] = field(default_factory=list)  # industries of the catalog rows
 
     @property
     def supported(self) -> bool:
@@ -503,6 +504,7 @@ class SourceService:
                         None,
                         built.reason,
                         [str(row.id)],
+                        list(row.categories),
                     )
                 )
                 continue
@@ -510,11 +512,12 @@ class SourceService:
             if entry is None:
                 platform = self.registry.kind_of(built.id)
                 assert platform is not None
-                boards[built.id] = Entry(
+                boards[built.id] = entry = Entry(
                     built.id, built.name, platform, "company_site", UNKNOWN, built, None, [str(row.id)]
                 )
             elif str(row.id) not in entry.company_ids:
                 entry.company_ids.append(str(row.id))
+            entry.categories.extend(c for c in row.categories if c not in entry.categories)
         for entry in boards.values():
             assert entry.adapter is not None
             entry.adapter = replace(entry.adapter, company_ids=tuple(entry.company_ids))
@@ -549,6 +552,7 @@ class SourceService:
             "supported": entry.supported,
             "reason": entry.reason,
             "company_ids": entry.company_ids,
+            "categories": entry.categories,
             "coverage": {
                 "countries": sorted(coverage.countries) if coverage.countries is not None else None,
                 "known": coverage.known,
