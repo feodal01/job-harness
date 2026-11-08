@@ -93,6 +93,8 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
     }
     const sourceRulesEditor = new SourceRulesEditor({
       api, builtins: () => sources, countries: () => locationEditor.groups.map(g => g.country), places: () => placeTexts().join("; "),
+      countryNames: () => [...new Set(locationEditor.groups.filter(g => g.country))].map(g => locationEditor.countries.find(c => c.code === g.country)?.name || g.country)
+        .filter((name, i, all) => all.indexOf(name) === i),
       onChange: () => {updateSource(); renderConditionsSummary();},
     });
     /* Built-in sources the rules search, once counted; null while counting. */

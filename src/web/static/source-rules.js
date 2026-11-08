@@ -128,8 +128,8 @@ class SourceRulesEditor {
   /* api(path, method, body, signal); builtins() — built-in sources [{id, group, name}];
    * countries() — ISO codes of the form's places, places() — their text; onChange() runs when the
    * rules or their count change. */
-  constructor({api, builtins, countries, places, onChange}) {
-    Object.assign(this, {api, builtins, countries, places, onChange});
+  constructor({api, builtins, countries, places, countryNames = () => [], onChange}) {
+    Object.assign(this, {api, builtins, countries, places, countryNames, onChange});
     this.rules = null; this.preview = null; this.everywhere = null; this.error = ""; this.loading = false;
     this.timer = null; this.controller = null; this.version = 0; this.pending = false;
     this.draft = null; this.draftPreview = null; this.draftError = ""; this.draftVersion = 0; this.draftStale = false;
@@ -322,10 +322,14 @@ class SourceRulesEditor {
         if (rows.length >= answer.total || !answer.items.length) break;
       }
       if (controller.signal.aborted) return;
-      for (const row of rows) row.categories = row.categories || [];
+      for (const row of rows) {
+        row.categories = row.categories || [];
+        row.items = [...SourceRulesModel.itemsOf(row)];  // computed once: checks run per row on every change
+        if (row.rule_item) for (const item of row.items) this.names.set(item, row.name);
+      }
       rows.sort((a, b) => a.name.localeCompare(b.name, "ru"));
-      for (const row of rows) if (row.rule_item) for (const item of SourceRulesModel.itemsOf(row)) this.names.set(item, row.name);
-      this.rows = rows; this.rowsKey = key;
+      // A failed catalog is asked again next time; only a full answer is kept for these countries.
+      this.rows = this.rowsError ? null : rows; this.rowsKey = this.rowsError ? "" : key;
     } catch (error) {
       if (controller.signal.aborted) return;
       this.rowsError = `Не удалось загрузить сайты компаний: ${error.message}`;
@@ -349,8 +353,9 @@ class SourceRulesEditor {
     ui.sdList.hidden = !state.custom;
     ui.sdBuiltins.replaceChildren(...BUILTIN_GROUPS.map(group => this.groupCard(group)).filter(Boolean));
     const counts = this.siteCounts();
-    ui.sdSites.checked = state.sites && counts.checked > 0;
-    ui.sdSites.indeterminate = false;
+    const some = counts.known ? counts.checked > 0 : state.sites;
+    ui.sdSites.checked = state.sites && some;
+    ui.sdSites.indeterminate = state.sites && counts.known && counts.checked > 0 && counts.checked < counts.total;
     ui.sdSites.closest(".group").classList.toggle("on", ui.sdSites.checked);
     ui.sdSitesNum.replaceChildren(...(counts.total ? [String(counts.checked), el("small", ` из ${counts.total}`)] : []));
     this.drawRows();
@@ -389,16 +394,24 @@ class SourceRulesEditor {
         .filter(id => ids.includes(id) ? box.checked : next.builtins.includes(id));
       this.edit(next);
     };
+    // Members that do not cover the places follow the group, so an unchecked group stays out.
+    const follow = next => {
+      const anyOn = usable.some(source => next.builtins.includes(source.id));
+      const rest = members.filter(source => !covered.has(source.id)).map(source => source.id);
+      next.builtins = this.list.map(source => source.id)
+        .filter(id => rest.includes(id) ? anyOn : next.builtins.includes(id));
+      return next;
+    };
     const num = el("span", undefined, "num");
     num.append(String(on.length), el("small", ` из ${usable.length}`));
     head.append(box, title, num);
     const body = el("div", undefined, "g-body members");
     for (const source of members) {
       if (!covered.has(source.id)) {
-        const item = el("span", undefined, "member na"), off = el("input");
-        off.type = "checkbox"; off.disabled = true;
-        item.append(off, el("span", source.name),
-          el("span", this.countryCodes().length > 1 ? "не ищет в странах брифа" : "не ищет в стране брифа", "cov"));
+        const item = el("span", undefined, "member na"), off = el("input"), names = this.countryNames();
+        const note = el("span", names.length ? `не ищет: ${names.join(", ")}` : "не ищет в местах брифа", "cov");
+        note.id = "sdCov-" + source.id; off.type = "checkbox"; off.disabled = true; off.setAttribute("aria-describedby", note.id);
+        item.append(off, el("span", source.name), note);
         body.append(item);
         continue;
       }
@@ -408,7 +421,7 @@ class SourceRulesEditor {
       check.onchange = () => {
         const next = SourceRulesModel.copy(this.draft);
         next.builtins = this.list.map(s => s.id).filter(id => id === source.id ? check.checked : next.builtins.includes(id));
-        this.edit(next);
+        this.edit(follow(next));
       };
       item.append(check, el("span", source.name));
       body.append(item);
@@ -416,18 +429,19 @@ class SourceRulesEditor {
     card.append(head, body);
     return card;
   }
-  isChecked(row) {
-    const state = this.draft, M = SourceRulesModel;
-    if (!state.sites || !row.rule_item) return false;
-    return state.companies === "all" ? !M.isSkipped(state, row) : M.isPicked(state, row);
+  checker(state = this.draft) {
+    const all = state.companies === "all", marks = new Set(all ? state.skipped : state.picked);
+    return row => state.sites && !!row.rule_item && (all ? !row.items.some(i => marks.has(i)) : row.items.some(i => marks.has(i)));
   }
-  siteCounts() {
-    if (!this.rows) {
+  isChecked(row) { return this.checker()(row); }
+  siteCounts(state = this.draft) {
+    if (!this.rows) {  // still loading or the catalog failed: the preview's count stands in
       const counts = this.groupCount(this.draftStale ? null : this.draftPreview, "company_site");
-      return {checked: this.draft.sites ? counts.selected : 0, total: this.groupCount(this.everywhere, "company_site").available};
+      return {checked: state.sites ? counts.selected : 0, total: this.groupCount(this.everywhere, "company_site").available,
+        known: false};
     }
-    const usable = this.rows.filter(row => row.rule_item);
-    return {checked: usable.filter(row => this.isChecked(row)).length, total: usable.length};
+    const usable = this.rows.filter(row => row.rule_item), checked = this.checker(state);
+    return {checked: usable.filter(checked).length, total: usable.length, known: true};
   }
   drawRows() {
     const ui = this.ui;
@@ -438,7 +452,9 @@ class SourceRulesEditor {
     ui.sdShowChecked.textContent = `Отмеченные · ${counts.checked}`;
     ui.sdAll.checked = counts.total > 0 && counts.checked === counts.total;
     ui.sdAll.indeterminate = counts.checked > 0 && counts.checked < counts.total;
-    ui.sdAllNote.textContent = `отмечено ${counts.checked} из ${counts.total}`;
+    const filtered = !!this.category || !!ui.sdSearch.value.trim() || this.onlyChecked;
+    ui.sdAllNote.textContent = filtered ? `все ${counts.total}, не только найденные · отмечено ${counts.checked}`
+      : `отмечено ${counts.checked} из ${counts.total}`;
     if (this.rowsError || !this.rows) {
       ui.sdCats.replaceChildren();
       ui.sdRows.replaceChildren(el("p", this.rowsError || "Загружаем сайты компаний…", this.rowsError ? "sd-error" : "muted"));
@@ -449,9 +465,10 @@ class SourceRulesEditor {
       this.drawCategories();
       const query = ui.sdSearch.value.trim().toLowerCase();
       const base = this.rows.filter(row => this.showUnreadable || row.rule_item);
+      const checked = this.checker();
       const shown = base.filter(row => (!this.category || row.categories.includes(this.category))
         && (!query || row.name.toLowerCase().includes(query) || row.categories.some(c => c.toLowerCase().includes(query)))
-        && (!this.onlyChecked || this.isChecked(row)));
+        && (!this.onlyChecked || checked(row)));
       shown.sort((a, b) => Number(!a.rule_item) - Number(!b.rule_item));
       const known = [...this.initialState.picked, ...this.initialState.skipped], M = SourceRulesModel;
       const nodes = shown.map(row => {
@@ -464,13 +481,14 @@ class SourceRulesEditor {
           return line;
         }
         const line = el("label", undefined, "row"), box = el("input"), text = el("span");
-        box.type = "checkbox"; box.checked = this.isChecked(row); box.dataset.key = "row:" + row.id;
+        box.type = "checkbox"; box.checked = checked(row); box.dataset.key = "row:" + row.id;
         box.onchange = () => {
           let state = M.copy(this.draft);
-          if (!state.sites) state = {...state, sites: true, companies: "selected", picked: []};
+          // Company sites were off: start a selection, keeping companies chosen before.
+          if (!state.sites) state = {...state, sites: true, companies: "selected"};
           let next = state.companies === "all" ? (box.checked ? M.unskip(state, row) : M.skip(state, row, known))
             : (box.checked ? M.pick(state, row, known) : M.unpick(state, row));
-          if (next.companies === "selected" && !next.picked.length) next = {...next, sites: false};
+          if (!this.siteCounts(next).checked) next = {...next, sites: false, companies: "selected", picked: [], skipped: []};
           this.edit(next);
         };
         text.append(el("b", row.name), categories);
@@ -479,12 +497,12 @@ class SourceRulesEditor {
       });
       ui.sdRows.replaceChildren(...(nodes.length ? nodes : [el("p", this.onlyChecked ? "Ничего не отмечено." : "Ничего не нашлось.", "muted")]));
       const usable = this.rows.filter(row => row.rule_item).length, unreadable = this.rows.length - usable;
-      const parts = [shown.length === base.length ? countText(base.length, "компания", "компании", "компаний")
-        : `Показано ${shown.length} из ${base.length}`];
-      const foot = [el("span", parts[0])];
+      const total = shown.length === base.length ? countText(base.length, "компания", "компании", "компаний")
+        : `Показано ${shown.length} из ${base.length}`;
+      const foot = [el("span", this.showUnreadable && unreadable ? `${total}, из них ${unreadable} пока не читаем` : total)];
       if (unreadable) {
-        const toggle = el("button", this.showUnreadable ? "Скрыть сайты, где пока не умеем искать"
-          : `Показать ещё ${unreadable}, где пока не умеем искать`, "text-button");
+        const toggle = el("button", this.showUnreadable ? "Скрыть сайты, которые пока не читаем"
+          : `Показать ещё ${countText(unreadable, "сайт", "сайта", "сайтов")}, которые пока не читаем`, "text-button");
         toggle.type = "button"; toggle.dataset.key = "unreadable";
         toggle.onclick = () => { this.showUnreadable = !this.showUnreadable; this.drawRows(); };
         foot.push(toggle);
