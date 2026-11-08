@@ -353,11 +353,12 @@ class SourceRulesEditor {
     ui.sdList.hidden = !state.custom;
     ui.sdBuiltins.replaceChildren(...BUILTIN_GROUPS.map(group => this.groupCard(group)).filter(Boolean));
     const counts = this.siteCounts();
-    const some = counts.known ? counts.checked > 0 : state.sites;
+    const some = counts.known ? counts.checked + counts.elsewhere > 0 : state.sites;
     ui.sdSites.checked = state.sites && some;
     ui.sdSites.indeterminate = state.sites && counts.known && counts.checked > 0 && counts.checked < counts.total;
     ui.sdSites.closest(".group").classList.toggle("on", ui.sdSites.checked);
-    ui.sdSitesNum.replaceChildren(...(counts.total ? [String(counts.checked), el("small", ` из ${counts.total}`)] : []));
+    ui.sdSitesNum.replaceChildren(...(counts.total ? [String(counts.checked), el("small", ` из ${counts.total}`
+      + (counts.elsewhere ? ` · ещё ${counts.elsewhere} вне мест брифа` : ""))] : []));
     this.drawRows();
     const problem = SourceRulesModel.problem(state, this.list);
     const catalogOk = !preview || !state.sites || ["ok", "not_requested"].includes(preview.catalog.status);
@@ -441,7 +442,10 @@ class SourceRulesEditor {
         known: false};
     }
     const usable = this.rows.filter(row => row.rule_item), checked = this.checker(state);
-    return {checked: usable.filter(checked).length, total: usable.length, known: true};
+    // Chosen companies with no site in these countries still count: the rules keep them.
+    const listed = new Set(this.rows.flatMap(row => row.items));
+    const elsewhere = state.sites && state.companies === "selected" ? state.picked.filter(item => !listed.has(item)).length : 0;
+    return {checked: usable.filter(checked).length, total: usable.length, known: true, elsewhere};
   }
   drawRows() {
     const ui = this.ui;
@@ -488,7 +492,8 @@ class SourceRulesEditor {
           if (!state.sites) state = {...state, sites: true, companies: "selected"};
           let next = state.companies === "all" ? (box.checked ? M.unskip(state, row) : M.skip(state, row, known))
             : (box.checked ? M.pick(state, row, known) : M.unpick(state, row));
-          if (!this.siteCounts(next).checked) next = {...next, sites: false, companies: "selected", picked: [], skipped: []};
+          const left = this.siteCounts(next);
+          if (!left.checked && !left.elsewhere) next = {...next, sites: false, companies: "selected", picked: [], skipped: []};
           this.edit(next);
         };
         text.append(el("b", row.name), categories);
