@@ -159,7 +159,13 @@ class SourceRulesEditor {
     this.render(); this.refresh(0);
   }
   set(rules) { this.rules = rules; this.render(); this.onChange(); this.refresh(0); }
-  get problem() { return SourceRulesModel.problem(SourceRulesModel.fromRules(this.rules, this.list), this.list); }
+  /* What the service refuses on save: no source chosen at all. */
+  get problem() {
+    const r = this.rules;
+    if (!r) return null;
+    const none = r.mode === "selected" ? !r.include.length : r.groups != null && !r.groups.length && !r.include.length;
+    return none ? "Отметьте, где искать." : null;
+  }
   get requiresQuery() { return this.preview?.requires_query === true; }
   get builtin() { return this.preview?.builtin ?? null; }
   describe() {
@@ -200,7 +206,8 @@ class SourceRulesEditor {
   }
   /* «HH, Getmatch и 218 сайтов компаний»; chosen companies by name. */
   summary(rules, preview) {
-    if (!preview.total) return "Негде искать: отметьте хотя бы один источник.";
+    if (!preview.total) return rules ? "Негде искать: отметьте хотя бы один источник."
+      : "Для мест брифа нет источников: измените места.";
     this.learnNames(preview);
     const state = SourceRulesModel.fromRules(rules, this.list);
     const parts = this.list.filter(source => preview.builtin.includes(source.id)).map(source => source.name);
@@ -209,6 +216,7 @@ class SourceRulesEditor {
       const names = state.picked.map(item => this.names.get(item) || "компания");
       parts.push(names.length <= 3 ? names.join(", ") : `${names.slice(0, 2).join(", ")} и ещё ${names.length - 2}`);
     } else if (sites) parts.push(countText(sites, "сайт компании", "сайта компаний", "сайтов компаний"));
+    if (!parts.length) parts.push(sourcesText(preview.total));
     const last = parts.pop();
     let text = parts.length ? `${parts.join(", ")} и ${last}` : last;
     if (state.sites && state.companies === "all" && state.skipped.length)
@@ -224,35 +232,39 @@ class SourceRulesEditor {
   /* --- The dialog ------------------------------------------------------------------------ */
 
   openDialog() {
+    if (!this.list.length) return;  // the built-in sources are not loaded yet
     this.draft = SourceRulesModel.fromRules(this.rules, this.list);
-    this.draftPreview = this.preview; this.draftError = ""; this.everywhere = this.rules ? null : this.preview;
+    // «Готово» without a change keeps rules made elsewhere exactly as they are.
+    this.initial = JSON.stringify(this.draft);
+    this.draftPreview = this.preview; this.draftStale = this.loading; this.draftError = ""; this.everywhere = null;
     this.skipOpen = false; this.query = ""; this.matches = null; this.ui.sdSearch.value = ""; this.ui.sdResults.replaceChildren();
     this.ui.sourcesDialog.showModal();
     (this.draft.custom ? this.ui.sdModeCustom : this.ui.sdModeAuto).focus();
     this.drawDialog(); this.recountDraft();
-    if (!this.everywhere) this.request(null).then(answer => { this.everywhere = answer; this.drawDialog(); }).catch(() => {});
+    this.request(null).then(answer => { this.everywhere = answer; this.drawDialog(); }).catch(() => {});
   }
   closeDialog(apply) {
     if (apply && SourceRulesModel.problem(this.draft, this.list)) return;
     this.draftController?.abort(); this.searchController?.abort(); clearTimeout(this.searchTimer);
     this.ui.sourcesDialog.close();
-    if (apply) this.set(SourceRulesModel.toRules(this.draft, this.list));
+    if (apply && JSON.stringify(this.draft) !== this.initial) this.set(SourceRulesModel.toRules(this.draft, this.list));
     this.ui.openSourceRules.focus();
   }
-  edit(state) { this.draft = state; this.drawDialog(); this.recountDraft(); }
+  edit(state) { this.draft = state; this.draftStale = true; this.drawDialog(); this.recountDraft(); }
   async recountDraft() {
     const version = ++this.draftVersion;
     this.draftController?.abort();
-    if (SourceRulesModel.problem(this.draft, this.list)) { this.draftPreview = null; this.drawDialog(); return; }
+    if (SourceRulesModel.problem(this.draft, this.list)) {
+      this.draftPreview = null; this.draftStale = false; this.drawDialog(); return;
+    }
     const controller = this.draftController = new AbortController();
-    this.ui.sdTotal.textContent = "Считаем…";
     try {
       const answer = await this.request(SourceRulesModel.toRules(this.draft, this.list), controller.signal);
       if (version !== this.draftVersion) return;
-      this.draftPreview = answer; this.draftError = "";
+      this.draftPreview = answer; this.draftError = ""; this.draftStale = false;
     } catch (error) {
       if (version !== this.draftVersion) return;
-      this.draftPreview = null; this.draftError = `Не удалось посчитать источники: ${error.message}`;
+      this.draftStale = false; this.draftPreview = null; this.draftError = `Не удалось посчитать источники: ${error.message}`;
     }
     this.drawDialog();
   }
@@ -261,12 +273,14 @@ class SourceRulesEditor {
     const key = document.activeElement?.dataset?.key;
     draw();
     if (!key || document.activeElement?.dataset?.key === key) return;
-    (this.ui.sourcesDialog.querySelector(`[data-key="${CSS.escape(key)}"]`) || this.ui.sdSearch).focus();
+    const visible = node => node && node.offsetParent !== null;
+    const again = this.ui.sourcesDialog.querySelector(`[data-key="${CSS.escape(key)}"]`);
+    [again, this.ui.sdSearch, this.ui.sdSkipOpen, this.ui.sdSites].find(visible)?.focus();
   }
   drawDialog() { this.keepFocus(() => this.draw()); }
   draw() {
-    const ui = this.ui, state = this.draft, preview = this.draftPreview;
-    this.learnNames(preview);
+    const ui = this.ui, state = this.draft, preview = this.draftStale ? null : this.draftPreview;
+    this.learnNames(this.draftPreview);
     ui.sdModeAuto.checked = !state.custom; ui.sdModeCustom.checked = state.custom;
     const places = this.places(), total = this.everywhere?.total;
     ui.sdAutoText.textContent = [total != null ? sourcesText(total) : "Все источники", places ? `для мест брифа: ${places}` : "",
@@ -281,10 +295,11 @@ class SourceRulesEditor {
     ui.sdSitesAll.checked = all; ui.sdSitesPicked.checked = !all;
     ui.sdSitesPickedText.textContent = state.picked.length ? `Только выбранные · ${state.picked.length}` : "Только выбранные";
     const note = all && state.picked.length
-      ? `Выбранные компании (${state.picked.length}) не сохранятся: ищем на всех сайтах.` : "";
+      ? `Выбранные компании (${state.picked.length}) не сохранятся: ищем на всех сайтах.`
+      : !all && state.skipped.length ? `Сайты без поиска (${state.skipped.length}) не сохранятся: ищем только на выбранных.` : "";
     ui.sdSitesNote.textContent = note; ui.sdSitesNote.hidden = !note;
     const chips = all ? state.skipped : state.picked;
-    ui.sdChips.replaceChildren(...(chips.length ? [el("span", all ? "Не искать:" : "Выбраны:", "sd-chips-label"),
+    ui.sdChips.replaceChildren(...(chips.length ? [el("span", all ? "Без этих сайтов:" : "Выбраны:", "sd-chips-label"),
       ...chips.map(item => this.chip(item, all ? "skipped" : "picked"))] : []));
     const searching = !all || this.skipOpen || state.skipped.length > 0;
     ui.sdSkipOpen.hidden = searching; ui.sdSearchBox.hidden = !searching;
@@ -293,7 +308,7 @@ class SourceRulesEditor {
     ui.sdTotal.classList.toggle("sd-problem", !!problem || !!this.draftError || (preview && !preview.total));
     ui.sdTotal.textContent = problem || this.draftError || (!preview ? "Считаем…" : preview.total
       ? `Будем искать в ${countText(preview.total, "источнике", "источниках", "источниках")}` : "По этому выбору искать негде.");
-    ui.sourcesApply.disabled = !!problem;
+    ui.sourcesApply.disabled = !!problem || (!!preview && !preview.total);
     const catalog = this.catalogNote(preview);
     ui.sdCatalogNote.textContent = catalog; ui.sdCatalogNote.hidden = !catalog;
     if (this.matches) this.drawMatches();
@@ -307,14 +322,14 @@ class SourceRulesEditor {
       this.edit(next);
     };
     text.append(el("b", source.name));
-    if (box.checked && preview && !preview.builtin.includes(source.id)) text.append(el("small", "Нет вакансий для мест брифа"));
+    if (box.checked && preview && !preview.builtin.includes(source.id)) text.append(el("small", "Не ищет в местах брифа"));
     row.append(box, text);
     return row;
   }
   chip(item, key) {
     const name = this.names.get(item) || "Компания", chip = el("span", undefined, "token");
     const button = el("button", "×"); button.type = "button"; button.dataset.key = "chip:" + item;
-    button.setAttribute("aria-label", `Убрать: ${name}`);
+    button.setAttribute("aria-label", key === "skipped" ? `Снова искать на сайте: ${name}` : `Убрать: ${name}`);
     button.onclick = () => this.edit(SourceRulesModel.without(this.draft, key, item));
     chip.append(el("span", name), button);
     return chip;
@@ -349,7 +364,8 @@ class SourceRulesEditor {
     }
     if (unusable.length) {
       const more = el("details", undefined, "sd-unusable");
-      more.append(el("summary", `Ещё ${unusable.length} — пока не умеем искать на этих сайтах`),
+      more.append(el("summary", unusable.length === 1 ? "Ещё 1 компания: на её сайте пока не умеем искать"
+        : `Ещё ${countText(unusable.length, "компания", "компании", "компаний")}: на их сайтах пока не умеем искать`),
         el("p", unusable.map(match => match.name).join(", "), "muted"));
       nodes.push(more);
     }
@@ -358,16 +374,14 @@ class SourceRulesEditor {
     host.replaceChildren(...nodes);
   }
   matchRow(match) {
-    const state = this.draft, all = state.companies === "all", row = el("li", undefined, "sd-match");
-    const on = all ? !SourceRulesModel.isSkipped(state, match) : SourceRulesModel.isPicked(state, match);
-    row.classList.toggle("on", on);
-    row.append(el("b", match.name), el("small", on ? "ищем" : "не ищем", "sd-state"));
-    const label = all ? (on ? "Не искать" : "Искать") : (on ? "Убрать" : "Выбрать");
-    const button = el("button", label, "secondary"); button.type = "button"; button.dataset.key = "match:" + match.id;
-    button.setAttribute("aria-label", `${label}: ${match.name}`);
-    const M = SourceRulesModel;
-    button.onclick = () => this.edit(all ? (on ? M.skip : M.unskip)(this.draft, match) : (on ? M.unpick : M.pick)(this.draft, match));
-    row.append(button);
+    const state = this.draft, all = state.companies === "all", M = SourceRulesModel;
+    const on = all ? !M.isSkipped(state, match) : M.isPicked(state, match);
+    const row = el("li", undefined, "sd-match"), label = el("label"), box = el("input");
+    box.type = "checkbox"; box.checked = on; box.dataset.key = "match:" + match.id;
+    box.onchange = () => this.edit(all ? (box.checked ? M.unskip : M.skip)(this.draft, match)
+      : (box.checked ? M.pick : M.unpick)(this.draft, match));
+    label.append(box, el("span", match.name));
+    row.append(label);
     return row;
   }
 }

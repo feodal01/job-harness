@@ -172,6 +172,13 @@ async def test_excluded_sources_and_companies_leave_after_the_rules(store):  # c
     assert resolved.excluded == ["getmatch", "ats:greenhouse:abbyy"]
 
 
+async def test_an_excluded_company_removes_a_board_it_shares_with_an_included_one(store):
+    resolved = await resolve(
+        sources(store), groups=["aggregator"], include=[f"company:{ABBYY_1}"], exclude=[f"company:{ABBYY_2}"]
+    )
+    assert list(resolved.sources) == ["hh_ru"] and resolved.excluded == ["ats:greenhouse:abbyy"]
+
+
 async def test_an_excluded_board_that_is_not_in_the_result_changes_nothing(store):
     resolved = await resolve(sources(store), groups=["aggregator"], exclude=["ats:lever:acme"])
     assert list(resolved.sources) == ["hh_ru"] and resolved.excluded == []

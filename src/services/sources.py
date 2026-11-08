@@ -180,6 +180,11 @@ class SourceService:
             states.append(catalog)
         excluded_ids = {item for item in rules.exclude if company_id(item) is None}
         excluded_companies = {c for item in rules.exclude if (c := company_id(item)) is not None}
+        if companies and excluded_companies:
+            # Boards read for included companies carry only those companies; a board an excluded
+            # company shares with them is found by reading the excluded companies' rows too.
+            rows, _ = await self._catalog(ids=sorted(excluded_companies))
+            excluded_ids |= {entry.id for entry in self._boards(rows)}
         excluded = [
             key
             for key, adapter in sources.items()
