@@ -183,8 +183,9 @@ class SourceService:
         if companies and excluded_companies:
             # Boards read for included companies carry only those companies; a board an excluded
             # company shares with them is found by reading the excluded companies' rows too.
-            rows, _ = await self._catalog(ids=sorted(excluded_companies))
+            rows, catalog = await self._catalog(ids=sorted(excluded_companies))
             excluded_ids |= {entry.id for entry in self._boards(rows)}
+            states.append(catalog)  # a failed read shows in the run, like the others
         excluded = [
             key
             for key, adapter in sources.items()

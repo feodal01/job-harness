@@ -98,6 +98,7 @@
 .sd-sites .text-button{justify-self:start;min-height:var(--target)}
 #sdSearchBox[hidden]{display:none}
 #sdSearch{width:100%;min-height:var(--target);border:1px solid var(--line-strong);border-radius:var(--radius);padding:0 12px}
+.sd-hint{margin:8px 0 0;font-size:13px;color:var(--muted)}.sd-hint[hidden]{display:none}
 .sd-results{margin-top:8px}.sd-results>p{font-size:14px;margin:8px 0}
 .sd-matches{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:var(--radius-lg)}
 .sd-match{border-bottom:1px solid var(--line)}.sd-match:last-child{border-bottom:0}

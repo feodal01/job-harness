@@ -40,7 +40,9 @@ assert.deepStrictEqual(to({...picked, sites: false}), A({groups: ["aggregator", 
 
 // Nothing to search is a problem the dialog names; an empty company choice says so.
 assert.strictEqual(M.problem(custom({builtins: [], sites: false}), LIST), "Отметьте, где искать.");
-assert.strictEqual(M.problem(custom({builtins: [], companies: "selected"}), LIST), "Выберите компанию или отметьте другой источник.");
+assert.strictEqual(M.problem(custom({builtins: [], companies: "selected"}), LIST), "Выберите компанию или снимите «Сайты компаний».");
+// Company sites ticked with no company chosen is not silently dropped.
+assert.ok(M.problem(custom({builtins: ["hh_ru"], companies: "selected"}), LIST));
 assert.strictEqual(M.problem(custom({builtins: [], companies: "selected", picked: [C]}), LIST), null);
 assert.strictEqual(M.problem(custom({builtins: ["hh_ru"], sites: false}), LIST), null);
 assert.strictEqual(M.problem(from(null), LIST), null);
@@ -61,6 +63,12 @@ s = M.pick(custom({skipped: [D]}), abbyy);
 assert.deepStrictEqual([s.picked, s.skipped], [[C], []]);
 s = M.skip(custom({picked: [D]}), abbyy);
 assert.deepStrictEqual([s.picked, s.skipped], [[], [C]]);
+// Unchecking and checking a site again restores the item the rules had and is no change.
+const board = custom({companies: "selected", picked: ["ats:greenhouse:abbyy"]});
+const again = M.pick(M.unpick(board, abbyy), abbyy, board.picked);
+assert.deepStrictEqual(again.picked, ["ats:greenhouse:abbyy"]);
+assert.strictEqual(M.key(again), M.key(board));
+assert.strictEqual(M.key(custom({picked: [C, D]})), M.key(custom({picked: [D, C]})));
 // Changes never touch the state they were given.
 const frozen = custom({picked: [C]}), before = JSON.stringify(frozen);
 M.pick(frozen, abbyy); M.skip(frozen, abbyy); M.without(frozen, "picked", C);
