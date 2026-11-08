@@ -31,6 +31,7 @@ class AuthError(ApplicationError):
 class LoginRequired(AuthError):
     def __init__(self, login_url: str) -> None:
         super().__init__(f"Для доступа к каталогу войдите: {login_url}", 401)
+        self.login_url = login_url
 
 
 class RemoteUser(BaseModel):

@@ -1,5 +1,5 @@
 from collections.abc import Awaitable
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 from urllib.parse import quote
 
 import httpx
@@ -11,10 +11,12 @@ from pydantic import Field
 from src.geography.catalog import DEFAULT_LOCALE
 from src.models.brief import BriefInput
 from src.models.run import RunInput
+from src.models.sources import SourceGroup, SourceRules
 from src.runtime.manager import ServiceError, ServiceManager
 from src.schemas.auth import AuthStatus
 from src.schemas.companies import CompanyFilterField, CompanyFiltersPage, CompanyLinksPage
 from src.schemas.service import ServiceStatus
+from src.schemas.sources import SourceStatusFilter
 from src.schemas.vacancies import PoolStatusInput, PoolView, SelectionView
 
 Page = Annotated[int, Field(ge=1)]
@@ -69,10 +71,68 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
         """Остановить сервис. cancel_active=true допустим после подтверждения отмены поисков пользователем."""
         return await perform(manager.stop(cancel_active))
 
-    @mcp.tool(annotations=READ)
-    async def list_sources() -> dict[str, Any]:
-        """Подключённые источники и возможности фильтрации. Не проверяет доступность сайтов в сети."""
-        return {"sources": await request("GET", "/api/v1/sources")}
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
+    async def list_sources(
+        groups: Annotated[
+            list[SourceGroup] | None,
+            Field(description="aggregator, it_board, company_site (сайты компаний из каталога), telegram."),
+        ] = None,
+        countries: Annotated[
+            list[str] | None,
+            Field(description="ISO-коды стран: только источники, которые их покрывают."),
+        ] = None,
+        supports: Annotated[
+            list[str] | None,
+            Field(description="Условия брифа, которые источник должен проверять, например salary."),
+        ] = None,
+        name: Annotated[
+            str | None, Field(min_length=1, max_length=200, description="Часть названия источника.")
+        ] = None,
+        status: SourceStatusFilter = "all",
+        page: Page = 1,
+        page_size: PageSize = 50,
+    ) -> dict[str, Any]:
+        """Источники по фильтрам: параметры, которые они проверяют, покрытие стран и состояние.
+
+        Сайты компаний читаются из каталога в момент запроса и требуют входа; без входа ответ
+        содержит остальные источники, а catalog.status объясняет, почему сайтов компаний нет.
+        Сайты в сети не проверяются.
+        """
+        params: dict[str, Any] = {"status": status, "page": page, "page_size": page_size}
+        for key, value in (
+            ("groups", groups),
+            ("countries", countries),
+            ("supports", supports),
+            ("name", name),
+        ):
+            if value is not None:
+                params[key] = value
+        return cast(dict[str, Any], await request("GET", "/api/v1/sources", params=params))
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
+    async def preview_sources(
+        source_rules: SourceRules | None = None,
+        countries: Annotated[
+            list[str] | None, Field(description="ISO-коды стран мест брифа; пусто — все страны.")
+        ] = None,
+        name: Annotated[
+            str | None,
+            Field(min_length=1, max_length=200, description="Найти источник или компанию по названию."),
+        ] = None,
+    ) -> dict[str, Any]:
+        """Что дадут правила источников брифа: сколько источников каждого типа войдёт в поиск.
+
+        С name — ещё и найденные источники: участвует ли каждый и что положить в include/exclude
+        (rule_item), чтобы добавить или исключить его. Поиск не запускается.
+        """
+        body: dict[str, Any] = {
+            "source_rules": (source_rules or SourceRules()).model_dump(mode="json"),
+            "countries": countries or [],
+        }
+        result: dict[str, Any] = {"preview": await request("POST", "/api/v1/sources/preview", body=body)}
+        if name is not None:
+            result["matches"] = await request("POST", "/api/v1/sources/search", body={**body, "name": name})
+        return result
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True))
     async def authorize() -> AuthStatus:
@@ -203,6 +263,9 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
         Для каждого места в locations задайте свои minimum_work_format и relocation_support.
         Города — альтернативы; формат и помощь с переездом проверяются вместе с выбранным местом.
         Всего 1–5 мест: город с GeoNames ID или вся страна (scope=country, без полей города).
+        Источники задаются правилами search.source_rules, а не списком: по умолчанию — все
+        поддерживаемые источники, покрывающие страны мест, включая сайты компаний из каталога.
+        mode=selected ищет только include; include/exclude — id источника или company:<uuid>.
         """
         return {"brief": await request("POST", "/api/v1/briefs", body=brief.model_dump(mode="json"))}
 
@@ -215,7 +278,11 @@ def create_mcp(manager: ServiceManager | None = None) -> FastMCP:
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True))
     async def start_search(search: RunInput) -> dict[str, Any]:
-        """Начать поиск по brief_id и явно выбранным источникам/лимитам. Вернуть run.id без ожидания конца."""
+        """Начать поиск по brief_id. Источники — по правилам брифа или по source_rules запроса.
+
+        Список собирается сейчас: сайты компаний читаются из каталога с сессией пользователя,
+        без входа они пропускаются с причиной. Вернуть run.id без ожидания конца.
+        """
         return {"run": await request("POST", "/api/v1/runs", body=search.model_dump(mode="json"))}
 
     @mcp.tool(annotations=READ)

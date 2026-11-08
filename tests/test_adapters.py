@@ -32,7 +32,7 @@ async def test_catalog_exposes_operations_and_data_origins_without_claiming_full
     app = app_for(tmp_path, lambda r: httpx.Response(500))
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
-            sources = {s["id"]: s for s in (await c.get("/api/v1/sources")).json()}
+            sources = {s["id"]: s for s in (await c.get("/api/v1/sources")).json()["items"]}
             assert "getmatch" in sources
             hh, gm = (sources[key]["capabilities"] for key in ("hh_ru", "getmatch"))
             assert set(hh["actions"]) == {"search", "vacancy_details", "company_profile"}
@@ -80,7 +80,7 @@ async def test_feed_only_component_streams_summaries_without_optional_requests(t
                 "/api/v1/runs",
                 json={
                     "brief_id": brief["id"],
-                    "sources": ["getmatch"],
+                    "source_rules": {"mode": "selected", "include": ["getmatch"]},
                     "limits": {"getmatch": {"max_items_per_query": 12, "max_pages_per_query": 2}},
                 },
             )
@@ -138,7 +138,7 @@ async def test_getmatch_collects_feed_once_with_or_without_brief_queries(tmp_pat
                 "/api/v1/runs",
                 json={
                     "brief_id": brief["id"],
-                    "sources": ["getmatch"],
+                    "source_rules": {"mode": "selected", "include": ["getmatch"]},
                     "limits": {"getmatch": {"max_items_per_query": 200, "max_pages_per_query": 1}},
                 },
             )
@@ -178,7 +178,7 @@ async def test_getmatch_skips_company_profiles_it_does_not_implement(tmp_path):
                 "/api/v1/runs",
                 json={
                     "brief_id": brief["id"],
-                    "sources": ["getmatch"],
+                    "source_rules": {"mode": "selected", "include": ["getmatch"]},
                     "limits": {"getmatch": {"max_pages_per_query": 1}},
                     "company_profiles": True,
                 },
@@ -250,7 +250,7 @@ async def test_company_discovered_in_detail_is_enriched_and_shared(tmp_path):
             engine.sources["hh_ru"], search=Feed(), vacancy_details=details, company_profile=profile
         )
         brief = app.state.database.briefs.save_brief(BriefInput(name="Late company", queries=["QA"]))
-        run = engine.start(RunInput(brief_id=brief["id"], sources=["hh_ru"]))
+        run = engine.start(RunInput(brief_id=brief["id"]), {s: engine.sources[s] for s in ["hh_ru"]})
         await asyncio.gather(*engine.tasks.values())
         assert app.state.database.runs.run(run["id"])["status"] == "complete"
         rows = app.state.database.vacancies.results(run["id"])
@@ -294,7 +294,7 @@ async def test_feed_without_description_or_optional_operations_finishes_honestly
             company_profile=None,
         )
         brief = app.state.database.briefs.save_brief(BriefInput(name="Feed only", queries=["QA"]))
-        run = engine.start(RunInput(brief_id=brief["id"], sources=["hh_ru"]))
+        run = engine.start(RunInput(brief_id=brief["id"]), {s: engine.sources[s] for s in ["hh_ru"]})
         await asyncio.gather(*engine.tasks.values())
         final = app.state.database.runs.run(run["id"])
         assert final["status"] == "complete"
@@ -334,7 +334,7 @@ async def test_unexpected_parse_failure_is_logged_with_stage_and_url(tmp_path):
         engine = app.state.engine
         engine.sources["hh_ru"] = replace(engine.sources["hh_ru"], search=BrokenFeed())
         brief = app.state.database.briefs.save_brief(BriefInput(name="Broken", queries=["QA"]))
-        run = engine.start(RunInput(brief_id=brief["id"], sources=["hh_ru"]))
+        run = engine.start(RunInput(brief_id=brief["id"]), {s: engine.sources[s] for s in ["hh_ru"]})
         await asyncio.gather(*engine.tasks.values())
         assert app.state.database.runs.run(run["id"])["status"] == "failed"
         errors = [
@@ -369,9 +369,9 @@ async def test_getmatch_detail_enrichment_preserves_summary_and_reports_failures
         run = app.state.engine.start(
             RunInput(
                 brief_id=brief["id"],
-                sources=["getmatch"],
                 limits={"getmatch": SourceLimitsInput(max_items_per_query=1)},
-            )
+            ),
+            {"getmatch": app.state.engine.sources["getmatch"]},
         )
         await asyncio.gather(*app.state.engine.tasks.values())
         final = app.state.database.runs.run(run["id"])

@@ -20,6 +20,7 @@ from src.models.filters import (
     WorkFormat,
     accepted_formats,
 )
+from src.models.sources import SourceGroup
 from src.models.vacancy import Vacancy
 from src.parsers.models import Location, Place
 from src.selection.filtering import FILTER_FIELDS
@@ -27,6 +28,7 @@ from src.selection.filtering import FILTER_FIELDS
 Fetch = Callable[[str], Awaitable[str]]
 ParameterMode = Literal["native", "local", "none", "ignored"]
 SourceType = Literal["aggregator", "career_site", "ats", "telegram"]
+# How sources are grouped for people (mockup 8о): job boards, IT boards, company career sites, Telegram.
 # Outcomes of a response that HTTP status alone does not reveal; neither is retried.
 ResponseClass = Literal["captcha", "vpn_blocked", "blocked"]
 
@@ -397,6 +399,11 @@ class SourceAdapter:
     company_profile: CompanyProfile | None = None
     geography: CountryCityGeography | RegionGeography | None = None
     classify: Classify | None = None
+    # Set by the source registry: the group people see and the company catalog rows of a board.
+    group: SourceGroup | None = None
+    company_ids: tuple[str, ...] = ()
+    # A search without queries is refused (HH lists every vacancy then); a board lists its whole feed.
+    requires_query: bool = False
 
     @property
     def capabilities(self) -> SourceCapabilities:

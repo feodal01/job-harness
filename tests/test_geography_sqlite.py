@@ -180,7 +180,10 @@ async def test_old_unconfirmed_brief_cannot_start_without_reselection(client):
     from src.models.brief import BriefInput
 
     old = app.state.database.briefs.save_brief(BriefInput(name="Old", queries=["QA"]))
-    r = await client.post("/api/v1/runs", json={"brief_id": old["id"], "sources": ["hh_ru"]})
+    r = await client.post(
+        "/api/v1/runs",
+        json={"brief_id": old["id"], "source_rules": {"mode": "selected", "include": ["hh_ru"]}},
+    )
     assert r.status_code == 422
 
 

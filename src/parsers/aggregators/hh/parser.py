@@ -396,4 +396,5 @@ def create_adapter(settings: HHSettings, catalog: GeographyCatalog | None = None
         company_profile=HHCompanyProfile(),
         geography=geography,
         classify=classify,
+        requires_query=True,
     )

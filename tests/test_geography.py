@@ -53,13 +53,17 @@ async def test_dynamic_countries_city_selection_cache_and_search(tmp_path):
             brief = response.json()
             assert brief["filters"]["locations"][0]["city"] == "Moscow"
             invalid_source = await c.post(
-                "/api/v1/runs", json={"brief_id": brief["id"], "sources": ["unknown"]}
+                "/api/v1/runs",
+                json={"brief_id": brief["id"], "source_rules": {"mode": "selected", "include": ["unknown"]}},
             )
             assert invalid_source.status_code == 422
             wrong = {**payload, "filters": {"locations": [{"country": "ZZ"}]}}
             assert (await c.post("/api/v1/briefs", json=wrong)).status_code == 422
             assert len((await c.get("/api/v1/briefs")).json()) == 1
-            run = await c.post("/api/v1/runs", json={"brief_id": brief["id"], "sources": ["hh_ru"]})
+            run = await c.post(
+                "/api/v1/runs",
+                json={"brief_id": brief["id"], "source_rules": {"mode": "selected", "include": ["hh_ru"]}},
+            )
             assert run.status_code == 202
             await asyncio.gather(*app.state.engine.tasks.values())
             plans = [
@@ -166,7 +170,13 @@ async def test_catalog_and_search_share_same_hh_request_limit(tmp_path):
                 app.state.engine.sources["hh_ru"].geography.countries(
                     app.state.engine.catalog_fetch("hh_ru")
                 ),
-                c.post("/api/v1/runs", json={"brief_id": brief["id"], "sources": ["hh_ru"]}),
+                c.post(
+                    "/api/v1/runs",
+                    json={
+                        "brief_id": brief["id"],
+                        "source_rules": {"mode": "selected", "include": ["hh_ru"]},
+                    },
+                ),
             )
             assert catalog and search.status_code == 202
             await asyncio.gather(*app.state.engine.tasks.values())

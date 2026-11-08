@@ -80,11 +80,28 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
       {label: "Исключённый текст", maxItems: 50, maxLength: 200, onChange: updateFormFeedback});
     const tokenEditors = [queryTokens, companyTokens, textTokens];
     const locationEditor = new LocationEditor($("locationGroups"), $("locationCount"),
-      $("addLocationGroup"), api, () => {updateUnsupportedConditions(); updateStart(); renderConditionsSummary();});
+      $("addLocationGroup"), api, () => {sourceRulesEditor.refresh(); updateUnsupportedConditions(); updateStart(); renderConditionsSummary();});
     locationEditor.onCountryReset = (removed, undo) => notify(
       `Страна изменена: ${removed.length === 1 && removed[0] === "вся страна" ? "убран выбор всей страны" : (removed.length === 1 ? "убран город " : "убраны города ") + removed.join(", ")}.`,
       undo);
-    const chosenSources = () => sources.filter((s) => $("source-" + s.id)?.checked);
+    /* The brief's places as text, e.g. «Россия, Москва; Казахстан». */
+    function placeTexts() {
+      const countryName = code => locationEditor.countries.find(c => c.code === code)?.name || code;
+      return locationEditor.groups.filter(g => g.country).map(g => g.wholeCountry || !g.cities.length
+        ? `${countryName(g.country)}, вся страна`
+        : `${g.cities.map(c => c.city_display_name || c.city).join(", ")} (${countryName(g.country)})`);
+    }
+    const sourceRulesEditor = new SourceRulesEditor({
+      api, builtins: () => sources, countries: () => locationEditor.groups.map(g => g.country), places: () => placeTexts().join("; "),
+      countryNames: () => [...new Set(locationEditor.groups.filter(g => g.country))].map(g => locationEditor.countries.find(c => c.code === g.country)?.name || g.country)
+        .filter((name, i, all) => all.indexOf(name) === i),
+      onChange: () => {updateSource(); renderConditionsSummary();},
+    });
+    /* Built-in sources the rules search, once counted; null while counting. */
+    const builtinSources = () => {
+      const ids = sourceRulesEditor.builtin;
+      return ids === null ? null : sources.filter(s => ids.includes(s.id));
+    };
     function updateStart() {
       const b=currentBrief(), active=!!b&&route.view==="settings"&&activeRun(b);
       $("start").disabled = submitting || active;
@@ -104,12 +121,13 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
       if (validationAttempted) validateSearchForm();
     }
     function updateSource() {
-      const chosen = chosenSources();
-      queryTokens.setRequired(chosen.length > 0 && chosen.every(s => s.capabilities.query_parameters.query === "native"));
+      // Only HH refuses a search without queries; the preview says whether HH is all the rules leave.
+      queryTokens.setRequired(sourceRulesEditor.requiresQuery);
       $("queriesRequired").hidden = !queryTokens.required;
-      $("sourceCount").textContent = `${chosen.length} из ${sources.length} ${plural(sources.length, "источника", "источников", "источников")}`;
-      $("profiles").disabled = !chosen.some((s) => s.capabilities.actions.includes("company_profile"));
-      if ($("profiles").disabled) $("profiles").checked = false;
+      // The count arrives after the form is filled: only disable, never change the saved choice
+      // (the service loads company profiles only from sources that have them).
+      const builtin = builtinSources();
+      if (builtin) $("profiles").disabled = !builtin.some(s => s.capabilities.actions.includes("company_profile"));
       updateUnsupportedConditions();
       updateStart();
     }
@@ -127,7 +145,7 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
         excluded_text: textTokens.values.length > 0,
       };
       const host = $("unsupportedConditions"); host.replaceChildren();
-      for (const source of chosenSources()) {
+      for (const source of builtinSources() || []) {
         const unsupported = Object.keys(enabled).filter(field => enabled[field] && source.capabilities.query_parameters[field] === "none");
         if (unsupported.length) host.append(el("p",`${source.name} — в этом источнике не проверяются: ${unsupported.map(field => conditionNames[field]).join(", ")}.`));
       }
@@ -171,16 +189,8 @@ const conditionNames = {query:"Запрос",profile:"Запрос",locations:"�
     }
     $("countryRetry").onclick = () => { error(""); loadGeography().catch(e => error(e.message)); };
     async function loadCatalog() {
-      sources = await api("/api/v1/sources");
-      for (const source of sources) {
-        const label = el("label", undefined, "type-card"), box = el("input");
-        box.type = "checkbox"; box.id = "source-" + source.id; box.checked = true; box.onchange = updateSource;
-        const blocked = source.state?.status === "blocked"
-          ? "заблокирован до " + new Date(source.state.until * 1000).toLocaleTimeString("ru", {hour:"2-digit", minute:"2-digit"}) : "";
-        const type = typeNames[source.type] || source.type;
-        label.append(box, " " + source.name, el("span", blocked || type.charAt(0).toUpperCase() + type.slice(1), "n"));
-        $("sources").append(label);
-      }
+      // Built-in sources: names, capabilities and limits. Which sources a brief searches is its rules.
+      sources = (await api("/api/v1/sources?status=supported&groups=aggregator&groups=it_board")).items;
       $("sourceOptions").replaceChildren(...sources.map(source => Object.assign(el("option"), {value:source.name, label:typeNames[source.type] || source.type})));
       $("sourceFilter").placeholder = `Все источники · ${sources.length}`;
       updateSource();
@@ -613,8 +623,7 @@ function salaryText(v) {
 function renderBriefSummary(b) {
   const summary = $("briefSummary"); summary.replaceChildren();
   if (b.queries.length) summary.append(`Запросы: ${b.queries.join(" · ")}`);
-  const chosen = b.search?.sources || [];
-  const sourceText = !chosen.length || chosen.length === sources.length ? `все, ${sources.length}` : chosen.map(id => sourceName(id)).join(", ");
+  const sourceText = SourceRulesModel.describe(b.search?.source_rules ?? null, sources);
   summary.append(`${b.queries.length ? " · " : ""}Источники: ${sourceText}`);
 }
 const sourceName = id => sources.find(s => s.id === id)?.name || id;
@@ -1024,7 +1033,7 @@ function searchOptionsForBrief(b) {
   const saved=b?.search || b?.last_run?.request || {};
   const profiles=saved.company_profiles;
   return {
-    sources:[...(saved.sources || [])],
+    source_rules:saved.source_rules ? structuredClone(saved.source_rules) : null,
     limits:structuredClone(saved.limits || {}),
     company_profiles:profiles && typeof profiles==="object"
       ? Object.values(profiles).some(value=>value===true)
@@ -1042,9 +1051,8 @@ function fillSettings(b) {
   $("name").value=b?.name || "";queryTokens.setValues(b?.queries || []);$("briefText").value=b?.text || "";
   $("briefNotice").textContent=b?.migration_note || b?.filters_migration_notice || "";fillFilters(b?.filters || {});
   settingsSearch=searchOptionsForBrief(b);
-  const selected=settingsSearch.sources?.length?settingsSearch.sources:sources.map(s=>s.id);
-  for(const s of sources)$("source-"+s.id).checked=selected.includes(s.id);
-  const limits=selected.map(id=>settingsSearch.limits?.[id] || {});
+  sourceRulesEditor.load(settingsSearch.source_rules);
+  const limits=sources.map(s=>settingsSearch.limits?.[s.id] || {});
   for(const [id,key] of [["limit","max_items_per_query"],["pages","max_pages_per_query"]]){
     const values=[...new Set(limits.map(l=>l[key]??""))];$(id).value=values.length===1?values[0]:"";
     $(id).placeholder=values.length>1?"Разные лимиты источников":"По настройкам";
@@ -1060,7 +1068,7 @@ let formSnapshot=null;
 function formState(){
   return JSON.stringify([$("name").value.trim(),queryTokens.values,$("briefText").value,locationEditor.locations,selected("employment"),
     $("experience").value,$("salaryMin").value,$("currency").value,$("salaryPeriod").value,$("publishedAfter").value,
-    companyTokens.values,textTokens.values,chosenSources().map(s=>s.id),$("secondChance").checked,$("profiles").checked,$("limit").value,$("pages").value]);
+    companyTokens.values,textTokens.values,sourceRulesEditor.rules,$("secondChance").checked,$("profiles").checked,$("limit").value,$("pages").value]);
 }
 const formDirty=()=>route.view==="settings"&&formSnapshot!==null&&formState()!==formSnapshot;
 const formatWishes={office:"",hybrid:"работа только в офисе",remote_country:"офис или гибрид",remote_worldwide:"не удалённо по миру"};
@@ -1071,10 +1079,7 @@ function summaryRow(term,content){
   row.append(dd);return row;
 }
 function renderConditionsSummary(){
-  const groups=locationEditor.groups.filter(g=>g.country);
-  const countryName=code=>locationEditor.countries.find(c=>c.code===code)?.name||code;
-  const places=groups.map(g=>g.wholeCountry||!g.cities.length?`${countryName(g.country)}, вся страна`
-    :`${g.cities.map(c=>c.city_display_name||c.city).join(", ")} (${countryName(g.country)})`);
+  const groups=locationEditor.groups.filter(g=>g.country), places=placeTexts();
   const periods={month:"в месяц",year:"в год",hour:"в час"};
   const hide=[];
   if(queryTokens.values.length)hide.push("название и навыки не совпадают ни с одним запросом");
@@ -1091,9 +1096,7 @@ function renderConditionsSummary(){
   if($("publishedAfter").value)maybe.push(`опубликована раньше ${dayMonth($("publishedAfter").value)}`);
   const employment=selected("employment");
   if(employment.length)maybe.push(`занятость не ${employment.map(v=>employmentLabels[v].toLowerCase()).join(" и не ")}`);
-  const chosen=chosenSources();
-  const sourceText=!chosen.length?"не выбраны":chosen.length===sources.length?`все подключённые · ${sources.length}`
-    :chosen.length<=3?chosen.map(s=>s.name).join(", "):`${chosen.length} из ${sources.length}`;
+  const sourceText=sourceRulesEditor.describe();
   const host=$("conditionsSummary"),dl=el("dl");host.replaceChildren(dl);
   dl.append(summaryRow("Ищем",queryTokens.values.length?queryTokens.values.join(", "):"запросы не заданы"));
   dl.append(summaryRow("Где",places.length?places.join("; "):"места не выбраны"));
@@ -1108,14 +1111,14 @@ function renderConditionsSummary(){
 window.addEventListener("beforeunload",e=>{if(formDirty()&&!submitting){e.preventDefault();e.returnValue="";}});
 function readSearchOptions() {
   const limits={};
-  for(const source of chosenSources()){
+  for(const source of sources){
     const own={...settingsSearch.limits?.[source.id]};
     for(const [id,key,initial] of [["limit","max_items_per_query",initialLimit],["pages","max_pages_per_query",initialPages]]){
       if($(id).value!==initial){if($(id).value)own[key]=Number($(id).value);else delete own[key];}
     }
     limits[source.id]=own;
   }
-  return {sources:chosenSources().map(s=>s.id),limits,company_profiles:$("profiles").checked,second_chance:$("secondChance").checked};
+  return {source_rules:sourceRulesEditor.rules,limits,company_profiles:$("profiles").checked,second_chance:$("secondChance").checked};
 }
 function clearFormErrors() {
   for (const {target, message} of validationFields) {
@@ -1140,7 +1143,7 @@ function validateSearchForm(focus = false) {
   for (const editor of tokenEditors) if (editor.error) errors.set(editor.input, editor.error);
   if (queryTokens.required && !queryTokens.values.length)
     errors.set($("queries"), "Добавьте хотя бы один поисковый запрос для выбранного источника.");
-  if (!chosenSources().length) errors.set($("sourcesBox"), "Выберите хотя бы один источник поиска.");
+  if (sourceRulesEditor.problem) errors.set($("sourcesBox"), sourceRulesEditor.problem);
   for (const {target, message} of locationEditor.validationErrors()) errors.set(target, message);
   for (const field of $("searchForm").querySelectorAll("input, textarea, select")) {
     if (field.disabled || field.validity.valid || errors.has(field)) continue;
@@ -1208,7 +1211,7 @@ $("searchForm").onsubmit=async e=>{
   try{
     if(launch && ["queued","running"].includes(currentBrief()?.last_run?.status))throw Error("Поиск уже идёт. Дождитесь его завершения или остановите его в ленте.");
     if(!catalogReady)throw Error("Дождитесь загрузки географии");
-    const search=readSearchOptions();if(!search.sources.length)throw Error("Выберите хотя бы один источник");
+    if(sourceRulesEditor.problem)throw Error(sourceRulesEditor.problem);const search=readSearchOptions();
     const payload={name:$("name").value,queries:queryTokens.values,text:$("briefText").value,filters:readFilters(),search};
     const b=await api(id?`/api/v1/briefs/${id}`:"/api/v1/briefs",id?"PUT":"POST",payload);
     await loadOverviews();
@@ -1373,12 +1376,13 @@ function renderHistory(runs, r) {
   pager.append(prev,next,el("small",`Показаны ${rows.length&&filtered.length?Math.min(historySourcePage*20,filtered.length)-(historySourcePage-1)*20:0} из ${filtered.length}`));
   sec.append(fold("all",`Все источники · ${total}`,[...rows,...(pages>1?[pager]:[])],[tools]));
   details.append(sec);
-  // Parameters of this run; the brief's conditions are not part of the run snapshot yet.
+  // Parameters of this run. The run also keeps the whole brief it searched with (request.brief);
+  // showing those conditions and what changed since (8д) is still to come.
   const cond=el("section",undefined,"sec"),ch=el("h3","Параметры этого запуска");ch.id="historyConditions";cond.setAttribute("aria-labelledby",ch.id);cond.append(ch);
   const req=r.request||{},dl=el("dl",undefined,"conds");
   const limitText=Object.entries(req.limits||{}).map(([id,l])=>[l.max_items_per_query?`${l.max_items_per_query} вакансий`:"",l.max_pages_per_query?`${l.max_pages_per_query} страниц`:""].filter(Boolean).join(", ")&&`${sources.find(s=>s.id===id)?.name||id}: ${[l.max_items_per_query?`до ${l.max_items_per_query} вакансий`:"",l.max_pages_per_query?`до ${l.max_pages_per_query} страниц`:""].filter(Boolean).join(", ")} на запрос`).filter(Boolean).join("; ");
   const profiles=req.company_profiles&&typeof req.company_profiles==="object"?Object.values(req.company_profiles).some(Boolean):req.company_profiles;
-  for(const [term,value] of [["Источники",(req.sources||[]).map(id=>sources.find(s=>s.id===id)?.name||id).join(", ")],
+  for(const [term,value] of [["Источники",(req.sources||[]).length>5?`${req.sources.length} ${plural(req.sources.length,"источник","источника","источников")}`:(req.sources||[]).map(id=>sources.find(s=>s.id===id)?.name||id).join(", ")],
     ["Пропущены",Object.entries(req.skipped||{}).map(([id,why])=>`${sources.find(s=>s.id===id)?.name||id} — ${why}`).join("; ")],
     ["Лимиты",limitText||"по настройкам источников"],["Описание компаний",profiles==null?"":profiles?"загружалось":"не загружалось"]])
     if(value)dl.append(el("dt",term),el("dd",value));

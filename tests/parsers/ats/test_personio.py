@@ -64,7 +64,7 @@ def test_personio_identity_does_not_depend_on_company_display_name() -> None:
     left = create_adapter(Board("https://vivid.jobs.personio.de/", "Original"))
     right = create_adapter(Board("https://vivid.jobs.personio.de", "Renamed"))
     assert left.id == right.id
-    assert left.resource == "vivid.jobs.personio.de"
+    assert left.resource == right.resource == "vivid.jobs.personio.de/vivid.jobs.personio.de"
     assert left.allowed_hosts == ("vivid.jobs.personio.de",)
 
 

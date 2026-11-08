@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.models.filters import SearchFilters
+from src.models.sources import SourceRules
 
 
 class SourceLimitsInput(BaseModel):
@@ -13,7 +14,11 @@ class SourceLimitsInput(BaseModel):
 
 class SearchOptions(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    sources: list[str] = Field(default_factory=list, max_length=20)
+    source_rules: SourceRules | None = Field(
+        default=None,
+        description="Rules the run builds its source list from; omitted means every supported source "
+        "covering the brief's countries (docs/brief-parameters/source-rules.md)",
+    )
     limits: dict[str, SourceLimitsInput] = Field(default_factory=dict)
     company_profiles: bool | None = None
     second_chance: bool | None = None

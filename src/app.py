@@ -22,7 +22,7 @@ from src.dependencies import AuthDep
 from src.engine import SearchEngine
 from src.enrichment.registry import Enrichment
 from src.geography.catalog import default_catalog
-from src.parsers.registry import build_sources
+from src.parsers.registry import SourceRegistry
 from src.runtime.config import RuntimeSettings
 from src.services.auth import AuthService
 from src.services.briefs import BriefService
@@ -56,7 +56,8 @@ def create_app(
             # One geography catalog and one enrichment for briefs, API, sources and the engine.
             geography = default_catalog()
             enrichment = Enrichment(geography)
-            sources = build_sources(settings, geography)
+            registry = SourceRegistry(settings, geography)
+            sources = registry.fixed
             database = Database(settings.database_path)
             resources.callback(database.close)
             client = httpx.AsyncClient(
@@ -79,7 +80,7 @@ def create_app(
                 url or RuntimeSettings().url,
             )
             app.state.auth_service = auth
-            app.state.company_catalog = CompanyCatalog(auth)
+            company_catalog = app.state.company_catalog = CompanyCatalog(auth)
             engine = SearchEngine(settings, database, sources, client, enrichment)
             resources.push_async_callback(engine.close)
             app.state.database = database
@@ -88,16 +89,24 @@ def create_app(
                 database.briefs,
                 database.vacancies,
                 database.transaction,
-                sources,
+                registry.unsupported_parameters,
                 geography,
                 enrichment,
                 settings.salary_range,
+                registry.searchable,
             )
             app.state.vacancies_service = VacancyService(database.vacancies)
-            app.state.runs_service = RunService(
-                database.runs, database.vacancies, database.events, engine, app.state.briefs_service
+            sources_service = app.state.sources_service = SourceService(
+                registry, database.resources, database.events, company_catalog.rows, engine.catalog_fetch
             )
-            app.state.sources_service = SourceService(sources, database.resources, database.events)
+            app.state.runs_service = RunService(
+                database.runs,
+                database.vacancies,
+                database.events,
+                engine,
+                app.state.briefs_service,
+                sources_service,
+            )
             app.state.geography_service = GeographyService(geography)
             app.state.system_service = SystemService(database.stats, sources)
             app.state.lifecycle_service = LifecycleService(engine, shutdown, instance_id, url)

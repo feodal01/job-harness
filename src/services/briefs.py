@@ -9,7 +9,7 @@ from src.engine.pool import reevaluate_pool
 from src.enrichment.registry import Enrichment
 from src.geography.catalog import GeographyCatalog
 from src.models.brief import BriefInput
-from src.parsers.interfaces import SourceAdapter
+from src.models.sources import unknown_sources
 from src.selection.salary.settings import SalaryRange
 
 
@@ -19,18 +19,26 @@ class BriefService:
         briefs: BriefStore,
         vacancies: VacancyStore,
         transaction: Callable[[], AbstractContextManager[None]],
-        sources: dict[str, SourceAdapter],
+        unsupported: Callable[[str], frozenset[str] | None],
         geography: GeographyCatalog,
         enrichment: Enrichment,
         salary_range: SalaryRange,
+        searchable: Callable[[str], bool] | None = None,
     ) -> None:
         self.briefs, self.vacancies, self.transaction = briefs, vacancies, transaction
-        self.sources = sources
+        # Conditions each source cannot check, by source id (the source registry answers).
+        self.unsupported = unsupported
         # The application's single geography catalog and the enrichment built on it.
         self.geography, self.enrichment = geography, enrichment
         self.salary_range = salary_range
+        # Whether a source id names a searchable source (the source registry answers).
+        self.searchable = searchable
 
     def normalize(self, brief: BriefInput) -> BriefInput:
+        rules = brief.search.source_rules if brief.search else None
+        if rules is not None and self.searchable is not None:
+            if unknown := unknown_sources(rules, self.searchable):
+                raise InvalidSearchError(f"Unknown source: {', '.join(unknown)}")
         places = brief.filters.locations
         if not 1 <= len(places) <= 5:
             raise InvalidSearchError("Choose between 1 and 5 search locations")
@@ -61,7 +69,7 @@ class BriefService:
     def list_briefs(self) -> list[dict]:
         return self.briefs.brief_overviews()
 
-    def validate_saved(self, brief_id: str) -> None:
+    def validate_saved(self, brief_id: str) -> BriefInput:
         saved = self.briefs.brief(brief_id)
         if saved is None:
             raise NotFoundError("Brief not found")
@@ -74,6 +82,7 @@ class BriefService:
         normalized = self.normalize(brief)
         if normalized.filters.locations != brief.filters.locations:
             raise InvalidSearchError("Review and save the selected cities before starting the search")
+        return brief
 
     def create(self, brief: BriefInput) -> dict:
         return self.briefs.save_brief(self.normalize(brief))
@@ -90,7 +99,7 @@ class BriefService:
                 brief_id,
                 brief.filters,
                 tuple(brief.queries),
-                self.sources,
+                self.unsupported,
                 self.enrichment,
                 self.salary_range,
             )

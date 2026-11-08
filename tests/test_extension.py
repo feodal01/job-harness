@@ -184,7 +184,10 @@ async def test_engine_uses_selected_parser_and_request_policy(tmp_path):
                 )
             )
             # A condition the source cannot apply is skipped, not rejected (spec 4).
-            run = engine.start(RunInput(brief_id=brief["id"], sources=["other"], company_profiles=False))
+            run = engine.start(
+                RunInput(brief_id=brief["id"], company_profiles=False),
+                {s: engine.sources[s] for s in ["other"]},
+            )
             await asyncio.gather(*engine.tasks.values())
             assert store.runs.run(run["id"])["status"] == "complete"
             assert store.vacancies.results(run["id"])[0]["title"] == "Detail"

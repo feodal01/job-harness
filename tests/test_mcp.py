@@ -64,7 +64,10 @@ async def test_invalid_brief_never_reaches_api_and_errors_are_reported() -> None
     assert manager.calls == []
     manager.failure = ServiceError("HTTP 409: active search")
     with pytest.raises(ToolError, match="active search"):
-        await server.call_tool("start_search", {"search": {"brief_id": "one", "sources": ["hh_ru"]}})
+        await server.call_tool(
+            "start_search",
+            {"search": {"brief_id": "one", "source_rules": {"mode": "selected", "include": ["hh_ru"]}}},
+        )
     assert manager.calls[-1][:2] == ("POST", "/api/v1/runs")
 
 

@@ -99,7 +99,7 @@ async def execute(scenario: dict, mode: str, workdir: Path) -> tuple[dict, dict]
                 brief.raise_for_status()
                 body = {
                     "brief_id": brief.json()["id"],
-                    "sources": scenario["sources"],
+                    "source_rules": {"mode": "selected", "include": scenario["sources"]},
                     "limits": scenario["limits"],
                     "company_profiles": scenario.get("company_profiles"),
                 }

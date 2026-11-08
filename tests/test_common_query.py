@@ -123,7 +123,7 @@ async def test_common_brief_roundtrip_and_filtering_before_and_after_details(tmp
                 "/api/v1/runs",
                 json={
                     "brief_id": b["id"],
-                    "sources": ["getmatch"],
+                    "source_rules": {"mode": "selected", "include": ["getmatch"]},
                     "limits": {"getmatch": {"max_items_per_query": 10}},
                 },
             )
@@ -183,7 +183,11 @@ async def test_hh_preparation_requests_are_in_run_metrics(tmp_path):
             r = (
                 await c.post(
                     "/api/v1/runs",
-                    json={"brief_id": b["id"], "sources": ["hh_ru"], "company_profiles": False},
+                    json={
+                        "brief_id": b["id"],
+                        "source_rules": {"mode": "selected", "include": ["hh_ru"]},
+                        "company_profiles": False,
+                    },
                 )
             ).json()
             await asyncio.gather(*app.state.engine.tasks.values())

@@ -58,8 +58,12 @@ async def test_sources_are_described_without_availability_probes(tmp_path):
         ) as client:
             response = await client.get("/api/v1/sources")
             assert response.status_code == 200
-            assert {s["id"] for s in response.json()} == {"hh_ru", "getmatch"}
-            assert all(s["state"]["status"] == "ready" for s in response.json())
+            page = response.json()
+            supported = [s for s in page["items"] if s["supported"]]
+            assert {s["id"] for s in supported} == {"hh_ru", "getmatch"}
+            assert all(s["state"]["status"] == "ready" for s in supported)
+            # Without a session company sites are missing with the reason; nothing is requested.
+            assert page["catalog"]["status"] == "login_required"
             assert calls == []
 
 
@@ -74,7 +78,7 @@ def test_brief_service_works_without_http_and_commits_pool_update(tmp_path):
             store.briefs,
             store.vacancies,
             store.transaction,
-            {},
+            lambda _: None,
             default_catalog(),
             default_enrichment(),
             SalaryRange(),

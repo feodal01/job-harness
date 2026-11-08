@@ -52,14 +52,14 @@ async def test_funnel_counts_stages_search_and_persistence(tmp_path):
 async def test_saved_search_options_do_not_start_search(tmp_path):
     async with client_for(tmp_path, lambda r: pytest.fail("Saving must not call sources")) as client:
         search = {
-            "sources": ["getmatch"],
+            "source_rules": {"mode": "selected", "include": ["getmatch"]},
             "limits": {"getmatch": {"max_items_per_query": 20}},
             "company_profiles": False,
         }
         b = (
             await client.post("/api/v1/briefs", json={"name": "AI", "search": search, "filters": confirmed()})
         ).json()
-        assert b["search"]["sources"] == ["getmatch"]
+        assert b["search"]["source_rules"]["include"] == ["getmatch"]
         assert (await client.get("/api/v1/runs")).json() == []
         loaded = (await client.get("/api/v1/briefs")).json()[0]
         assert loaded["search"] == b["search"]

@@ -75,7 +75,7 @@ def test_legacy_backup_upgrade_preserves_every_business_row_and_runs_once(
     assert version(backups[0]) == schema_version
     assert business_rows(backups[0]) == before
     with sqlite3.connect(path) as db:
-        assert db.execute("SELECT version_num FROM alembic_version").fetchall() == [("0010",)]
+        assert db.execute("SELECT version_num FROM alembic_version").fetchall() == [("0011",)]
         assert not db.execute("SELECT 1 FROM sqlite_schema WHERE name='schema_migrations'").fetchall()
         assert db.execute("PRAGMA integrity_check").fetchone() == ("ok",)
     Database(path).close()
@@ -103,9 +103,9 @@ def test_all_pending_alembic_revisions_commit_or_rollback_together(
     scripts = tmp_path / "db/migrations"
     shutil.copytree(runner.SCRIPT_LOCATION, scripts)
     shutil.copyfile(runner.BASE_SCHEMA, scripts.parent / "schema.sql")
-    revision = scripts / "versions/0011_test.py"
+    revision = scripts / "versions/0012_test.py"
     revision.write_text(
-        'from alembic import op\nrevision="0011"\ndown_revision="0010"\n'
+        'from alembic import op\nrevision="0012"\ndown_revision="0011"\n'
         "def upgrade():\n"
         '    op.execute("ALTER TABLE briefs ADD COLUMN test_value TEXT")\n'
         "    op.execute(\"UPDATE brief_vacancies SET note='migration edit'\")\n"
@@ -119,14 +119,14 @@ def test_all_pending_alembic_revisions_commit_or_rollback_together(
         assert business_rows(path) == before
         with sqlite3.connect(path) as db:
             if adopted:
-                assert db.execute("SELECT version_num FROM alembic_version").fetchone() == ("0010",)
+                assert db.execute("SELECT version_num FROM alembic_version").fetchone() == ("0011",)
             else:
                 assert not db.execute("SELECT 1 FROM sqlite_schema WHERE name='alembic_version'").fetchall()
                 assert db.execute("SELECT version FROM schema_migrations").fetchone() == (9,)
     else:
         Database(path).close()
         with sqlite3.connect(path) as db:
-            assert db.execute("SELECT version_num FROM alembic_version").fetchone() == ("0011",)
+            assert db.execute("SELECT version_num FROM alembic_version").fetchone() == ("0012",)
             assert db.execute("SELECT note FROM brief_vacancies").fetchone() == ("migration edit",)
     new_backups = set((tmp_path / "backups").glob("*.sqlite")) - previous_backups
     assert len(new_backups) == 1
@@ -213,3 +213,29 @@ def test_unknown_or_false_alembic_revision_is_rejected(tmp_path: Path, revision:
         Database(path)
     assert business_rows(path) == before
     assert not (tmp_path / "backups").exists()
+
+
+def test_saved_briefs_lose_the_old_source_list_and_keep_everything_else(tmp_path: Path) -> None:
+    path = tmp_path / "search.sqlite"
+    legacy_database(path, 9)
+    old = {
+        "name": "Старый",
+        "queries": ["QA"],
+        "search": {
+            "sources": ["hh_ru"],
+            "limits": {"hh_ru": {"max_items_per_query": 5}},
+        },
+    }
+    untouched = {"name": "Без источников", "search": {"company_profiles": False}}
+    with sqlite3.connect(path) as db:
+        db.execute("INSERT INTO briefs VALUES ('old',?,1)", (json.dumps(old),))
+        db.execute("INSERT INTO briefs VALUES ('plain',?,1)", (json.dumps(untouched),))
+    Database(path).close()
+    with sqlite3.connect(path) as db:
+        rows = dict(db.execute("SELECT id, data FROM briefs WHERE id IN ('old','plain')").fetchall())
+    assert json.loads(rows["old"]) == {
+        "name": "Старый",
+        "queries": ["QA"],
+        "search": {"limits": {"hh_ru": {"max_items_per_query": 5}}},
+    }
+    assert json.loads(rows["plain"]) == untouched

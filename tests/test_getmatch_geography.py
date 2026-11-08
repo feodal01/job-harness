@@ -33,7 +33,7 @@ async def test_getmatch_region_choices_are_available_without_fake_countries(tmp_
             choices = [p.model_dump() for p in app.state.engine.sources["getmatch"].geography.options]
             assert {x["id"] for x in choices} == {"moscow", "saints_p", "regions_ru", "relocate", "remote"}
             assert next(x["name"] for x in choices if x["id"] == "moscow") == "Офис или гибрид в Москве"
-            catalog = {s["id"]: s for s in (await c.get("/api/v1/sources")).json()}
+            catalog = {s["id"]: s for s in (await c.get("/api/v1/sources")).json()["items"]}
             assert catalog["getmatch"]["geography"] == "regions"
             assert catalog["hh_ru"]["geography"] == "country_city"
             assert catalog["getmatch"]["capabilities"]["query_parameters"]["locations"] == "native"
@@ -74,7 +74,7 @@ async def test_selected_regions_reach_offer_requests_pagination_and_logs(tmp_pat
                 "/api/v1/runs",
                 json={
                     "brief_id": brief["id"],
-                    "sources": ["getmatch"],
+                    "source_rules": {"mode": "selected", "include": ["getmatch"]},
                     "limits": {"getmatch": {"max_items_per_query": 12}},
                 },
             )
@@ -325,7 +325,13 @@ async def test_failed_branch_is_reported_and_other_places_still_run(tmp_path):
             )
             brief = (await c.post("/api/v1/briefs", json={"name": "Geo", "filters": places})).json()
             run = (
-                await c.post("/api/v1/runs", json={"brief_id": brief["id"], "sources": ["getmatch"]})
+                await c.post(
+                    "/api/v1/runs",
+                    json={
+                        "brief_id": brief["id"],
+                        "source_rules": {"mode": "selected", "include": ["getmatch"]},
+                    },
+                )
             ).json()
             await asyncio.gather(*engine.tasks.values())
             result = (await c.get("/api/v1/runs/" + run["id"])).json()

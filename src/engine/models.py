@@ -6,6 +6,7 @@ from typing import Literal
 
 from src.models.brief import BriefInput
 from src.models.filters import SearchFilters
+from src.parsers.interfaces import SourceAdapter
 
 SourceStatus = Literal[
     "queued", "running", "complete", "partial", "blocked", "failed", "cancelled", "interrupted", "skipped"
@@ -38,6 +39,8 @@ class RunSpec:
     limits: dict[str, Limits]
     company_profiles: dict[str, bool]
     second_chance: bool = False
+    # Adapters of this run: fixed sources and company boards read from the catalog at start.
+    adapters: dict[str, SourceAdapter] = field(default_factory=dict)
 
 
 @dataclass

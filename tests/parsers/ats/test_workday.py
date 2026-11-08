@@ -176,7 +176,7 @@ def test_rejects_unrelated_board():
         ),
     ],
 )
-async def test_multiple_board_hosts_coexist_and_same_host_shares_budget(tmp_path, factory, urls):
+async def test_each_board_has_its_own_budget_and_one_host_shares_a_ceiling(tmp_path, factory, urls):
     sources = [factory(Board(url, f"Company {index}")) for index, url in enumerate(urls)]
     store = Database(tmp_path / "boards.sqlite")
 
@@ -186,8 +186,12 @@ async def test_multiple_board_hosts_coexist_and_same_host_shares_budget(tmp_path
     try:
         async with httpx.AsyncClient(transport=httpx.MockTransport(no_http)) as client:
             engine = SearchEngine(Settings(), store, {source.id: source for source in sources}, client)
-            assert engine.networks[sources[0].id] is not engine.networks[sources[1].id]
-            assert engine.networks[sources[0].id] is engine.networks[sources[2].id]
+            networks = [engine.networks[source.id] for source in sources]
+            # Boards on one host keep separate pacing and breakers ...
+            assert len({id(network) for network in networks}) == 3
+            assert len({source.resource for source in sources}) == 3
+            # ... and share the engine's per-host request ceiling.
+            assert all(network.hosts is engine.hosts for network in networks)
             await engine.close()
     finally:
         store.close()

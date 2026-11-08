@@ -21,7 +21,11 @@ async def test_hh_requires_query_before_starting_run(tmp_path):
             brief = await c.post("/api/v1/briefs", json={"name": "Empty queries", "filters": confirmed()})
             assert brief.status_code == 201
             response = await c.post(
-                "/api/v1/runs", json={"brief_id": brief.json()["id"], "sources": ["hh_ru"]}
+                "/api/v1/runs",
+                json={
+                    "brief_id": brief.json()["id"],
+                    "source_rules": {"mode": "selected", "include": ["hh_ru"]},
+                },
             )
             assert response.status_code == 422
             assert "query" in response.json()["detail"].lower()
@@ -42,7 +46,7 @@ async def test_catalog_distinguishes_native_parameters_from_extracted_fields(tmp
     )
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
-            source = (await c.get("/api/v1/sources")).json()[0]
+            source = (await c.get("/api/v1/sources")).json()["items"][0]
             assert "capabilities" in source
             capabilities = source["capabilities"]
             assert capabilities["query_parameters"]["query"] == "native"
@@ -58,7 +62,11 @@ async def test_catalog_distinguishes_native_parameters_from_extracted_fields(tmp
             ).json()
             response = await c.post(
                 "/api/v1/runs",
-                json={"brief_id": brief["id"], "sources": ["hh_ru"], "company_profiles": False},
+                json={
+                    "brief_id": brief["id"],
+                    "source_rules": {"mode": "selected", "include": ["hh_ru"]},
+                    "company_profiles": False,
+                },
             )
             assert response.status_code == 202
             run_id = response.json()["id"]
@@ -96,7 +104,12 @@ async def test_unsupported_operation_is_skipped_and_recorded_not_rejected(tmp_pa
         )
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://localhost") as c:
             response = await c.post(
-                "/api/v1/runs", json={"brief_id": brief["id"], "sources": ["hh_ru"], "company_profiles": True}
+                "/api/v1/runs",
+                json={
+                    "brief_id": brief["id"],
+                    "source_rules": {"mode": "selected", "include": ["hh_ru"]},
+                    "company_profiles": True,
+                },
             )
             assert response.status_code == 202, response.text
             await asyncio.gather(*app.state.engine.tasks.values())

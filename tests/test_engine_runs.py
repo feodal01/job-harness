@@ -114,7 +114,8 @@ async def brief(client, queries, filters=None, name="Бриф"):
 
 async def run(app, client, brief_id, sources=("hh_ru",), **body):
     response = await client.post(
-        "/api/v1/runs", json={"brief_id": brief_id, "sources": list(sources), **body}
+        "/api/v1/runs",
+        json={"brief_id": brief_id, "source_rules": {"mode": "selected", "include": list(sources)}, **body},
     )
     assert response.status_code == 202, response.text
     await asyncio.gather(*app.state.engine.tasks.values())
@@ -248,7 +249,7 @@ async def test_sources_run_in_parallel_and_one_blocked_source_does_not_stop_othe
         assert blocked["sources"]["hh_ru"]["status"] == "blocked"
         assert blocked["sources"]["hh_ru"]["blocked_reason"] == "captcha"
         assert blocked["sources"]["getmatch"]["status"] == "complete"
-        sources = {s["id"]: s for s in (await client.get("/api/v1/sources")).json()}
+        sources = {s["id"]: s for s in (await client.get("/api/v1/sources")).json()["items"]}
         assert sources["hh_ru"]["state"]["status"] == "blocked" and sources["hh_ru"]["type"] == "aggregator"
         assert sources["getmatch"]["state"]["status"] == "ready"
 
@@ -342,7 +343,10 @@ async def test_invalid_saved_brief_does_not_leave_queued_run(tmp_path):
                 "UPDATE briefs SET data=json_set(data, '$.filters.experience_years', -1) WHERE id=?",
                 (b["id"],),
             )
-        response = await client.post("/api/v1/runs", json={"brief_id": b["id"], "sources": ["hh_ru"]})
+        response = await client.post(
+            "/api/v1/runs",
+            json={"brief_id": b["id"], "source_rules": {"mode": "selected", "include": ["hh_ru"]}},
+        )
         assert response.status_code == 422
         assert app.state.database.runs.runs(b["id"]) == []
         assert fake.calls == []
@@ -361,7 +365,12 @@ async def test_active_run_preserves_current_brief_selection_after_edit(tmp_path)
     async with service(tmp_path, handler) as (app, client):
         b = await brief(client, ["QA"])
         response = await client.post(
-            "/api/v1/runs", json={"brief_id": b["id"], "sources": ["hh_ru"], "company_profiles": False}
+            "/api/v1/runs",
+            json={
+                "brief_id": b["id"],
+                "source_rules": {"mode": "selected", "include": ["hh_ru"]},
+                "company_profiles": False,
+            },
         )
         assert response.status_code == 202
         run_id = response.json()["id"]
