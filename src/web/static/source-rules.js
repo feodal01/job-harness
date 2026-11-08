@@ -323,7 +323,8 @@ class SourceRulesEditor {
     ui.sdTotal.classList.toggle("sd-problem", !!problem || !!this.draftError || (preview && !preview.total));
     ui.sdTotal.textContent = problem || this.draftError || (!preview ? "Считаем…" : preview.total
       ? `Будем искать в ${countText(preview.total, "источнике", "источниках", "источниках")}` : "По этому выбору искать негде.");
-    const catalogOk = !preview || ["ok", "not_requested"].includes(preview.catalog.status);
+    // Zero blocks «Готово» unless company sites are chosen and the catalog could not say how many.
+    const catalogOk = !preview || !state.sites || ["ok", "not_requested"].includes(preview.catalog.status);
     ui.sourcesApply.disabled = !!problem || this.draftStale || (!!preview && !preview.total && catalogOk);
     const catalog = this.catalogNote(preview);
     ui.sdCatalogNote.textContent = catalog; ui.sdCatalogNote.hidden = !catalog;
